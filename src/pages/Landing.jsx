@@ -17,18 +17,7 @@ export default function Landing() {
       justifyContent: 'center',
       gap: 24,
     }}>
-      {/* Logo mark */}
-      <div style={{
-        width: 72, height: 72, borderRadius: 18,
-        border: '1px solid #333',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <span style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 36, fontWeight: 700,
-          color: '#fff', letterSpacing: '-0.01em',
-        }}>Q</span>
-      </div>
+      
 
       {/* Wordmark */}
       <h1 style={{
