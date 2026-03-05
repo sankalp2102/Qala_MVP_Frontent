@@ -5,12 +5,14 @@ import Landing from './pages/Landing';
 import Login from './pages/Login';
 import SellerDashboard from './pages/SellerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import Discover from './pages/Discover';
+import DiscoverResults from './pages/DiscoverResults';
 
 function Guard({ role, children }) {
   const { user, loading } = useAuth();
   if (loading) return <Spinner full />;
   if (!user) return <Navigate to="/login" replace />;
-  if (role && user.role !== role) return <Navigate to={user.role==='admin'?'/admin':'/dashboard'} replace />;
+  if (role && user.role !== role) return <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} replace />;
   return children;
 }
 
@@ -19,11 +21,13 @@ function AppRoutes() {
   if (loading) return <Spinner full />;
   return (
     <Routes>
-      <Route path="/"          element={<Landing />} />
-      <Route path="/login"     element={user?<Navigate to={user.role==='admin'?'/admin':'/dashboard'} />:<Login />} />
-      <Route path="/dashboard/*" element={<Guard role="seller"><SellerDashboard /></Guard>} />
-      <Route path="/admin/*"     element={<Guard role="admin"><AdminDashboard /></Guard>} />
-      <Route path="*"          element={<Navigate to="/" />} />
+      <Route path="/"                 element={<Landing />} />
+      <Route path="/login"            element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} /> : <Login />} />
+      <Route path="/discover"         element={<Discover />} />
+      <Route path="/discover/results" element={<DiscoverResults />} />
+      <Route path="/dashboard/*"      element={<Guard role="seller"><SellerDashboard /></Guard>} />
+      <Route path="/admin/*"          element={<Guard role="admin"><AdminDashboard /></Guard>} />
+      <Route path="*"                 element={<Navigate to="/" />} />
     </Routes>
   );
 }

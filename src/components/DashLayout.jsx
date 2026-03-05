@@ -1,5 +1,6 @@
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, NavLink } from 'react-router-dom';
+import qalaLogo from '../assets/qala-logo.png';
 
 export function DashLayout({ children, nav: navItems }) {
   const { user, logout } = useAuth();
@@ -18,13 +19,8 @@ export function DashLayout({ children, nav: navItems }) {
       }}>
         {/* Logo */}
         <div style={{ padding:'22px 20px 18px', borderBottom:'1px solid var(--border)' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:9 }}>
-            <div style={{ width:28, height:28, borderRadius:7, background:'linear-gradient(135deg,var(--gold),var(--gold-d))', display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <span style={{ fontFamily:'var(--font-display)', fontSize:14, fontWeight:700, color:'#0A0A0B' }}>Q</span>
-            </div>
-            <span style={{ fontFamily:'var(--font-display)', fontSize:20, fontWeight:700, color:'var(--text)', letterSpacing:'0.04em' }}>QALA</span>
-          </div>
-          <div style={{ fontSize:11, color:'var(--text4)', marginTop:4, letterSpacing:'0.08em', textTransform:'uppercase', paddingLeft:37 }}>
+          <img src={qalaLogo} alt="Qala" style={{ height: 26, width: 'auto', display: 'block', marginBottom: 6 }} />
+          <div style={{ fontSize:11, color:'var(--text4)', letterSpacing:'0.08em', textTransform:'uppercase' }}>
             {user?.role === 'admin' ? 'Admin Panel' : 'Seller Studio'}
           </div>
         </div>

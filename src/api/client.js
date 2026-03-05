@@ -1,35 +1,47 @@
 import axios from 'axios';
-const BASE = 'http://34.169.72.66:8000';
-const api = axios.create({ baseURL: BASE });
+const BASE = import.meta.env.VITE_API_URL || 'http://34.169.72.66';
+const api = axios.create({ baseURL: BASE, withCredentials: true });
 
 api.interceptors.request.use(cfg => {
   const token = localStorage.getItem('qala_token');
   if (token) cfg.headers.authorization = `Bearer ${token}`;
+  cfg.headers['rid'] = cfg.headers['rid'] || 'session';
   return cfg;
 });
+
 api.interceptors.response.use(r => r, async err => {
   if (err.response?.status === 401) {
     const refresh = localStorage.getItem('qala_refresh');
     if (refresh) {
       try {
-        const res = await axios.post(`${BASE}/auth/session/refresh`, {}, { headers: { 'st-refresh-token': refresh }});
+        const res = await axios.post(`${BASE}/auth/session/refresh`, {}, {
+          headers: { 'st-refresh-token': refresh, 'rid': 'session' },
+          withCredentials: true,
+        });
         const t = res.headers['st-access-token'];
-        if (t) { localStorage.setItem('qala_token', t); err.config.headers.authorization = `Bearer ${t}`; return api.request(err.config); }
-      } catch { localStorage.clear(); window.location.href = '/login'; }
+        if (t) {
+          localStorage.setItem('qala_token', t);
+          err.config.headers.authorization = `Bearer ${t}`;
+          return api.request(err.config);
+        }
+      } catch {
+        localStorage.removeItem('qala_token');
+        localStorage.removeItem('qala_refresh');
+      }
     }
   }
   return Promise.reject(err);
 });
 
 export const authAPI = {
-  signin: (email, password) => axios.post(`${BASE}/auth/signin`,
+  signin:  (email, password) => axios.post(`${BASE}/auth/signin`,
     { formFields: [{ id:'email', value:email }, { id:'password', value:password }] },
-    { headers: { 'Content-Type':'application/json', rid:'emailpassword' } }),
-  signup: (email, password) => axios.post(`${BASE}/auth/signup`,
+    { headers: { 'Content-Type':'application/json', rid:'emailpassword' }, withCredentials: true }),
+  signup:  (email, password) => axios.post(`${BASE}/auth/signup`,
     { formFields: [{ id:'email', value:email }, { id:'password', value:password }] },
-    { headers: { 'Content-Type':'application/json', rid:'emailpassword' } }),
+    { headers: { 'Content-Type':'application/json', rid:'emailpassword' }, withCredentials: true }),
   signout: () => api.post('/auth/signout'),
-  me: () => api.get('/api/me/'),
+  me:      () => api.get('/api/me/'),
 };
 
 const ph = pid => pid ? { 'X-Profile-Id': String(pid) } : {};
@@ -81,4 +93,39 @@ export const adminAPI = {
   getOnboarding: pid => api.get(`/api/admin/seller-profiles/${pid}/onboarding/`),
   flagField:     (pid,d) => api.post(`/api/admin/seller-profiles/${pid}/flag/`, d),
   editSection:   (pid, section, d) => api.patch(`/api/admin/seller-profiles/${pid}/edit/${section}/`, d),
+};
+
+// ─── DISCOVERY API ─────────────────────────────────────────────────────────────
+const SESSION_KEY = 'qala_session_token';
+
+export const discoveryAPI = {
+  getStoredSession: () => localStorage.getItem(SESSION_KEY),
+  saveSession:      token => localStorage.setItem(SESSION_KEY, token),
+  clearSession:     () => localStorage.removeItem(SESSION_KEY),
+
+  getImages: () =>
+    axios.get(`${BASE}/api/discovery/images/`),
+
+  submitReadinessCheck: data =>
+    axios.post(`${BASE}/api/discovery/readiness-check/`, data, {
+      headers: { 'Content-Type': 'application/json' },
+    }),
+
+  getRecommendations: sessionToken =>
+    axios.get(`${BASE}/api/discovery/recommendations/`, {
+      params: { session_token: sessionToken },
+    }),
+
+  editRecommendations: (sessionToken, data) =>
+    axios.post(`${BASE}/api/discovery/recommendations/edit/`, {
+      ...data, session_token: sessionToken,
+    }, { headers: { 'Content-Type': 'application/json' } }),
+
+  getSession: sessionToken =>
+    axios.get(`${BASE}/api/discovery/session/`, {
+      params: { session_token: sessionToken },
+    }),
+
+  linkSession: sessionToken =>
+    api.post('/api/discovery/link-session/', { session_token: sessionToken }),
 };

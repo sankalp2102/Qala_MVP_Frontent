@@ -1,48 +1,297 @@
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useEffect } from 'react';
+import { discoveryAPI } from '../api/client';
+import qalaLogo from '../assets/qala-logo.png';
+
+// Animated weave background using canvas
+function WeaveCanvas() {
+  const ref = useRef();
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let raf;
+    let t = 0;
+
+    const resize = () => {
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    const draw = () => {
+      const { width: W, height: H } = canvas;
+      ctx.clearRect(0, 0, W, H);
+
+      const cols = 28;
+      const rows = 18;
+      const cw = W / cols;
+      const ch = H / rows;
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const phase = (c + r) * 0.4 + t;
+          const alpha = (Math.sin(phase) * 0.5 + 0.5) * 0.045 + 0.01;
+          const isWarp = (c + r) % 2 === 0;
+          ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+          ctx.lineWidth = isWarp ? 1 : 0.5;
+          ctx.beginPath();
+          if (isWarp) {
+            ctx.moveTo(c * cw + cw / 2, r * ch);
+            ctx.lineTo(c * cw + cw / 2, (r + 1) * ch);
+          } else {
+            ctx.moveTo(c * cw, r * ch + ch / 2);
+            ctx.lineTo((c + 1) * cw, r * ch + ch / 2);
+          }
+          ctx.stroke();
+        }
+      }
+      t += 0.008;
+      raf = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); };
+  }, []);
+  return <canvas ref={ref} style={{ position:'absolute', inset:0, zIndex:0, pointerEvents:'none' }} />;
+}
 
 export default function Landing() {
   const nav = useNavigate();
   const { user } = useAuth();
-  useEffect(() => { if (user) nav(user.role === 'admin' ? '/admin' : '/dashboard'); }, [user]);
+  const [hasSession, setHasSession] = useState(false);
+  const [visible, setVisible]       = useState(false);
+
+  useEffect(() => {
+    if (user) { nav(user.role === 'admin' ? '/admin' : '/dashboard'); return; }
+    const tok = discoveryAPI.getStoredSession();
+    if (tok) setHasSession(true);
+    setTimeout(() => setVisible(true), 80);
+  }, [user]);
+
+  const S = {
+    page: {
+      minHeight: '100vh', background: '#000', overflow: 'hidden',
+      display: 'flex', flexDirection: 'column',
+      position: 'relative',
+    },
+    hero: {
+      flex: 1, position: 'relative', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      minHeight: '100vh', padding: '80px 24px 60px',
+    },
+    nav: {
+      position: 'absolute', top: 0, left: 0, right: 0,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '28px 48px', zIndex: 10,
+    },
+    logo: {
+      display: 'flex', alignItems: 'center', gap: 10,
+      fontFamily: 'var(--font-display)', fontSize: 22,
+      fontWeight: 700, color: '#fff', letterSpacing: '0.1em',
+    },
+    logoMark: {
+      width: 32, height: 32, borderRadius: 8,
+      border: '1px solid rgba(255,255,255,0.2)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: 16, fontFamily: 'var(--font-display)', fontWeight: 700,
+    },
+    loginLink: {
+      fontSize: 12, color: 'var(--text3)', letterSpacing: '0.08em',
+      textTransform: 'uppercase', cursor: 'pointer', fontWeight: 500,
+      border: '1px solid var(--border)', borderRadius: 6, padding: '6px 14px',
+      background: 'none', transition: 'color 0.2s, border-color 0.2s',
+    },
+    eyebrow: {
+      display: 'inline-flex', alignItems: 'center', gap: 8,
+      border: '1px solid rgba(255,255,255,0.12)', borderRadius: 20,
+      padding: '5px 14px', fontSize: 11, color: 'var(--text3)',
+      letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500,
+      marginBottom: 32,
+    },
+    dot: {
+      width: 5, height: 5, borderRadius: '50%',
+      background: '#fff', opacity: 0.4,
+      animation: 'pulse 2s ease-in-out infinite',
+    },
+    headline: {
+      fontFamily: 'var(--font-display)', fontSize: 'clamp(38px, 5.5vw, 80px)',
+      fontWeight: 700, color: '#fff', lineHeight: 1.08,
+      textAlign: 'center', maxWidth: 820, marginBottom: 20,
+      letterSpacing: '-0.01em',
+    },
+    sub: {
+      fontSize: 'clamp(13px, 1.5vw, 16px)', color: 'var(--text3)',
+      textAlign: 'center', letterSpacing: '0.18em',
+      textTransform: 'uppercase', fontWeight: 400, marginBottom: 52,
+    },
+    ctaWrap: {
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
+    },
+    cta: {
+      padding: '16px 48px', background: '#fff', color: '#000',
+      border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 700,
+      letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer',
+      transition: 'transform 0.2s, box-shadow 0.2s, background 0.2s',
+      fontFamily: 'var(--font-body)',
+    },
+    resumeChip: {
+      display: 'flex', alignItems: 'center', gap: 8,
+      border: '1px solid rgba(255,255,255,0.15)', borderRadius: 20,
+      padding: '8px 18px', cursor: 'pointer', background: 'rgba(255,255,255,0.04)',
+      fontSize: 12, color: 'var(--text2)', transition: 'border-color 0.2s',
+      fontFamily: 'var(--font-body)',
+    },
+    // Process strip
+    strip: {
+      borderTop: '1px solid rgba(255,255,255,0.06)',
+      padding: '60px 48px 72px',
+      display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+      gap: 0, position: 'relative', zIndex: 1,
+    },
+    stepNum: {
+      fontFamily: 'var(--font-display)', fontSize: 48, fontWeight: 700,
+      color: 'rgba(255,255,255,0.04)', lineHeight: 1, marginBottom: 16,
+      letterSpacing: '-0.02em',
+    },
+    stepLabel: {
+      fontSize: 10, fontWeight: 600, color: 'var(--text3)',
+      letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12,
+    },
+    stepTitle: {
+      fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 600,
+      color: '#fff', marginBottom: 10, letterSpacing: '-0.01em',
+    },
+    stepDesc: {
+      fontSize: 13, color: 'var(--text3)', lineHeight: 1.7, maxWidth: 260,
+    },
+    stepDivider: {
+      position: 'absolute', top: '50%', width: 1,
+      height: 80, background: 'rgba(255,255,255,0.06)',
+      transform: 'translateY(-50%)',
+    },
+  };
+
+  const transBase = {
+    transition: 'opacity 0.7s ease, transform 0.7s ease',
+    opacity: visible ? 1 : 0,
+    transform: visible ? 'none' : 'translateY(24px)',
+  };
+
+  const steps = [
+    { num: '01', label: 'Discover', title: 'Tell us what\nyou\'re looking for', desc: 'Answer 8 questions about your project — fabrics, crafts, batch size, and aesthetic direction.' },
+    { num: '02', label: 'Connect', title: 'Get matched with\nthe right studios', desc: 'Our algorithm finds 3-5 studios best suited to your specific needs and production stage.' },
+    { num: '03', label: 'Create', title: 'Bring your\ncollection to life', desc: 'Connect directly with studios, get a call-back, and start your manufacturing journey.' },
+  ];
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#000',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 24,
-    }}>
-      
+    <div style={S.page}>
+      <style>{`
+        @keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+        @keyframes floatY { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+        .cta-btn:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 40px rgba(255,255,255,0.2) !important; }
+        .cta-btn:active { transform: translateY(0) !important; }
+        .resume-chip:hover { border-color: rgba(255,255,255,0.3) !important; }
+        .login-link:hover { color: #fff !important; border-color: rgba(255,255,255,0.3) !important; }
+        @media (max-width: 768px) {
+          .process-strip { grid-template-columns: 1fr !important; padding: 48px 24px !important; gap: 40px !important; }
+          .step-divider { display: none !important; }
+          .nav-wrap { padding: 20px 24px !important; }
+        }
+      `}</style>
 
-      {/* Wordmark */}
-      <h1 style={{
-        fontFamily: 'var(--font-display)',
-        fontSize: 48, fontWeight: 700,
-        color: '#fff', letterSpacing: '0.12em',
-        margin: 0,
-      }}>QALA</h1>
+      {/* Nav */}
+      <div style={S.nav} className="nav-wrap">
+        <div style={S.logo}>
+          <img src={qalaLogo} alt="Qala" style={{ height: 90, width: 'auto', display: 'block' }} />
+        </div>
+        <button
+          className="login-link"
+          style={S.loginLink}
+          onClick={() => nav('/login')}
+        >
+          Studio Login
+        </button>
+      </div>
 
-      {/* Enter link — minimal */}
-      <button
-        onClick={() => nav('/login')}
-        style={{
-          marginTop: 16,
-          background: 'none', border: '1px solid #333',
-          color: '#606060', padding: '10px 28px',
-          borderRadius: 8, fontSize: 13, cursor: 'pointer',
-          fontFamily: 'var(--font-body)', letterSpacing: '0.06em',
-          transition: 'border-color .2s, color .2s',
-        }}
-        onMouseEnter={e => { e.target.style.borderColor = '#fff'; e.target.style.color = '#fff'; }}
-        onMouseLeave={e => { e.target.style.borderColor = '#333'; e.target.style.color = '#606060'; }}
-      >
-        Enter
-      </button>
+      {/* Hero */}
+      <section style={S.hero}>
+        <WeaveCanvas />
+
+        {/* Radial glow */}
+        <div style={{
+          position: 'absolute', top: '40%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 600, height: 400,
+          background: 'radial-gradient(ellipse, rgba(255,255,255,0.04) 0%, transparent 70%)',
+          pointerEvents: 'none', zIndex: 0,
+        }} />
+
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ ...S.eyebrow, ...transBase, transitionDelay: '0s' }}>
+            <div style={S.dot} />
+            Craft Marketplace · India
+          </div>
+
+          <h1 style={{ ...S.headline, ...transBase, transitionDelay: '0.1s' }}>
+            Your one-stop to<br />
+            <em style={{ color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>manufacturing</em> in India —<br />
+            from idea to production.
+          </h1>
+
+          <p style={{ ...S.sub, ...transBase, transitionDelay: '0.2s' }}>
+            Artisanal&nbsp;&nbsp;·&nbsp;&nbsp;Ethical&nbsp;&nbsp;·&nbsp;&nbsp;Sustainable
+          </p>
+
+          <div style={{ ...S.ctaWrap, ...transBase, transitionDelay: '0.3s' }}>
+            <button
+              className="cta-btn"
+              style={S.cta}
+              onClick={() => nav('/discover')}
+            >
+              Tell us what you're looking for →
+            </button>
+
+            {hasSession && (
+              <button
+                className="resume-chip"
+                style={S.resumeChip}
+                onClick={() => nav('/discover/results')}
+              >
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)', flexShrink: 0 }} />
+                Continue where you left off
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Scroll indicator */}
+        <div style={{
+          position: 'absolute', bottom: 32, left: '50%', transform: 'translateX(-50%)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+          opacity: 0.3, animation: 'floatY 2.5s ease-in-out infinite',
+        }}>
+          <div style={{ width: 1, height: 40, background: '#fff' }} />
+          <span style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#fff' }}>Scroll</span>
+        </div>
+      </section>
+
+      {/* Process Strip */}
+      <section style={S.strip} className="process-strip">
+        {steps.map((step, i) => (
+          <div key={i} style={{ padding: '0 40px', position: 'relative' }}>
+            {/* Divider between steps */}
+            {i > 0 && (
+              <div className="step-divider" style={{ ...S.stepDivider, left: 0 }} />
+            )}
+            <div style={S.stepNum}>{step.num}</div>
+            <div style={S.stepLabel}>{step.label}</div>
+            <div style={S.stepTitle}>{step.title.split('\n').map((l, j) => <span key={j}>{l}{j === 0 && <br />}</span>)}</div>
+            <p style={S.stepDesc}>{step.desc}</p>
+          </div>
+        ))}
+      </section>
     </div>
   );
 }

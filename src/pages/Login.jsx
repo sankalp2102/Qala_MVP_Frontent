@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../api/client';
+import qalaLogo from '../assets/qala-logo.png';
 
 export default function Login() {
   const [tab, setTab]     = useState('signin');
@@ -48,19 +49,41 @@ export default function Login() {
         {/* gold line top */}
         <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg, transparent, var(--gold), transparent)' }} />
 
-        
+        {/* logo */}
+        <Link to="/" style={{ display:'flex', alignItems:'center', textDecoration:'none' }}>
+          <img src={qalaLogo} alt="Qala" style={{ height: 36, width: 'auto', display: 'block' }} />
+        </Link>
 
         {/* main copy */}
         <div>
-          
+          <div style={{ display:'inline-block', background:'var(--gold-dim)', border:'1px solid rgba(200,165,90,0.2)', borderRadius:20, padding:'4px 14px', fontSize:11, color:'var(--gold)', fontWeight:600, letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:24 }}>
+            Craft Marketplace
+          </div>
           <h2 style={{ fontFamily:'var(--font-display)', fontSize:54, fontWeight:700, lineHeight:1.1, color:'var(--text)', marginBottom:20 }}>
-            The craft<br/>marketplace<br/> <em style={{ color:'var(--gold)' }}></em>
+            The craft<br/>marketplace<br/>for <em style={{ color:'var(--gold)' }}>India.</em>
           </h2>
-          
+          <p style={{ color:'var(--text3)', fontSize:15, lineHeight:1.8, maxWidth:380 }}>
+            From hand block printing in Jaipur to Chanderi weaving in Madhya Pradesh — your studio deserves to be discovered.
+          </p>
         </div>
 
         {/* account type guide */}
-        
+        <div style={{ background:'var(--surface)', border:'1px solid var(--border2)', borderRadius:'var(--radius)', padding:'18px 20px' }}>
+          <div style={{ fontSize:11, fontWeight:600, color:'var(--text3)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:14 }}>Account Types</div>
+          {[
+            { icon:'🎨', type:'Seller', note:'Created by admin — sign in to fill your profile' },
+            { icon:'👜', type:'Buyer',  note:'Self signup — create account on the right' },
+            { icon:'⚙️', type:'Admin',  note:'Use your admin credentials to sign in' },
+          ].map(a => (
+            <div key={a.type} style={{ display:'flex', gap:10, alignItems:'flex-start', marginBottom:10 }}>
+              <span style={{ fontSize:14, marginTop:1 }}>{a.icon}</span>
+              <div>
+                <span style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>{a.type}</span>
+                <span style={{ fontSize:12, color:'var(--text3)', marginLeft:8 }}>{a.note}</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* RIGHT PANEL — form */}
