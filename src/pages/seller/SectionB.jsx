@@ -140,7 +140,7 @@ export default function SectionB({ profileId, onSave }) {
       <Toast toasts={toasts} />
       <div className="fade-up" style={{ marginBottom: 36 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 11, background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🧵</div>
+          <div style={{ width: 44, height: 44, borderRadius: 11, background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}></div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Section B</div>
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 700, color: 'var(--text)' }}>Products & Fabrics</h1>
@@ -196,7 +196,7 @@ export default function SectionB({ profileId, onSave }) {
                     fontWeight: on ? 600 : 400, transition: 'all .15s',
                     fontFamily: 'var(--font-body)',
                   }}>
-                    {on ? '✓ ' : ''}{f}
+                    {f}
                   </button>
                 );
               })}
@@ -266,7 +266,7 @@ export default function SectionB({ profileId, onSave }) {
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                     <button onClick={() => setFabricPrimary(f, 'other_custom', isPrimary ? null : true)} style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-body)', border: `1px solid ${isPrimary ? 'rgba(255,255,255,0.3)' : 'var(--border2)'}`, background: isPrimary ? 'var(--gold-dim)' : 'transparent', color: isPrimary ? 'var(--gold)' : 'var(--text4)', fontWeight: isPrimary ? 600 : 400 }}>Primary</button>
                     <button onClick={() => setFabricPrimary(f, 'other_custom', isSecondary ? null : false)} style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-body)', border: `1px solid ${isSecondary ? 'var(--border3)' : 'var(--border2)'}`, background: isSecondary ? 'var(--surface4)' : 'transparent', color: isSecondary ? 'var(--text2)' : 'var(--text4)', fontWeight: isSecondary ? 600 : 400 }}>Secondary</button>
-                    <button onClick={() => setFabrics(fbs => { const n = { ...fbs }; delete n[f]; return n; })} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 15, padding: '2px 4px' }}>✕</button>
+                    <button onClick={() => setFabrics(fbs => { const n = { ...fbs }; delete n[f]; return n; })} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 15, padding: '2px 4px' }}>×</button>
                   </div>
                 </div>
                 <textarea value={entry.innovation_note || ''} onChange={e => setFabrics(fbs => ({ ...fbs, [f]: { ...fbs[f], innovation_note: e.target.value } }))} rows={2}
@@ -316,7 +316,7 @@ export default function SectionB({ profileId, onSave }) {
             <div>
               <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{b.brand_name}</div>
               {b.scope && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>{b.scope}</div>}
-              {b.file_name && <div style={{ fontSize: 11, color: 'var(--teal)', marginTop: 3 }}>📎 {b.file_name}</div>}
+              {b.file_name && <div style={{ fontSize: 11, color: 'var(--teal)', marginTop: 3 }}>{b.file_name}</div>}
             </div>
             <button className="btn btn-danger btn-sm" onClick={() => delBrand(b.id)}>Remove</button>
           </div>
@@ -336,7 +336,7 @@ export default function SectionB({ profileId, onSave }) {
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>Brand Logo / Image (optional)</div>
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
               <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setBrandImg(e.target.files[0])} style={{ display: 'none' }} />
-              <span className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>{brandImg ? `📎 ${brandImg.name}` : '+ Attach Image'}</span>
+              <span className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>{brandImg ? brandImg.name : '+ Attach Image'}</span>
             </label>
           </div>
           <button className="btn btn-outline btn-sm" onClick={addBrand}>+ Add Brand</button>
@@ -351,7 +351,7 @@ export default function SectionB({ profileId, onSave }) {
         {awards.map(a => (
           <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--radius)', marginBottom: 8, border: '1px solid var(--border)' }}>
             <div>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>🏆 {a.award_name}</div>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>{a.award_name}</div>
               {a.link && <a href={a.link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--gold)' }}>View →</a>}
             </div>
             <button className="btn btn-danger btn-sm" onClick={() => onboardingAPI.delAward(profileId, a.id).then(() => setAwards(x => x.filter(y => y.id !== a.id)))}>Remove</button>
@@ -373,7 +373,7 @@ export default function SectionB({ profileId, onSave }) {
       </CardSection>
 
       <button className="btn btn-primary btn-lg fade-up" onClick={save} disabled={saving}>
-        {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : '✓ Save Section B'}
+        {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save Section B'}
       </button>
     </div>
   );

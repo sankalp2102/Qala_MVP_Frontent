@@ -18,12 +18,12 @@ function statusBadge(s) {
 }
 
 const SECTIONS = [
-  { key:'a', label:'Studio Details',    path:'studio',      icon:'🏛️', desc:'Name, location, contacts, portfolio, USPs' },
-  { key:'b', label:'Products & Fabrics',path:'products',    icon:'🧵', desc:'21 garment types, 40+ fabrics, brands, awards' },
-  { key:'c', label:'Crafts',            path:'crafts',      icon:'✋', desc:'Specializations, timelines, innovation scoring' },
-  { key:'d', label:'Collaboration',     path:'collab',      icon:'🤝', desc:'Designer, sampling rounds, buyer requirements' },
-  { key:'e', label:'Production Scale',  path:'production',  icon:'🏭', desc:'Monthly capacity, MOQ conditions' },
-  { key:'f', label:'Process',           path:'process',     icon:'⚙️', desc:'Production steps, behind-the-scenes media' },
+  { key:'a', label:'Studio Details',    path:'studio',      icon:'', desc:'Name, location, contacts, portfolio, USPs' },
+  { key:'b', label:'Products & Fabrics',path:'products',    icon:'', desc:'21 garment types, 40+ fabrics, brands, awards' },
+  { key:'c', label:'Crafts',            path:'crafts',      icon:'', desc:'Specializations, timelines, innovation scoring' },
+  { key:'d', label:'Collaboration',     path:'collab',      icon:'', desc:'Designer, sampling rounds, buyer requirements' },
+  { key:'e', label:'Production Scale',  path:'production',  icon:'', desc:'Monthly capacity, MOQ conditions' },
+  { key:'f', label:'Process',           path:'process',     icon:'', desc:'Production steps, behind-the-scenes media' },
 ];
 
 function Overview({ snapshot, flags }) {
@@ -50,7 +50,6 @@ function Overview({ snapshot, flags }) {
       {/* Flags */}
       {flags?.total_flags > 0 && (
         <div className="flag-banner fade-up">
-          <span style={{ fontSize:18 }}>🚩</span>
           <div>
             <strong style={{ display:'block', marginBottom:6 }}>{flags.total_flags} field{flags.total_flags > 1 ? 's' : ''} flagged by admin</strong>
             {flags.flags?.map((f, i) => (
@@ -76,7 +75,7 @@ function Overview({ snapshot, flags }) {
         <div className="prog-bar" style={{ height:6 }}><div className="prog-bar-fill" style={{ width:`${pct}%` }} /></div>
         {pct === 100 && (
           <div style={{ marginTop:12, fontSize:13, color:'var(--green)', display:'flex', gap:6, alignItems:'center' }}>
-            ✓ Profile complete — visible to buyers
+            Profile complete — visible to buyers
           </div>
         )}
       </div>
@@ -103,7 +102,7 @@ function Overview({ snapshot, flags }) {
               </div>
               <p style={{ fontSize:12, color:'var(--text3)', marginBottom:16, lineHeight:1.6 }}>{sec.desc}</p>
               <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color: done ? 'var(--gold)' : 'var(--text3)', fontWeight: done ? 600 : 400 }}>
-                {done ? '✓ Complete' : st === 'in_progress' ? '↻ In Progress' : '→ Start'}
+                {done ? 'Complete' : st === 'in_progress' ? '↻ In Progress' : '→ Start'}
               </div>
             </div>
           );
@@ -129,13 +128,13 @@ export default function SellerDashboard() {
 
   const status = snapshot?.status;
   const navItems = [
-    { to:'/dashboard',            icon:'🏠', label:'Overview' },
-    { to:'/dashboard/studio',     icon:'🏛️', label:'A — Studio',     badge: status?.section_a_status === 'flagged' ? { type:'red', text:'!' } : null },
-    { to:'/dashboard/products',   icon:'🧵', label:'B — Products',   badge: status?.section_b_status === 'flagged' ? { type:'red', text:'!' } : null },
-    { to:'/dashboard/crafts',     icon:'✋', label:'C — Crafts',     badge: status?.section_c_status === 'flagged' ? { type:'red', text:'!' } : null },
-    { to:'/dashboard/collab',     icon:'🤝', label:'D — Collab',     badge: status?.section_d_status === 'flagged' ? { type:'red', text:'!' } : null },
-    { to:'/dashboard/production', icon:'🏭', label:'E — Production', badge: status?.section_e_status === 'flagged' ? { type:'red', text:'!' } : null },
-    { to:'/dashboard/process',    icon:'⚙️', label:'F — Process',    badge: status?.section_f_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard',            icon:'', label:'Overview' },
+    { to:'/dashboard/studio',     icon:'', label:'A — Studio',     badge: status?.section_a_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard/products',   icon:'', label:'B — Products',   badge: status?.section_b_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard/crafts',     icon:'', label:'C — Crafts',     badge: status?.section_c_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard/collab',     icon:'', label:'D — Collab',     badge: status?.section_d_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard/production', icon:'', label:'E — Production', badge: status?.section_e_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard/process',    icon:'', label:'F — Process',    badge: status?.section_f_status === 'flagged' ? { type:'red', text:'!' } : null },
   ].filter(n => n.badge !== null || true).map(n => ({ ...n, badge: n.badge || undefined }));
 
   return (

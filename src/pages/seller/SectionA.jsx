@@ -43,7 +43,7 @@ function FlagBanner({ reason }) {
   if (!reason) return null;
   return (
     <div style={{ background: 'var(--red-dim)', border: '1px solid rgba(224,85,85,0.25)', borderLeft: '3px solid var(--red)', borderRadius: 'var(--radius)', padding: '8px 12px', fontSize: 12, color: 'var(--red)', marginBottom: 8 }}>
-      🚩 Admin flagged: {reason}
+      Admin flagged: {reason}
     </div>
   );
 }
@@ -156,7 +156,7 @@ export default function SectionA({ profileId, onSave }) {
   return (
     <div style={{ padding: '40px 48px', maxWidth: 760 }}>
       <Toast toasts={toasts} />
-      <SectionHeader icon="🏛️" letter="A" title="Studio Details" desc="Your studio's identity, location, media, and point of contact." />
+      <SectionHeader icon="" letter="A" title="Studio Details" desc="Your studio's identity, location, media, and point of contact." />
 
       {/* A.1 Studio Name */}
       <CardSection title="A.1 — Studio / Brand Name">
@@ -219,7 +219,7 @@ export default function SectionA({ profileId, onSave }) {
                 {c.phone && <span>{c.phone}</span>}
               </div>
               {c.is_flagged && !c.flag_resolved && (
-                <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>🚩 {c.flag_reason}</div>
+                <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>{c.flag_reason}</div>
               )}
             </div>
             <button className="btn btn-danger btn-sm" onClick={() => delContact(c.id)}>Remove</button>
@@ -269,7 +269,6 @@ export default function SectionA({ profileId, onSave }) {
         </p>
         {heroMedia ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', marginBottom: 12 }}>
-            <span style={{ fontSize: 20 }}>🖼️</span>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{heroMedia.file_name}</div>
               <div style={{ fontSize: 11, color: 'var(--text3)' }}>{heroMedia.mime_type} · {heroMedia.file_size_kb} KB</div>
@@ -295,9 +294,9 @@ export default function SectionA({ profileId, onSave }) {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
             {workMedia.map(m => (
               <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--surface2)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', fontSize: 12 }}>
-                <span>{m.mime_type?.startsWith('video') ? '🎥' : '🖼️'}</span>
+                <span>{m.mime_type?.startsWith('video') ? 'Video' : 'Image'}</span>
                 <span style={{ color: 'var(--text2)' }}>{m.file_name}</span>
-                <button onClick={() => delMedia(m.id, 'work_dump')} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 13, padding: 0 }}>✕</button>
+                <button onClick={() => delMedia(m.id, 'work_dump')} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 13, padding: 0 }}>×</button>
               </div>
             ))}
           </div>
@@ -312,7 +311,7 @@ export default function SectionA({ profileId, onSave }) {
       </CardSection>
 
       <button className="btn btn-primary btn-lg fade-up" onClick={save} disabled={saving}>
-        {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : '✓ Save Section A'}
+        {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save Section A'}
       </button>
     </div>
   );

@@ -14,7 +14,7 @@ function CardSection({ title, children }) {
 
 function FlagBanner({ reason }) {
   if (!reason) return null;
-  return <div style={{ background: 'var(--red-dim)', border: '1px solid rgba(224,85,85,0.25)', borderLeft: '3px solid var(--red)', borderRadius: 'var(--radius)', padding: '8px 12px', fontSize: 12, color: 'var(--red)', marginBottom: 12 }}>🚩 Admin flagged: {reason}</div>;
+  return <div style={{ background: 'var(--red-dim)', border: '1px solid rgba(224,85,85,0.25)', borderLeft: '3px solid var(--red)', borderRadius: 'var(--radius)', padding: '8px 12px', fontSize: 12, color: 'var(--red)', marginBottom: 12 }}>Admin flagged: {reason}</div>;
 }
 
 export default function SectionE({ profileId, onSave }) {
@@ -56,7 +56,7 @@ export default function SectionE({ profileId, onSave }) {
       <Toast toasts={toasts} />
       <div className="fade-up" style={{ marginBottom: 36 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 11, background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🏭</div>
+          <div style={{ width: 44, height: 44, borderRadius: 11, background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}></div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Section E</div>
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 700, color: 'var(--text)' }}>Production Scale</h1>
@@ -112,7 +112,7 @@ export default function SectionE({ profileId, onSave }) {
               <input className="input-raw" placeholder="MOQ condition (e.g. Min 30 pcs per colourway)" value={m.moq_condition}
                 onChange={e => setMoqs(a => a.map((x, j) => j === i ? { ...x, moq_condition: e.target.value } : x))} />
               <button onClick={() => setMoqs(a => a.filter((_, j) => j !== i))}
-                style={{ background: 'var(--red-dim)', border: '1px solid rgba(224,85,85,0.2)', color: 'var(--red)', borderRadius: 'var(--radius)', cursor: 'pointer', padding: '0 10px', fontSize: 16 }}>✕</button>
+                style={{ background: 'var(--red-dim)', border: '1px solid rgba(224,85,85,0.2)', color: 'var(--red)', borderRadius: 'var(--radius)', cursor: 'pointer', padding: '0 10px', fontSize: 16 }}>×</button>
             </div>
           ))}
           <button className="btn btn-outline btn-sm" style={{ marginTop: 4 }} onClick={() => setMoqs(a => [...a, { order: a.length + 1, craft_or_category: '', moq_condition: '' }])}>
@@ -122,7 +122,7 @@ export default function SectionE({ profileId, onSave }) {
       </CardSection>
 
       <button className="btn btn-primary btn-lg fade-up" onClick={save} disabled={saving}>
-        {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : '✓ Save Section E'}
+        {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save Section E'}
       </button>
     </div>
   );

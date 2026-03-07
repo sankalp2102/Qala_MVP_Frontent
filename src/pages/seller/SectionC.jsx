@@ -113,7 +113,7 @@ export default function SectionC({ profileId, onSave }) {
       <Toast toasts={toasts} />
       <div className="fade-up" style={{ marginBottom: 36 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 11, background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>✋</div>
+          <div style={{ width: 44, height: 44, borderRadius: 11, background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}></div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Section C</div>
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 700, color: 'var(--text)' }}>Crafts & Specializations</h1>
@@ -134,14 +134,14 @@ export default function SectionC({ profileId, onSave }) {
               {c.specialization && <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 10, lineHeight: 1.6 }}>{c.specialization}</p>}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: 12 }}>
                 {c.innovation_level && <span style={{ color: innovColor[c.innovation_level] }}>◆ {c.innovation_level} innovation</span>}
-                {c.sampling_time_weeks && <span style={{ color: 'var(--text3)' }}>⏱ {c.sampling_time_weeks} wk sampling</span>}
-                {c.production_timeline_months_50units && <span style={{ color: 'var(--text3)' }}>🏭 {c.production_timeline_months_50units} mo for 50 units</span>}
-                {c.delay_likelihood && <span style={{ color: delayColor[c.delay_likelihood] }}>⚠ {c.delay_likelihood} delay risk</span>}
+                {c.sampling_time_weeks && <span style={{ color: 'var(--text3)' }}>{c.sampling_time_weeks} wk sampling</span>}
+                {c.production_timeline_months_50units && <span style={{ color: 'var(--text3)' }}>{c.production_timeline_months_50units} mo for 50 units</span>}
+                {c.delay_likelihood && <span style={{ color: delayColor[c.delay_likelihood] }}>{c.delay_likelihood} delay risk</span>}
               </div>
-              {c.limitations && <p style={{ fontSize: 12, color: 'var(--text4)', marginTop: 4 }}>⚠ Technique limits: {c.limitations}</p>}
-              {c.fabric_limitations && <p style={{ fontSize: 12, color: 'var(--text4)', marginTop: 2 }}>🧵 Fabric limits: {c.fabric_limitations}</p>}
-              {c.file_name && <p style={{ fontSize: 11, color: 'var(--teal)', marginTop: 6 }}>📎 {c.file_name}</p>}
-              {c.is_flagged && !c.flag_resolved && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 8 }}>🚩 Admin flagged: {c.flag_reason}</div>}
+              {c.limitations && <p style={{ fontSize: 12, color: 'var(--text4)', marginTop: 4 }}>Technique limits: {c.limitations}</p>}
+              {c.fabric_limitations && <p style={{ fontSize: 12, color: 'var(--text4)', marginTop: 2 }}>Fabric limits: {c.fabric_limitations}</p>}
+              {c.file_name && <p style={{ fontSize: 11, color: 'var(--teal)', marginTop: 6 }}>{c.file_name}</p>}
+              {c.is_flagged && !c.flag_resolved && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 8 }}>Admin flagged: {c.flag_reason}</div>}
             </div>
             <button className="btn btn-danger btn-sm" style={{ marginLeft: 16 }} onClick={() => delCraft(c.id)}>Remove</button>
           </div>
@@ -227,7 +227,7 @@ export default function SectionC({ profileId, onSave }) {
               <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                 <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setDraft(d => ({ ...d, image: e.target.files[0] }))} style={{ display: 'none' }} />
                 <span className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
-                  {draft.image ? `📎 ${draft.image.name}` : '+ Attach Image'}
+                  {draft.image ? draft.image.name : '+ Attach Image'}
                 </span>
               </label>
             </div>
@@ -248,7 +248,7 @@ export default function SectionC({ profileId, onSave }) {
 
       {crafts.length > 0 && !adding && (
         <button className="btn btn-primary btn-lg" onClick={submit} disabled={submitting}>
-          {submitting ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Submitting…</> : '✓ Submit Section C'}
+          {submitting ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Submitting…</> : 'Submit Section C'}
         </button>
       )}
     </div>

@@ -80,7 +80,6 @@ function Overview() {
       {/* Profile list */}
       {profiles.length === 0 ? (
         <div className="card" style={{ textAlign:'center', padding:56 }}>
-          <div style={{ fontSize:48, marginBottom:16 }}>📋</div>
           <p style={{ color:'var(--text3)', marginBottom:20 }}>No seller profiles yet.</p>
           <button className="btn btn-primary" onClick={()=>nav('create-seller')}>+ Create Seller Account</button>
         </div>
@@ -223,14 +222,14 @@ function ProfileReview() {
               className="btn btn-ghost btn-sm"
               style={{ fontSize:11 }}
               onClick={() => { setFlagForm(f=>({...f, model})); setShowFlag(true); setEditing(false); }}>
-              🚩 Flag
+              Flag
             </button>
             {MODEL_TO_SECTION[model] && (
               <button
                 className="btn btn-ghost btn-sm"
                 style={{ fontSize:11, color: editing ? 'var(--text3)' : 'var(--teal)', borderColor: editing ? 'var(--border)' : 'var(--teal)' }}
                 onClick={() => editing ? setEditing(false) : startEdit()}>
-                {editing ? '✕ Cancel' : '✏️ Edit'}
+                {editing ? 'Cancel' : 'Edit'}
               </button>
             )}
           </div>
@@ -240,7 +239,7 @@ function ProfileReview() {
         {editing ? (
           <div style={{ background:'var(--surface2)', borderRadius:'var(--radius)', padding:'16px 18px', marginBottom:8, border:'1px solid var(--teal)', borderOpacity:0.3 }}>
             <div style={{ fontSize:11, fontWeight:600, color:'var(--teal)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:14 }}>
-              ✏️ Editing — changes save directly to seller's profile
+              Editing — changes save directly to seller's profile
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
               {editableKeys.map(([k]) => (
@@ -256,7 +255,7 @@ function ProfileReview() {
             </div>
             <div style={{ display:'flex', gap:8 }}>
               <button className="btn btn-primary btn-sm" onClick={saveEdit} disabled={saving}>
-                {saving ? <span className="spinner" style={{width:13,height:13}} /> : '💾 Save Changes'}
+                {saving ? <span className="spinner" style={{width:13,height:13}} /> : 'Save Changes'}
               </button>
               <button className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>Cancel</button>
             </div>
@@ -316,13 +315,13 @@ function ProfileReview() {
                 <span style={{ fontWeight:600, fontSize:14, color:'var(--text)' }}>{c.craft_name}</span>
                 {c.is_primary && <span className="badge badge-gold" style={{ fontSize:10 }}>Primary</span>}
                 {c.innovation_level && <span className="badge badge-gray" style={{ fontSize:10 }}>{c.innovation_level} innovation</span>}
-                {c.sampling_time_weeks && <span style={{ fontSize:12, color:'var(--text3)' }}>⏱ {c.sampling_time_weeks}wk</span>}
+                {c.sampling_time_weeks && <span style={{ fontSize:12, color:'var(--text3)' }}>{c.sampling_time_weeks}wk</span>}
               </div>
               <button
                 className="btn btn-ghost btn-sm"
                 style={{ fontSize:11, color: editingId===c.id ? 'var(--text3)' : 'var(--teal)', borderColor: editingId===c.id ? 'var(--border)' : 'var(--teal)' }}
                 onClick={() => editingId===c.id ? setEditingId(null) : startEdit(c)}>
-                {editingId===c.id ? '✕ Cancel' : '✏️ Edit'}
+                {editingId===c.id ? 'Cancel' : 'Edit'}
               </button>
             </div>
 
@@ -335,7 +334,7 @@ function ProfileReview() {
             {editingId === c.id && (
               <div>
                 <div style={{ fontSize:11, fontWeight:600, color:'var(--teal)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:12 }}>
-                  ✏️ Editing craft
+                  Editing craft
                 </div>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12 }}>
                   {craftEditableKeys(c).map(([k]) => (
@@ -351,7 +350,7 @@ function ProfileReview() {
                 </div>
                 <div style={{ display:'flex', gap:8 }}>
                   <button className="btn btn-primary btn-sm" onClick={() => saveCraft(c.id)} disabled={saving}>
-                    {saving ? <span className="spinner" style={{width:13,height:13}} /> : '💾 Save Craft'}
+                    {saving ? <span className="spinner" style={{width:13,height:13}} /> : 'Save Craft'}
                   </button>
                   <button className="btn btn-ghost btn-sm" onClick={() => setEditingId(null)}>Cancel</button>
                 </div>
@@ -401,7 +400,7 @@ function ProfileReview() {
                 <SectionBadges statuses={selected.section_statuses} />
               </div>
               <button className="btn btn-terra" onClick={() => setShowFlag(!showFlag)}>
-                🚩 Flag a Field
+                Flag a Field
               </button>
             </div>
           </div>
@@ -410,7 +409,7 @@ function ProfileReview() {
           {showFlag && (
             <div className="card fade-up" style={{ marginBottom:20, borderColor:'rgba(224,85,85,0.3)' }}>
               <div style={{ fontFamily:'var(--font-display)', fontSize:18, fontWeight:600, color:'var(--red)', marginBottom:16 }}>
-                🚩 Flag a Field
+                Flag a Field
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
                 <div className="field">
@@ -935,7 +934,7 @@ function DiscoveryBuyerDetail() {
                     ))}
                   </div>
                   {r.what_best_at?.length > 0 && (
-                    <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>✓ {r.what_best_at.join(' · ')}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>{r.what_best_at.join(' · ')}</div>
                   )}
                 </div>
               ))
@@ -1084,11 +1083,11 @@ function DiscoveryInquiries() {
 /* ── MAIN EXPORT ── */
 export default function AdminDashboard() {
   const navItems = [
-    { to: '/admin',                  icon: '📊', label: 'Overview',        end: true },
-    { to: '/admin/review',           icon: '🔍', label: 'Review Profile'            },
-    { to: '/admin/create-seller',    icon: '➕', label: 'Create Seller'             },
-    { to: '/admin/discovery',        icon: '🧭', label: 'Discovery'                 },
-    { to: '/admin/discovery/inquiries', icon: '📬', label: 'Inquiries'              },
+    { to: '/admin',                  icon: '', label: 'Overview',        end: true },
+    { to: '/admin/review',           icon: '', label: 'Review Profile'            },
+    { to: '/admin/create-seller',    icon: '', label: 'Create Seller'             },
+    { to: '/admin/discovery',        icon: '', label: 'Discovery'                 },
+    { to: '/admin/discovery/inquiries', icon: '', label: 'Inquiries'              },
   ];
   return (
     <DashLayout nav={navItems}>

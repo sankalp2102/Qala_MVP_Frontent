@@ -75,7 +75,7 @@ export default function SectionF({ profileId, onSave }) {
       <Toast toasts={toasts} />
       <div className="fade-up" style={{ marginBottom: 36 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 11, background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>⚙️</div>
+          <div style={{ width: 44, height: 44, borderRadius: 11, background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}></div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Section F</div>
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 700, color: 'var(--text)' }}>Process Readiness</h1>
@@ -94,7 +94,7 @@ export default function SectionF({ profileId, onSave }) {
         </p>
         {stepsFlagged && (
           <div style={{ background: 'var(--red-dim)', border: '1px solid rgba(224,85,85,0.25)', borderLeft: '3px solid var(--red)', borderRadius: 'var(--radius)', padding: '8px 12px', fontSize: 12, color: 'var(--red)', marginBottom: 12 }}>
-            🚩 Admin flagged: {stepsFlagged}
+            Admin flagged: {stepsFlagged}
           </div>
         )}
         <textarea
@@ -141,7 +141,7 @@ Step 7: Packing and dispatch via our logistics partner. Real-time tracking share
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
               {media.map(m => (
                 <div key={m.id} style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '12px', position: 'relative' }}>
-                  <div style={{ fontSize: 22, marginBottom: 6 }}>{isVideo(m.mime_type) ? '🎥' : '🖼️'}</div>
+                  <div style={{ fontSize: 22, marginBottom: 6 }}>{isVideo(m.mime_type) ? 'Video' : 'Image'}</div>
                   <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)', wordBreak: 'break-all', marginBottom: 4 }}>{m.file_name}</div>
                   <div style={{ fontSize: 11, color: 'var(--text4)' }}>{m.mime_type} · {m.file_size_kb} KB</div>
                   {m.caption && <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>{m.caption}</div>}
@@ -150,7 +150,7 @@ Step 7: Packing and dispatch via our logistics partner. Real-time tracking share
                     background: 'var(--red-dim)', border: 'none', color: 'var(--red)',
                     width: 22, height: 22, borderRadius: 6, cursor: 'pointer', fontSize: 12,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>✕</button>
+                  }}>×</button>
                 </div>
               ))}
             </div>
@@ -177,7 +177,7 @@ Step 7: Packing and dispatch via our logistics partner. Real-time tracking share
       </CardSection>
 
       <button className="btn btn-primary btn-lg fade-up" onClick={save} disabled={saving}>
-        {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : '✓ Save Section F'}
+        {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save Section F'}
       </button>
     </div>
   );
