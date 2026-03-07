@@ -1,5 +1,5 @@
 import axios from 'axios';
-const BASE = import.meta.env.VITE_API_URL || 'https://www.qala.studio';
+const BASE = import.meta.env.VITE_API_URL || 'https://api.qala.studio';
 const api = axios.create({ baseURL: BASE, withCredentials: true });
 
 api.interceptors.request.use(cfg => {
