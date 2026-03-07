@@ -570,20 +570,536 @@ function CreateSeller() {
   );
 }
 
+
+/* ── DISCOVERY OVERVIEW ── */
+function DiscoveryOverview() {
+  const [data,    setData]    = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [search,  setSearch]  = useState('');
+  const nav = useNavigate();
+
+  useEffect(() => {
+    adminAPI.getDiscoveryBuyers()
+      .then(r => setData(r.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <Spinner full />;
+  if (!data)   return <div style={{ padding: 40, color: 'var(--red)' }}>Failed to load discovery data.</div>;
+
+  const { stats, top_crafts, top_products, buyers } = data;
+
+  const filtered = buyers.filter(b => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      (b.name || '').toLowerCase().includes(q) ||
+      (b.user_email || '').toLowerCase().includes(q) ||
+      (b.product_types || []).some(p => p.toLowerCase().includes(q)) ||
+      (b.crafts || []).some(c => c.toLowerCase().includes(q))
+    );
+  });
+
+  const journeyLabel = {
+    figuring_it_out:    'Figuring It Out',
+    build_with_support: 'Build with Support',
+    ready_to_produce:   'Ready to Produce',
+  };
+
+  const batchLabel = {
+    under_30: '< 30 pcs',
+    '30_100': '30–100 pcs',
+    over_100: '100+ pcs',
+    not_sure: 'Not sure',
+  };
+
+  const timelineLabel = {
+    '1_3_months':    '1–3 months',
+    '3_6_months':    '3–6 months',
+    '6_plus_months': '6+ months',
+    not_sure:        'Not sure',
+    flexible:        'Flexible',
+  };
+
+  return (
+    <div style={{ padding: '40px 48px' }}>
+      <div className="fade-up" style={{ marginBottom: 40 }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 42, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+          Discovery <em style={{ color: 'var(--gold)' }}>Insights</em>
+        </h1>
+        <p style={{ color: 'var(--text3)', fontSize: 15 }}>All buyer sessions, matches, and what they're looking for.</p>
+      </div>
+
+      {/* Stats row */}
+      <div className="fade-up" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 36 }}>
+        {[
+          { label: 'Total Buyers',    value: stats.total,        color: 'var(--text)'  },
+          { label: 'Got Matches',     value: stats.has_match,    color: 'var(--green)' },
+          { label: 'Zero Match',      value: stats.zero_match,   color: 'var(--red)'   },
+          { label: 'Registered Users',value: stats.linked_users, color: 'var(--gold)'  },
+        ].map((s, i) => (
+          <div key={s.label} className={`card fade-up fade-up-${i+1}`} style={{ textAlign: 'center', padding: '20px' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 700, color: s.color, lineHeight: 1 }}>{s.value}</div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6, letterSpacing: '0.04em' }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Top crafts + products */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 36 }}>
+
+        {/* Top crafts */}
+        <div className="card fade-up">
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)', marginBottom: 16 }}>
+            Most Requested Crafts
+          </div>
+          {top_crafts.length === 0
+            ? <div style={{ fontSize: 13, color: 'var(--text4)' }}>No data yet.</div>
+            : top_crafts.map((c, i) => (
+              <div key={c.craft} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                <div style={{ fontSize: 11, color: 'var(--text4)', width: 16, textAlign: 'right', flexShrink: 0 }}>{i + 1}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500, textTransform: 'capitalize' }}>{c.craft}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text3)' }}>{c.count}</span>
+                  </div>
+                  <div style={{ height: 3, background: 'var(--surface3)', borderRadius: 2 }}>
+                    <div style={{
+                      height: '100%', borderRadius: 2, background: 'var(--gold)',
+                      width: `${Math.round((c.count / (top_crafts[0]?.count || 1)) * 100)}%`,
+                    }} />
+                  </div>
+                </div>
+              </div>
+            ))
+          }
+        </div>
+
+        {/* Top products */}
+        <div className="card fade-up">
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)', marginBottom: 16 }}>
+            Most Requested Products
+          </div>
+          {top_products.length === 0
+            ? <div style={{ fontSize: 13, color: 'var(--text4)' }}>No data yet.</div>
+            : top_products.map((p, i) => (
+              <div key={p.product} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                <div style={{ fontSize: 11, color: 'var(--text4)', width: 16, textAlign: 'right', flexShrink: 0 }}>{i + 1}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500, textTransform: 'capitalize' }}>{p.product.replace(/_/g, ' ')}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text3)' }}>{p.count}</span>
+                  </div>
+                  <div style={{ height: 3, background: 'var(--surface3)', borderRadius: 2 }}>
+                    <div style={{
+                      height: '100%', borderRadius: 2, background: 'var(--teal)',
+                      width: `${Math.round((p.count / (top_products[0]?.count || 1)) * 100)}%`,
+                    }} />
+                  </div>
+                </div>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+
+      {/* Buyer list */}
+      <div className="card fade-up">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)' }}>
+            All Buyer Sessions ({buyers.length})
+          </div>
+          <input
+            placeholder="Search by name, email, product, craft..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              background: 'var(--surface2)', border: '1px solid var(--border)',
+              borderRadius: 8, padding: '8px 14px', fontSize: 13,
+              color: 'var(--text)', width: 280, fontFamily: 'var(--font-body)',
+            }}
+          />
+        </div>
+
+        {filtered.length === 0
+          ? <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text4)', fontSize: 13 }}>No buyers found.</div>
+          : (
+            <div style={{ display: 'grid', gap: 10 }}>
+              {filtered.map(b => (
+                <div
+                  key={b.id}
+                  onClick={() => nav(`discovery/${b.id}`)}
+                  className="card-hover"
+                  style={{
+                    padding: '16px 20px', background: 'var(--surface2)',
+                    borderRadius: 10, cursor: 'pointer',
+                    border: `1px solid ${b.zero_match ? 'rgba(224,85,85,0.25)' : b.rec_count > 0 ? 'rgba(90,232,122,0.15)' : 'var(--border)'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>
+                        {b.name || b.user_email || 'Anonymous'}
+                      </span>
+                      {b.user_email && b.name && (
+                        <span style={{ fontSize: 12, color: 'var(--text4)' }}>{b.user_email}</span>
+                      )}
+                      <span style={{
+                        fontSize: 10, fontWeight: 600, letterSpacing: '0.06em',
+                        padding: '2px 8px', borderRadius: 10, textTransform: 'uppercase',
+                        background: b.zero_match ? 'var(--red-dim)' : b.rec_count > 0 ? 'rgba(90,232,122,0.1)' : 'var(--surface3)',
+                        color: b.zero_match ? 'var(--red)' : b.rec_count > 0 ? 'var(--green)' : 'var(--text4)',
+                      }}>
+                        {b.zero_match ? 'No match' : b.rec_count > 0 ? `${b.rec_count} match${b.rec_count !== 1 ? 'es' : ''}` : 'Pending'}
+                      </span>
+                      {b.journey_stage && (
+                        <span style={{ fontSize: 10, color: 'var(--text4)', padding: '2px 8px', borderRadius: 10, background: 'var(--surface3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          {journeyLabel[b.journey_stage] || b.journey_stage}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {(b.product_types || []).slice(0, 4).map(p => (
+                        <span key={p} style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 6, textTransform: 'capitalize' }}>
+                          {p.replace(/_/g, ' ')}
+                        </span>
+                      ))}
+                      {(b.crafts || []).slice(0, 3).map(c => (
+                        <span key={c} style={{ fontSize: 11, color: 'var(--gold)', background: 'var(--gold-dim)', padding: '2px 8px', borderRadius: 6 }}>
+                          {c}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    {b.batch_size && (
+                      <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 2 }}>{batchLabel[b.batch_size] || b.batch_size}</div>
+                    )}
+                    {b.timeline && (
+                      <div style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 4 }}>{timelineLabel[b.timeline] || b.timeline}</div>
+                    )}
+                    <div style={{ fontSize: 11, color: 'var(--text4)' }}>
+                      {new Date(b.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        }
+      </div>
+    </div>
+  );
+}
+
+
+/* ── DISCOVERY BUYER DETAIL ── */
+function DiscoveryBuyerDetail() {
+  const [data,    setData]    = useState(null);
+  const [loading, setLoading] = useState(true);
+  const nav = useNavigate();
+
+  // Get buyer id from URL
+  const buyerId = window.location.pathname.split('/').pop();
+
+  useEffect(() => {
+    adminAPI.getDiscoveryBuyer(buyerId)
+      .then(r => setData(r.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [buyerId]);
+
+  if (loading) return <Spinner full />;
+  if (!data)   return (
+    <div style={{ padding: 40 }}>
+      <button className="btn btn-ghost btn-sm" onClick={() => nav('/admin/discovery')} style={{ marginBottom: 20 }}>← Back</button>
+      <div style={{ color: 'var(--red)', fontSize: 13 }}>Failed to load buyer.</div>
+    </div>
+  );
+
+  const { buyer, recommendations, inquiries } = data;
+
+  const Field = ({ label, value }) => {
+    if (!value || (Array.isArray(value) && value.length === 0)) return null;
+    return (
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '9px 12px', background: 'var(--surface2)', borderRadius: 7, marginBottom: 5, gap: 16 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>{label}</span>
+        <span style={{ fontSize: 13, color: 'var(--text)', textAlign: 'right', wordBreak: 'break-word' }}>
+          {Array.isArray(value) ? value.join(', ') : String(value)}
+        </span>
+      </div>
+    );
+  };
+
+  const rankColor = r => ({ high: 'var(--green)', medium: 'var(--amber)', low: 'var(--red)' }[r] || 'var(--text3)');
+
+  return (
+    <div style={{ padding: '40px 48px' }}>
+      <button className="btn btn-ghost btn-sm" onClick={() => nav('/admin/discovery')} style={{ marginBottom: 24 }}>
+        ← Back to Discovery
+      </button>
+
+      {/* Header */}
+      <div className="card card-gold fade-up" style={{ marginBottom: 24, padding: '20px 24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 18, color: 'var(--text)', marginBottom: 4 }}>
+              {buyer.name || buyer.user_email || 'Anonymous Buyer'}
+            </div>
+            {buyer.user_email && <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 4 }}>{buyer.user_email}</div>}
+            <div style={{ fontSize: 12, color: 'var(--text4)' }}>
+              Session: {buyer.session_token} · {new Date(buyer.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {buyer.journey_stage && (
+              <span className="badge badge-teal" style={{ fontSize: 11 }}>{buyer.journey_stage.replace(/_/g, ' ')}</span>
+            )}
+            <span style={{
+              fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 12,
+              background: recommendations.length > 0 ? 'rgba(90,232,122,0.1)' : 'var(--red-dim)',
+              color: recommendations.length > 0 ? 'var(--green)' : 'var(--red)',
+            }}>
+              {recommendations.length > 0 ? `${recommendations.length} match${recommendations.length !== 1 ? 'es' : ''}` : 'No match'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+
+        {/* Questionnaire answers */}
+        <div className="card fade-up">
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)', marginBottom: 16 }}>
+            Questionnaire Answers
+          </div>
+          <Field label="Products"          value={buyer.product_types} />
+          <Field label="Fabrics"           value={buyer.fabrics} />
+          <Field label="Fabric flexible"   value={buyer.fabric_is_flexible ? 'Yes' : null} />
+          <Field label="Fabric not sure"   value={buyer.fabric_not_sure ? 'Yes' : null} />
+          <Field label="Craft interest"    value={buyer.craft_interest} />
+          <Field label="Crafts"            value={buyer.crafts} />
+          <Field label="Craft flexible"    value={buyer.craft_is_flexible ? 'Yes' : null} />
+          <Field label="Craft not sure"    value={buyer.craft_not_sure ? 'Yes' : null} />
+          <Field label="Experimentation"   value={buyer.experimentation} />
+          <Field label="Process stage"     value={buyer.process_stage} />
+          <Field label="Design support"    value={buyer.design_support} />
+          <Field label="Timeline"          value={buyer.timeline} />
+          <Field label="Batch size"        value={buyer.batch_size} />
+
+          {buyer.zero_match_suggestions?.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--red)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>
+                Zero Match Suggestions
+              </div>
+              {buyer.zero_match_suggestions.map((s, i) => (
+                <div key={i} style={{ fontSize: 12, color: 'var(--text3)', padding: '8px 12px', background: 'var(--surface2)', borderRadius: 6, marginBottom: 6, borderLeft: '2px solid var(--amber)' }}>
+                  {s.message} <span style={{ color: 'var(--green)' }}>({s.studios_count} studios)</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Matches + Inquiries */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+          {/* Matched studios */}
+          <div className="card fade-up">
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)', marginBottom: 16 }}>
+              Matched Studios ({recommendations.length})
+            </div>
+            {recommendations.length === 0
+              ? <div style={{ fontSize: 13, color: 'var(--text4)' }}>No matches found for this buyer.</div>
+              : recommendations.map(r => (
+                <div key={r.rank_position} style={{ padding: '12px 14px', background: 'var(--surface2)', borderRadius: 8, marginBottom: 8, borderLeft: `3px solid ${rankColor(r.ranking)}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <div>
+                      <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>#{r.rank_position} {r.studio_name || `Studio #${r.studio_id}`}</span>
+                      {r.location && <span style={{ fontSize: 12, color: 'var(--text4)', marginLeft: 8 }}>{r.location}</span>}
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: rankColor(r.ranking), textTransform: 'uppercase' }}>{r.ranking}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {[
+                      { label: 'Capability', value: r.core_capability_fit },
+                      { label: 'MOQ', value: r.moq_fit },
+                      { label: 'Craft', value: r.craft_approach_fit },
+                      { label: 'Visual', value: r.visual_affinity },
+                    ].map(f => (
+                      <span key={f.label} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: 'var(--surface)', color: rankColor(f.value) }}>
+                        {f.label}: {f.value}
+                      </span>
+                    ))}
+                  </div>
+                  {r.what_best_at?.length > 0 && (
+                    <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>✓ {r.what_best_at.join(' · ')}</div>
+                  )}
+                </div>
+              ))
+            }
+          </div>
+
+          {/* Custom inquiries */}
+          {inquiries.length > 0 && (
+            <div className="card fade-up">
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)', marginBottom: 16 }}>
+                Custom Inquiries ({inquiries.length})
+              </div>
+              {inquiries.map(inq => (
+                <div key={inq.id} style={{ padding: '12px 14px', background: 'var(--surface2)', borderRadius: 8, marginBottom: 10, borderLeft: '3px solid var(--teal)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>{inq.name}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text4)' }}>{new Date(inq.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 8 }}>{inq.email}</div>
+                  <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6 }}>{inq.message}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+/* ── DISCOVERY INQUIRIES ── */
+function DiscoveryInquiries() {
+  const [data,    setData]    = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [search,  setSearch]  = useState('');
+  const nav = useNavigate();
+
+  useEffect(() => {
+    adminAPI.getDiscoveryInquiries()
+      .then(r => setData(r.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <Spinner full />;
+  if (!data)   return <div style={{ padding: 40, color: 'var(--red)' }}>Failed to load inquiries.</div>;
+
+  const filtered = data.inquiries.filter(inq => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      inq.name.toLowerCase().includes(q) ||
+      inq.email.toLowerCase().includes(q) ||
+      inq.message.toLowerCase().includes(q)
+    );
+  });
+
+  return (
+    <div style={{ padding: '40px 48px' }}>
+      <div className="fade-up" style={{ marginBottom: 36 }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 42, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+          Custom <em style={{ color: 'var(--gold)' }}>Inquiries</em>
+        </h1>
+        <p style={{ color: 'var(--text3)', fontSize: 15 }}>Buyers who couldn't find a match and reached out directly.</p>
+      </div>
+
+      <div className="card fade-up">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)' }}>
+            {data.count} Inquir{data.count !== 1 ? 'ies' : 'y'}
+          </div>
+          <input
+            placeholder="Search name, email, message..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              background: 'var(--surface2)', border: '1px solid var(--border)',
+              borderRadius: 8, padding: '8px 14px', fontSize: 13,
+              color: 'var(--text)', width: 280, fontFamily: 'var(--font-body)',
+            }}
+          />
+        </div>
+
+        {filtered.length === 0
+          ? <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text4)', fontSize: 13 }}>No inquiries found.</div>
+          : (
+            <div style={{ display: 'grid', gap: 14 }}>
+              {filtered.map(inq => (
+                <div key={inq.id} style={{ padding: '20px 24px', background: 'var(--surface2)', borderRadius: 10, border: '1px solid var(--border)', borderLeft: '3px solid var(--teal)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)', marginBottom: 2 }}>{inq.name}</div>
+                      <div style={{ fontSize: 13, color: 'var(--text4)' }}>{inq.email}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 12, color: 'var(--text4)' }}>
+                        {new Date(inq.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </div>
+                      {inq.buyer && (
+                        <button
+                          onClick={() => nav(`discovery/${inq.buyer.id}`)}
+                          className="btn btn-ghost btn-sm"
+                          style={{ fontSize: 11, marginTop: 4 }}
+                        >View session →</button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.7, marginBottom: inq.buyer ? 12 : 0 }}>
+                    {inq.message}
+                  </div>
+
+                  {inq.buyer && (
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+                      <span style={{ fontSize: 10, color: 'var(--text4)', alignSelf: 'center' }}>Their brief:</span>
+                      {(inq.buyer.product_types || []).map(p => (
+                        <span key={p} style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 6, textTransform: 'capitalize' }}>
+                          {p.replace(/_/g, ' ')}
+                        </span>
+                      ))}
+                      {(inq.buyer.crafts || []).map(c => (
+                        <span key={c} style={{ fontSize: 11, color: 'var(--gold)', background: 'var(--gold-dim)', padding: '2px 8px', borderRadius: 6 }}>
+                          {c}
+                        </span>
+                      ))}
+                      {inq.buyer.batch_size && (
+                        <span style={{ fontSize: 11, color: 'var(--text4)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 6 }}>
+                          {inq.buyer.batch_size.replace(/_/g, ' ')}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )
+        }
+      </div>
+    </div>
+  );
+}
+
+
+
 /* ── MAIN EXPORT ── */
 export default function AdminDashboard() {
   const navItems = [
-    { to:'/admin',               icon:'📊', label:'Overview',       end:true },
-    { to:'/admin/review',        icon:'🔍', label:'Review Profile'           },
-    { to:'/admin/create-seller', icon:'➕', label:'Create Seller'            },
+    { to: '/admin',                  icon: '📊', label: 'Overview',        end: true },
+    { to: '/admin/review',           icon: '🔍', label: 'Review Profile'            },
+    { to: '/admin/create-seller',    icon: '➕', label: 'Create Seller'             },
+    { to: '/admin/discovery',        icon: '🧭', label: 'Discovery'                 },
+    { to: '/admin/discovery/inquiries', icon: '📬', label: 'Inquiries'              },
   ];
   return (
     <DashLayout nav={navItems}>
       <Routes>
-        <Route index                element={<Overview />}      />
-        <Route path="review"        element={<ProfileReview />} />
-        <Route path="review/:pid"   element={<ProfileReview />} />
-        <Route path="create-seller" element={<CreateSeller />}  />
+        <Route index                        element={<Overview />}               />
+        <Route path="review"                element={<ProfileReview />}          />
+        <Route path="review/:pid"           element={<ProfileReview />}          />
+        <Route path="create-seller"         element={<CreateSeller />}           />
+        <Route path="discovery"             element={<DiscoveryOverview />}      />
+        <Route path="discovery/:buyerId"    element={<DiscoveryBuyerDetail />}   />
+        <Route path="discovery/inquiries"   element={<DiscoveryInquiries />}     />
       </Routes>
     </DashLayout>
   );

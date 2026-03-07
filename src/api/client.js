@@ -1,5 +1,5 @@
 import axios from 'axios';
-const BASE = import.meta.env.VITE_API_URL || 'http://34.169.72.66';
+const BASE = import.meta.env.VITE_API_URL || 'http://34.82.232.171';
 const api = axios.create({ baseURL: BASE, withCredentials: true });
 
 api.interceptors.request.use(cfg => {
@@ -93,6 +93,10 @@ export const adminAPI = {
   getOnboarding: pid => api.get(`/api/admin/seller-profiles/${pid}/onboarding/`),
   flagField:     (pid,d) => api.post(`/api/admin/seller-profiles/${pid}/flag/`, d),
   editSection:   (pid, section, d) => api.patch(`/api/admin/seller-profiles/${pid}/edit/${section}/`, d),
+  // Discovery
+  getDiscoveryBuyers:   () => api.get('/api/admin/discovery/buyers/'),
+  getDiscoveryBuyer:    id => api.get(`/api/admin/discovery/buyers/${id}/`),
+  getDiscoveryInquiries: () => api.get('/api/admin/discovery/inquiries/'),
 };
 
 // ─── DISCOVERY API ─────────────────────────────────────────────────────────────
@@ -128,4 +132,9 @@ export const discoveryAPI = {
 
   linkSession: sessionToken =>
     api.post('/api/discovery/link-session/', { session_token: sessionToken }),
+
+  submitCustomInquiry: data =>
+    axios.post(`${BASE}/api/discovery/custom-inquiry/`, data, {
+      headers: { 'Content-Type': 'application/json' },
+    }),
 };
