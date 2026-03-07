@@ -134,7 +134,7 @@ export default function DiscoverResults() {
   const summary = data?.buyer_summary         || {};
 
   return (
-    <div style={{ minHeight: '100vh', background: '#000' }}>
+    <div style={{ minHeight: '100vh', background: '#F8F5F1' }}>
       <style>{`
         @keyframes fadeUp { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: none } }
         @keyframes spin   { to { transform: rotate(360deg) } }
@@ -287,7 +287,7 @@ export default function DiscoverResults() {
                       style={{
                         width: 36, height: 36, borderRadius: '50%',
                         border: '1px solid var(--border2)', background: 'transparent',
-                        color: '#fff', cursor: 'pointer', fontSize: 14,
+                        color: 'var(--text2)', cursor: 'pointer', fontSize: 14,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         transition: 'background 0.15s',
                       }}

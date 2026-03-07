@@ -188,7 +188,8 @@ export default function Discover() {
         .step-enter-back { animation: slideInBack 0.25s cubic-bezier(0.4,0,0.2,1) both; }
         .step-exit       { animation: slideOut    0.18s ease both; }
         .option-card:hover { border-color: rgba(196,110,73,0.5) !important; background: rgba(196,110,73,0.04) !important; }
-        .option-card.sel  { border-color: rgba(196,110,73,0.8) !important; background: rgba(196,110,73,0.07) !important; }
+        .option-card.sel  { border-color: #C46E49 !important; background: rgba(196,110,73,0.08) !important; }
+        .option-card.sel div { color: #C46E49 !important; }
         .nav-btn:hover { background: rgba(196,110,73,0.06) !important; }
         .continue-btn:not(:disabled):hover { background: #A85A38 !important; }
         /* Mobile: stack vertically */
@@ -445,9 +446,9 @@ function StepBody({ step, answers, set }) {
                 onClick={() => set(key, !answers[key])}
                 style={{
                   padding: '8px 18px', borderRadius: 20,
-                  border: `1px solid ${answers[key] ? 'rgba(255,255,255,0.5)' : 'var(--border)'}`,
-                  background: answers[key] ? 'rgba(255,255,255,0.07)' : 'transparent',
-                  color: answers[key] ? '#fff' : 'var(--text3)',
+                  border: `1px solid ${answers[key] ? '#C46E49' : 'var(--border)'}`,
+                  background: answers[key] ? 'rgba(196,110,73,0.10)' : 'transparent',
+                  color: answers[key] ? '#C46E49' : 'var(--text3)',
                   fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-body)',
                   transition: 'all 0.15s',
                 }}
@@ -504,9 +505,9 @@ function StepBody({ step, answers, set }) {
                     onClick={() => set(key, !answers[key])}
                     style={{
                       padding: '8px 18px', borderRadius: 20,
-                      border: `1px solid ${answers[key] ? 'rgba(255,255,255,0.5)' : 'var(--border)'}`,
-                      background: answers[key] ? 'rgba(255,255,255,0.07)' : 'transparent',
-                      color: answers[key] ? '#fff' : 'var(--text3)',
+                      border: `1px solid ${answers[key] ? '#C46E49' : 'var(--border)'}`,
+                      background: answers[key] ? 'rgba(196,110,73,0.10)' : 'transparent',
+                      color: answers[key] ? '#C46E49' : 'var(--text3)',
                       fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-body)',
                       transition: 'all 0.15s',
                     }}
@@ -601,10 +602,10 @@ function StepBody({ step, answers, set }) {
                   onClick={() => set('timeline', t.value)}
                   style={{
                     padding: '10px 20px', borderRadius: 8,
-                    border: `1px solid ${answers.timeline === t.value ? 'rgba(255,255,255,0.6)' : 'var(--border2)'}`,
-                    background: answers.timeline === t.value ? 'rgba(255,255,255,0.08)' : 'transparent',
-                    color: answers.timeline === t.value ? '#fff' : 'var(--text2)',
-                    fontSize: 13, fontWeight: answers.timeline === t.value ? 600 : 400,
+                    border: `1px solid ${answers.timeline === t.value ? '#C46E49' : 'var(--border2)'}`,
+                    background: answers.timeline === t.value ? 'rgba(196,110,73,0.10)' : 'transparent',
+                    color: answers.timeline === t.value ? '#C46E49' : 'var(--text2)',
+                    fontSize: 13, fontWeight: answers.timeline === t.value ? 700 : 400,
                     cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s',
                   }}
                 >
@@ -625,10 +626,10 @@ function StepBody({ step, answers, set }) {
                   onClick={() => set('batch_size', b.value)}
                   style={{
                     padding: '10px 20px', borderRadius: 8,
-                    border: `1px solid ${answers.batch_size === b.value ? 'rgba(255,255,255,0.6)' : 'var(--border2)'}`,
-                    background: answers.batch_size === b.value ? 'rgba(255,255,255,0.08)' : 'transparent',
-                    color: answers.batch_size === b.value ? '#fff' : 'var(--text2)',
-                    fontSize: 13, fontWeight: answers.batch_size === b.value ? 600 : 400,
+                    border: `1px solid ${answers.batch_size === b.value ? '#C46E49' : 'var(--border2)'}`,
+                    background: answers.batch_size === b.value ? 'rgba(196,110,73,0.10)' : 'transparent',
+                    color: answers.batch_size === b.value ? '#C46E49' : 'var(--text2)',
+                    fontSize: 13, fontWeight: answers.batch_size === b.value ? 700 : 400,
                     cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s',
                   }}
                 >
