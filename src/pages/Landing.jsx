@@ -33,9 +33,9 @@ function WeaveCanvas() {
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
           const phase = (c + r) * 0.4 + t;
-          const alpha = (Math.sin(phase) * 0.5 + 0.5) * 0.045 + 0.01;
+          const alpha = (Math.sin(phase) * 0.5 + 0.5) * 0.06 + 0.015;
           const isWarp = (c + r) % 2 === 0;
-          ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+          ctx.strokeStyle = `rgba(159,101,71,${alpha})`;
           ctx.lineWidth = isWarp ? 1 : 0.5;
           ctx.beginPath();
           if (isWarp) {
@@ -72,7 +72,7 @@ export default function Landing() {
 
   const S = {
     page: {
-      minHeight: '100vh', background: '#0E0B09', overflow: 'hidden',
+      minHeight: '100vh', background: '#F8F5F1', overflow: 'hidden',
       display: 'flex', flexDirection: 'column',
       position: 'relative',
     },
@@ -89,11 +89,11 @@ export default function Landing() {
     logo: {
       display: 'flex', alignItems: 'center', gap: 10,
       fontFamily: 'var(--font-display)', fontSize: 22,
-      fontWeight: 700, color: '#fff', letterSpacing: '0.1em',
+      fontWeight: 700, color: 'var(--text)', letterSpacing: '0.1em',
     },
     logoMark: {
       width: 32, height: 32, borderRadius: 8,
-      border: '1px solid rgba(255,255,255,0.2)',
+      border: '1px solid var(--border)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: 16, fontFamily: 'var(--font-display)', fontWeight: 700,
     },
@@ -105,19 +105,19 @@ export default function Landing() {
     },
     eyebrow: {
       display: 'inline-flex', alignItems: 'center', gap: 8,
-      border: '1px solid rgba(255,255,255,0.12)', borderRadius: 20,
+      border: '1px solid var(--border)', borderRadius: 20,
       padding: '5px 14px', fontSize: 11, color: 'var(--text3)',
       letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500,
-      marginBottom: 32,
+      marginBottom: 32, background: 'rgba(255,255,255,0.6)',
     },
     dot: {
       width: 5, height: 5, borderRadius: '50%',
-      background: '#fff', opacity: 0.4,
+      background: 'var(--gold)', opacity: 0.8,
       animation: 'pulse 2s ease-in-out infinite',
     },
     headline: {
       fontFamily: 'var(--font-display)', fontSize: 'clamp(38px, 5.5vw, 80px)',
-      fontWeight: 700, color: '#fff', lineHeight: 1.08,
+      fontWeight: 700, color: 'var(--text)', lineHeight: 1.08,
       textAlign: 'center', maxWidth: 820, marginBottom: 20,
       letterSpacing: '-0.01em',
     },
@@ -130,7 +130,7 @@ export default function Landing() {
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
     },
     cta: {
-      padding: '16px 48px', background: '#fff', color: '#000',
+      padding: '16px 48px', background: '#C46E49', color: '#FFFFFF',
       border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 700,
       letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer',
       transition: 'transform 0.2s, box-shadow 0.2s, background 0.2s',
@@ -138,21 +138,22 @@ export default function Landing() {
     },
     resumeChip: {
       display: 'flex', alignItems: 'center', gap: 8,
-      border: '1px solid rgba(255,255,255,0.15)', borderRadius: 20,
-      padding: '8px 18px', cursor: 'pointer', background: 'rgba(255,255,255,0.04)',
+      border: '1px solid var(--border)', borderRadius: 20,
+      padding: '8px 18px', cursor: 'pointer', background: 'rgba(255,255,255,0.6)',
       fontSize: 12, color: 'var(--text2)', transition: 'border-color 0.2s',
       fontFamily: 'var(--font-body)',
     },
     // Process strip
     strip: {
-      borderTop: '1px solid rgba(196,110,73,0.12)',
+      borderTop: '1px solid var(--border)',
       padding: '60px 48px 72px',
       display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
       gap: 0, position: 'relative', zIndex: 1,
+      background: 'rgba(255,255,255,0.5)',
     },
     stepNum: {
       fontFamily: 'var(--font-display)', fontSize: 48, fontWeight: 700,
-      color: 'rgba(255,255,255,0.04)', lineHeight: 1, marginBottom: 16,
+      color: 'rgba(196,110,73,0.12)', lineHeight: 1, marginBottom: 16,
       letterSpacing: '-0.02em',
     },
     stepLabel: {
@@ -161,14 +162,14 @@ export default function Landing() {
     },
     stepTitle: {
       fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 600,
-      color: '#fff', marginBottom: 10, letterSpacing: '-0.01em',
+      color: 'var(--text)', marginBottom: 10, letterSpacing: '-0.01em',
     },
     stepDesc: {
       fontSize: 13, color: 'var(--text3)', lineHeight: 1.7, maxWidth: 260,
     },
     stepDivider: {
       position: 'absolute', top: '50%', width: 1,
-      height: 80, background: 'rgba(255,255,255,0.06)',
+      height: 80, background: 'var(--border)',
       transform: 'translateY(-50%)',
     },
   };
@@ -188,12 +189,12 @@ export default function Landing() {
   return (
     <div style={S.page}>
       <style>{`
-        @keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+        @keyframes pulse { 0%,100%{opacity:0.6} 50%{opacity:1} }
         @keyframes floatY { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
-        .cta-btn:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 40px rgba(255,255,255,0.2) !important; }
+        .cta-btn:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 40px rgba(196,110,73,0.3) !important; background: #A85A38 !important; }
         .cta-btn:active { transform: translateY(0) !important; }
-        .resume-chip:hover { border-color: rgba(255,255,255,0.3) !important; }
-        .login-link:hover { color: #fff !important; border-color: rgba(255,255,255,0.3) !important; }
+        .resume-chip:hover { border-color: var(--border2) !important; background: rgba(255,255,255,0.9) !important; }
+        .login-link:hover { color: var(--text) !important; border-color: var(--border2) !important; }
         @media (max-width: 768px) {
           .process-strip { grid-template-columns: 1fr !important; padding: 48px 24px !important; gap: 40px !important; }
           .step-divider { display: none !important; }
@@ -224,7 +225,7 @@ export default function Landing() {
           position: 'absolute', top: '40%', left: '50%',
           transform: 'translate(-50%, -50%)',
           width: 600, height: 400,
-          background: 'radial-gradient(ellipse, rgba(255,255,255,0.04) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse, rgba(196,110,73,0.06) 0%, transparent 70%)',
           pointerEvents: 'none', zIndex: 0,
         }} />
 
@@ -236,7 +237,7 @@ export default function Landing() {
 
           <h1 style={{ ...S.headline, ...transBase, transitionDelay: '0.1s' }}>
             Your one-stop to<br />
-            <em style={{ color: 'rgba(255,255,255,0.5)', fontStyle: 'italic' }}>manufacturing</em> in India —<br />
+            <em style={{ color: 'var(--gold)', fontStyle: 'italic' }}>manufacturing</em> in India —<br />
             from idea to production.
           </h1>
 
@@ -270,10 +271,10 @@ export default function Landing() {
         <div style={{
           position: 'absolute', bottom: 32, left: '50%', transform: 'translateX(-50%)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-          opacity: 0.3, animation: 'floatY 2.5s ease-in-out infinite',
+          opacity: 0.4, animation: 'floatY 2.5s ease-in-out infinite',
         }}>
-          <div style={{ width: 1, height: 40, background: '#fff' }} />
-          <span style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#fff' }}>Scroll</span>
+          <div style={{ width: 1, height: 40, background: 'var(--border2)' }} />
+          <span style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text3)' }}>Scroll</span>
         </div>
       </section>
 
@@ -281,17 +282,15 @@ export default function Landing() {
       <section style={S.strip} className="process-strip">
         {steps.map((step, i) => (
           <div key={i} style={{ padding: '0 40px', position: 'relative' }}>
-            {/* Divider between steps */}
             {i > 0 && (
               <div className="step-divider" style={{ ...S.stepDivider, left: 0 }} />
             )}
             <div style={S.stepNum}>{step.num}</div>
-            {/* Prominent keyword label */}
             <div style={{
               ...S.stepLabel,
               fontSize: 13,
               fontWeight: 800,
-              color: 'var(--terracotta)',
+              color: 'var(--gold)',
               letterSpacing: '0.18em',
               marginBottom: 14,
               fontFamily: 'var(--font-body)',

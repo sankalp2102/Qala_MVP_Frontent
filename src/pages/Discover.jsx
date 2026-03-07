@@ -179,7 +179,7 @@ export default function Discover() {
 
   // ── layout ──────────────────────────────────────────────────────────────────
   return (
-    <div style={{ height: '100vh', background: '#000', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ height: '100vh', background: '#F8F5F1', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <style>{`
         @keyframes slideInFwd  { from{opacity:0;transform:translateX(40px)}  to{opacity:1;transform:none} }
         @keyframes slideInBack { from{opacity:0;transform:translateX(-40px)} to{opacity:1;transform:none} }
@@ -187,10 +187,10 @@ export default function Discover() {
         .step-enter-fwd  { animation: slideInFwd  0.25s cubic-bezier(0.4,0,0.2,1) both; }
         .step-enter-back { animation: slideInBack 0.25s cubic-bezier(0.4,0,0.2,1) both; }
         .step-exit       { animation: slideOut    0.18s ease both; }
-        .option-card:hover { border-color: rgba(255,255,255,0.4) !important; background: rgba(255,255,255,0.04) !important; }
-        .option-card.sel  { border-color: rgba(255,255,255,0.7) !important; background: rgba(255,255,255,0.07) !important; }
-        .nav-btn:hover { background: rgba(255,255,255,0.06) !important; }
-        .continue-btn:not(:disabled):hover { background: #e0e0e0 !important; }
+        .option-card:hover { border-color: rgba(196,110,73,0.5) !important; background: rgba(196,110,73,0.04) !important; }
+        .option-card.sel  { border-color: rgba(196,110,73,0.8) !important; background: rgba(196,110,73,0.07) !important; }
+        .nav-btn:hover { background: rgba(196,110,73,0.06) !important; }
+        .continue-btn:not(:disabled):hover { background: #A85A38 !important; }
         /* Mobile: stack vertically */
         @media(max-width: 900px) {
           .discover-split { flex-direction: column !important; }
@@ -203,7 +203,7 @@ export default function Discover() {
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '16px 32px', borderBottom: '1px solid var(--border)',
-        background: '#000', zIndex: 20, flexShrink: 0,
+        background: '#F8F5F1', zIndex: 20, flexShrink: 0,
       }}>
         {/* Logo + back */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -228,10 +228,10 @@ export default function Discover() {
               {Math.round((step / TOTAL_STEPS) * 100)}%
             </span>
           </div>
-          <div style={{ height: 2, background: 'var(--surface3)', borderRadius: 1 }}>
+          <div style={{ height: 2, background: 'var(--border)', borderRadius: 1 }}>
             <div style={{
               height: '100%', borderRadius: 1,
-              background: '#fff',
+              background: '#C46E49',
               width: `${(step / TOTAL_STEPS) * 100}%`,
               transition: 'width 0.4s cubic-bezier(0.4,0,0.2,1)',
             }} />
@@ -244,9 +244,9 @@ export default function Discover() {
             <div key={i} style={{
               width: i + 1 === step ? 18 : i + 1 < step ? 8 : 6,
               height: 6, borderRadius: 3,
-              background: i + 1 < step ? 'rgba(255,255,255,0.5)'
-                        : i + 1 === step ? '#fff'
-                        : 'var(--surface4)',
+              background: i + 1 < step ? 'rgba(196,110,73,0.5)'
+                        : i + 1 === step ? 'var(--gold)'
+                        : 'var(--border)',
               transition: 'all 0.35s cubic-bezier(0.4,0,0.2,1)',
             }} />
           ))}
@@ -282,7 +282,7 @@ export default function Discover() {
                 <h2 style={{
                   fontFamily: 'var(--font-display)',
                   fontSize: 'clamp(24px, 2.8vw, 38px)',
-                  fontWeight: 700, color: '#fff', marginBottom: 10,
+                  fontWeight: 700, color: 'var(--text)', marginBottom: 10,
                   lineHeight: 1.15, letterSpacing: '-0.01em',
                 }}>
                   {STEPS[step - 1].q}
@@ -313,7 +313,7 @@ export default function Discover() {
           <div style={{
             flexShrink: 0, padding: '16px 52px',
             borderTop: '1px solid var(--border)',
-            background: 'rgba(0,0,0,0.97)',
+            background: 'rgba(248,245,241,0.97)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
           }}>
             <button
@@ -345,8 +345,8 @@ export default function Discover() {
                 onClick={() => goTo(step + 1)}
                 disabled={!canProceed()}
                 style={{
-                  background: canProceed() ? '#fff' : 'var(--surface3)',
-                  color: canProceed() ? '#000' : 'var(--text4)',
+                  background: canProceed() ? '#C46E49' : 'var(--border)',
+                  color: canProceed() ? '#FFFFFF' : 'var(--text3)',
                   border: 'none', padding: '9px 28px', borderRadius: 8,
                   fontSize: 13, fontWeight: 700,
                   cursor: canProceed() ? 'pointer' : 'not-allowed',
@@ -361,8 +361,8 @@ export default function Discover() {
                 onClick={handleSubmit}
                 disabled={submitting || !canProceed()}
                 style={{
-                  background: submitting || !canProceed() ? 'var(--surface3)' : '#fff',
-                  color: submitting || !canProceed() ? 'var(--text4)' : '#000',
+                  background: submitting || !canProceed() ? 'var(--border)' : '#C46E49',
+                  color: submitting || !canProceed() ? 'var(--text3)' : '#FFFFFF',
                   border: 'none', padding: '9px 28px', borderRadius: 8,
                   fontSize: 13, fontWeight: 700, cursor: 'pointer',
                   fontFamily: 'var(--font-body)', transition: 'all 0.2s',
@@ -386,7 +386,7 @@ export default function Discover() {
           {/* Subtle radial glow */}
           <div style={{
             position: 'absolute', inset: 0, pointerEvents: 'none',
-            background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.025) 0%, transparent 65%)',
+            background: 'radial-gradient(ellipse at center, rgba(196,110,73,0.04) 0%, transparent 65%)',
           }} />
           <GarmentAnimation step={step} />
         </div>
@@ -480,7 +480,7 @@ function StepBody({ step, answers, set }) {
                 }}
               >
                 <div style={{ fontSize: 18, marginBottom: 8 }}>{opt.val === 'yes' ? '🧵' : '✂️'}</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 6 }}>{opt.label}</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>{opt.label}</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.5 }}>{opt.desc}</div>
               </button>
             ))}
@@ -540,7 +540,7 @@ function StepBody({ step, answers, set }) {
               }}
             >
               <div style={{ fontSize: 24, marginBottom: 10 }}>{opt.icon}</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 6 }}>{opt.label}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>{opt.label}</div>
               <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.5 }}>{opt.desc}</div>
             </button>
           ))}
@@ -564,13 +564,13 @@ function StepBody({ step, answers, set }) {
               }}
             >
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#fff', marginBottom: 4 }}>{s.label}</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>{s.label}</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)' }}>{s.desc}</div>
               </div>
               <div style={{
                 width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                border: `2px solid ${answers.process_stage === s.value ? '#fff' : 'var(--border2)'}`,
-                background: answers.process_stage === s.value ? '#fff' : 'transparent',
+                border: `2px solid ${answers.process_stage === s.value ? 'var(--gold)' : 'var(--border)'}`,
+                background: answers.process_stage === s.value ? 'var(--gold)' : 'transparent',
                 transition: 'all 0.15s',
               }} />
             </button>
@@ -649,9 +649,9 @@ function StepBody({ step, answers, set }) {
                 value={answers.first_name}
                 onChange={e => set('first_name', e.target.value)}
                 style={{
-                  flex: 1, padding: '11px 14px', background: 'var(--surface2)',
+                  flex: 1, padding: '11px 14px', background: 'rgba(255,255,255,0.7)',
                   border: '1px solid var(--border2)', borderRadius: 8,
-                  color: '#fff', fontSize: 13, fontFamily: 'var(--font-body)',
+                  color: 'var(--text)', fontSize: 13, fontFamily: 'var(--font-body)',
                 }}
               />
               <input
@@ -659,9 +659,9 @@ function StepBody({ step, answers, set }) {
                 value={answers.last_name}
                 onChange={e => set('last_name', e.target.value)}
                 style={{
-                  flex: 1, padding: '11px 14px', background: 'var(--surface2)',
+                  flex: 1, padding: '11px 14px', background: 'rgba(255,255,255,0.7)',
                   border: '1px solid var(--border2)', borderRadius: 8,
-                  color: '#fff', fontSize: 13, fontFamily: 'var(--font-body)',
+                  color: 'var(--text)', fontSize: 13, fontFamily: 'var(--font-body)',
                 }}
               />
             </div>

@@ -87,19 +87,19 @@ export default function DiscoverResults() {
   // ── Loading ──────────────────────────────────────────────────────────────
   if (loading) return (
     <div style={{
-      minHeight: '100vh', background: '#000',
+      minHeight: '100vh', background: '#F8F5F1',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', gap: 16,
     }}>
       <div style={{ position: 'relative', width: 60, height: 60 }}>
         <div style={{
           position: 'absolute', inset: 0, borderRadius: '50%',
-          border: '1px solid rgba(255,255,255,0.1)',
+          border: '1px solid rgba(196,110,73,0.15)',
           animation: 'spin 2s linear infinite',
         }} />
         <div style={{
           position: 'absolute', inset: 8, borderRadius: '50%',
-          border: '1px solid rgba(255,255,255,0.2)',
+          border: '1px solid rgba(196,110,73,0.25)',
           animation: 'spin 1.4s linear infinite reverse',
         }} />
         <div style={{
@@ -119,7 +119,7 @@ export default function DiscoverResults() {
   // ── Error ────────────────────────────────────────────────────────────────
   if (error) return (
     <div style={{
-      minHeight: '100vh', background: '#000',
+      minHeight: '100vh', background: '#F8F5F1',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       flexDirection: 'column', gap: 16,
     }}>
@@ -139,17 +139,17 @@ export default function DiscoverResults() {
         @keyframes fadeUp { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: none } }
         @keyframes spin   { to { transform: rotate(360deg) } }
         .fade-in          { animation: fadeUp 0.5s ease both; }
-        .sugg-chip:hover  { border-color: rgba(255,255,255,0.4) !important; background: rgba(255,255,255,0.06) !important; }
-        .scroll-btn:hover { background: rgba(255,255,255,0.15) !important; }
-        .back-btn:hover   { color: #fff !important; }
-        .inquiry-btn:hover { border-color: rgba(255,255,255,0.6) !important; background: rgba(255,255,255,0.04) !important; }
+        .sugg-chip:hover  { border-color: rgba(196,110,73,0.5) !important; background: rgba(196,110,73,0.05) !important; }
+        .scroll-btn:hover { background: rgba(196,110,73,0.1) !important; }
+        .back-btn:hover   { color: var(--text) !important; }
+        .inquiry-btn:hover { border-color: rgba(196,110,73,0.6) !important; background: rgba(196,110,73,0.05) !important; }
       `}</style>
 
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '20px 40px', borderBottom: '1px solid var(--border)',
-        position: 'sticky', top: 0, background: 'rgba(0,0,0,0.95)',
+        position: 'sticky', top: 0, background: 'rgba(248,245,241,0.95)',
         backdropFilter: 'blur(12px)', zIndex: 20,
       }}>
         <button
@@ -221,7 +221,7 @@ export default function DiscoverResults() {
             <div style={{ fontSize: 40, marginBottom: 20 }}>🔍</div>
             <h2 style={{
               fontFamily: 'var(--font-display)', fontSize: 32,
-              fontWeight: 700, color: '#fff', marginBottom: 12,
+              fontWeight: 700, color: 'var(--text)', marginBottom: 12,
             }}>
               No exact matches found
             </h2>
@@ -239,7 +239,7 @@ export default function DiscoverResults() {
                     style={{
                       padding: '12px 20px', borderRadius: 24,
                       border: '1px solid var(--border2)',
-                      background: 'var(--surface)', cursor: 'pointer',
+                      background: 'rgba(255,255,255,0.8)', cursor: 'pointer',
                       fontFamily: 'var(--font-body)', transition: 'all 0.15s',
                       display: 'flex', alignItems: 'center', gap: 10,
                     }}
@@ -248,7 +248,7 @@ export default function DiscoverResults() {
                       <span className="spinner" style={{ width: 12, height: 12 }} />
                     )}
                     <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>{s.message}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{s.message}</div>
                       {s.studios_count > 0 && (
                         <div style={{ fontSize: 11, color: 'var(--green)', marginTop: 2 }}>
                           {s.studios_count} studio{s.studios_count !== 1 ? 's' : ''} available
@@ -272,7 +272,7 @@ export default function DiscoverResults() {
                 </div>
                 <h2 style={{
                   fontFamily: 'var(--font-display)', fontSize: 'clamp(26px,3vw,38px)',
-                  fontWeight: 700, color: '#fff', letterSpacing: '-0.01em',
+                  fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em',
                 }}>
                   {recs.length} studio{recs.length !== 1 ? 's' : ''} match your brief
                 </h2>
@@ -381,7 +381,7 @@ export default function DiscoverResults() {
             </div>
             <h3 style={{
               fontFamily: 'var(--font-display)', fontSize: 'clamp(22px, 2.5vw, 32px)',
-              fontWeight: 700, color: '#fff', marginBottom: 10, letterSpacing: '-0.01em',
+              fontWeight: 700, color: 'var(--text)', marginBottom: 10, letterSpacing: '-0.01em',
             }}>
               Tell us directly — we'll find<br />the right studio for you.
             </h3>
@@ -396,8 +396,8 @@ export default function DiscoverResults() {
                 onClick={() => setInquiryOpen(true)}
                 style={{
                   padding: '12px 28px', background: 'transparent',
-                  border: '1px solid rgba(255,255,255,0.25)', borderRadius: 8,
-                  color: '#fff', fontSize: 13, fontWeight: 600,
+                  border: '1px solid rgba(196,110,73,0.3)', borderRadius: 8,
+                  color: 'var(--text)', fontSize: 13, fontWeight: 600,
                   cursor: 'pointer', fontFamily: 'var(--font-body)',
                   transition: 'border-color 0.2s, background 0.2s',
                   letterSpacing: '0.03em',
@@ -495,7 +495,7 @@ export default function DiscoverResults() {
                     style={{
                       padding: '11px 28px',
                       background: inquirySubmitting ? 'var(--surface3)' : '#fff',
-                      color: inquirySubmitting ? 'var(--text4)' : '#000',
+                      color: inquirySubmitting ? 'var(--text4)' : '#FFFFFF',
                       border: 'none', borderRadius: 8,
                       fontSize: 13, fontWeight: 700,
                       cursor: inquirySubmitting ? 'default' : 'pointer',

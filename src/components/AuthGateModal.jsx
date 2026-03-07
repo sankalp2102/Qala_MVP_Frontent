@@ -40,7 +40,7 @@ export default function AuthGateModal({ onClose, onSuccess, studioName }) {
       <div
         onClick={onClose}
         style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
+          position: 'fixed', inset: 0, background: 'rgba(159,101,71,0.4)',
           backdropFilter: 'blur(4px)', zIndex: 1000,
           animation: 'fadeIn 0.2s ease',
         }}
@@ -51,7 +51,7 @@ export default function AuthGateModal({ onClose, onSuccess, studioName }) {
         position: 'fixed', top: '50%', left: '50%',
         transform: 'translate(-50%, -50%)',
         width: '100%', maxWidth: 440,
-        background: 'var(--surface)', border: '1px solid var(--border2)',
+        background: 'var(--surface)', border: '1px solid var(--border)',
         borderRadius: 20, padding: '36px',
         zIndex: 1001, animation: 'modalIn 0.25s ease',
       }}>
@@ -76,7 +76,7 @@ export default function AuthGateModal({ onClose, onSuccess, studioName }) {
         {/* Header */}
         <div style={{ marginBottom: 28 }}>
           <img src={qalaLogo} alt="Qala" style={{ height: 30, width: 'auto', display: 'block', marginBottom: 16 }} />
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700, color: '#fff', marginBottom: 6 }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
             Save your matches
           </h2>
           <p style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6 }}>
@@ -99,7 +99,7 @@ export default function AuthGateModal({ onClose, onSuccess, studioName }) {
                 border: 'none', fontSize: 13, fontWeight: 600,
                 cursor: 'pointer', transition: 'all 0.15s',
                 background: tab === k ? 'var(--surface4)' : 'transparent',
-                color: tab === k ? '#fff' : 'var(--text3)',
+                color: tab === k ? 'var(--text)' : 'var(--text3)',
                 fontFamily: 'var(--font-body)',
               }}
             >{l}</button>
