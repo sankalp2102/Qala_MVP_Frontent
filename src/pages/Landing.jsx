@@ -72,7 +72,7 @@ export default function Landing() {
 
   const S = {
     page: {
-      minHeight: '100vh', background: '#000', overflow: 'hidden',
+      minHeight: '100vh', background: '#0E0B09', overflow: 'hidden',
       display: 'flex', flexDirection: 'column',
       position: 'relative',
     },
@@ -145,7 +145,7 @@ export default function Landing() {
     },
     // Process strip
     strip: {
-      borderTop: '1px solid rgba(255,255,255,0.06)',
+      borderTop: '1px solid rgba(196,110,73,0.12)',
       padding: '60px 48px 72px',
       display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
       gap: 0, position: 'relative', zIndex: 1,
@@ -180,9 +180,9 @@ export default function Landing() {
   };
 
   const steps = [
-    { num: '01', label: 'Discover', title: 'Tell us what\nyou\'re looking for', desc: 'Answer 8 questions about your project — fabrics, crafts, batch size, and aesthetic direction.' },
-    { num: '02', label: 'Connect', title: 'Get matched with\nthe right studios', desc: 'Our algorithm finds 3-5 studios best suited to your specific needs and production stage.' },
-    { num: '03', label: 'Create', title: 'Bring your\ncollection to life', desc: 'Connect directly with studios, get a call-back, and start your manufacturing journey.' },
+    { num: '01', label: 'DISCOVER', title: 'Start with your idea.\nWe\'ll take it from there.', desc: 'Tell us what you\'re looking to make, even if it\'s not fully defined. We help you find studios you can trust to bring it to life.' },
+    { num: '02', label: 'CONNECT', title: 'Get matched with studios\nthat understand your vision.', desc: 'We recommend designer-led studios based on your style, craft technique, and batch size — so you don\'t have to figure India out alone.' },
+    { num: '03', label: 'CREATE', title: 'Make your collection\nwithout the usual chaos.', desc: 'Work directly with studios while Qala stays involved — so you can focus on creating, while we keep production on track.' },
   ];
 
   return (
@@ -286,7 +286,16 @@ export default function Landing() {
               <div className="step-divider" style={{ ...S.stepDivider, left: 0 }} />
             )}
             <div style={S.stepNum}>{step.num}</div>
-            <div style={S.stepLabel}>{step.label}</div>
+            {/* Prominent keyword label */}
+            <div style={{
+              ...S.stepLabel,
+              fontSize: 13,
+              fontWeight: 800,
+              color: 'var(--terracotta)',
+              letterSpacing: '0.18em',
+              marginBottom: 14,
+              fontFamily: 'var(--font-body)',
+            }}>{step.label}</div>
             <div style={S.stepTitle}>{step.title.split('\n').map((l, j) => <span key={j}>{l}{j === 0 && <br />}</span>)}</div>
             <p style={S.stepDesc}>{step.desc}</p>
           </div>
