@@ -177,14 +177,14 @@ export default function DiscoverResults() {
       </div>
 
       {/* ── Main content ────────────────────────────────────────────────── */}
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 40px 100px' }}>
+      <div style={{ padding: '0 0 100px' }}>
 
         {/* Buyer summary strip */}
         {summary.display && (
           <div
             className="fade-in"
             style={{
-              marginTop: 40, padding: '16px 24px',
+              marginTop: 40, marginLeft: 40, marginRight: 40, padding: '16px 24px',
               background: 'var(--surface)', border: '1px solid var(--border)',
               borderRadius: 12, display: 'flex', alignItems: 'center',
               justifyContent: 'space-between', flexWrap: 'wrap', gap: 12,
@@ -217,7 +217,7 @@ export default function DiscoverResults() {
 
         {/* Zero match state */}
         {data?.zero_match && recs.length === 0 && (
-          <div className="fade-in" style={{ marginTop: 48, textAlign: 'center' }}>
+          <div className="fade-in" style={{ marginTop: 48, textAlign: 'center', padding: '0 40px' }}>
             <div style={{ fontSize: 40, marginBottom: 20 }}>🔍</div>
             <h2 style={{
               fontFamily: 'var(--font-display)', fontSize: 32,
@@ -265,50 +265,58 @@ export default function DiscoverResults() {
         {/* Main recommendations */}
         {recs.length > 0 && (
           <div className="fade-in" style={{ marginTop: 52 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 28, padding: '0 40px' }}>
               <div>
                 <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8, fontWeight: 600 }}>
                   Matched studios
                 </div>
                 <h2 style={{
-                  fontFamily: 'var(--font-display)', fontSize: 'clamp(26px,3vw,38px)',
+                  fontFamily: 'var(--font-display)', fontSize: 'clamp(22px,2.5vw,34px)',
                   fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em',
+                  maxWidth: 560, lineHeight: 1.3,
                 }}>
-                  {recs.length} studio{recs.length !== 1 ? 's' : ''} match your brief
+                  Based on what you've shared, here are a few studios that could be right for you
                 </h2>
               </div>
-              {recs.length > 2 && (
-                <div style={{ display: 'flex', gap: 8, paddingBottom: 4 }}>
-                  {['←', '→'].map((arrow, i) => (
-                    <button
-                      key={arrow}
-                      className="scroll-btn"
-                      onClick={() => scroll(i === 0 ? -1 : 1)}
-                      style={{
-                        width: 36, height: 36, borderRadius: '50%',
-                        border: '1px solid var(--border2)', background: 'transparent',
-                        color: 'var(--text2)', cursor: 'pointer', fontSize: 14,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        transition: 'background 0.15s',
-                      }}
-                    >{arrow}</button>
-                  ))}
-                </div>
-              )}
+              {/* Dot indicators */}
+              <div style={{ display: 'flex', gap: 8, paddingBottom: 4, alignItems: 'center' }}>
+                {recs.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      if (!carouselRef.current) return;
+                      const cardW = carouselRef.current.offsetWidth;
+                      carouselRef.current.scrollTo({ left: i * (cardW + 20), behavior: 'smooth' });
+                    }}
+                    style={{
+                      width: 8, height: 8, borderRadius: '50%', border: 'none',
+                      background: 'var(--border2)', cursor: 'pointer', padding: 0,
+                      transition: 'background 0.2s',
+                    }}
+                  />
+                ))}
+              </div>
             </div>
 
+            {/* Full-width snap carousel */}
             <div
               ref={carouselRef}
               style={{
-                display: 'flex', gap: 20, overflowX: 'auto', paddingBottom: 16,
+                display: 'flex', gap: 20,
+                overflowX: 'auto', paddingBottom: 24,
                 scrollbarWidth: 'none', msOverflowStyle: 'none',
+                scrollSnapType: 'x mandatory',
+                paddingLeft: 40, paddingRight: 40,
               }}
             >
               {recs.map((rec, i) => (
                 <div
                   key={rec.studio_id || i}
                   style={{
-                    minWidth: 340, maxWidth: 380, flex: '0 0 340px',
+                    minWidth: 'calc(100vw - 120px)',
+                    maxWidth: 'calc(100vw - 120px)',
+                    flex: '0 0 calc(100vw - 120px)',
+                    scrollSnapAlign: 'start',
                     animation: `fadeUp 0.5s ease ${0.1 + i * 0.08}s both`,
                   }}
                 >
@@ -321,12 +329,34 @@ export default function DiscoverResults() {
                 </div>
               ))}
             </div>
+
+            {/* Arrow nav below */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 16 }}>
+              {['←', '→'].map((arrow, i) => (
+                <button
+                  key={arrow}
+                  className="scroll-btn"
+                  onClick={() => {
+                    if (!carouselRef.current) return;
+                    const cardW = carouselRef.current.offsetWidth;
+                    carouselRef.current.scrollBy({ left: (i === 0 ? -1 : 1) * (cardW + 20), behavior: 'smooth' });
+                  }}
+                  style={{
+                    width: 44, height: 44, borderRadius: '50%',
+                    border: '1px solid var(--border2)', background: 'transparent',
+                    color: 'var(--text2)', cursor: 'pointer', fontSize: 16,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'background 0.15s',
+                  }}
+                >{arrow}</button>
+              ))}
+            </div>
           </div>
         )}
 
         {/* Bonus visual matches */}
         {bonus.length > 0 && (
-          <div className="fade-in" style={{ marginTop: 64 }}>
+          <div className="fade-in" style={{ marginTop: 64, padding: '0 40px' }}>
             <div style={{ marginBottom: 8 }}>
               <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8, fontWeight: 600 }}>
                 Also worth exploring
@@ -355,7 +385,7 @@ export default function DiscoverResults() {
 
         {/* Empty state */}
         {recs.length === 0 && bonus.length === 0 && !data?.zero_match && (
-          <div style={{ textAlign: 'center', padding: '80px 0' }}>
+          <div style={{ textAlign: 'center', padding: '80px 40px' }}>
             <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 24 }}>
               No studios are registered yet. Check back soon.
             </div>
@@ -371,6 +401,8 @@ export default function DiscoverResults() {
           borderTop: '1px solid var(--border)',
           paddingTop: 60,
           paddingBottom: 80,
+          paddingLeft: 40,
+          paddingRight: 40,
         }}>
           <div style={{ maxWidth: 560 }}>
             <div style={{
