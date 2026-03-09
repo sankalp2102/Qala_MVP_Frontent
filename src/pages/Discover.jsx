@@ -33,10 +33,10 @@ const CRAFTS = [
 ];
 
 const PROCESS_STAGES = [
-  { value: 'I have a vision',              label: 'I have a vision',              desc: 'Concept stage — broad direction, no designs yet' },
-  { value: 'I have designs or sketches',   label: 'I have designs or sketches',   desc: 'Ready to develop into tech packs' },
-  { value: 'I have a tech pack',           label: 'I have a tech pack',           desc: 'Detailed specs ready for sampling' },
-  { value: 'I have samples already made',  label: 'I have samples already made',  desc: 'Looking for production partner' },
+  { value: 'I have a vision',              label: 'I have a vision',              desc: 'Moodboard / inspiration' },
+  { value: 'I have designs or sketches',   label: 'I have designs or sketches',   desc: 'Ready to develop further' },
+  { value: 'I have samples already made',  label: 'I have samples already made',  desc: 'Looking for a production partner' },
+  { value: "I'm still exploring ideas",    label: "I'm still exploring ideas",    desc: 'No fixed direction yet' },
 ];
 
 const DESIGN_SUPPORT = [
@@ -48,10 +48,11 @@ const DESIGN_SUPPORT = [
 ];
 
 const TIMELINES = [
-  { value: '1_3_months',   label: '1 – 3 months' },
-  { value: '3_6_months',   label: '3 – 6 months' },
-  { value: '6_plus_months',label: '6+ months' },
-  { value: 'not_sure',     label: 'Not sure yet' },
+  { value: '1_3_months',    label: '1 – 3 months' },
+  { value: '3_6_months',    label: '3 – 6 months' },
+  { value: '6_plus_months', label: '6 months or longer' },
+  { value: 'not_sure',      label: 'Not sure yet' },
+  { value: 'flexible',      label: "I'm flexible based on what's realistic" },
 ];
 
 const BATCH_SIZES = [
@@ -68,14 +69,46 @@ function toggle(arr, val) {
 
 // ── step meta ─────────────────────────────────────────────────────────────────
 const STEPS = [
-  { q: "Let's start with the overall look.", sub: "Which visuals feel closest to your collection?" },
-  { q: "What would you like to make?",        sub: "Select all that apply — you can choose more than one." },
-  { q: "Any fabric preferences?",             sub: "Leave blank if you're not sure — that's perfectly fine." },
-  { q: "Are crafts important to your brand?", sub: "Crafts like block printing, embroidery, weaving, etc." },
-  { q: "Which crafts matter to you?",         sub: "Select all that apply — or mark yourself as flexible." },
-  { q: "Open to experimentation?",            sub: "Would you consider techniques you haven't worked with before?" },
-  { q: "Where are you in your process?",      sub: "Be honest — there's no wrong answer here." },
-  { q: "Finally, a few practical details.",   sub: "Timeline and production volume help us find the right fit." },
+  {
+    q:    "Let's start with the overall look.",
+    sub:  "Which visuals feel closest to your collection?",
+    hint: "Pick a few that feel right — this helps us understand your style.",
+  },
+  {
+    q:    "What would you like to make?",
+    sub:  "Select all that apply — you can choose more than one.",
+    hint: "Different products need different skills and materials.\nBeing specific here helps us find the best studio match.",
+  },
+  {
+    q:    "Do you have any fabric preferences?",
+    sub:  "",
+    hint: "Fabric affects how a garment looks, feels, and behaves.\nEven small changes can make a big difference.",
+  },
+  {
+    q:    "Would you like to include crafts in this collection?",
+    sub:  "",
+    hint: "Handcraft techniques add character and uniqueness,\nbut work differently than machine production.",
+  },
+  {
+    q:    "Do you know which technique(s) you'd like to use?",
+    sub:  "",
+    hint: "Each technique has its own timing and quirks.\nDon't worry if you're not sure yet — we'll help you explore.",
+  },
+  {
+    q:    "Are you interested in experimenting with these techniques?",
+    sub:  "",
+    hint: "Experimentation can add time and rounds of sampling.\nIt's about finding what works for your timeline and budget.",
+  },
+  {
+    q:    "Where are you in the process?",
+    sub:  "",
+    hint: "You don't need everything figured out to start.\nThis just helps us understand what kind of support might be useful.",
+  },
+  {
+    q:    "Finally, a few practical details.",
+    sub:  "Timeline and production volume help us find the right fit.",
+    hint: "",
+  },
 ];
 
 export default function Discover() {
@@ -148,15 +181,15 @@ export default function Discover() {
   const hasSpecificCraft = () => answers.crafts.length > 0 && !answers.craft_is_flexible && !answers.craft_not_sure;
 
   const getNextStep = () => {
-    if (step === 4) return answers.craft_interest === 'no' ? 7 : 5;  // No → skip crafts(5) + experimentation(6) → process stage(7)
+    if (step === 4) return (answers.craft_interest === 'no' || answers.craft_interest === 'exploring') ? 7 : 5;
     if (step === 5) return hasSpecificCraft() ? 6 : 7;               // specific craft → experimentation(6), else skip to process stage(7)
     return step + 1;
   };
 
   const getPrevStep = () => {
-    if (step === 7 && answers.craft_interest === 'no') return 4;                         // skipped crafts + experimentation
+    if (step === 7 && (answers.craft_interest === 'no' || answers.craft_interest === 'exploring')) return 4;
     if (step === 7 && answers.craft_interest === 'yes' && !hasSpecificCraft()) return 5; // skipped experimentation only
-    if (step === 6 && answers.craft_interest === 'no') return 4;                         // should not happen but safety net
+    if (step === 6 && (answers.craft_interest === 'no' || answers.craft_interest === 'exploring')) return 4; // safety net
     return step - 1;
   };
 
@@ -303,13 +336,28 @@ export default function Discover() {
                 }}>
                   {STEPS[step - 1].q}
                 </h2>
-                <p style={{ fontSize: 14, color: 'var(--text3)', lineHeight: 1.65 }}>
-                  {STEPS[step - 1].sub}
-                </p>
+                {STEPS[step - 1].sub && (
+                  <p style={{ fontSize: 14, color: 'var(--text3)', lineHeight: 1.65 }}>
+                    {STEPS[step - 1].sub}
+                  </p>
+                )}
               </div>
 
               {/* Step body */}
               <StepBody step={step} answers={answers} set={set} />
+
+              {/* Helper / schooling text — shown below the step content */}
+              {STEPS[step - 1].hint && (
+                <p style={{
+                  marginTop: 28, fontSize: 13, color: 'var(--text4)',
+                  lineHeight: 1.7, fontStyle: 'italic',
+                  borderLeft: '2px solid var(--border)',
+                  paddingLeft: 14,
+                  whiteSpace: 'pre-line',
+                }}>
+                  {STEPS[step - 1].hint}
+                </p>
+              )}
 
               {/* Error */}
               {error && (
@@ -349,7 +397,7 @@ export default function Discover() {
             </button>
 
             {/* Optional skip hint for non-required questions */}
-            {[1, 3, 5, 8].includes(step) && (
+            {[3, 5].includes(step) && (
               <span style={{ fontSize: 11, color: 'var(--text4)' }}>
                 Optional — you can skip
               </span>
@@ -424,9 +472,6 @@ function StepBody({ step, answers, set }) {
     case 1:
       return (
         <div>
-          <p style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 20 }}>
-            Pick a few that feel right — this helps us understand your style direction.
-          </p>
           <ImageGrid
             selected={answers.visual_selection_ids}
             onToggle={id => toggle('visual_selection_ids', id)}
@@ -451,20 +496,21 @@ function StepBody({ step, answers, set }) {
             selected={answers.fabrics}
             onToggle={val => toggle('fabrics', val)}
           />
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', borderTop: '1px dashed var(--border)', paddingTop: 16 }}>
+            <span style={{ fontSize: 11, color: 'var(--text4)', alignSelf: 'center', marginRight: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Or:</span>
             {[
-              { key: 'fabric_is_flexible', label: "I'm flexible on fabrics" },
+              { key: 'fabric_is_flexible', label: "I'm flexible" },
               { key: 'fabric_not_sure',    label: "Not sure yet" },
             ].map(({ key, label }) => (
               <button
                 key={key}
                 onClick={() => set(key, !answers[key])}
                 style={{
-                  padding: '8px 18px', borderRadius: 20,
-                  border: `1px solid ${answers[key] ? '#C46E49' : 'var(--border)'}`,
-                  background: answers[key] ? 'rgba(196,110,73,0.10)' : 'transparent',
-                  color: answers[key] ? '#C46E49' : 'var(--text3)',
-                  fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-body)',
+                  padding: '9px 20px', borderRadius: 8,
+                  border: `1.5px solid ${answers[key] ? '#C46E49' : '#B0A89A'}`,
+                  background: answers[key] ? 'rgba(196,110,73,0.10)' : 'rgba(176,168,154,0.10)',
+                  color: answers[key] ? '#C46E49' : 'var(--text2)',
+                  fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)',
                   transition: 'all 0.15s',
                 }}
               >
@@ -479,8 +525,9 @@ function StepBody({ step, answers, set }) {
       return (
         <div style={{ display: 'flex', gap: 16 }}>
           {[
-            { val: 'yes', label: 'Yes', desc: 'Craft is central to my brand identity' },
-            { val: 'no',  label: 'No',  desc: 'I care more about product quality and fit' },
+            { val: 'yes',       label: 'Yes' },
+            { val: 'no',        label: 'No' },
+            { val: 'exploring', label: "I'm still exploring" },
           ].map(opt => (
             <button
               key={opt.val}
@@ -489,13 +536,11 @@ function StepBody({ step, answers, set }) {
               style={{
                 flex: 1, padding: '20px', border: '1px solid var(--border)',
                 borderRadius: 12, background: 'transparent',
-                cursor: 'pointer', textAlign: 'left',
+                cursor: 'pointer', textAlign: 'center',
                 fontFamily: 'var(--font-body)', transition: 'all 0.15s',
               }}
             >
-              <div style={{ fontSize: 18, marginBottom: 8 }}>{opt.val === 'yes' ? '🧵' : '✂️'}</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>{opt.label}</div>
-              <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.5 }}>{opt.desc}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{opt.label}</div>
             </button>
           ))}
         </div>
@@ -509,20 +554,21 @@ function StepBody({ step, answers, set }) {
             selected={answers.crafts}
             onToggle={val => toggle('crafts', val)}
           />
-          <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 12, borderTop: '1px dashed var(--border)', paddingTop: 16 }}>
+            <span style={{ fontSize: 11, color: 'var(--text4)', alignSelf: 'center', marginRight: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Or:</span>
             {[
-              { key: 'craft_is_flexible', label: "Flexible on craft type" },
-              { key: 'craft_not_sure',    label: "Not sure which craft" },
+              { key: 'craft_is_flexible', label: "I'm flexible" },
+              { key: 'craft_not_sure',    label: "Not sure yet" },
             ].map(({ key, label }) => (
               <button
                 key={key}
                 onClick={() => set(key, !answers[key])}
                 style={{
-                  padding: '8px 18px', borderRadius: 20,
-                  border: `1px solid ${answers[key] ? '#C46E49' : 'var(--border)'}`,
-                  background: answers[key] ? 'rgba(196,110,73,0.10)' : 'transparent',
-                  color: answers[key] ? '#C46E49' : 'var(--text3)',
-                  fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-body)',
+                  padding: '9px 20px', borderRadius: 8,
+                  border: `1.5px solid ${answers[key] ? '#C46E49' : '#B0A89A'}`,
+                  background: answers[key] ? 'rgba(196,110,73,0.10)' : 'rgba(176,168,154,0.10)',
+                  color: answers[key] ? '#C46E49' : 'var(--text2)',
+                  fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)',
                   transition: 'all 0.15s',
                 }}
               >
@@ -537,24 +583,21 @@ function StepBody({ step, answers, set }) {
       return (
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
           {[
-            { val: 'yes',     label: 'Yes', icon: '✨', desc: 'Excited to discover new techniques' },
-            { val: 'no',      label: 'No',  icon: '🎯', desc: 'I know exactly what I want' },
-            { val: 'skipped', label: 'Not sure', icon: '🤔', desc: "I'm open to suggestions" },
+            { val: 'yes', label: "Yes, I'd like to explore new approaches" },
+            { val: 'no',  label: "No, that is not a priority right now" },
           ].map(opt => (
             <button
               key={opt.val}
               className={`option-card${answers.experimentation === opt.val ? ' sel' : ''}`}
               onClick={() => set('experimentation', opt.val)}
               style={{
-                flex: '1 1 180px', padding: '20px', border: '1px solid var(--border)',
+                flex: '1 1 200px', padding: '20px', border: '1px solid var(--border)',
                 borderRadius: 12, background: 'transparent',
-                cursor: 'pointer', textAlign: 'left',
+                cursor: 'pointer', textAlign: 'center',
                 fontFamily: 'var(--font-body)', transition: 'all 0.15s',
               }}
             >
-              <div style={{ fontSize: 24, marginBottom: 10 }}>{opt.icon}</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>{opt.label}</div>
-              <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.5 }}>{opt.desc}</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', lineHeight: 1.5 }}>{opt.label}</div>
             </button>
           ))}
         </div>
@@ -596,7 +639,7 @@ function StepBody({ step, answers, set }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
           <div>
             <div style={{ fontSize: 11, color: 'var(--text3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16, fontWeight: 600 }}>
-              When do you need production to start?
+              Do you have a launch timeline in mind?
             </div>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               {TIMELINES.map(t => (
@@ -620,7 +663,7 @@ function StepBody({ step, answers, set }) {
 
           <div>
             <div style={{ fontSize: 11, color: 'var(--text3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16, fontWeight: 600 }}>
-              How many pieces per style?
+              Roughly how many total pieces are you planning in this collection?
             </div>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               {BATCH_SIZES.map(b => (
