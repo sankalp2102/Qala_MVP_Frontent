@@ -6,7 +6,7 @@ const RANKING_STYLES = {
   low:    { bg: 'rgba(160,160,160,0.08)',color: '#A0A0A0', border: 'rgba(160,160,160,0.2)', label: 'Possible Match' },
 };
 
-export default function RecommendationCard({ rec, position, onContact, isBonus }) {
+export default function RecommendationCard({ rec, position, isBonus }) {
   const [expanded, setExpanded] = useState(false);
   const rank = RANKING_STYLES[rec.ranking] || RANKING_STYLES.medium;
   const hero = rec.hero_images?.[0];
@@ -166,20 +166,21 @@ export default function RecommendationCard({ rec, position, onContact, isBonus }
         <div style={{ flex: 1 }} />
 
         {/* CTA */}
-        <button
-          onClick={() => onContact(rec)}
+        <a
+          href={'/studio/' + rec.seller_profile_id}
           style={{
-            width: '100%', padding: '12px', borderRadius: 8,
+            display: 'block', width: '100%', padding: '12px', borderRadius: 8,
             background: '#fff', color: '#000', border: 'none',
             fontSize: 13, fontWeight: 700, cursor: 'pointer',
             fontFamily: 'var(--font-body)', transition: 'background 0.2s',
-            letterSpacing: '0.04em',
+            letterSpacing: '0.04em', textAlign: 'center', textDecoration: 'none',
+            boxSizing: 'border-box',
           }}
-          onMouseEnter={e => e.target.style.background = '#E0E0E0'}
-          onMouseLeave={e => e.target.style.background = '#fff'}
+          onMouseEnter={e => e.currentTarget.style.background = '#E0E0E0'}
+          onMouseLeave={e => e.currentTarget.style.background = '#fff'}
         >
-          Get a Call-back
-        </button>
+          View Profile →
+        </a>
       </div>
     </div>
   );

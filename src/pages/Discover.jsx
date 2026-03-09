@@ -72,9 +72,9 @@ const STEPS = [
   { q: "What would you like to make?",        sub: "Select all that apply — you can choose more than one." },
   { q: "Any fabric preferences?",             sub: "Leave blank if you're not sure — that's perfectly fine." },
   { q: "Are crafts important to your brand?", sub: "Crafts like block printing, embroidery, weaving, etc." },
+  { q: "Which crafts matter to you?",         sub: "Select all that apply — or mark yourself as flexible." },
   { q: "Open to experimentation?",            sub: "Would you consider techniques you haven't worked with before?" },
   { q: "Where are you in your process?",      sub: "Be honest — there's no wrong answer here." },
-  { q: "What design support do you need?",    sub: "Select everything that applies." },
   { q: "Finally, a few practical details.",   sub: "Timeline and production volume help us find the right fit." },
 ];
 
@@ -144,12 +144,27 @@ export default function Discover() {
     }, 220);
   };
 
-  // skip Q4 sub-steps if craft_interest = 'no'
+  // true if user picked at least one specific craft (not just flexible/not_sure toggles)
+  const hasSpecificCraft = () => answers.crafts.length > 0 && !answers.craft_is_flexible && !answers.craft_not_sure;
+
+  const getNextStep = () => {
+    if (step === 4) return answers.craft_interest === 'no' ? 7 : 5;  // No → skip crafts(5) + experimentation(6) → process stage(7)
+    if (step === 5) return hasSpecificCraft() ? 6 : 7;               // specific craft → experimentation(6), else skip to process stage(7)
+    return step + 1;
+  };
+
+  const getPrevStep = () => {
+    if (step === 7 && answers.craft_interest === 'no') return 4;                         // skipped crafts + experimentation
+    if (step === 7 && answers.craft_interest === 'yes' && !hasSpecificCraft()) return 5; // skipped experimentation only
+    if (step === 6 && answers.craft_interest === 'no') return 4;                         // should not happen but safety net
+    return step - 1;
+  };
+
   const canProceed = () => {
     if (step === 2 && answers.product_types.length === 0) return false;
     if (step === 4 && answers.craft_interest === null) return false;
-    if (step === 5 && answers.experimentation === null) return false;
-    if (step === 6 && !answers.process_stage) return false;
+    if (step === 6 && answers.experimentation === null) return false;  // experimentation is now step 6
+    if (step === 7 && !answers.process_stage) return false;           // process stage is now step 7
     if (step === 8 && (!answers.timeline || !answers.batch_size)) return false;
     return true;
   };
@@ -319,7 +334,7 @@ export default function Discover() {
           }}>
             <button
               className="nav-btn"
-              onClick={() => goTo(step - 1)}
+              onClick={() => goTo(getPrevStep())}
               disabled={step === 1}
               style={{
                 background: 'none',
@@ -334,7 +349,7 @@ export default function Discover() {
             </button>
 
             {/* Optional skip hint for non-required questions */}
-            {[1, 3, 7].includes(step) && (
+            {[1, 3, 5, 8].includes(step) && (
               <span style={{ fontSize: 11, color: 'var(--text4)' }}>
                 Optional — you can skip
               </span>
@@ -343,7 +358,7 @@ export default function Discover() {
             {step < TOTAL_STEPS ? (
               <button
                 className="continue-btn"
-                onClick={() => goTo(step + 1)}
+                onClick={() => goTo(getNextStep())}
                 disabled={!canProceed()}
                 style={{
                   background: canProceed() ? '#C46E49' : 'var(--border)',
@@ -462,66 +477,63 @@ function StepBody({ step, answers, set }) {
 
     case 4:
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-          {/* Yes / No */}
-          <div style={{ display: 'flex', gap: 16 }}>
-            {[
-              { val: 'yes', label: 'Yes', desc: 'Craft is central to my brand identity' },
-              { val: 'no',  label: 'No',  desc: 'I care more about product quality and fit' },
-            ].map(opt => (
-              <button
-                key={opt.val}
-                className={`option-card${answers.craft_interest === opt.val ? ' sel' : ''}`}
-                onClick={() => set('craft_interest', opt.val)}
-                style={{
-                  flex: 1, padding: '20px', border: '1px solid var(--border)',
-                  borderRadius: 12, background: 'transparent',
-                  cursor: 'pointer', textAlign: 'left',
-                  fontFamily: 'var(--font-body)', transition: 'all 0.15s',
-                }}
-              >
-                <div style={{ fontSize: 18, marginBottom: 8 }}>{opt.val === 'yes' ? '🧵' : '✂️'}</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>{opt.label}</div>
-                <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.5 }}>{opt.desc}</div>
-              </button>
-            ))}
-          </div>
-
-          {/* If yes — show craft chips */}
-          {answers.craft_interest === 'yes' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <ChipSelect
-                options={CRAFTS}
-                selected={answers.crafts}
-                onToggle={val => toggle('crafts', val)}
-              />
-              <div style={{ display: 'flex', gap: 12 }}>
-                {[
-                  { key: 'craft_is_flexible', label: "Flexible on craft type" },
-                  { key: 'craft_not_sure',    label: "Not sure which craft" },
-                ].map(({ key, label }) => (
-                  <button
-                    key={key}
-                    onClick={() => set(key, !answers[key])}
-                    style={{
-                      padding: '8px 18px', borderRadius: 20,
-                      border: `1px solid ${answers[key] ? '#C46E49' : 'var(--border)'}`,
-                      background: answers[key] ? 'rgba(196,110,73,0.10)' : 'transparent',
-                      color: answers[key] ? '#C46E49' : 'var(--text3)',
-                      fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-body)',
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    {answers[key] ? '✓ ' : ''}{label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+        <div style={{ display: 'flex', gap: 16 }}>
+          {[
+            { val: 'yes', label: 'Yes', desc: 'Craft is central to my brand identity' },
+            { val: 'no',  label: 'No',  desc: 'I care more about product quality and fit' },
+          ].map(opt => (
+            <button
+              key={opt.val}
+              className={`option-card${answers.craft_interest === opt.val ? ' sel' : ''}`}
+              onClick={() => set('craft_interest', opt.val)}
+              style={{
+                flex: 1, padding: '20px', border: '1px solid var(--border)',
+                borderRadius: 12, background: 'transparent',
+                cursor: 'pointer', textAlign: 'left',
+                fontFamily: 'var(--font-body)', transition: 'all 0.15s',
+              }}
+            >
+              <div style={{ fontSize: 18, marginBottom: 8 }}>{opt.val === 'yes' ? '🧵' : '✂️'}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>{opt.label}</div>
+              <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.5 }}>{opt.desc}</div>
+            </button>
+          ))}
         </div>
       );
 
     case 5:
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <ChipSelect
+            options={CRAFTS}
+            selected={answers.crafts}
+            onToggle={val => toggle('crafts', val)}
+          />
+          <div style={{ display: 'flex', gap: 12 }}>
+            {[
+              { key: 'craft_is_flexible', label: "Flexible on craft type" },
+              { key: 'craft_not_sure',    label: "Not sure which craft" },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => set(key, !answers[key])}
+                style={{
+                  padding: '8px 18px', borderRadius: 20,
+                  border: `1px solid ${answers[key] ? '#C46E49' : 'var(--border)'}`,
+                  background: answers[key] ? 'rgba(196,110,73,0.10)' : 'transparent',
+                  color: answers[key] ? '#C46E49' : 'var(--text3)',
+                  fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-body)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {answers[key] ? '✓ ' : ''}{label}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+
+    case 6:
       return (
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
           {[
@@ -548,7 +560,7 @@ function StepBody({ step, answers, set }) {
         </div>
       );
 
-    case 6:
+    case 7:
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {PROCESS_STAGES.map(s => (
@@ -577,15 +589,6 @@ function StepBody({ step, answers, set }) {
             </button>
           ))}
         </div>
-      );
-
-    case 7:
-      return (
-        <ChipSelect
-          options={DESIGN_SUPPORT}
-          selected={answers.design_support}
-          onToggle={val => toggle('design_support', val)}
-        />
       );
 
     case 8:
