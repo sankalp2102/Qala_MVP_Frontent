@@ -206,7 +206,7 @@ export default function SectionA({ profileId, onSave }) {
       {/* A.6 Contacts */}
       <CardSection title="A.5 — Studio Contacts">
         <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
-          Who should buyers contact at your studio? Add the key people (owner, designer, production manager, etc.)
+          Who should we contact at your studio? Add the key people (owner, designer, production manager, etc.)
         </p>
         {contacts.map(c => (
           <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--radius)', marginBottom: 8, border: '1px solid var(--border)' }}>
@@ -286,9 +286,9 @@ export default function SectionA({ profileId, onSave }) {
       </CardSection>
 
       {/* A.9 Work Dump */}
-      <CardSection title="A.8 — Work Portfolio / Image Dump">
+      <CardSection title="A.8 — Work Portfolio">
         <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
-          Upload images or videos showing your products, craftspeople, techniques, and studio space. The more, the better — buyers love to see your work in depth.
+          This is the way for you to showcase your capability: share pictures of the different types of garments you have produced in the past, your signature work. Ideally, 15–20 images across silhouettes and aesthetics.
         </p>
         {workMedia.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>

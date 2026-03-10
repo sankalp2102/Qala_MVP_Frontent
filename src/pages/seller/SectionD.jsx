@@ -144,11 +144,11 @@ export default function SectionD({ profileId, onSave }) {
             <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', color: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0, marginTop: 1 }}>{i + 1}</div>
             <input className="input-raw" style={{ flex: 1 }}
               placeholder={[
+                'e.g. What is the target market for your collection?',
+                'e.g. Can you share a moodboard or reference images?',
                 'e.g. What is your approximate order quantity?',
-                'e.g. What is your target price point per garment?',
-                'e.g. Do you have existing tech packs or just references?',
                 'e.g. What is your required delivery timeline?',
-                'e.g. Have you worked with Indian craft studios before?',
+                'e.g. Do you have existing tech packs or just references?',
               ][i] || `Question #${i + 1}`}
               value={r.question}
               onChange={e => setReqs(a => a.map((x, j) => j === i ? { ...x, question: e.target.value } : x))} />

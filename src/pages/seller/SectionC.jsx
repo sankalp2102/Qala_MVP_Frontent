@@ -171,7 +171,7 @@ export default function SectionC({ profileId, onSave }) {
                 style={{ accentColor: 'var(--gold)', width: 15, height: 15, marginTop: 2 }} />
               <div>
                 <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 14 }}>Mark as Primary Craft</div>
-                <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Your primary craft appears first on your profile and carries more weight in buyer matching.</div>
+                <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Primary crafts are the crafts that you are expert in and mostly work with. Secondary crafts could be ones that you have tried a few times, but you don't always work with them.</div>
               </div>
             </label>
 

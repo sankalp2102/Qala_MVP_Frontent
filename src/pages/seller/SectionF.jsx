@@ -87,7 +87,7 @@ export default function SectionF({ profileId, onSave }) {
       {/* F.1 Production Steps */}
       <CardSection title="F.1 — Full Production Process">
         <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 6, lineHeight: 1.7 }}>
-          Describe your complete production workflow — from the moment you receive a buyer's brief to the moment their order is shipped. Include all stages, who handles each, and typical timelines.
+          Please list all the steps or checkpoints that you follow in your studio from design to production.
         </p>
         <p style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 14 }}>
           The more detail you provide here, the more confidence buyers have in working with you. This section is read carefully by serious buyers.
@@ -109,19 +109,15 @@ export default function SectionF({ profileId, onSave }) {
           }}
           onFocus={e => { e.target.style.borderColor = 'var(--gold-d)'; e.target.style.boxShadow = '0 0 0 3px var(--gold-dim)'; }}
           onBlur={e => { e.target.style.borderColor = 'var(--border2)'; e.target.style.boxShadow = 'none'; }}
-          placeholder={`Step 1: Receive brief from buyer — review reference images, tech pack (if available), quantity, timeline requirements. Confirm feasibility within 24 hours.
-
-Step 2: Fabric sourcing — source from our regular suppliers in Jaipur. 3–5 days for standard stock, up to 2 weeks for special orders.
-
-Step 3: Sample development — our master craftsperson begins the first sample. Block carving (if new motif required): 3–4 days. First sample delivery: 10–12 days from brief.
-
-Step 4: Buyer approval round — buyer reviews sample physically or via video call. We incorporate feedback.
-
-Step 5: Bulk production begins once sample is approved in writing. Production timeline shared upfront per order.
-
-Step 6: Quality check — each piece individually inspected before packing.
-
-Step 7: Packing and dispatch via our logistics partner. Real-time tracking shared.`}
+          placeholder={`For example:
+- Test fit made
+- Textile graphs created
+- Custom fabric created
+- Fabric QC passed
+- Production started
+- QC Checkpoint 1 (e.g., material inspection)
+- QC Checkpoint 2 (e.g., stitching quality)
+- And so on... (Feel free to add as many steps as you follow)`}
         />
       </CardSection>
 

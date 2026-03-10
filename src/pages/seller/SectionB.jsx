@@ -309,7 +309,7 @@ export default function SectionB({ profileId, onSave }) {
       {/* B.3 Brand Experience */}
       <CardSection title="B.3 — Brand Experience">
         <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
-          Which brands or buyers have you worked with? List them here — this builds trust with new buyers. You can also optionally upload a photo or brand logo.
+          Which brands or buyers have you worked with? List them here — this builds trust with new buyers.
         </p>
         {brands.map(b => (
           <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--radius)', marginBottom: 8, border: '1px solid var(--border)' }}>
@@ -328,12 +328,12 @@ export default function SectionB({ profileId, onSave }) {
               <input value={newBrand.brand_name} onChange={e => setNewBrand(b => ({ ...b, brand_name: e.target.value }))} placeholder="e.g. Good Earth" />
             </div>
             <div className="field">
-              <label>Scope of Work (optional)</label>
+              <label>Scope of Work *</label>
               <input value={newBrand.scope} onChange={e => setNewBrand(b => ({ ...b, scope: e.target.value }))} placeholder="e.g. Hand block printed kurtas for SS23 collection, 200 pcs" />
             </div>
           </div>
           <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>Brand Logo / Image (optional)</div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>Image *</div>
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
               <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setBrandImg(e.target.files[0])} style={{ display: 'none' }} />
               <span className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>{brandImg ? brandImg.name : '+ Attach Image'}</span>
