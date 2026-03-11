@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { discoveryAPI } from '../api/client';
 import ChipSelect from '../components/discovery/ChipSelect';
 import ImageGrid from '../components/discovery/ImageGrid';
-import GarmentAnimation from '../components/discovery/GarmentAnimation';
+import KnittingAnimation from '../components/discovery/KnittingAnimation';
 import qalaLogo from '../assets/qala-logo.png';
 
 const TOTAL_STEPS = 8;
@@ -33,10 +33,10 @@ const CRAFTS = [
 ];
 
 const PROCESS_STAGES = [
-  { value: 'I have a vision',              label: 'I have a vision',              desc: 'Moodboard / inspiration' },
-  { value: 'I have designs or sketches',   label: 'I have designs or sketches',   desc: 'Ready to develop further' },
-  { value: 'I have samples already made',  label: 'I have samples already made',  desc: 'Looking for a production partner' },
-  { value: "I'm still exploring ideas",    label: "I'm still exploring ideas",    desc: 'No fixed direction yet' },
+  { value: 'I have a vision',             label: 'I have a vision',             desc: 'Moodboard / inspiration' },
+  { value: 'I have designs or sketches',  label: 'I have designs or sketches',  desc: 'Ready to develop further' },
+  { value: 'I have samples already made', label: 'I have samples already made', desc: 'Looking for a production partner' },
+  { value: "I'm still exploring ideas",   label: "I'm still exploring ideas",   desc: 'No fixed direction yet' },
 ];
 
 const DESIGN_SUPPORT = [
@@ -62,11 +62,6 @@ const BATCH_SIZES = [
   { value: 'not_sure', label: 'Not sure yet' },
 ];
 
-// ── helpers ───────────────────────────────────────────────────────────────────
-function toggle(arr, val) {
-  return arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val];
-}
-
 // ── step meta ─────────────────────────────────────────────────────────────────
 const STEPS = [
   {
@@ -89,6 +84,8 @@ const STEPS = [
     sub:  "",
     hint: "Handcraft techniques add character and uniqueness,\nbut work differently than machine production.",
   },
+  // Step 5 is rendered inline on step 4 when craft_interest === 'yes'
+  // kept in STEPS array so progress bar still counts it
   {
     q:    "Do you know which technique(s) you'd like to use?",
     sub:  "",
@@ -113,11 +110,12 @@ const STEPS = [
 
 export default function Discover() {
   const nav = useNavigate();
-  const [step, setStep]     = useState(1);
-  const [dir,  setDir]      = useState(1);  // 1=forward, -1=backward
-  const [anim, setAnim]     = useState(false);
+  const [step, setStep]             = useState(1);
+  const [dir,  setDir]              = useState(1);
+  const [anim, setAnim]             = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError]   = useState('');
+  const [error, setError]           = useState('');
+  const [rowsKnitted, setRowsKnitted] = useState(0);
 
   const [answers, setAnswers] = useState({
     visual_selection_ids: [],
@@ -125,11 +123,11 @@ export default function Discover() {
     fabrics:              [],
     fabric_is_flexible:   false,
     fabric_not_sure:      false,
-    craft_interest:       null,   // 'yes'|'no'
+    craft_interest:       null,
     crafts:               [],
     craft_is_flexible:    false,
     craft_not_sure:       false,
-    experimentation:      null,   // 'yes'|'no'|'skipped'
+    experimentation:      null,
     process_stage:        '',
     design_support:       [],
     timeline:             '',
@@ -147,20 +145,20 @@ export default function Discover() {
           const d = r.data.data;
           setAnswers(prev => ({
             ...prev,
-            product_types:      d.product_types      || [],
-            fabrics:            d.fabrics             || [],
-            fabric_is_flexible: d.fabric_is_flexible  || false,
-            fabric_not_sure:    d.fabric_not_sure     || false,
-            craft_interest:     d.craft_interest      || null,
-            crafts:             d.crafts              || [],
-            craft_is_flexible:  d.craft_is_flexible   || false,
-            craft_not_sure:     d.craft_not_sure      || false,
-            experimentation:    d.experimentation     || null,
-            process_stage:      d.process_stage       || '',
-            design_support:     d.design_support      || [],
-            timeline:           d.timeline            || '',
-            batch_size:         d.batch_size          || '',
-            visual_selection_ids: d.visual_selection_ids || [],
+            product_types:        d.product_types        || [],
+            fabrics:              d.fabrics               || [],
+            fabric_is_flexible:   d.fabric_is_flexible    || false,
+            fabric_not_sure:      d.fabric_not_sure       || false,
+            craft_interest:       d.craft_interest        || null,
+            crafts:               d.crafts                || [],
+            craft_is_flexible:    d.craft_is_flexible     || false,
+            craft_not_sure:       d.craft_not_sure        || false,
+            experimentation:      d.experimentation       || null,
+            process_stage:        d.process_stage         || '',
+            design_support:       d.design_support        || [],
+            timeline:             d.timeline              || '',
+            batch_size:           d.batch_size            || '',
+            visual_selection_ids: d.visual_selection_ids  || [],
           }));
         })
         .catch(() => {});
@@ -169,7 +167,9 @@ export default function Discover() {
 
   const goTo = (next) => {
     if (next < 1 || next > TOTAL_STEPS) return;
-    setDir(next > step ? 1 : -1);
+    const goingForward = next > step;
+    setDir(goingForward ? 1 : -1);
+    if (goingForward) setRowsKnitted(Math.round((next / TOTAL_STEPS) * 16));
     setAnim(true);
     setTimeout(() => {
       setStep(next);
@@ -177,32 +177,49 @@ export default function Discover() {
     }, 220);
   };
 
-  // true if user picked at least one specific craft (not just flexible/not_sure toggles)
-  const hasSpecificCraft = () => answers.crafts.length > 0 && !answers.craft_is_flexible && !answers.craft_not_sure;
+  // true if user picked at least one specific craft
+  const hasSpecificCraft = () =>
+    answers.crafts.length > 0 && !answers.craft_is_flexible && !answers.craft_not_sure;
 
   const getNextStep = () => {
-    if (step === 4) return (answers.craft_interest === 'no' || answers.craft_interest === 'exploring') ? 7 : 5;
-    if (step === 5) return hasSpecificCraft() ? 6 : 7;               // specific craft → experimentation(6), else skip to process stage(7)
+    // Step 4 now handles Q4 + Q5 inline:
+    // No/Exploring → Q7 | Yes + specific craft → Q6 | Yes + flexible/not sure → Q7
+    if (step === 4) {
+      if (answers.craft_interest === 'no' || answers.craft_interest === 'exploring') return 7;
+      if (answers.craft_interest === 'yes') return hasSpecificCraft() ? 6 : 7;
+    }
+    // Step 5 kept as fallback — same routing
+    if (step === 5) return hasSpecificCraft() ? 6 : 7;
     return step + 1;
   };
 
   const getPrevStep = () => {
+    // Q6 always goes back to Q4 (which shows Q5 inline)
+    if (step === 6) return 4;
+    // Q7: if craft_interest was no/exploring, came from Q4; otherwise from Q4 (inline Q5)
     if (step === 7 && (answers.craft_interest === 'no' || answers.craft_interest === 'exploring')) return 4;
-    if (step === 7 && answers.craft_interest === 'yes' && !hasSpecificCraft()) return 5; // skipped experimentation only
-    if (step === 6 && (answers.craft_interest === 'no' || answers.craft_interest === 'exploring')) return 4; // safety net
+    if (step === 7 && answers.craft_interest === 'yes') return 4;
     return step - 1;
   };
 
   const canProceed = () => {
     if (step === 2 && answers.product_types.length === 0) return false;
-    if (step === 4 && answers.craft_interest === null) return false;
-    if (step === 6 && answers.experimentation === null) return false;  // experimentation is now step 6
-    if (step === 7 && !answers.process_stage) return false;           // process stage is now step 7
+    if (step === 4) {
+      if (answers.craft_interest === null) return false;
+      // If Yes, Q5 inline must also have an answer
+      if (answers.craft_interest === 'yes') {
+        const hasCraftAnswer = answers.crafts.length > 0 || answers.craft_is_flexible || answers.craft_not_sure;
+        if (!hasCraftAnswer) return false;
+      }
+    }
+    if (step === 6 && answers.experimentation === null) return false;
+    if (step === 7 && !answers.process_stage) return false;
     if (step === 8 && (!answers.timeline || !answers.batch_size)) return false;
     return true;
   };
 
   const handleSubmit = async () => {
+    setRowsKnitted(16);;
     setSubmitting(true);
     setError('');
     try {
@@ -225,22 +242,23 @@ export default function Discover() {
 
   const set = (key, val) => setAnswers(prev => ({ ...prev, [key]: val }));
 
-  // ── layout ──────────────────────────────────────────────────────────────────
+  // ── layout ───────────────────────────────────────────────────────────────────
   return (
     <div style={{ height: '100vh', background: '#F8F5F1', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <style>{`
         @keyframes slideInFwd  { from{opacity:0;transform:translateX(40px)}  to{opacity:1;transform:none} }
         @keyframes slideInBack { from{opacity:0;transform:translateX(-40px)} to{opacity:1;transform:none} }
         @keyframes slideOut    { from{opacity:1} to{opacity:0} }
+        @keyframes fadeSlideIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
         .step-enter-fwd  { animation: slideInFwd  0.25s cubic-bezier(0.4,0,0.2,1) both; }
         .step-enter-back { animation: slideInBack 0.25s cubic-bezier(0.4,0,0.2,1) both; }
         .step-exit       { animation: slideOut    0.18s ease both; }
+        .inline-step-reveal { animation: fadeSlideIn 0.28s cubic-bezier(0.4,0,0.2,1) both; }
         .option-card:hover { border-color: rgba(196,110,73,0.5) !important; background: rgba(196,110,73,0.04) !important; }
         .option-card.sel  { border-color: #C46E49 !important; background: rgba(196,110,73,0.08) !important; }
         .option-card.sel div { color: #C46E49 !important; }
         .nav-btn:hover { background: rgba(196,110,73,0.06) !important; }
         .continue-btn:not(:disabled):hover { background: #A85A38 !important; }
-        /* Mobile: stack vertically */
         @media(max-width: 900px) {
           .discover-split { flex-direction: column !important; }
           .discover-right { display: none !important; }
@@ -254,7 +272,6 @@ export default function Discover() {
         padding: '16px 32px', borderBottom: '1px solid var(--border)',
         background: '#F8F5F1', zIndex: 20, flexShrink: 0,
       }}>
-        {/* Logo + back */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
           <button onClick={() => nav('/')} style={{
             background: 'none', border: 'none', color: 'var(--text3)',
@@ -267,7 +284,6 @@ export default function Discover() {
           <img src={qalaLogo} alt="Qala" style={{ height: 80, width: 'auto', display: 'block' }} />
         </div>
 
-        {/* Step progress bar */}
         <div style={{ flex: 1, maxWidth: 320, margin: '0 32px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
             <span style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
@@ -287,7 +303,6 @@ export default function Discover() {
           </div>
         </div>
 
-        {/* Step dots */}
         <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
           {Array.from({ length: TOTAL_STEPS }, (_, i) => (
             <div key={i} style={{
@@ -303,19 +318,14 @@ export default function Discover() {
       </div>
 
       {/* ── Split body ── */}
-      <div className="discover-split" style={{
-        flex: 1, display: 'flex', overflow: 'hidden',
-      }}>
+      <div className="discover-split" style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
 
         {/* LEFT — 60% — Question */}
         <div className="discover-left" style={{
           width: '60%', display: 'flex', flexDirection: 'column',
           borderRight: '1px solid var(--border)', overflow: 'hidden',
         }}>
-          {/* Scrollable question area */}
-          <div style={{
-            flex: 1, overflowY: 'auto', padding: '48px 52px 100px',
-          }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '48px 52px 100px' }}>
             <div
               className={anim ? 'step-exit' : dir === 1 ? 'step-enter-fwd' : 'step-enter-back'}
               key={step}
@@ -343,23 +353,8 @@ export default function Discover() {
                 )}
               </div>
 
-              {/* Step body */}
               <StepBody step={step} answers={answers} set={set} />
 
-              {/* Helper / schooling text — shown below the step content */}
-              {STEPS[step - 1].hint && (
-                <p style={{
-                  marginTop: 28, fontSize: 13, color: 'var(--text4)',
-                  lineHeight: 1.7, fontStyle: 'italic',
-                  borderLeft: '2px solid var(--border)',
-                  paddingLeft: 14,
-                  whiteSpace: 'pre-line',
-                }}>
-                  {STEPS[step - 1].hint}
-                </p>
-              )}
-
-              {/* Error */}
               {error && (
                 <div style={{
                   marginTop: 24, padding: '12px 16px',
@@ -373,7 +368,7 @@ export default function Discover() {
             </div>
           </div>
 
-          {/* Bottom nav — fixed within left panel */}
+          {/* Bottom nav */}
           <div style={{
             flexShrink: 0, padding: '16px 52px',
             borderTop: '1px solid var(--border)',
@@ -396,12 +391,7 @@ export default function Discover() {
               ← Back
             </button>
 
-            {/* Optional skip hint for non-required questions */}
-            {[3, 5].includes(step) && (
-              <span style={{ fontSize: 11, color: 'var(--text4)' }}>
-                Optional — you can skip
-              </span>
-            )}
+            
 
             {step < TOTAL_STEPS ? (
               <button
@@ -440,19 +430,35 @@ export default function Discover() {
           </div>
         </div>
 
-        {/* RIGHT — 40% — Garment animation */}
+        {/* RIGHT — 40% — Knitting animation */}
         <div className="discover-right" style={{
           width: '40%',
-          background: 'var(--surface)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: '#F8F5F1',
           position: 'relative', overflow: 'hidden',
         }}>
-          {/* Subtle radial glow */}
-          <div style={{
-            position: 'absolute', inset: 0, pointerEvents: 'none',
-            background: 'radial-gradient(ellipse at center, rgba(196,110,73,0.04) 0%, transparent 65%)',
-          }} />
-          <GarmentAnimation step={step} />
+          <div style={{ width: '100%', height: '100%' }}>
+            <KnittingAnimation rowsKnitted={rowsKnitted} />
+          </div>
+
+          {STEPS[step - 1].hint && (
+            <div style={{
+              position: 'absolute',
+              bottom: 0, left: 0, right: 0,
+              padding: '20px 32px 28px',
+            }}>
+              <p style={{
+                margin: 0,
+                fontSize: 12,
+                color: 'var(--text3)',
+                lineHeight: 1.80,
+                fontStyle: 'italic',
+                whiteSpace: 'pre-line',
+                letterSpacing: '0.01em',
+              }}>
+                {STEPS[step - 1].hint}
+              </p>
+            </div>
+          )}
         </div>
 
       </div>
@@ -488,7 +494,8 @@ function StepBody({ step, answers, set }) {
         />
       );
 
-    case 3:
+    case 3: {
+      const notSureDisabled3 = answers.fabrics.length > 0 || answers.fabric_is_flexible;
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           <ChipSelect
@@ -496,57 +503,174 @@ function StepBody({ step, answers, set }) {
             selected={answers.fabrics}
             onToggle={val => toggle('fabrics', val)}
           />
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', borderTop: '1px dashed var(--border)', paddingTop: 16 }}>
-            <span style={{ fontSize: 11, color: 'var(--text4)', alignSelf: 'center', marginRight: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Or:</span>
-            {[
-              { key: 'fabric_is_flexible', label: "I'm flexible" },
-              { key: 'fabric_not_sure',    label: "Not sure yet" },
-            ].map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => set(key, !answers[key])}
+          <div style={{ borderTop: '1px dashed var(--border)', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+            {/* I'm flexible — checkbox */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
+              <div
+                onClick={() => set('fabric_is_flexible', !answers.fabric_is_flexible)}
                 style={{
-                  padding: '9px 20px', borderRadius: 8,
-                  border: `1.5px solid ${answers[key] ? '#C46E49' : '#B0A89A'}`,
-                  background: answers[key] ? 'rgba(196,110,73,0.10)' : 'rgba(176,168,154,0.10)',
-                  color: answers[key] ? '#C46E49' : 'var(--text2)',
-                  fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)',
-                  transition: 'all 0.15s',
+                  width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+                  border: `2px solid ${answers.fabric_is_flexible ? '#C46E49' : '#B0A89A'}`,
+                  background: answers.fabric_is_flexible ? '#C46E49' : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.15s', cursor: 'pointer',
                 }}
               >
-                {answers[key] ? '✓ ' : ''}{label}
-              </button>
-            ))}
+                {answers.fabric_is_flexible && (
+                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                    <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </div>
+              <span
+                onClick={() => set('fabric_is_flexible', !answers.fabric_is_flexible)}
+                style={{ fontSize: 13, fontWeight: 600, color: answers.fabric_is_flexible ? '#C46E49' : 'var(--text2)', transition: 'color 0.15s' }}
+              >
+                I'm flexible
+              </span>
+            </label>
+
+            {/* Not sure yet */}
+            <button
+              onClick={() => !notSureDisabled3 && set('fabric_not_sure', !answers.fabric_not_sure)}
+              disabled={notSureDisabled3}
+              style={{
+                alignSelf: 'flex-start',
+                padding: '9px 20px', borderRadius: 8,
+                border: `1.5px solid ${answers.fabric_not_sure ? '#C46E49' : notSureDisabled3 ? 'var(--border)' : '#B0A89A'}`,
+                background: answers.fabric_not_sure ? 'rgba(196,110,73,0.10)' : 'transparent',
+                color: notSureDisabled3 ? 'var(--text4)' : answers.fabric_not_sure ? '#C46E49' : 'var(--text2)',
+                fontSize: 13, fontWeight: 600,
+                cursor: notSureDisabled3 ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-body)', transition: 'all 0.15s',
+                opacity: notSureDisabled3 ? 0.4 : 1,
+              }}
+            >
+              Not sure yet
+            </button>
           </div>
         </div>
       );
+    }
 
-    case 4:
+    case 4: {
+      const notSureDisabled5 = answers.crafts.length > 0 || answers.craft_is_flexible;
       return (
-        <div style={{ display: 'flex', gap: 16 }}>
-          {[
-            { val: 'yes',       label: 'Yes' },
-            { val: 'no',        label: 'No' },
-            { val: 'exploring', label: "I'm still exploring" },
-          ].map(opt => (
-            <button
-              key={opt.val}
-              className={`option-card${answers.craft_interest === opt.val ? ' sel' : ''}`}
-              onClick={() => set('craft_interest', opt.val)}
-              style={{
-                flex: 1, padding: '20px', border: '1px solid var(--border)',
-                borderRadius: 12, background: 'transparent',
-                cursor: 'pointer', textAlign: 'center',
-                fontFamily: 'var(--font-body)', transition: 'all 0.15s',
-              }}
-            >
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{opt.label}</div>
-            </button>
-          ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+          {/* Q4 — craft interest */}
+          <div style={{ display: 'flex', gap: 16 }}>
+            {[
+              { val: 'yes',       label: 'Yes' },
+              { val: 'no',        label: 'No' },
+              { val: 'exploring', label: "I'm still exploring" },
+            ].map(opt => (
+              <button
+                key={opt.val}
+                className={`option-card${answers.craft_interest === opt.val ? ' sel' : ''}`}
+                onClick={() => set('craft_interest', opt.val)}
+                style={{
+                  flex: 1, padding: '20px', border: '1px solid var(--border)',
+                  borderRadius: 12, background: 'transparent',
+                  cursor: 'pointer', textAlign: 'center',
+                  fontFamily: 'var(--font-body)', transition: 'all 0.15s',
+                }}
+              >
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{opt.label}</div>
+              </button>
+            ))}
+          </div>
+
+          {/* Q5 inline — fades in when Yes is picked */}
+          {answers.craft_interest === 'yes' && (
+            <div className="inline-step-reveal" style={{
+              borderTop: '1px solid var(--border)',
+              paddingTop: 28,
+              display: 'flex', flexDirection: 'column', gap: 20,
+            }}>
+              {/* Inline Q5 header */}
+              <div>
+                <div style={{
+                  fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em',
+                  textTransform: 'uppercase', marginBottom: 8, fontWeight: 600,
+                }}>
+                  Question 5
+                </div>
+                <h3 style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 'clamp(18px, 2vw, 26px)',
+                  fontWeight: 700, color: 'var(--text)', margin: 0,
+                  lineHeight: 1.2, letterSpacing: '-0.01em',
+                }}>
+                  Do you know which technique(s) you'd like to use?
+                </h3>
+              </div>
+
+              {/* Craft chips */}
+              <ChipSelect
+                options={CRAFTS}
+                selected={answers.crafts}
+                onToggle={val => toggle('crafts', val)}
+              />
+
+              {/* Flexible / Not sure */}
+              <div style={{ borderTop: '1px dashed var(--border)', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+                {/* I'm flexible — checkbox */}
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
+                  <div
+                    onClick={() => set('craft_is_flexible', !answers.craft_is_flexible)}
+                    style={{
+                      width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+                      border: `2px solid ${answers.craft_is_flexible ? '#C46E49' : '#B0A89A'}`,
+                      background: answers.craft_is_flexible ? '#C46E49' : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'all 0.15s', cursor: 'pointer',
+                    }}
+                  >
+                    {answers.craft_is_flexible && (
+                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                        <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </div>
+                  <span
+                    onClick={() => set('craft_is_flexible', !answers.craft_is_flexible)}
+                    style={{ fontSize: 13, fontWeight: 600, color: answers.craft_is_flexible ? '#C46E49' : 'var(--text2)', transition: 'color 0.15s' }}
+                  >
+                    I'm flexible
+                  </span>
+                </label>
+
+                {/* Not sure yet */}
+                <button
+                  onClick={() => !notSureDisabled5 && set('craft_not_sure', !answers.craft_not_sure)}
+                  disabled={notSureDisabled5}
+                  style={{
+                    alignSelf: 'flex-start',
+                    padding: '9px 20px', borderRadius: 8,
+                    border: `1.5px solid ${answers.craft_not_sure ? '#C46E49' : notSureDisabled5 ? 'var(--border)' : '#B0A89A'}`,
+                    background: answers.craft_not_sure ? 'rgba(196,110,73,0.10)' : 'transparent',
+                    color: notSureDisabled5 ? 'var(--text4)' : answers.craft_not_sure ? '#C46E49' : 'var(--text2)',
+                    fontSize: 13, fontWeight: 600,
+                    cursor: notSureDisabled5 ? 'not-allowed' : 'pointer',
+                    fontFamily: 'var(--font-body)', transition: 'all 0.15s',
+                    opacity: notSureDisabled5 ? 0.4 : 1,
+                  }}
+                >
+                  Not sure yet
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       );
+    }
 
-    case 5:
+    // Case 5 kept as fallback only (shouldn't normally be reached)
+    case 5: {
+      const notSureDisabled5 = answers.crafts.length > 0 || answers.craft_is_flexible;
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <ChipSelect
@@ -554,30 +678,52 @@ function StepBody({ step, answers, set }) {
             selected={answers.crafts}
             onToggle={val => toggle('crafts', val)}
           />
-          <div style={{ display: 'flex', gap: 12, borderTop: '1px dashed var(--border)', paddingTop: 16 }}>
-            <span style={{ fontSize: 11, color: 'var(--text4)', alignSelf: 'center', marginRight: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Or:</span>
-            {[
-              { key: 'craft_is_flexible', label: "I'm flexible" },
-              { key: 'craft_not_sure',    label: "Not sure yet" },
-            ].map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => set(key, !answers[key])}
+          <div style={{ borderTop: '1px dashed var(--border)', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
+              <div
+                onClick={() => set('craft_is_flexible', !answers.craft_is_flexible)}
                 style={{
-                  padding: '9px 20px', borderRadius: 8,
-                  border: `1.5px solid ${answers[key] ? '#C46E49' : '#B0A89A'}`,
-                  background: answers[key] ? 'rgba(196,110,73,0.10)' : 'rgba(176,168,154,0.10)',
-                  color: answers[key] ? '#C46E49' : 'var(--text2)',
-                  fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)',
-                  transition: 'all 0.15s',
+                  width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+                  border: `2px solid ${answers.craft_is_flexible ? '#C46E49' : '#B0A89A'}`,
+                  background: answers.craft_is_flexible ? '#C46E49' : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.15s', cursor: 'pointer',
                 }}
               >
-                {answers[key] ? '✓ ' : ''}{label}
-              </button>
-            ))}
+                {answers.craft_is_flexible && (
+                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                    <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </div>
+              <span
+                onClick={() => set('craft_is_flexible', !answers.craft_is_flexible)}
+                style={{ fontSize: 13, fontWeight: 600, color: answers.craft_is_flexible ? '#C46E49' : 'var(--text2)', transition: 'color 0.15s' }}
+              >
+                I'm flexible
+              </span>
+            </label>
+            <button
+              onClick={() => !notSureDisabled5 && set('craft_not_sure', !answers.craft_not_sure)}
+              disabled={notSureDisabled5}
+              style={{
+                alignSelf: 'flex-start',
+                padding: '9px 20px', borderRadius: 8,
+                border: `1.5px solid ${answers.craft_not_sure ? '#C46E49' : notSureDisabled5 ? 'var(--border)' : '#B0A89A'}`,
+                background: answers.craft_not_sure ? 'rgba(196,110,73,0.10)' : 'transparent',
+                color: notSureDisabled5 ? 'var(--text4)' : answers.craft_not_sure ? '#C46E49' : 'var(--text2)',
+                fontSize: 13, fontWeight: 600,
+                cursor: notSureDisabled5 ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-body)', transition: 'all 0.15s',
+                opacity: notSureDisabled5 ? 0.4 : 1,
+              }}
+            >
+              Not sure yet
+            </button>
           </div>
         </div>
       );
+    }
 
     case 6:
       return (
@@ -685,7 +831,6 @@ function StepBody({ step, answers, set }) {
             </div>
           </div>
 
-          {/* Optional name fields */}
           <div>
             <div style={{ fontSize: 11, color: 'var(--text3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16, fontWeight: 600 }}>
               Your name (optional)
