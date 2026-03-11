@@ -54,10 +54,10 @@ export const onboardingAPI = {
   addContact:  (pid,d) => api.post('/api/seller/onboarding/studio/contacts/', d, { headers: ph(pid) }),
   delContact:  (pid,id) => api.delete(`/api/seller/onboarding/studio/contacts/${id}/`, { headers: ph(pid) }),
   putUSPs:     (pid,d) => api.put('/api/seller/onboarding/studio/usps/', d, { headers: ph(pid) }),
-  uploadMedia:      (pid,f) => api.post('/api/seller/onboarding/studio/media/', f, { headers: ph(pid) }),
-  delMedia:         (pid,id) => api.delete(`/api/seller/onboarding/studio/media/${id}/`, { headers: ph(pid) }),
-  uploadStudioMedia:(pid,f) => api.post('/api/seller/onboarding/studio/media/', f, { headers: ph(pid) }),
-  delStudioMedia:   (pid,id) => api.delete(`/api/seller/onboarding/studio/media/${id}/`, { headers: ph(pid) }),
+  uploadMedia:       (pid,f) => api.post('/api/seller/onboarding/studio/media/', f, { headers: ph(pid) }),
+  delMedia:          (pid,id) => api.delete(`/api/seller/onboarding/studio/media/${id}/`, { headers: ph(pid) }),
+  uploadStudioMedia: (pid,f) => api.post('/api/seller/onboarding/studio/media/', f, { headers: ph(pid) }),
+  delStudioMedia:    (pid,id) => api.delete(`/api/seller/onboarding/studio/media/${id}/`, { headers: ph(pid) }),
   getProducts: pid => api.get('/api/seller/onboarding/products/', { headers: ph(pid) }),
   putProducts: (pid,d) => api.put('/api/seller/onboarding/products/', d, { headers: ph(pid) }),
   getFabrics:  pid => api.get('/api/seller/onboarding/fabrics/', { headers: ph(pid) }),
@@ -84,6 +84,9 @@ export const onboardingAPI = {
   putProcess:  (pid,d) => api.put('/api/seller/onboarding/process/', d, { headers: ph(pid) }),
   uploadBTS:   (pid,f) => api.post('/api/seller/onboarding/process/media/', f, { headers: ph(pid) }),
   delBTS:      (pid,id) => api.delete(`/api/seller/onboarding/process/media/${id}/`, { headers: ph(pid) }),
+
+  // Seller — own studio inquiries (buyers who clicked "Get a Callback")
+  getStudioInquiries: pid => api.get('/api/seller/studio-inquiries/', { headers: ph(pid) }),
 };
 
 export const adminAPI = {
@@ -94,9 +97,10 @@ export const adminAPI = {
   flagField:     (pid,d) => api.post(`/api/admin/seller-profiles/${pid}/flag/`, d),
   editSection:   (pid, section, d) => api.patch(`/api/admin/seller-profiles/${pid}/edit/${section}/`, d),
   // Discovery
-  getDiscoveryBuyers:   () => api.get('/api/admin/discovery/buyers/'),
-  getDiscoveryBuyer:    id => api.get(`/api/admin/discovery/buyers/${id}/`),
-  getDiscoveryInquiries: () => api.get('/api/admin/discovery/inquiries/'),
+  getDiscoveryBuyers:       () => api.get('/api/admin/discovery/buyers/'),
+  getDiscoveryBuyer:        id => api.get(`/api/admin/discovery/buyers/${id}/`),
+  getDiscoveryInquiries:    () => api.get('/api/admin/discovery/inquiries/'),
+  getAdminStudioInquiries:  () => api.get('/api/admin/discovery/studio-inquiries/'),
 };
 
 // ─── DISCOVERY API ─────────────────────────────────────────────────────────────
@@ -138,7 +142,7 @@ export const discoveryAPI = {
       headers: { 'Content-Type': 'application/json' },
     }),
 
-  // Feature 4 — Public studio profile
+  // Public studio profile
   getStudioProfile: profileId =>
     axios.get(`${BASE}/api/discovery/studios/${profileId}/`),
 

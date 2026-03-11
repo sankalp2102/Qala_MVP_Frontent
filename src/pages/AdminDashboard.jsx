@@ -966,6 +966,152 @@ function DiscoveryBuyerDetail() {
 }
 
 
+
+/* ── STUDIO INQUIRIES ── */
+function StudioInquiries() {
+  const [data,    setData]    = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [search,  setSearch]  = useState('');
+  const nav = useNavigate();
+
+  useEffect(() => {
+    adminAPI.getAdminStudioInquiries()
+      .then(r => setData(r.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <Spinner full />;
+  if (!data)   return <div style={{ padding: 40, color: 'var(--red)' }}>Failed to load studio inquiries.</div>;
+
+  const filtered = data.inquiries.filter(inq => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      inq.name.toLowerCase().includes(q)            ||
+      inq.email.toLowerCase().includes(q)           ||
+      inq.studio?.name?.toLowerCase().includes(q)   ||
+      inq.answers?.some(a => a.answer?.toLowerCase().includes(q))
+    );
+  });
+
+  return (
+    <div style={{ padding: '40px 48px' }}>
+      <div className="fade-up" style={{ marginBottom: 36 }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 42, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+          Studio <em style={{ color: 'var(--gold)' }}>Inquiries</em>
+        </h1>
+        <p style={{ color: 'var(--text3)', fontSize: 15 }}>Buyers who clicked "Get a Callback" on a studio profile.</p>
+      </div>
+
+      <div className="card fade-up">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)' }}>
+            {data.count} Inquir{data.count !== 1 ? 'ies' : 'y'}
+          </div>
+          <input
+            placeholder="Search name, email, studio..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              background: 'var(--surface2)', border: '1px solid var(--border)',
+              borderRadius: 8, padding: '8px 14px', fontSize: 13,
+              color: 'var(--text)', width: 280, fontFamily: 'var(--font-body)',
+            }}
+          />
+        </div>
+
+        {filtered.length === 0
+          ? <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text4)', fontSize: 13 }}>No studio inquiries found.</div>
+          : (
+            <div style={{ display: 'grid', gap: 14 }}>
+              {filtered.map(inq => (
+                <div key={inq.id} style={{
+                  padding: '20px 24px', background: 'var(--surface2)',
+                  borderRadius: 10, border: '1px solid var(--border)',
+                  borderLeft: '3px solid var(--gold)',
+                }}>
+                  {/* Header row */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)', marginBottom: 2 }}>{inq.name}</div>
+                      <div style={{ fontSize: 13, color: 'var(--text4)' }}>{inq.email}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 4 }}>
+                        {new Date(inq.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </div>
+                      {inq.buyer && (
+                        <button
+                          onClick={() => nav(`/admin/discovery/${inq.buyer.id}`)}
+                          className="btn btn-ghost btn-sm"
+                          style={{ fontSize: 11 }}
+                        >View session →</button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Studio badge */}
+                  <div style={{ marginBottom: 12 }}>
+                    <span style={{
+                      display: 'inline-block', fontSize: 11, fontWeight: 700,
+                      color: 'var(--gold)', background: 'var(--gold-dim)',
+                      padding: '3px 10px', borderRadius: 6, letterSpacing: '0.04em',
+                    }}>
+                      Studio: {inq.studio?.name}
+                    </span>
+                  </div>
+
+                  {/* Pre-call answers */}
+                  {inq.answers?.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                      {inq.answers.map((a, i) => (
+                        <div key={i} style={{ fontSize: 13 }}>
+                          <div style={{ color: 'var(--text4)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>
+                            {a.question}
+                          </div>
+                          <div style={{ color: 'var(--text2)', lineHeight: 1.6 }}>{a.answer}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Buyer brief tags */}
+                  {inq.buyer && (
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+                      <span style={{ fontSize: 10, color: 'var(--text4)', alignSelf: 'center' }}>Their brief:</span>
+                      {(inq.buyer.product_types || []).map(p => (
+                        <span key={p} style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 6 }}>
+                          {p.replace(/_/g, ' ')}
+                        </span>
+                      ))}
+                      {(inq.buyer.crafts || []).map(c => (
+                        <span key={c} style={{ fontSize: 11, color: 'var(--gold)', background: 'var(--gold-dim)', padding: '2px 8px', borderRadius: 6 }}>
+                          {c}
+                        </span>
+                      ))}
+                      {inq.buyer.timeline && (
+                        <span style={{ fontSize: 11, color: 'var(--teal)', background: 'var(--teal-dim)', padding: '2px 8px', borderRadius: 6 }}>
+                          {inq.buyer.timeline.replace(/_/g, ' ')}
+                        </span>
+                      )}
+                      {inq.buyer.batch_size && (
+                        <span style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 6 }}>
+                          {inq.buyer.batch_size.replace(/_/g, ' ')} pcs
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )
+        }
+      </div>
+    </div>
+  );
+}
+
 /* ── DISCOVERY INQUIRIES ── */
 function DiscoveryInquiries() {
   const [data,    setData]    = useState(null);
@@ -1087,7 +1233,8 @@ export default function AdminDashboard() {
     { to: '/admin/review',           icon: '', label: 'Review Profile'            },
     { to: '/admin/create-seller',    icon: '', label: 'Create Seller'             },
     { to: '/admin/discovery',        icon: '', label: 'Discovery'                 },
-    { to: '/admin/discovery/inquiries', icon: '', label: 'Inquiries'              },
+    { to: '/admin/discovery/inquiries',         icon: '', label: 'Inquiries'         },
+    { to: '/admin/discovery/studio-inquiries', icon: '', label: 'Studio Inquiries'   },
   ];
   return (
     <DashLayout nav={navItems}>
@@ -1098,7 +1245,8 @@ export default function AdminDashboard() {
         <Route path="create-seller"         element={<CreateSeller />}           />
         <Route path="discovery"             element={<DiscoveryOverview />}      />
         <Route path="discovery/:buyerId"    element={<DiscoveryBuyerDetail />}   />
-        <Route path="discovery/inquiries"   element={<DiscoveryInquiries />}     />
+        <Route path="discovery/inquiries"        element={<DiscoveryInquiries />}        />
+        <Route path="discovery/studio-inquiries" element={<StudioInquiries />}           />
       </Routes>
     </DashLayout>
   );
