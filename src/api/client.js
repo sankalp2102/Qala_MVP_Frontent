@@ -137,4 +137,13 @@ export const discoveryAPI = {
     axios.post(`${BASE}/api/discovery/custom-inquiry/`, data, {
       headers: { 'Content-Type': 'application/json' },
     }),
+
+  // Feature 4 — Public studio profile
+  getStudioProfile: profileId =>
+    axios.get(`${BASE}/api/discovery/studios/${profileId}/`),
+
+  studioInquiry: (profileId, data) =>
+    axios.post(`${BASE}/api/discovery/studios/${profileId}/inquire/`, data, {
+      headers: { 'Content-Type': 'application/json' },
+    }),
 };

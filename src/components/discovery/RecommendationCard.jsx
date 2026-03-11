@@ -167,7 +167,7 @@ export default function RecommendationCard({ rec, position, isBonus }) {
 
         {/* CTA */}
         <a
-          href={'/studio/' + rec.seller_profile_id}
+          href={'/studio/' + rec.studio_id}
           style={{
             display: 'block', width: '100%', padding: '12px', borderRadius: 8,
             background: '#fff', color: '#000', border: 'none',

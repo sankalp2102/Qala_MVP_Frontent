@@ -7,6 +7,7 @@ import SellerDashboard from './pages/SellerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import Discover from './pages/Discover';
 import DiscoverResults from './pages/DiscoverResults';
+import StudioProfile from './pages/StudioProfile';
 
 function Guard({ role, children }) {
   const { user, loading } = useAuth();
@@ -25,6 +26,7 @@ function AppRoutes() {
       <Route path="/login"            element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} /> : <Login />} />
       <Route path="/discover"         element={<Discover />} />
       <Route path="/discover/results" element={<DiscoverResults />} />
+      <Route path="/studio/:id"       element={<StudioProfile />} />
       <Route path="/dashboard/*"      element={<Guard role="seller"><SellerDashboard /></Guard>} />
       <Route path="/admin/*"          element={<Guard role="admin"><AdminDashboard /></Guard>} />
       <Route path="*"                 element={<Navigate to="/" />} />

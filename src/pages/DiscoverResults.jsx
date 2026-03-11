@@ -73,7 +73,7 @@ export default function DiscoverResults() {
 
   const handleContact = studio => {
     if (user) {
-      alert(`Contact form for ${studio.studio_name} coming soon!`);
+      nav('/studio/' + studio.studio_id);
     } else {
       setAuthGate({ studio });
     }
@@ -265,21 +265,19 @@ export default function DiscoverResults() {
         {/* Main recommendations */}
         {recs.length > 0 && (
           <div className="fade-in" style={{ marginTop: 52 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 28, padding: '0 40px' }}>
-              <div>
-                <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8, fontWeight: 600 }}>
+            <div style={{ textAlign: 'center', marginBottom: 28, padding: '0 40px' }}>
+              <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8, fontWeight: 600 }}>
                   Matched studios
                 </div>
                 <h2 style={{
                   fontFamily: 'var(--font-display)', fontSize: 'clamp(22px,2.5vw,34px)',
                   fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em',
-                  maxWidth: 560, lineHeight: 1.3,
+                  lineHeight: 1.3, maxWidth: 600, margin: '0 auto',
                 }}>
                   Based on what you've shared, here are a few studios that could be right for you
                 </h2>
-              </div>
               {/* Dot indicators */}
-              <div style={{ display: 'flex', gap: 8, paddingBottom: 4, alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center', marginTop: 16 }}>
                 {recs.map((_, i) => (
                   <button
                     key={i}
@@ -357,7 +355,7 @@ export default function DiscoverResults() {
         {/* Bonus visual matches */}
         {bonus.length > 0 && (
           <div className="fade-in" style={{ marginTop: 64, padding: '0 40px' }}>
-            <div style={{ marginBottom: 8 }}>
+            <div style={{ marginBottom: 8, textAlign: 'center' }}>
               <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8, fontWeight: 600 }}>
                 Also worth exploring
               </div>
@@ -404,7 +402,7 @@ export default function DiscoverResults() {
           paddingLeft: 40,
           paddingRight: 40,
         }}>
-          <div style={{ maxWidth: 560 }}>
+          <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
             <div style={{
               fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em',
               textTransform: 'uppercase', fontWeight: 600, marginBottom: 12,
@@ -569,7 +567,7 @@ export default function DiscoverResults() {
         <AuthGateModal
           studioName={authGate.studio?.studio_name}
           onClose={() => setAuthGate(null)}
-          onSuccess={() => { setAuthGate(null); load(); }}
+          onSuccess={() => { setAuthGate(null); nav('/studio/' + authGate.studio?.studio_id); }}
         />
       )}
     </div>

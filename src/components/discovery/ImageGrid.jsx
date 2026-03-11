@@ -87,16 +87,7 @@ export default function ImageGrid({ selected, onToggle }) {
                   }}>✓</div>
                 )}
               </div>
-              {/* Studio name */}
-              <div style={{
-                position: 'absolute', bottom: 0, left: 0, right: 0,
-                padding: '20px 10px 8px',
-                background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-                fontSize: 10, color: 'rgba(255,255,255,0.7)',
-                letterSpacing: '0.06em', textAlign: 'left',
-              }}>
-                {img.studio_name}
-              </div>
+
             </button>
           );
         })}
