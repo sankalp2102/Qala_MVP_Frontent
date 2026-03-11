@@ -9,7 +9,6 @@ import { Toast } from '../components/Toast';
 const sLabel = { submitted:'Submitted', in_progress:'In Progress', not_started:'Not Started', flagged:'Flagged', approved:'Approved' };
 const sBadge = s => ({ submitted:'badge-green', in_progress:'badge-orange', not_started:'badge-gray', flagged:'badge-red', approved:'badge-teal' }[s]||'badge-gray');
 
-// Maps model name → URL section slug for the edit API
 const MODEL_TO_SECTION = {
   studio_details:    'studio',
   product_types:     'products',
@@ -18,12 +17,98 @@ const MODEL_TO_SECTION = {
   process_readiness: 'process',
 };
 
-// Keys we never show or edit
 const SKIP_KEYS = [
   'id','seller_profile','created_at','updated_at',
   'is_flagged','flag_reason','flagged_by','flagged_at','flag_resolved',
   'file','mime_type','file_size_kb',
 ];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CSV UTILITIES
+// ─────────────────────────────────────────────────────────────────────────────
+
+function escapeCSV(val) {
+  if (val === null || val === undefined) return '';
+  const s = Array.isArray(val) ? val.join('; ') : String(val);
+  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+function buildStudioRow(profile, onboarding) {
+  const sd = onboarding?.studio_details || {};
+  const co = onboarding?.collab_design  || {};
+  const pr = onboarding?.production_scale || {};
+  const pc = onboarding?.process_readiness || {};
+  const crafts   = (onboarding?.crafts   || []).map(c => c.craft_name).join('; ');
+  const contacts = (onboarding?.contacts || []).map(c => `${c.name} (${c.role}): ${c.email||''} ${c.phone||''}`).join(' | ');
+  const usps     = (onboarding?.usps     || []).map(u => u.usp_text).join('; ');
+  const brands   = (onboarding?.brands   || []).map(b => b.brand_name).join('; ');
+  const awards   = (onboarding?.awards   || []).map(a => a.title).join('; ');
+
+  return {
+    'Profile ID':          profile.profile_id || profile.id || '',
+    'Business Name':       profile.business_name || '',
+    'Email':               profile.email || '',
+    'Completion %':        profile.completion_percentage || 0,
+    // Section statuses
+    'Section A Status':    profile.section_statuses?.section_a_status || '',
+    'Section B Status':    profile.section_statuses?.section_b_status || '',
+    'Section C Status':    profile.section_statuses?.section_c_status || '',
+    'Section D Status':    profile.section_statuses?.section_d_status || '',
+    'Section E Status':    profile.section_statuses?.section_e_status || '',
+    'Section F Status':    profile.section_statuses?.section_f_status || '',
+    // Section A — Studio Details
+    'Studio Name':         sd.studio_name || '',
+    'City':                sd.location_city || '',
+    'State':               sd.location_state || '',
+    'Country':             sd.location_country || '',
+    'Studio Bio':          sd.studio_bio || '',
+    'Year Founded':        sd.year_founded || '',
+    'Team Size':           sd.team_size || '',
+    'Website':             sd.website_url || '',
+    'Instagram':           sd.instagram_url || '',
+    'Contacts':            contacts,
+    'USPs':                usps,
+    // Section B
+    'Brands Worked With':  brands,
+    'Awards':              awards,
+    // Section C — Crafts
+    'Crafts':              crafts,
+    // Section D — Collab
+    'Works With Designers':       co.works_with_designers ?? '',
+    'Sampling Rounds':            co.sampling_rounds || '',
+    'Min Sampling Budget':        co.min_sampling_budget || '',
+    'Collab Notes':               co.collab_notes || '',
+    // Section E — Production
+    'Monthly Capacity (units)':   pr.monthly_capacity_units || '',
+    'Lead Time (weeks)':          pr.lead_time_weeks || '',
+    'MOQ':                        pr.moq || '',
+    'Production Notes':           pr.production_notes || '',
+    // Section F — Process
+    'Process Description':        pc.process_description || '',
+    'Accepts Rush Orders':        pc.accepts_rush_orders ?? '',
+  };
+}
+
+function downloadCSV(rows, filename) {
+  if (!rows.length) return;
+  const headers = Object.keys(rows[0]);
+  const lines   = [
+    headers.map(escapeCSV).join(','),
+    ...rows.map(row => headers.map(h => escapeCSV(row[h])).join(',')),
+  ];
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function SectionBadges({ statuses }) {
   if (!statuses) return null;
@@ -39,13 +124,35 @@ function SectionBadges({ statuses }) {
 
 /* ── OVERVIEW ── */
 function Overview() {
-  const [profiles, setProfiles] = useState([]);
-  const [loading, setLoading]   = useState(true);
+  const [profiles,      setProfiles]      = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [downloading,   setDownloading]   = useState(false);
   const nav = useNavigate();
 
   useEffect(() => {
     adminAPI.listProfiles().then(r=>setProfiles(r.data||[])).catch(()=>{}).finally(()=>setLoading(false));
   }, []);
+
+  const downloadAll = async () => {
+    setDownloading(true);
+    try {
+      const rows = await Promise.all(
+        profiles.map(async p => {
+          const pid = p.profile_id || p.id;
+          try {
+            const r = await adminAPI.getOnboarding(pid);
+            return buildStudioRow(p, r.data);
+          } catch {
+            return buildStudioRow(p, {});
+          }
+        })
+      );
+      const date = new Date().toISOString().split('T')[0];
+      downloadCSV(rows, `qala_all_studios_${date}.csv`);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   if (loading) return <Spinner full />;
 
@@ -55,11 +162,32 @@ function Overview() {
 
   return (
     <div style={{ padding:'40px 48px' }}>
-      <div className="fade-up" style={{ marginBottom:40 }}>
-        <h1 style={{ fontFamily:'var(--font-display)', fontSize:42, fontWeight:700, color:'var(--text)', marginBottom:6 }}>
-          Admin <em style={{ color:'var(--gold)' }}>Dashboard</em>
-        </h1>
-        <p style={{ color:'var(--text3)', fontSize:15 }}>Review and manage all seller profiles.</p>
+      <div className="fade-up" style={{ marginBottom:40, display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+        <div>
+          <h1 style={{ fontFamily:'var(--font-display)', fontSize:42, fontWeight:700, color:'var(--text)', marginBottom:6 }}>
+            Admin <em style={{ color:'var(--gold)' }}>Dashboard</em>
+          </h1>
+          <p style={{ color:'var(--text3)', fontSize:15 }}>Review and manage all seller profiles.</p>
+        </div>
+        {profiles.length > 0 && (
+          <button
+            onClick={downloadAll}
+            disabled={downloading}
+            style={{
+              display:'flex', alignItems:'center', gap:8,
+              padding:'10px 20px', borderRadius:8, fontSize:13, fontWeight:600,
+              background: downloading ? 'var(--border)' : '#C46E49',
+              color: downloading ? 'var(--text3)' : '#fff',
+              border:'none', cursor: downloading ? 'not-allowed' : 'pointer',
+              fontFamily:'var(--font-body)', transition:'all 0.2s', flexShrink:0,
+            }}
+          >
+            {downloading
+              ? <><span className="spinner" style={{width:14,height:14,borderColor:'rgba(255,255,255,0.3)',borderTopColor:'#fff'}} /> Downloading…</>
+              : '↓ Download All Studios CSV'
+            }
+          </button>
+        )}
       </div>
 
       {/* Stats row */}
@@ -124,12 +252,13 @@ function Overview() {
 
 /* ── PROFILE REVIEW ── */
 function ProfileReview() {
-  const [profiles, setProfiles]   = useState([]);
-  const [selected, setSelected]   = useState(null);
-  const [onboarding, setOnboarding] = useState(null);
-  const [showFlag, setShowFlag]   = useState(false);
-  const [flagForm, setFlagForm]   = useState({ model:'studio_details', field:'studio_name', reason:'' });
-  const [flagging, setFlagging]   = useState(false);
+  const [profiles,    setProfiles]    = useState([]);
+  const [selected,    setSelected]    = useState(null);
+  const [onboarding,  setOnboarding]  = useState(null);
+  const [showFlag,    setShowFlag]    = useState(false);
+  const [flagForm,    setFlagForm]    = useState({ model:'studio_details', field:'studio_name', reason:'' });
+  const [flagging,    setFlagging]    = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const { toasts, success, error } = useToast();
 
   useEffect(() => {
@@ -163,11 +292,23 @@ function ProfileReview() {
     }
   };
 
-  // ── DataRow — single read-only key/value row ──
+  const downloadSingle = () => {
+    if (!onboarding || !selected) return;
+    setDownloading(true);
+    try {
+      const row  = buildStudioRow(selected, onboarding);
+      const name = (selected.business_name || `studio_${selected.profile_id||selected.id}`).replace(/\s+/g,'_').toLowerCase();
+      downloadCSV([row], `qala_${name}.csv`);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  // ── DataRow ──
   const DataRow = ({ k, v }) => {
-    if (SKIP_KEYS.includes(k))                         return null;
-    if (typeof v === 'object')                         return null;
-    if (v === null || v === undefined || v === '')     return null;
+    if (SKIP_KEYS.includes(k))                     return null;
+    if (typeof v === 'object')                     return null;
+    if (v === null || v === undefined || v === '') return null;
     return (
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', padding:'9px 12px', background:'var(--surface2)', borderRadius:7, marginBottom:5, gap:16 }}>
         <span style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.06em', flexShrink:0 }}>{k.replace(/_/g,' ')}</span>
@@ -176,15 +317,14 @@ function ProfileReview() {
     );
   };
 
-  // ── Block — section card with Flag + Edit buttons ──
+  // ── Block ──
   const Block = ({ title, data, model, profileId, onSaved }) => {
     const [editing, setEditing] = useState(false);
-    const [form, setForm]       = useState({});
-    const [saving, setSaving]   = useState(false);
+    const [form,    setForm]    = useState({});
+    const [saving,  setSaving]  = useState(false);
 
     if (!data) return null;
 
-    // Only editable keys — skip objects, skip meta fields
     const editableKeys = Object.entries(data).filter(([k, v]) =>
       !SKIP_KEYS.includes(k) && typeof v !== 'object'
     );
@@ -214,7 +354,6 @@ function ProfileReview() {
 
     return (
       <div style={{ marginBottom:24 }}>
-        {/* Section header with Flag + Edit buttons */}
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
           <div style={{ fontFamily:'var(--font-display)', fontSize:17, fontWeight:600, color:'var(--gold)' }}>{title}</div>
           <div style={{ display:'flex', gap:8 }}>
@@ -235,9 +374,8 @@ function ProfileReview() {
           </div>
         </div>
 
-        {/* Edit form */}
         {editing ? (
-          <div style={{ background:'var(--surface2)', borderRadius:'var(--radius)', padding:'16px 18px', marginBottom:8, border:'1px solid var(--teal)', borderOpacity:0.3 }}>
+          <div style={{ background:'var(--surface2)', borderRadius:'var(--radius)', padding:'16px 18px', marginBottom:8, border:'1px solid var(--teal)' }}>
             <div style={{ fontSize:11, fontWeight:600, color:'var(--teal)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:14 }}>
               Editing — changes save directly to seller's profile
             </div>
@@ -261,18 +399,17 @@ function ProfileReview() {
             </div>
           </div>
         ) : (
-          // Read-only view
           Object.entries(data).map(([k,v]) => <DataRow key={k} k={k} v={v} />)
         )}
       </div>
     );
   };
 
-  // ── CraftBlock — crafts section with per-craft edit ──
+  // ── CraftBlock ──
   const CraftBlock = ({ crafts, profileId, onSaved }) => {
     const [editingId, setEditingId] = useState(null);
-    const [form, setForm]           = useState({});
-    const [saving, setSaving]       = useState(false);
+    const [form,      setForm]      = useState({});
+    const [saving,    setSaving]    = useState(false);
 
     if (!crafts?.length) return null;
 
@@ -309,7 +446,6 @@ function ProfileReview() {
         </div>
         {crafts.map(c => (
           <div key={c.id} style={{ padding:'14px 16px', background:'var(--surface2)', borderRadius:'var(--radius)', marginBottom:10, border:'1px solid var(--border)', borderLeft:`3px solid ${c.is_primary?'var(--gold)':'var(--border)'}` }}>
-            {/* Craft header */}
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: editingId===c.id ? 14 : 0 }}>
               <div style={{ display:'flex', gap:10, alignItems:'center' }}>
                 <span style={{ fontWeight:600, fontSize:14, color:'var(--text)' }}>{c.craft_name}</span>
@@ -324,13 +460,9 @@ function ProfileReview() {
                 {editingId===c.id ? 'Cancel' : 'Edit'}
               </button>
             </div>
-
-            {/* Craft specialization preview */}
             {editingId !== c.id && c.specialization && (
               <div style={{ fontSize:12, color:'var(--text3)', marginTop:6 }}>{c.specialization}</div>
             )}
-
-            {/* Craft edit form */}
             {editingId === c.id && (
               <div>
                 <div style={{ fontSize:11, fontWeight:600, color:'var(--teal)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:12 }}>
@@ -399,9 +531,25 @@ function ProfileReview() {
                 </div>
                 <SectionBadges statuses={selected.section_statuses} />
               </div>
-              <button className="btn btn-terra" onClick={() => setShowFlag(!showFlag)}>
-                Flag a Field
-              </button>
+              <div style={{ display:'flex', gap:8 }}>
+                {onboarding && (
+                  <button
+                    onClick={downloadSingle}
+                    disabled={downloading}
+                    style={{
+                      padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:600,
+                      background:'transparent', color:'#C46E49',
+                      border:'1px solid #C46E49', cursor:'pointer',
+                      fontFamily:'var(--font-body)', transition:'all 0.2s',
+                    }}
+                  >
+                    ↓ Download CSV
+                  </button>
+                )}
+                <button className="btn btn-terra" onClick={() => setShowFlag(!showFlag)}>
+                  Flag a Field
+                </button>
+              </div>
             </div>
           </div>
 
@@ -454,53 +602,14 @@ function ProfileReview() {
         ? <Spinner full />
         : onboarding && (
           <div className="card fade-up">
-
-            <Block
-              title="Section A — Studio Details"
-              data={onboarding.studio_details}
-              model="studio_details"
-              profileId={pid}
-              onSaved={() => loadOnboarding(selected)}
-            />
-
-            {onboarding.studio_details?.id && (
-              <hr style={{ border:'none', borderTop:'1px solid var(--border)', margin:'4px 0 20px' }} />
-            )}
-
-            <Block
-              title="Section D — Collaboration"
-              data={onboarding.collab_design}
-              model="collab_design"
-              profileId={pid}
-              onSaved={() => loadOnboarding(selected)}
-            />
-
+            <Block title="Section A — Studio Details"  data={onboarding.studio_details}   model="studio_details"   profileId={pid} onSaved={() => loadOnboarding(selected)} />
+            {onboarding.studio_details?.id && <hr style={{ border:'none', borderTop:'1px solid var(--border)', margin:'4px 0 20px' }} />}
+            <Block title="Section D — Collaboration"   data={onboarding.collab_design}    model="collab_design"    profileId={pid} onSaved={() => loadOnboarding(selected)} />
             <hr style={{ border:'none', borderTop:'1px solid var(--border)', margin:'4px 0 20px' }} />
-
-            <Block
-              title="Section E — Production Scale"
-              data={onboarding.production_scale}
-              model="production_scale"
-              profileId={pid}
-              onSaved={() => loadOnboarding(selected)}
-            />
-
+            <Block title="Section E — Production Scale" data={onboarding.production_scale} model="production_scale"  profileId={pid} onSaved={() => loadOnboarding(selected)} />
             <hr style={{ border:'none', borderTop:'1px solid var(--border)', margin:'4px 0 20px' }} />
-
-            <Block
-              title="Section F — Process Readiness"
-              data={onboarding.process_readiness}
-              model="process_readiness"
-              profileId={pid}
-              onSaved={() => loadOnboarding(selected)}
-            />
-
-            <CraftBlock
-              crafts={onboarding.crafts}
-              profileId={pid}
-              onSaved={() => loadOnboarding(selected)}
-            />
-
+            <Block title="Section F — Process Readiness" data={onboarding.process_readiness} model="process_readiness" profileId={pid} onSaved={() => loadOnboarding(selected)} />
+            <CraftBlock crafts={onboarding.crafts} profileId={pid} onSaved={() => loadOnboarding(selected)} />
           </div>
         )
       }
@@ -600,26 +709,9 @@ function DiscoveryOverview() {
     );
   });
 
-  const journeyLabel = {
-    figuring_it_out:    'Figuring It Out',
-    build_with_support: 'Build with Support',
-    ready_to_produce:   'Ready to Produce',
-  };
-
-  const batchLabel = {
-    under_30: '< 30 pcs',
-    '30_100': '30–100 pcs',
-    over_100: '100+ pcs',
-    not_sure: 'Not sure',
-  };
-
-  const timelineLabel = {
-    '1_3_months':    '1–3 months',
-    '3_6_months':    '3–6 months',
-    '6_plus_months': '6+ months',
-    not_sure:        'Not sure',
-    flexible:        'Flexible',
-  };
+  const journeyLabel = { figuring_it_out:'Figuring It Out', build_with_support:'Build with Support', ready_to_produce:'Ready to Produce' };
+  const batchLabel   = { under_30:'< 30 pcs', '30_100':'30–100 pcs', over_100:'100+ pcs', not_sure:'Not sure' };
+  const timelineLabel= { '1_3_months':'1–3 months', '3_6_months':'3–6 months', '6_plus_months':'6+ months', not_sure:'Not sure', flexible:'Flexible' };
 
   return (
     <div style={{ padding: '40px 48px' }}>
@@ -630,13 +722,12 @@ function DiscoveryOverview() {
         <p style={{ color: 'var(--text3)', fontSize: 15 }}>All buyer sessions, matches, and what they're looking for.</p>
       </div>
 
-      {/* Stats row */}
       <div className="fade-up" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 36 }}>
         {[
-          { label: 'Total Buyers',    value: stats.total,        color: 'var(--text)'  },
-          { label: 'Got Matches',     value: stats.has_match,    color: 'var(--green)' },
-          { label: 'Zero Match',      value: stats.zero_match,   color: 'var(--red)'   },
-          { label: 'Registered Users',value: stats.linked_users, color: 'var(--gold)'  },
+          { label: 'Total Buyers',     value: stats.total,        color: 'var(--text)'  },
+          { label: 'Got Matches',      value: stats.has_match,    color: 'var(--green)' },
+          { label: 'Zero Match',       value: stats.zero_match,   color: 'var(--red)'   },
+          { label: 'Registered Users', value: stats.linked_users, color: 'var(--gold)'  },
         ].map((s, i) => (
           <div key={s.label} className={`card fade-up fade-up-${i+1}`} style={{ textAlign: 'center', padding: '20px' }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 700, color: s.color, lineHeight: 1 }}>{s.value}</div>
@@ -645,14 +736,9 @@ function DiscoveryOverview() {
         ))}
       </div>
 
-      {/* Top crafts + products */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 36 }}>
-
-        {/* Top crafts */}
         <div className="card fade-up">
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)', marginBottom: 16 }}>
-            Most Requested Crafts
-          </div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)', marginBottom: 16 }}>Most Requested Crafts</div>
           {top_crafts.length === 0
             ? <div style={{ fontSize: 13, color: 'var(--text4)' }}>No data yet.</div>
             : top_crafts.map((c, i) => (
@@ -664,22 +750,15 @@ function DiscoveryOverview() {
                     <span style={{ fontSize: 12, color: 'var(--text3)' }}>{c.count}</span>
                   </div>
                   <div style={{ height: 3, background: 'var(--surface3)', borderRadius: 2 }}>
-                    <div style={{
-                      height: '100%', borderRadius: 2, background: 'var(--gold)',
-                      width: `${Math.round((c.count / (top_crafts[0]?.count || 1)) * 100)}%`,
-                    }} />
+                    <div style={{ height: '100%', borderRadius: 2, background: 'var(--gold)', width: `${Math.round((c.count / (top_crafts[0]?.count || 1)) * 100)}%` }} />
                   </div>
                 </div>
               </div>
             ))
           }
         </div>
-
-        {/* Top products */}
         <div className="card fade-up">
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)', marginBottom: 16 }}>
-            Most Requested Products
-          </div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)', marginBottom: 16 }}>Most Requested Products</div>
           {top_products.length === 0
             ? <div style={{ fontSize: 13, color: 'var(--text4)' }}>No data yet.</div>
             : top_products.map((p, i) => (
@@ -691,10 +770,7 @@ function DiscoveryOverview() {
                     <span style={{ fontSize: 12, color: 'var(--text3)' }}>{p.count}</span>
                   </div>
                   <div style={{ height: 3, background: 'var(--surface3)', borderRadius: 2 }}>
-                    <div style={{
-                      height: '100%', borderRadius: 2, background: 'var(--teal)',
-                      width: `${Math.round((p.count / (top_products[0]?.count || 1)) * 100)}%`,
-                    }} />
+                    <div style={{ height: '100%', borderRadius: 2, background: 'var(--teal)', width: `${Math.round((p.count / (top_products[0]?.count || 1)) * 100)}%` }} />
                   </div>
                 </div>
               </div>
@@ -703,7 +779,6 @@ function DiscoveryOverview() {
         </div>
       </div>
 
-      {/* Buyer list */}
       <div className="card fade-up">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)' }}>
@@ -713,75 +788,34 @@ function DiscoveryOverview() {
             placeholder="Search by name, email, product, craft..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            style={{
-              background: 'var(--surface2)', border: '1px solid var(--border)',
-              borderRadius: 8, padding: '8px 14px', fontSize: 13,
-              color: 'var(--text)', width: 280, fontFamily: 'var(--font-body)',
-            }}
+            style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 14px', fontSize: 13, color: 'var(--text)', width: 280, fontFamily: 'var(--font-body)' }}
           />
         </div>
-
         {filtered.length === 0
           ? <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text4)', fontSize: 13 }}>No buyers found.</div>
           : (
             <div style={{ display: 'grid', gap: 10 }}>
               {filtered.map(b => (
-                <div
-                  key={b.id}
-                  onClick={() => nav(`discovery/${b.id}`)}
-                  className="card-hover"
-                  style={{
-                    padding: '16px 20px', background: 'var(--surface2)',
-                    borderRadius: 10, cursor: 'pointer',
-                    border: `1px solid ${b.zero_match ? 'rgba(224,85,85,0.25)' : b.rec_count > 0 ? 'rgba(90,232,122,0.15)' : 'var(--border)'}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
-                  }}
-                >
+                <div key={b.id} onClick={() => nav(`discovery/${b.id}`)} className="card-hover"
+                  style={{ padding: '16px 20px', background: 'var(--surface2)', borderRadius: 10, cursor: 'pointer', border: `1px solid ${b.zero_match ? 'rgba(224,85,85,0.25)' : b.rec_count > 0 ? 'rgba(90,232,122,0.15)' : 'var(--border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>
-                        {b.name || b.user_email || 'Anonymous'}
-                      </span>
-                      {b.user_email && b.name && (
-                        <span style={{ fontSize: 12, color: 'var(--text4)' }}>{b.user_email}</span>
-                      )}
-                      <span style={{
-                        fontSize: 10, fontWeight: 600, letterSpacing: '0.06em',
-                        padding: '2px 8px', borderRadius: 10, textTransform: 'uppercase',
-                        background: b.zero_match ? 'var(--red-dim)' : b.rec_count > 0 ? 'rgba(90,232,122,0.1)' : 'var(--surface3)',
-                        color: b.zero_match ? 'var(--red)' : b.rec_count > 0 ? 'var(--green)' : 'var(--text4)',
-                      }}>
+                      <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{b.name || b.user_email || 'Anonymous'}</span>
+                      {b.user_email && b.name && <span style={{ fontSize: 12, color: 'var(--text4)' }}>{b.user_email}</span>}
+                      <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', padding: '2px 8px', borderRadius: 10, textTransform: 'uppercase', background: b.zero_match ? 'var(--red-dim)' : b.rec_count > 0 ? 'rgba(90,232,122,0.1)' : 'var(--surface3)', color: b.zero_match ? 'var(--red)' : b.rec_count > 0 ? 'var(--green)' : 'var(--text4)' }}>
                         {b.zero_match ? 'No match' : b.rec_count > 0 ? `${b.rec_count} match${b.rec_count !== 1 ? 'es' : ''}` : 'Pending'}
                       </span>
-                      {b.journey_stage && (
-                        <span style={{ fontSize: 10, color: 'var(--text4)', padding: '2px 8px', borderRadius: 10, background: 'var(--surface3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                          {journeyLabel[b.journey_stage] || b.journey_stage}
-                        </span>
-                      )}
+                      {b.journey_stage && <span style={{ fontSize: 10, color: 'var(--text4)', padding: '2px 8px', borderRadius: 10, background: 'var(--surface3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{journeyLabel[b.journey_stage] || b.journey_stage}</span>}
                     </div>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {(b.product_types || []).slice(0, 4).map(p => (
-                        <span key={p} style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 6, textTransform: 'capitalize' }}>
-                          {p.replace(/_/g, ' ')}
-                        </span>
-                      ))}
-                      {(b.crafts || []).slice(0, 3).map(c => (
-                        <span key={c} style={{ fontSize: 11, color: 'var(--gold)', background: 'var(--gold-dim)', padding: '2px 8px', borderRadius: 6 }}>
-                          {c}
-                        </span>
-                      ))}
+                      {(b.product_types || []).slice(0, 4).map(p => <span key={p} style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 6, textTransform: 'capitalize' }}>{p.replace(/_/g, ' ')}</span>)}
+                      {(b.crafts || []).slice(0, 3).map(c => <span key={c} style={{ fontSize: 11, color: 'var(--gold)', background: 'var(--gold-dim)', padding: '2px 8px', borderRadius: 6 }}>{c}</span>)}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    {b.batch_size && (
-                      <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 2 }}>{batchLabel[b.batch_size] || b.batch_size}</div>
-                    )}
-                    {b.timeline && (
-                      <div style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 4 }}>{timelineLabel[b.timeline] || b.timeline}</div>
-                    )}
-                    <div style={{ fontSize: 11, color: 'var(--text4)' }}>
-                      {new Date(b.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </div>
+                    {b.batch_size && <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 2 }}>{batchLabel[b.batch_size] || b.batch_size}</div>}
+                    {b.timeline && <div style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 4 }}>{timelineLabel[b.timeline] || b.timeline}</div>}
+                    <div style={{ fontSize: 11, color: 'var(--text4)' }}>{new Date(b.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                   </div>
                 </div>
               ))}
@@ -799,19 +833,14 @@ function DiscoveryBuyerDetail() {
   const [data,    setData]    = useState(null);
   const [loading, setLoading] = useState(true);
   const nav = useNavigate();
-
-  // Get buyer id from URL
   const buyerId = window.location.pathname.split('/').pop();
 
   useEffect(() => {
-    adminAPI.getDiscoveryBuyer(buyerId)
-      .then(r => setData(r.data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    adminAPI.getDiscoveryBuyer(buyerId).then(r => setData(r.data)).catch(() => {}).finally(() => setLoading(false));
   }, [buyerId]);
 
   if (loading) return <Spinner full />;
-  if (!data)   return (
+  if (!data) return (
     <div style={{ padding: 40 }}>
       <button className="btn btn-ghost btn-sm" onClick={() => nav('/admin/discovery')} style={{ marginBottom: 20 }}>← Back</button>
       <div style={{ color: 'var(--red)', fontSize: 13 }}>Failed to load buyer.</div>
@@ -819,48 +848,30 @@ function DiscoveryBuyerDetail() {
   );
 
   const { buyer, recommendations, inquiries } = data;
-
   const Field = ({ label, value }) => {
     if (!value || (Array.isArray(value) && value.length === 0)) return null;
     return (
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '9px 12px', background: 'var(--surface2)', borderRadius: 7, marginBottom: 5, gap: 16 }}>
         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>{label}</span>
-        <span style={{ fontSize: 13, color: 'var(--text)', textAlign: 'right', wordBreak: 'break-word' }}>
-          {Array.isArray(value) ? value.join(', ') : String(value)}
-        </span>
+        <span style={{ fontSize: 13, color: 'var(--text)', textAlign: 'right', wordBreak: 'break-word' }}>{Array.isArray(value) ? value.join(', ') : String(value)}</span>
       </div>
     );
   };
-
   const rankColor = r => ({ high: 'var(--green)', medium: 'var(--amber)', low: 'var(--red)' }[r] || 'var(--text3)');
 
   return (
     <div style={{ padding: '40px 48px' }}>
-      <button className="btn btn-ghost btn-sm" onClick={() => nav('/admin/discovery')} style={{ marginBottom: 24 }}>
-        ← Back to Discovery
-      </button>
-
-      {/* Header */}
+      <button className="btn btn-ghost btn-sm" onClick={() => nav('/admin/discovery')} style={{ marginBottom: 24 }}>← Back to Discovery</button>
       <div className="card card-gold fade-up" style={{ marginBottom: 24, padding: '20px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 18, color: 'var(--text)', marginBottom: 4 }}>
-              {buyer.name || buyer.user_email || 'Anonymous Buyer'}
-            </div>
+            <div style={{ fontWeight: 700, fontSize: 18, color: 'var(--text)', marginBottom: 4 }}>{buyer.name || buyer.user_email || 'Anonymous Buyer'}</div>
             {buyer.user_email && <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 4 }}>{buyer.user_email}</div>}
-            <div style={{ fontSize: 12, color: 'var(--text4)' }}>
-              Session: {buyer.session_token} · {new Date(buyer.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-            </div>
+            <div style={{ fontSize: 12, color: 'var(--text4)' }}>Session: {buyer.session_token} · {new Date(buyer.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {buyer.journey_stage && (
-              <span className="badge badge-teal" style={{ fontSize: 11 }}>{buyer.journey_stage.replace(/_/g, ' ')}</span>
-            )}
-            <span style={{
-              fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 12,
-              background: recommendations.length > 0 ? 'rgba(90,232,122,0.1)' : 'var(--red-dim)',
-              color: recommendations.length > 0 ? 'var(--green)' : 'var(--red)',
-            }}>
+            {buyer.journey_stage && <span className="badge badge-teal" style={{ fontSize: 11 }}>{buyer.journey_stage.replace(/_/g, ' ')}</span>}
+            <span style={{ fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 12, background: recommendations.length > 0 ? 'rgba(90,232,122,0.1)' : 'var(--red-dim)', color: recommendations.length > 0 ? 'var(--green)' : 'var(--red)' }}>
               {recommendations.length > 0 ? `${recommendations.length} match${recommendations.length !== 1 ? 'es' : ''}` : 'No match'}
             </span>
           </div>
@@ -868,31 +879,24 @@ function DiscoveryBuyerDetail() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
-
-        {/* Questionnaire answers */}
         <div className="card fade-up">
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)', marginBottom: 16 }}>
-            Questionnaire Answers
-          </div>
-          <Field label="Products"          value={buyer.product_types} />
-          <Field label="Fabrics"           value={buyer.fabrics} />
-          <Field label="Fabric flexible"   value={buyer.fabric_is_flexible ? 'Yes' : null} />
-          <Field label="Fabric not sure"   value={buyer.fabric_not_sure ? 'Yes' : null} />
-          <Field label="Craft interest"    value={buyer.craft_interest} />
-          <Field label="Crafts"            value={buyer.crafts} />
-          <Field label="Craft flexible"    value={buyer.craft_is_flexible ? 'Yes' : null} />
-          <Field label="Craft not sure"    value={buyer.craft_not_sure ? 'Yes' : null} />
-          <Field label="Experimentation"   value={buyer.experimentation} />
-          <Field label="Process stage"     value={buyer.process_stage} />
-          <Field label="Design support"    value={buyer.design_support} />
-          <Field label="Timeline"          value={buyer.timeline} />
-          <Field label="Batch size"        value={buyer.batch_size} />
-
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)', marginBottom: 16 }}>Questionnaire Answers</div>
+          <Field label="Products"         value={buyer.product_types} />
+          <Field label="Fabrics"          value={buyer.fabrics} />
+          <Field label="Fabric flexible"  value={buyer.fabric_is_flexible ? 'Yes' : null} />
+          <Field label="Fabric not sure"  value={buyer.fabric_not_sure ? 'Yes' : null} />
+          <Field label="Craft interest"   value={buyer.craft_interest} />
+          <Field label="Crafts"           value={buyer.crafts} />
+          <Field label="Craft flexible"   value={buyer.craft_is_flexible ? 'Yes' : null} />
+          <Field label="Craft not sure"   value={buyer.craft_not_sure ? 'Yes' : null} />
+          <Field label="Experimentation"  value={buyer.experimentation} />
+          <Field label="Process stage"    value={buyer.process_stage} />
+          <Field label="Design support"   value={buyer.design_support} />
+          <Field label="Timeline"         value={buyer.timeline} />
+          <Field label="Batch size"       value={buyer.batch_size} />
           {buyer.zero_match_suggestions?.length > 0 && (
             <div style={{ marginTop: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--red)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>
-                Zero Match Suggestions
-              </div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--red)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>Zero Match Suggestions</div>
               {buyer.zero_match_suggestions.map((s, i) => (
                 <div key={i} style={{ fontSize: 12, color: 'var(--text3)', padding: '8px 12px', background: 'var(--surface2)', borderRadius: 6, marginBottom: 6, borderLeft: '2px solid var(--amber)' }}>
                   {s.message} <span style={{ color: 'var(--green)' }}>({s.studios_count} studios)</span>
@@ -902,14 +906,9 @@ function DiscoveryBuyerDetail() {
           )}
         </div>
 
-        {/* Matches + Inquiries */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-          {/* Matched studios */}
           <div className="card fade-up">
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)', marginBottom: 16 }}>
-              Matched Studios ({recommendations.length})
-            </div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)', marginBottom: 16 }}>Matched Studios ({recommendations.length})</div>
             {recommendations.length === 0
               ? <div style={{ fontSize: 13, color: 'var(--text4)' }}>No matches found for this buyer.</div>
               : recommendations.map(r => (
@@ -922,31 +921,19 @@ function DiscoveryBuyerDetail() {
                     <span style={{ fontSize: 11, fontWeight: 600, color: rankColor(r.ranking), textTransform: 'uppercase' }}>{r.ranking}</span>
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {[
-                      { label: 'Capability', value: r.core_capability_fit },
-                      { label: 'MOQ', value: r.moq_fit },
-                      { label: 'Craft', value: r.craft_approach_fit },
-                      { label: 'Visual', value: r.visual_affinity },
-                    ].map(f => (
-                      <span key={f.label} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: 'var(--surface)', color: rankColor(f.value) }}>
-                        {f.label}: {f.value}
-                      </span>
+                    {[{label:'Capability',value:r.core_capability_fit},{label:'MOQ',value:r.moq_fit},{label:'Craft',value:r.craft_approach_fit},{label:'Visual',value:r.visual_affinity}].map(f => (
+                      <span key={f.label} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: 'var(--surface)', color: rankColor(f.value) }}>{f.label}: {f.value}</span>
                     ))}
                   </div>
-                  {r.what_best_at?.length > 0 && (
-                    <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>{r.what_best_at.join(' · ')}</div>
-                  )}
+                  {r.what_best_at?.length > 0 && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>{r.what_best_at.join(' · ')}</div>}
                 </div>
               ))
             }
           </div>
 
-          {/* Custom inquiries */}
           {inquiries.length > 0 && (
             <div className="card fade-up">
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)', marginBottom: 16 }}>
-                Custom Inquiries ({inquiries.length})
-              </div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)', marginBottom: 16 }}>Custom Inquiries ({inquiries.length})</div>
               {inquiries.map(inq => (
                 <div key={inq.id} style={{ padding: '12px 14px', background: 'var(--surface2)', borderRadius: 8, marginBottom: 10, borderLeft: '3px solid var(--teal)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -966,7 +953,6 @@ function DiscoveryBuyerDetail() {
 }
 
 
-
 /* ── STUDIO INQUIRIES ── */
 function StudioInquiries() {
   const [data,    setData]    = useState(null);
@@ -975,10 +961,7 @@ function StudioInquiries() {
   const nav = useNavigate();
 
   useEffect(() => {
-    adminAPI.getAdminStudioInquiries()
-      .then(r => setData(r.data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    adminAPI.getAdminStudioInquiries().then(r => setData(r.data)).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   if (loading) return <Spinner full />;
@@ -987,12 +970,7 @@ function StudioInquiries() {
   const filtered = data.inquiries.filter(inq => {
     if (!search) return true;
     const q = search.toLowerCase();
-    return (
-      inq.name.toLowerCase().includes(q)            ||
-      inq.email.toLowerCase().includes(q)           ||
-      inq.studio?.name?.toLowerCase().includes(q)   ||
-      inq.answers?.some(a => a.answer?.toLowerCase().includes(q))
-    );
+    return inq.name.toLowerCase().includes(q) || inq.email.toLowerCase().includes(q) || inq.studio?.name?.toLowerCase().includes(q) || inq.answers?.some(a => a.answer?.toLowerCase().includes(q));
   });
 
   return (
@@ -1003,103 +981,50 @@ function StudioInquiries() {
         </h1>
         <p style={{ color: 'var(--text3)', fontSize: 15 }}>Buyers who clicked "Get a Callback" on a studio profile.</p>
       </div>
-
       <div className="card fade-up">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)' }}>
-            {data.count} Inquir{data.count !== 1 ? 'ies' : 'y'}
-          </div>
-          <input
-            placeholder="Search name, email, studio..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{
-              background: 'var(--surface2)', border: '1px solid var(--border)',
-              borderRadius: 8, padding: '8px 14px', fontSize: 13,
-              color: 'var(--text)', width: 280, fontFamily: 'var(--font-body)',
-            }}
-          />
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)' }}>{data.count} Inquir{data.count !== 1 ? 'ies' : 'y'}</div>
+          <input placeholder="Search name, email, studio..." value={search} onChange={e => setSearch(e.target.value)}
+            style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 14px', fontSize: 13, color: 'var(--text)', width: 280, fontFamily: 'var(--font-body)' }} />
         </div>
-
         {filtered.length === 0
           ? <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text4)', fontSize: 13 }}>No studio inquiries found.</div>
           : (
             <div style={{ display: 'grid', gap: 14 }}>
               {filtered.map(inq => (
-                <div key={inq.id} style={{
-                  padding: '20px 24px', background: 'var(--surface2)',
-                  borderRadius: 10, border: '1px solid var(--border)',
-                  borderLeft: '3px solid var(--gold)',
-                }}>
-                  {/* Header row */}
+                <div key={inq.id} style={{ padding: '20px 24px', background: 'var(--surface2)', borderRadius: 10, border: '1px solid var(--border)', borderLeft: '3px solid var(--gold)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)', marginBottom: 2 }}>{inq.name}</div>
                       <div style={{ fontSize: 13, color: 'var(--text4)' }}>{inq.email}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 4 }}>
-                        {new Date(inq.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </div>
-                      {inq.buyer && (
-                        <button
-                          onClick={() => nav(`/admin/discovery/${inq.buyer.id}`)}
-                          className="btn btn-ghost btn-sm"
-                          style={{ fontSize: 11 }}
-                        >View session →</button>
-                      )}
+                      <div style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 4 }}>{new Date(inq.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                      {inq.buyer && <button onClick={() => nav(`/admin/discovery/${inq.buyer.id}`)} className="btn btn-ghost btn-sm" style={{ fontSize: 11 }}>View session →</button>}
                     </div>
                   </div>
-
-                  {/* Studio badge */}
                   <div style={{ marginBottom: 12 }}>
-                    <span style={{
-                      display: 'inline-block', fontSize: 11, fontWeight: 700,
-                      color: 'var(--gold)', background: 'var(--gold-dim)',
-                      padding: '3px 10px', borderRadius: 6, letterSpacing: '0.04em',
-                    }}>
+                    <span style={{ display: 'inline-block', fontSize: 11, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-dim)', padding: '3px 10px', borderRadius: 6, letterSpacing: '0.04em' }}>
                       Studio: {inq.studio?.name}
                     </span>
                   </div>
-
-                  {/* Pre-call answers */}
                   {inq.answers?.length > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
                       {inq.answers.map((a, i) => (
                         <div key={i} style={{ fontSize: 13 }}>
-                          <div style={{ color: 'var(--text4)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>
-                            {a.question}
-                          </div>
+                          <div style={{ color: 'var(--text4)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>{a.question}</div>
                           <div style={{ color: 'var(--text2)', lineHeight: 1.6 }}>{a.answer}</div>
                         </div>
                       ))}
                     </div>
                   )}
-
-                  {/* Buyer brief tags */}
                   {inq.buyer && (
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingTop: 10, borderTop: '1px solid var(--border)' }}>
                       <span style={{ fontSize: 10, color: 'var(--text4)', alignSelf: 'center' }}>Their brief:</span>
-                      {(inq.buyer.product_types || []).map(p => (
-                        <span key={p} style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 6 }}>
-                          {p.replace(/_/g, ' ')}
-                        </span>
-                      ))}
-                      {(inq.buyer.crafts || []).map(c => (
-                        <span key={c} style={{ fontSize: 11, color: 'var(--gold)', background: 'var(--gold-dim)', padding: '2px 8px', borderRadius: 6 }}>
-                          {c}
-                        </span>
-                      ))}
-                      {inq.buyer.timeline && (
-                        <span style={{ fontSize: 11, color: 'var(--teal)', background: 'var(--teal-dim)', padding: '2px 8px', borderRadius: 6 }}>
-                          {inq.buyer.timeline.replace(/_/g, ' ')}
-                        </span>
-                      )}
-                      {inq.buyer.batch_size && (
-                        <span style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 6 }}>
-                          {inq.buyer.batch_size.replace(/_/g, ' ')} pcs
-                        </span>
-                      )}
+                      {(inq.buyer.product_types || []).map(p => <span key={p} style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 6 }}>{p.replace(/_/g, ' ')}</span>)}
+                      {(inq.buyer.crafts || []).map(c => <span key={c} style={{ fontSize: 11, color: 'var(--gold)', background: 'var(--gold-dim)', padding: '2px 8px', borderRadius: 6 }}>{c}</span>)}
+                      {inq.buyer.timeline && <span style={{ fontSize: 11, color: 'var(--teal)', background: 'var(--teal-dim)', padding: '2px 8px', borderRadius: 6 }}>{inq.buyer.timeline.replace(/_/g, ' ')}</span>}
+                      {inq.buyer.batch_size && <span style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 6 }}>{inq.buyer.batch_size.replace(/_/g, ' ')} pcs</span>}
                     </div>
                   )}
                 </div>
@@ -1120,10 +1045,7 @@ function DiscoveryInquiries() {
   const nav = useNavigate();
 
   useEffect(() => {
-    adminAPI.getDiscoveryInquiries()
-      .then(r => setData(r.data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    adminAPI.getDiscoveryInquiries().then(r => setData(r.data)).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   if (loading) return <Spinner full />;
@@ -1132,11 +1054,7 @@ function DiscoveryInquiries() {
   const filtered = data.inquiries.filter(inq => {
     if (!search) return true;
     const q = search.toLowerCase();
-    return (
-      inq.name.toLowerCase().includes(q) ||
-      inq.email.toLowerCase().includes(q) ||
-      inq.message.toLowerCase().includes(q)
-    );
+    return inq.name.toLowerCase().includes(q) || inq.email.toLowerCase().includes(q) || inq.message.toLowerCase().includes(q);
   });
 
   return (
@@ -1147,24 +1065,12 @@ function DiscoveryInquiries() {
         </h1>
         <p style={{ color: 'var(--text3)', fontSize: 15 }}>Buyers who couldn't find a match and reached out directly.</p>
       </div>
-
       <div className="card fade-up">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)' }}>
-            {data.count} Inquir{data.count !== 1 ? 'ies' : 'y'}
-          </div>
-          <input
-            placeholder="Search name, email, message..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{
-              background: 'var(--surface2)', border: '1px solid var(--border)',
-              borderRadius: 8, padding: '8px 14px', fontSize: 13,
-              color: 'var(--text)', width: 280, fontFamily: 'var(--font-body)',
-            }}
-          />
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)' }}>{data.count} Inquir{data.count !== 1 ? 'ies' : 'y'}</div>
+          <input placeholder="Search name, email, message..." value={search} onChange={e => setSearch(e.target.value)}
+            style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 14px', fontSize: 13, color: 'var(--text)', width: 280, fontFamily: 'var(--font-body)' }} />
         </div>
-
         {filtered.length === 0
           ? <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text4)', fontSize: 13 }}>No inquiries found.</div>
           : (
@@ -1177,41 +1083,17 @@ function DiscoveryInquiries() {
                       <div style={{ fontSize: 13, color: 'var(--text4)' }}>{inq.email}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 12, color: 'var(--text4)' }}>
-                        {new Date(inq.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </div>
-                      {inq.buyer && (
-                        <button
-                          onClick={() => nav(`discovery/${inq.buyer.id}`)}
-                          className="btn btn-ghost btn-sm"
-                          style={{ fontSize: 11, marginTop: 4 }}
-                        >View session →</button>
-                      )}
+                      <div style={{ fontSize: 12, color: 'var(--text4)' }}>{new Date(inq.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                      {inq.buyer && <button onClick={() => nav(`discovery/${inq.buyer.id}`)} className="btn btn-ghost btn-sm" style={{ fontSize: 11, marginTop: 4 }}>View session →</button>}
                     </div>
                   </div>
-
-                  <div style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.7, marginBottom: inq.buyer ? 12 : 0 }}>
-                    {inq.message}
-                  </div>
-
+                  <div style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.7, marginBottom: inq.buyer ? 12 : 0 }}>{inq.message}</div>
                   {inq.buyer && (
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
                       <span style={{ fontSize: 10, color: 'var(--text4)', alignSelf: 'center' }}>Their brief:</span>
-                      {(inq.buyer.product_types || []).map(p => (
-                        <span key={p} style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 6, textTransform: 'capitalize' }}>
-                          {p.replace(/_/g, ' ')}
-                        </span>
-                      ))}
-                      {(inq.buyer.crafts || []).map(c => (
-                        <span key={c} style={{ fontSize: 11, color: 'var(--gold)', background: 'var(--gold-dim)', padding: '2px 8px', borderRadius: 6 }}>
-                          {c}
-                        </span>
-                      ))}
-                      {inq.buyer.batch_size && (
-                        <span style={{ fontSize: 11, color: 'var(--text4)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 6 }}>
-                          {inq.buyer.batch_size.replace(/_/g, ' ')}
-                        </span>
-                      )}
+                      {(inq.buyer.product_types || []).map(p => <span key={p} style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 6, textTransform: 'capitalize' }}>{p.replace(/_/g, ' ')}</span>)}
+                      {(inq.buyer.crafts || []).map(c => <span key={c} style={{ fontSize: 11, color: 'var(--gold)', background: 'var(--gold-dim)', padding: '2px 8px', borderRadius: 6 }}>{c}</span>)}
+                      {inq.buyer.batch_size && <span style={{ fontSize: 11, color: 'var(--text4)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 6 }}>{inq.buyer.batch_size.replace(/_/g, ' ')}</span>}
                     </div>
                   )}
                 </div>
@@ -1225,28 +1107,27 @@ function DiscoveryInquiries() {
 }
 
 
-
 /* ── MAIN EXPORT ── */
 export default function AdminDashboard() {
   const navItems = [
-    { to: '/admin',                  icon: '', label: 'Overview',        end: true },
-    { to: '/admin/review',           icon: '', label: 'Review Profile'            },
-    { to: '/admin/create-seller',    icon: '', label: 'Create Seller'             },
-    { to: '/admin/discovery',        icon: '', label: 'Discovery'                 },
-    { to: '/admin/discovery/inquiries',         icon: '', label: 'Inquiries'         },
-    { to: '/admin/discovery/studio-inquiries', icon: '', label: 'Studio Inquiries'   },
+    { to: '/admin',                              icon: '', label: 'Overview',         end: true },
+    { to: '/admin/review',                       icon: '', label: 'Review Profile'              },
+    { to: '/admin/create-seller',                icon: '', label: 'Create Seller'               },
+    { to: '/admin/discovery',                    icon: '', label: 'Discovery'                   },
+    { to: '/admin/discovery/inquiries',          icon: '', label: 'Inquiries'                   },
+    { to: '/admin/discovery/studio-inquiries',   icon: '', label: 'Studio Inquiries'            },
   ];
   return (
     <DashLayout nav={navItems}>
       <Routes>
-        <Route index                        element={<Overview />}               />
-        <Route path="review"                element={<ProfileReview />}          />
-        <Route path="review/:pid"           element={<ProfileReview />}          />
-        <Route path="create-seller"         element={<CreateSeller />}           />
-        <Route path="discovery"             element={<DiscoveryOverview />}      />
-        <Route path="discovery/:buyerId"    element={<DiscoveryBuyerDetail />}   />
-        <Route path="discovery/inquiries"        element={<DiscoveryInquiries />}        />
-        <Route path="discovery/studio-inquiries" element={<StudioInquiries />}           />
+        <Route index                                 element={<Overview />}               />
+        <Route path="review"                         element={<ProfileReview />}          />
+        <Route path="review/:pid"                    element={<ProfileReview />}          />
+        <Route path="create-seller"                  element={<CreateSeller />}           />
+        <Route path="discovery"                      element={<DiscoveryOverview />}      />
+        <Route path="discovery/:buyerId"             element={<DiscoveryBuyerDetail />}   />
+        <Route path="discovery/inquiries"            element={<DiscoveryInquiries />}     />
+        <Route path="discovery/studio-inquiries"     element={<StudioInquiries />}        />
       </Routes>
     </DashLayout>
   );
