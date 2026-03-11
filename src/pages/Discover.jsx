@@ -104,7 +104,7 @@ const STEPS = [
   {
     q:    "Finally, a few practical details.",
     sub:  "Timeline and production volume help us find the right fit.",
-    hint: "",
+    hint: "Timing depends on the work involved, studio capacity, and seasonality.\nSome things move fast — others need patience.",
   },
 ];
 
@@ -206,11 +206,7 @@ export default function Discover() {
     if (step === 2 && answers.product_types.length === 0) return false;
     if (step === 4) {
       if (answers.craft_interest === null) return false;
-      // If Yes, Q5 inline must also have an answer
-      if (answers.craft_interest === 'yes') {
-        const hasCraftAnswer = answers.crafts.length > 0 || answers.craft_is_flexible || answers.craft_not_sure;
-        if (!hasCraftAnswer) return false;
-      }
+      // Q5 (craft selection) is optional — user can skip even if Yes was picked in Q4
     }
     if (step === 6 && answers.experimentation === null) return false;
     if (step === 7 && !answers.process_stage) return false;
@@ -434,16 +430,18 @@ export default function Discover() {
         <div className="discover-right" style={{
           width: '40%',
           background: '#F8F5F1',
-          position: 'relative', overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
         }}>
-          <div style={{ width: '100%', height: '100%' }}>
+          {/* Animation shrinks to give space to hint block */}
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
             <KnittingAnimation rowsKnitted={rowsKnitted} />
           </div>
 
           {STEPS[step - 1].hint && (
             <div style={{
-              position: 'absolute',
-              bottom: 0, left: 0, right: 0,
+              flexShrink: 0,
               padding: '20px 32px 28px',
             }}>
               <p style={{
@@ -457,6 +455,19 @@ export default function Discover() {
               }}>
                 {STEPS[step - 1].hint}
               </p>
+              {step === 8 && answers.timeline && (
+                <p className="inline-step-reveal" style={{
+                  margin: '12px 0 0',
+                  fontSize: 12,
+                  color: 'var(--text3)',
+                  lineHeight: 1.80,
+                  fontStyle: 'italic',
+                  whiteSpace: 'pre-line',
+                  letterSpacing: '0.01em',
+                }}>
+                  With small-batch work, slight variations from piece to piece are normal — it's part of what makes each one special.
+                </p>
+              )}
             </div>
           )}
         </div>
