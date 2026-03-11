@@ -37,58 +37,71 @@ function escapeCSV(val) {
 }
 
 function buildStudioRow(profile, onboarding) {
-  const sd = onboarding?.studio_details || {};
-  const co = onboarding?.collab_design  || {};
-  const pr = onboarding?.production_scale || {};
+  const sd = onboarding?.studio_details    || {};
+  const co = onboarding?.collab_design     || {};
+  const pr = onboarding?.production_scale  || {};
   const pc = onboarding?.process_readiness || {};
-  const crafts   = (onboarding?.crafts   || []).map(c => c.craft_name).join('; ');
-  const contacts = (onboarding?.contacts || []).map(c => `${c.name} (${c.role}): ${c.email||''} ${c.phone||''}`).join(' | ');
-  const usps     = (onboarding?.usps     || []).map(u => u.usp_text).join('; ');
-  const brands   = (onboarding?.brands   || []).map(b => b.brand_name).join('; ');
-  const awards   = (onboarding?.awards   || []).map(a => a.title).join('; ');
+  const pt = onboarding?.product_types     || {};
+
+  const contacts  = (sd.contacts || []).map(c => `${c.name} (${c.role}): ${c.email||''} ${c.phone||''}`).join(' | ');
+  const usps      = (sd.usps     || []).map(u => u.strength).join('; ');
+  const brands    = (onboarding?.brand_experiences || []).map(b => `${b.brand_name}${b.scope ? ' — '+b.scope : ''}`).join('; ');
+  const awards    = (onboarding?.awards            || []).map(a => a.award_name).join('; ');
+  const fabrics   = (onboarding?.fabric_answers    || []).filter(f => f.works_with).map(f => f.fabric_name).join('; ');
+  const crafts    = (onboarding?.crafts            || []).map(c => `${c.craft_name}${c.is_primary ? ' (primary)' : ''}`).join('; ');
+  const moqs      = (pr.moq_entries                || []).map(m => `${m.craft_or_category}: ${m.moq_condition}`).join('; ');
+  const buyerReqs = (co.buyer_requirements         || []).map(r => r.question).join('; ');
+  const productList = Object.entries(pt)
+    .filter(([k, v]) => v === true && !['id','is_flagged','flag_reason','flag_resolved'].includes(k))
+    .map(([k]) => k.replace(/_/g, ' ')).join('; ');
+
+  const mBase     = 'https://api.qala.studio';
+  const mUrl      = f => f ? (f.startsWith('http') ? f : mBase + f) : '';
+  const studioMed = (sd.media_files || []);
+  const heroUrl   = mUrl(studioMed.find(m => m.media_type === 'hero')?.file || '');
+  const workUrls  = studioMed.filter(m => m.media_type === 'work_dump').map(m => mUrl(m.file)).join(' | ');
+  const brandImgs = (onboarding?.brand_experiences || []).filter(b => b.image).map(b => `${b.brand_name}: ${mUrl(b.image)}`).join(' | ');
+  const craftImgs = (onboarding?.crafts || []).filter(c => c.image).map(c => `${c.craft_name}: ${mUrl(c.image)}`).join(' | ');
+  const btsUrls   = (pc.bts_media || []).map(m => mUrl(m.file)).join(' | ');
 
   return {
-    'Profile ID':          profile.profile_id || profile.id || '',
-    'Business Name':       profile.business_name || '',
-    'Email':               profile.email || '',
-    'Completion %':        profile.completion_percentage || 0,
-    // Section statuses
-    'Section A Status':    profile.section_statuses?.section_a_status || '',
-    'Section B Status':    profile.section_statuses?.section_b_status || '',
-    'Section C Status':    profile.section_statuses?.section_c_status || '',
-    'Section D Status':    profile.section_statuses?.section_d_status || '',
-    'Section E Status':    profile.section_statuses?.section_e_status || '',
-    'Section F Status':    profile.section_statuses?.section_f_status || '',
-    // Section A — Studio Details
-    'Studio Name':         sd.studio_name || '',
-    'City':                sd.location_city || '',
-    'State':               sd.location_state || '',
-    'Country':             sd.location_country || '',
-    'Studio Bio':          sd.studio_bio || '',
-    'Year Founded':        sd.year_founded || '',
-    'Team Size':           sd.team_size || '',
-    'Website':             sd.website_url || '',
-    'Instagram':           sd.instagram_url || '',
-    'Contacts':            contacts,
-    'USPs':                usps,
-    // Section B
-    'Brands Worked With':  brands,
-    'Awards':              awards,
-    // Section C — Crafts
-    'Crafts':              crafts,
-    // Section D — Collab
-    'Works With Designers':       co.works_with_designers ?? '',
-    'Sampling Rounds':            co.sampling_rounds || '',
-    'Min Sampling Budget':        co.min_sampling_budget || '',
-    'Collab Notes':               co.collab_notes || '',
-    // Section E — Production
-    'Monthly Capacity (units)':   pr.monthly_capacity_units || '',
-    'Lead Time (weeks)':          pr.lead_time_weeks || '',
-    'MOQ':                        pr.moq || '',
-    'Production Notes':           pr.production_notes || '',
-    // Section F — Process
-    'Process Description':        pc.process_description || '',
-    'Accepts Rush Orders':        pc.accepts_rush_orders ?? '',
+    'Profile ID':               profile.profile_id || profile.id || '',
+    'Business Name':            profile.business_name || '',
+    'Email':                    profile.email || '',
+    'Completion %':             profile.completion_percentage || 0,
+    'Section A Status':         profile.section_statuses?.section_a_status || '',
+    'Section B Status':         profile.section_statuses?.section_b_status || '',
+    'Section C Status':         profile.section_statuses?.section_c_status || '',
+    'Section D Status':         profile.section_statuses?.section_d_status || '',
+    'Section E Status':         profile.section_statuses?.section_e_status || '',
+    'Section F Status':         profile.section_statuses?.section_f_status || '',
+    'Studio Name':              sd.studio_name || '',
+    'City':                     sd.location_city || '',
+    'State':                    sd.location_state || '',
+    'Years in Operation':       sd.years_in_operation || '',
+    'Website':                  sd.website_url || '',
+    'Instagram':                sd.instagram_url || '',
+    'POC Working Style':        sd.poc_working_style || '',
+    'Contacts':                 contacts,
+    'USPs':                     usps,
+    'Hero Image URL':           heroUrl,
+    'Work Sample URLs':         workUrls,
+    'Products':                 productList,
+    'Fabrics':                  fabrics,
+    'Brands Worked With':       brands,
+    'Brand Image URLs':         brandImgs,
+    'Awards':                   awards,
+    'Crafts':                   crafts,
+    'Craft Image URLs':         craftImgs,
+    'Has Fashion Designer':          co.has_fashion_designer ?? '',
+    'Can Develop from References':   co.can_develop_from_references ?? '',
+    'Max Sampling Iterations':       co.max_sampling_iterations || '',
+    'Buyer Requirements':            buyerReqs,
+    'Monthly Capacity (units)':      pr.monthly_capacity_units || '',
+    'Has Strict Minimums':           pr.has_strict_minimums ?? '',
+    'MOQ Entries':                   moqs,
+    'Production Steps':             pc.production_steps || '',
+    'BTS Media URLs':               btsUrls,
   };
 }
 
@@ -405,6 +418,117 @@ function ProfileReview() {
     );
   };
 
+  // ── ProductsBlock — Section B ──
+  const ProductsBlock = ({ productTypes, fabrics, brands, awards }) => {
+    const pt = productTypes || {};
+    const productList = Object.entries(pt)
+      .filter(([k, v]) => v === true && !['id','is_flagged','flag_reason','flag_resolved'].includes(k))
+      .map(([k]) => k.replace(/_/g, ' '));
+    const fabricList = (fabrics || []).filter(f => f.works_with).map(f => f.fabric_name);
+    const brandList  = (brands  || []);
+    const awardList  = (awards  || []);
+
+    if (!productList.length && !fabricList.length && !brandList.length && !awardList.length) return null;
+
+    const Chip = ({ label, color }) => (
+      <span style={{
+        fontSize: 11, padding: '3px 10px', borderRadius: 6, textTransform: 'capitalize',
+        background: color === 'gold' ? 'var(--gold-dim)' : color === 'teal' ? 'var(--teal-dim)' : 'var(--surface)',
+        color: color === 'gold' ? 'var(--gold)' : color === 'teal' ? 'var(--teal)' : 'var(--text3)',
+      }}>{label}</span>
+    );
+
+    return (
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontFamily:'var(--font-display)', fontSize:17, fontWeight:600, color:'var(--gold)', marginBottom:16 }}>
+          Section B — Products &amp; Fabrics
+        </div>
+        {productList.length > 0 && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>Product Types</div>
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+              {productList.map(p => <Chip key={p} label={p} />)}
+            </div>
+          </div>
+        )}
+        {fabricList.length > 0 && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>Fabrics</div>
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+              {fabricList.map(f => <Chip key={f} label={f} color="teal" />)}
+            </div>
+          </div>
+        )}
+        {brandList.length > 0 && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>Brands Worked With</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              {brandList.map(b => (
+                <div key={b.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 12px', background:'var(--surface2)', borderRadius:7, gap:12 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                    {b.image && <img src={b.image.startsWith('http') ? b.image : `https://api.qala.studio${b.image}`} alt={b.brand_name} style={{ width:36, height:36, objectFit:'cover', borderRadius:5, border:'1px solid var(--border)' }} onError={e => { e.target.style.display='none'; }} />}
+                    <span style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>{b.brand_name}</span>
+                  </div>
+                  {b.scope && <span style={{ fontSize:12, color:'var(--text3)' }}>{b.scope}</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {awardList.length > 0 && (
+          <div>
+            <div style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>Awards</div>
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+              {awardList.map(a => <Chip key={a.id} label={a.award_name} color="gold" />)}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ── MediaViewer ──
+  const MediaViewer = ({ files, title }) => {
+    const [lightbox, setLightbox] = useState(null);
+    if (!files?.length) return null;
+    return (
+      <div style={{ marginBottom: 16 }}>
+        {title && <div style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>{title}</div>}
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+          {files.map((f, i) => {
+            const url  = f.file ? (f.file.startsWith('http') ? f.file : `https://api.qala.studio${f.file}`) : null;
+            const url2 = f.image ? (f.image.startsWith('http') ? f.image : `https://api.qala.studio${f.image}`) : null;
+            const src  = url || url2;
+            const isVideo = (f.mime_type || '').startsWith('video/');
+            if (!src) return null;
+            return (
+              <div key={f.id || i} onClick={() => setLightbox(src)}
+                style={{ position:'relative', width:88, height:88, borderRadius:8, overflow:'hidden', cursor:'pointer', background:'var(--surface3)', border:'1px solid var(--border)', flexShrink:0 }}>
+                {isVideo
+                  ? <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:4 }}>
+                      <span style={{ fontSize:20 }}>▶</span>
+                      <span style={{ fontSize:9, color:'var(--text4)' }}>VIDEO</span>
+                    </div>
+                  : <img src={src} alt={f.caption || f.file_name || ''} style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e => { e.target.style.display='none'; }} />
+                }
+                {f.media_type && <span style={{ position:'absolute', bottom:3, left:3, fontSize:8, fontWeight:700, background:'rgba(0,0,0,0.6)', color:'#fff', padding:'1px 5px', borderRadius:3, textTransform:'uppercase' }}>{f.media_type}</span>}
+              </div>
+            );
+          })}
+        </div>
+        {lightbox && (
+          <div onClick={() => setLightbox(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.85)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
+            {(lightbox.match(/\.(mp4|mov|avi)/i))
+              ? <video src={lightbox} controls autoPlay style={{ maxWidth:'90vw', maxHeight:'85vh', borderRadius:8 }} onClick={e => e.stopPropagation()} />
+              : <img src={lightbox} alt="" style={{ maxWidth:'90vw', maxHeight:'85vh', borderRadius:8, objectFit:'contain' }} onClick={e => e.stopPropagation()} />
+            }
+            <button onClick={() => setLightbox(null)} style={{ position:'fixed', top:20, right:24, background:'none', border:'none', color:'#fff', fontSize:28, cursor:'pointer', lineHeight:1 }}>✕</button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // ── CraftBlock ──
   const CraftBlock = ({ crafts, profileId, onSaved }) => {
     const [editingId, setEditingId] = useState(null);
@@ -462,6 +586,9 @@ function ProfileReview() {
             </div>
             {editingId !== c.id && c.specialization && (
               <div style={{ fontSize:12, color:'var(--text3)', marginTop:6 }}>{c.specialization}</div>
+            )}
+            {editingId !== c.id && c.image && (
+              <MediaViewer files={[{ id: c.id, image: c.image, mime_type: 'image/jpeg', file_name: c.craft_name }]} />
             )}
             {editingId === c.id && (
               <div>
@@ -597,19 +724,35 @@ function ProfileReview() {
         </>
       )}
 
-      {/* Onboarding data */}
+            {/* Onboarding data */}
       {!onboarding && selected
         ? <Spinner full />
         : onboarding && (
           <div className="card fade-up">
-            <Block title="Section A — Studio Details"  data={onboarding.studio_details}   model="studio_details"   profileId={pid} onSaved={() => loadOnboarding(selected)} />
-            {onboarding.studio_details?.id && <hr style={{ border:'none', borderTop:'1px solid var(--border)', margin:'4px 0 20px' }} />}
-            <Block title="Section D — Collaboration"   data={onboarding.collab_design}    model="collab_design"    profileId={pid} onSaved={() => loadOnboarding(selected)} />
+
+            <Block title="Section A — Studio Details" data={onboarding.studio_details} model="studio_details" profileId={pid} onSaved={() => loadOnboarding(selected)} />
+            <MediaViewer files={onboarding.studio_details?.media_files} title="Studio Media (Hero / Work Samples)" />
+
             <hr style={{ border:'none', borderTop:'1px solid var(--border)', margin:'4px 0 20px' }} />
-            <Block title="Section E — Production Scale" data={onboarding.production_scale} model="production_scale"  profileId={pid} onSaved={() => loadOnboarding(selected)} />
+            <ProductsBlock
+              productTypes={onboarding.product_types}
+              fabrics={onboarding.fabric_answers}
+              brands={onboarding.brand_experiences}
+              awards={onboarding.awards}
+            />
+
+            <CraftBlock crafts={onboarding.crafts} profileId={pid} onSaved={() => loadOnboarding(selected)} />
+
+            <hr style={{ border:'none', borderTop:'1px solid var(--border)', margin:'4px 0 20px' }} />
+            <Block title="Section D — Collaboration" data={onboarding.collab_design} model="collab_design" profileId={pid} onSaved={() => loadOnboarding(selected)} />
+
+            <hr style={{ border:'none', borderTop:'1px solid var(--border)', margin:'4px 0 20px' }} />
+            <Block title="Section E — Production Scale" data={onboarding.production_scale} model="production_scale" profileId={pid} onSaved={() => loadOnboarding(selected)} />
+
             <hr style={{ border:'none', borderTop:'1px solid var(--border)', margin:'4px 0 20px' }} />
             <Block title="Section F — Process Readiness" data={onboarding.process_readiness} model="process_readiness" profileId={pid} onSaved={() => loadOnboarding(selected)} />
-            <CraftBlock crafts={onboarding.crafts} profileId={pid} onSaved={() => loadOnboarding(selected)} />
+            <MediaViewer files={onboarding.process_readiness?.bts_media} title="BTS / Process Media" />
+
           </div>
         )
       }
