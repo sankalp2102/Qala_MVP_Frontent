@@ -25,9 +25,16 @@ api.interceptors.response.use(r => r, async err => {
           return api.request(err.config);
         }
       } catch {
+        // Refresh failed - session is dead, force re-login
         localStorage.removeItem('qala_token');
         localStorage.removeItem('qala_refresh');
+        window.location.href = '/login?reason=session_expired';
+        return Promise.reject(err);
       }
+    } else {
+      // No refresh token at all - force re-login
+      localStorage.removeItem('qala_token');
+      window.location.href = '/login?reason=session_expired';
     }
   }
   return Promise.reject(err);

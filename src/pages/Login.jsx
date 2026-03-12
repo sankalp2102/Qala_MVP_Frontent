@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../api/client';
 import qalaLogo from '../assets/qala-logo.png';
@@ -8,10 +8,12 @@ export default function Login() {
   const [tab, setTab]     = useState('signin');
   const [email, setEmail] = useState('');
   const [pass, setPass]   = useState('');
+  const sessionExpired = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '').get('reason') === 'session_expired';
   const [err, setErr]     = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const nav = useNavigate();
+  const location = useLocation();
 
   const submit = async e => {
     e.preventDefault(); setErr(''); setLoading(true);
@@ -79,6 +81,11 @@ export default function Login() {
             {tab === 'signup' && <span className="hint">Min 8 chars · 1 number · 1 uppercase</span>}
           </div>
 
+          {sessionExpired && !err && (
+            <div style={{ background:'rgba(255,170,0,0.08)', border:'1px solid rgba(255,170,0,0.25)', borderLeft:'3px solid #FFAA00', borderRadius:'var(--radius)', padding:'11px 14px', fontSize:13, color:'#996600', marginBottom:4 }}>
+              Your session expired. Please sign in again to continue.
+            </div>
+          )}
           {err && (
             <div style={{ background:'var(--red-dim)', border:'1px solid rgba(224,85,85,0.3)', borderLeft:'3px solid var(--red)', borderRadius:'var(--radius)', padding:'11px 14px', fontSize:13, color:'var(--red)' }}>
               {err}
