@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { discoveryAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -18,7 +19,7 @@ function Lightbox({ images, startIndex, onClose }) {
     return () => window.removeEventListener('keydown', handler);
   }, [images.length, onClose]);
 
-  return (
+  return createPortal(
     <div
       onClick={onClose}
       style={{
@@ -54,13 +55,24 @@ function Lightbox({ images, startIndex, onClose }) {
         }}>‹</button>
       )}
 
-      {/* Image */}
-      <img
-        src={images[idx]?.url}
+      {/* Image — constrained container prevents overflow */}
+      <div
         onClick={e => e.stopPropagation()}
-        style={{ maxWidth: '88vw', maxHeight: '88vh', objectFit: 'contain', borderRadius: 8 }}
-        alt=""
-      />
+        style={{
+          maxWidth: '88vw', maxHeight: '80vh',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        <img
+          src={images[idx]?.url}
+          style={{
+            maxWidth: '88vw', maxHeight: '80vh',
+            width: 'auto', height: 'auto',
+            objectFit: 'contain', display: 'block', borderRadius: 8,
+          }}
+          alt=""
+        />
+      </div>
 
       {/* Next */}
       {idx < images.length - 1 && (
@@ -93,7 +105,8 @@ function Lightbox({ images, startIndex, onClose }) {
           />
         ))}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -348,7 +361,7 @@ function CraftCarousel({ crafts }) {
           )}
 
           {/* Stats row */}
-          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: c.fabric_limitations ? 16 : 0 }}>
+          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: (c.limitations || c.delay_likelihood) ? 16 : 0 }}>
             {c.sampling_time_weeks && (
               <div>
                 <div style={{ fontSize: 10, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>Sampling</div>
@@ -367,11 +380,25 @@ function CraftCarousel({ crafts }) {
                 <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500, textTransform: 'capitalize' }}>{c.innovation_level} innovation</div>
               </div>
             )}
+            {c.delay_likelihood && (
+              <div>
+                <div style={{ fontSize: 10, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>Delay likelihood</div>
+                <div style={{ fontSize: 13, fontWeight: 500, textTransform: 'capitalize', color: c.delay_likelihood === 'high' ? 'var(--red, #c94040)' : c.delay_likelihood === 'medium' ? 'var(--amber, #b97a2a)' : 'var(--green, #4a7a4a)' }}>
+                  {c.delay_likelihood}
+                </div>
+              </div>
+            )}
           </div>
 
-          {c.fabric_limitations && (
+          {c.limitations && (
+            <div style={{ padding: '10px 14px', background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--border)', fontSize: 12, color: 'var(--text3)', lineHeight: 1.6, marginBottom: c.delay_common_reasons ? 10 : 0 }}>
+              <span style={{ fontWeight: 500, color: 'var(--text2)' }}>Well-known limitations: </span>{c.limitations}
+            </div>
+          )}
+
+          {c.delay_common_reasons && (
             <div style={{ padding: '10px 14px', background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--border)', fontSize: 12, color: 'var(--text3)', lineHeight: 1.6 }}>
-              <span style={{ fontWeight: 500, color: 'var(--text2)' }}>Well-known limitations: </span>{c.fabric_limitations}
+              <span style={{ fontWeight: 500, color: 'var(--text2)' }}>Common delay reasons: </span>{c.delay_common_reasons}
             </div>
           )}
 
@@ -470,6 +497,8 @@ export default function StudioProfile() {
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [inquiryDone, setInquiryDone] = useState(false);
   const [btsOpen, setBtsOpen] = useState(false);
+  const [btsLightboxOpen, setBtsLightboxOpen] = useState(false);
+  const [btsStartIndex, setBtsStartIndex] = useState(0);
   const heroRef = useRef(null);
   const [scrolled, setScrolled] = useState(false);
 
@@ -742,6 +771,7 @@ export default function StudioProfile() {
                 <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8 }}>
                   {s.bts_images.slice(0, 8).map((img, i) => (
                     <img key={i} src={img.url} alt=""
+                      onClick={() => { setBtsStartIndex(i); setBtsLightboxOpen(true); }}
                       style={{ width: 140, height: 100, objectFit: 'cover', borderRadius: 8, flexShrink: 0, cursor: 'pointer', transition: 'transform 0.2s' }}
                       onMouseEnter={e => e.target.style.transform = 'scale(1.03)'}
                       onMouseLeave={e => e.target.style.transform = 'scale(1)'}
@@ -926,6 +956,15 @@ export default function StudioProfile() {
           images={allImages}
           startIndex={0}
           onClose={() => setBtsOpen(false)}
+        />
+      )}
+
+      {/* ── BTS lightbox ── */}
+      {btsLightboxOpen && (
+        <Lightbox
+          images={s.bts_images}
+          startIndex={btsStartIndex}
+          onClose={() => setBtsLightboxOpen(false)}
         />
       )}
 

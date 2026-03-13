@@ -77,9 +77,16 @@ function SkeletonCard() {
 function StudioCard({ studio, onClick }) {
   const pattern = PATTERNS[studio.card_pattern] || PATTERNS['pattern-block'];
   const [hovered, setHovered] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const crafts    = [studio.primary_craft, ...(studio.secondary_crafts || [])].filter(Boolean);
   const materials = (studio.fabrics || []).slice(0, 3);
+
+  const BASE = 'https://api.qala.studio';
+  const rawUrl = studio.hero_image_url || '';
+  const imageUrl = rawUrl
+    ? (rawUrl.startsWith('http') ? rawUrl : BASE + rawUrl)
+    : null;
 
   return (
     <div
@@ -99,18 +106,33 @@ function StudioCard({ studio, onClick }) {
       }}
     >
       {/* Visual area */}
-      <div style={{ height: 160, position: 'relative', overflow: 'hidden', ...pattern }}>
-        {/* Gradient overlay */}
+      <div style={{ height: 200, position: 'relative', overflow: 'hidden', ...(imageUrl && !imgError ? {} : pattern) }}>
+
+        {/* Hero image */}
+        {imageUrl && !imgError && (
+          <img
+            src={imageUrl}
+            alt={studio.studio_name}
+            onError={() => setImgError(true)}
+            style={{
+              width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+              transition: 'transform 0.4s ease',
+              transform: hovered ? 'scale(1.04)' : 'scale(1)',
+            }}
+          />
+        )}
+
+        {/* Gradient overlay — always shown so text is readable over image */}
         <div style={{
           position: 'absolute', inset: 0,
-          background: 'linear-gradient(160deg, transparent 40%, rgba(26,22,18,0.35))',
+          background: 'linear-gradient(160deg, transparent 30%, rgba(26,22,18,0.5))',
         }} />
 
         {/* Location */}
         {studio.location && (
           <span style={{
             position: 'absolute', bottom: 10, right: 12,
-            fontSize: 11, color: 'rgba(255,255,255,0.85)', fontWeight: 300,
+            fontSize: 11, color: 'rgba(255,255,255,0.9)', fontWeight: 300,
             display: 'flex', alignItems: 'center', gap: 4,
           }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -242,7 +264,7 @@ export default function StudioDirectory() {
 
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState(null);
-  const [allData, setAllData]     = useState(null);   // raw API response
+  const [allData, setAllData]     = useState(null);
   const [filters, setFilters]     = useState({
     craft:       searchParams.get('craft')   || '',
     fabric:      searchParams.get('fabric')  || '',
@@ -282,31 +304,30 @@ export default function StudioDirectory() {
   }, []);
 
   // ── Apply filters client-side ────────────────────────────────────────────
-  const filteredByCraft = useCallback(() => {
-    if (!allData) return {};
-    const result = {};
-    Object.entries(allData.studios_by_craft || {}).forEach(([craftKey, studios]) => {
-      const matched = studios.filter(s => {
-        const craftMatch = !filters.craft ||
-          (s.primary_craft || '').toLowerCase().includes(filters.craft.toLowerCase()) ||
-          (s.secondary_crafts || []).some(c => c.toLowerCase().includes(filters.craft.toLowerCase()));
-        const fabricMatch = !filters.fabric ||
-          (s.fabrics || []).some(f => f.toLowerCase().includes(filters.fabric.toLowerCase()));
-        const productMatch = !filters.productType ||
-          (s.product_types || []).some(p =>
-            p.replace(/_/g, ' ').toLowerCase().includes(filters.productType.toLowerCase())
-          );
-        return craftMatch && fabricMatch && productMatch;
-      });
-      if (matched.length > 0) result[craftKey] = matched;
+  const filteredStudios = useCallback(() => {
+    if (!allData) return [];
+    const all = Object.values(allData.studios_by_craft || {}).flat();
+    // Deduplicate by studio_id
+    const seen = new Set();
+    return all.filter(s => {
+      if (seen.has(s.studio_id)) return false;
+      seen.add(s.studio_id);
+      const craftMatch = !filters.craft ||
+        (s.primary_craft || '').toLowerCase().includes(filters.craft.toLowerCase()) ||
+        (s.secondary_crafts || []).some(c => c.toLowerCase().includes(filters.craft.toLowerCase()));
+      const fabricMatch = !filters.fabric ||
+        (s.fabrics || []).some(f => f.toLowerCase().includes(filters.fabric.toLowerCase()));
+      const productMatch = !filters.productType ||
+        (s.product_types || []).some(p =>
+          p.replace(/_/g, ' ').toLowerCase().includes(filters.productType.toLowerCase())
+        );
+      return craftMatch && fabricMatch && productMatch;
     });
-    return result;
   }, [allData, filters]);
 
   const setFilter = (key, val) => {
     const next = { ...filters, [key]: filters[key] === val ? '' : val };
     setFilters(next);
-    // Sync URL params
     const p = {};
     if (next.craft)       p.craft   = next.craft;
     if (next.fabric)      p.fabric  = next.fabric;
@@ -319,10 +340,10 @@ export default function StudioDirectory() {
     setSearchParams({}, { replace: true });
   };
 
-  const displayed     = filteredByCraft();
-  const totalVisible  = Object.values(displayed).reduce((n, arr) => n + arr.length, 0);
-  const hasAnyFilter  = filters.craft || filters.fabric || filters.productType;
-  const totalStudios  = allData?.total_count || 0;
+  const displayed    = filteredStudios();
+  const totalVisible = displayed.length;
+  const hasAnyFilter = filters.craft || filters.fabric || filters.productType;
+  const totalStudios = allData?.total_count || 0;
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
@@ -497,15 +518,8 @@ export default function StudioDirectory() {
 
         {/* Loading skeletons */}
         {loading && !error && (
-          <div>
-            {[1, 2].map(s => (
-              <div key={s} style={{ marginBottom: 56 }}>
-                <div style={{ height: 26, width: 240, background: 'var(--surface3)', borderRadius: 6, marginBottom: 24, animation: 'pulse 1.4s ease infinite' }} />
-                <div className="dir-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
-                  {[1, 2, 3].map(i => <SkeletonCard key={i} />)}
-                </div>
-              </div>
-            ))}
+          <div className="dir-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+            {[1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} />)}
           </div>
         )}
 
@@ -529,48 +543,25 @@ export default function StudioDirectory() {
           </div>
         )}
 
-        {/* Craft sections */}
-        {!loading && !error && Object.entries(displayed).map(([craftKey, studios]) => (
-          <section key={craftKey} style={{ marginBottom: 56 }}>
-            {/* Section header */}
-            <div style={{
-              display: 'flex', alignItems: 'baseline', gap: 16,
-              marginBottom: 24, paddingBottom: 12,
-              borderBottom: '1px solid var(--border)',
-            }}>
-              <h2 style={{
-                fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 400,
-                color: 'var(--text)', letterSpacing: '0.01em',
-              }}>
-                {craftTitle(craftKey)}
-              </h2>
-              <span style={{
-                fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase',
-                color: 'var(--gold)', fontWeight: 500,
-              }}>
-                {studios.length} {studios.length === 1 ? 'studio' : 'studios'}
-              </span>
-            </div>
-
-            {/* Grid */}
-            <div
-              className="dir-grid"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                gap: 20,
-              }}
-            >
-              {studios.map(studio => (
-                <StudioCard
-                  key={studio.studio_id}
-                  studio={studio}
-                  onClick={() => nav(`/studio/${studio.studio_id}`)}
-                />
-              ))}
-            </div>
-          </section>
-        ))}
+        {/* Flat studio grid */}
+        {!loading && !error && totalVisible > 0 && (
+          <div
+            className="dir-grid"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+              gap: 20,
+            }}
+          >
+            {displayed.map(studio => (
+              <StudioCard
+                key={studio.studio_id}
+                studio={studio}
+                onClick={() => nav(`/studio/${studio.studio_id}`)}
+              />
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );
