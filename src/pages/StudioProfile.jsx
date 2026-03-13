@@ -297,6 +297,155 @@ function InquiryForm({ studio, onClose, onSuccess }) {
   );
 }
 
+// ─── Craft Carousel ───────────────────────────────────────────────────────────
+function CraftCarousel({ crafts }) {
+  const [active, setActive] = useState(0);
+  const c = crafts[active];
+  const BASE = 'https://api.qala.studio';
+  const imageUrl = c.image_url
+    ? (c.image_url.startsWith('http') ? c.image_url : BASE + c.image_url)
+    : null;
+
+  return (
+    <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'var(--surface)' }}>
+
+      {/* LEFT — large image + details */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+
+        {/* Image */}
+        <div style={{ width: '100%', aspectRatio: '16/9', background: 'var(--surface2)', overflow: 'hidden', position: 'relative' }}>
+          {imageUrl ? (
+            <img
+              key={imageUrl}
+              src={imageUrl}
+              alt={c.craft_name}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'opacity 0.3s ease' }}
+            />
+          ) : (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, opacity: 0.15 }}>🧵</div>
+          )}
+          {/* Primary badge */}
+          {c.is_primary && (
+            <div style={{
+              position: 'absolute', top: 12, left: 12,
+              background: 'rgba(26,22,18,0.7)', backdropFilter: 'blur(6px)',
+              color: 'var(--gold)', fontSize: 10, fontWeight: 600,
+              letterSpacing: '0.1em', textTransform: 'uppercase',
+              padding: '4px 10px', borderRadius: 20,
+              border: '1px solid rgba(196,110,73,0.3)',
+            }}>Primary Craft</div>
+          )}
+        </div>
+
+        {/* Details */}
+        <div style={{ padding: '22px 24px' }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 400, color: 'var(--text)', marginBottom: 6 }}>
+            {c.craft_name}
+          </div>
+
+          {c.specialization && (
+            <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.7, marginBottom: 16 }}>{c.specialization}</p>
+          )}
+
+          {/* Stats row */}
+          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: c.fabric_limitations ? 16 : 0 }}>
+            {c.sampling_time_weeks && (
+              <div>
+                <div style={{ fontSize: 10, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>Sampling</div>
+                <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500 }}>{c.sampling_time_weeks} {c.sampling_time_weeks == 1 ? 'week' : 'weeks'}</div>
+              </div>
+            )}
+            {c.production_timeline_months_50units && (
+              <div>
+                <div style={{ fontSize: 10, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>50 units</div>
+                <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500 }}>{c.production_timeline_months_50units} mo</div>
+              </div>
+            )}
+            {c.innovation_level && (
+              <div>
+                <div style={{ fontSize: 10, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>Approach</div>
+                <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500, textTransform: 'capitalize' }}>{c.innovation_level} innovation</div>
+              </div>
+            )}
+          </div>
+
+          {c.fabric_limitations && (
+            <div style={{ padding: '10px 14px', background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--border)', fontSize: 12, color: 'var(--text3)', lineHeight: 1.6 }}>
+              <span style={{ fontWeight: 500, color: 'var(--text2)' }}>Well-known limitations: </span>{c.fabric_limitations}
+            </div>
+          )}
+
+          {/* Arrows */}
+          {crafts.length > 1 && (
+            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+              <button
+                onClick={() => setActive(i => (i - 1 + crafts.length) % crafts.length)}
+                style={{
+                  width: 36, height: 36, borderRadius: '50%',
+                  background: 'var(--gold)', border: 'none', color: '#fff',
+                  fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'background 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--gold-d)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'var(--gold)'}
+              >‹</button>
+              <button
+                onClick={() => setActive(i => (i + 1) % crafts.length)}
+                style={{
+                  width: 36, height: 36, borderRadius: '50%',
+                  background: 'var(--gold)', border: 'none', color: '#fff',
+                  fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'background 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--gold-d)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'var(--gold)'}
+              >›</button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* RIGHT — vertical craft list */}
+      {crafts.length > 1 && (
+        <div style={{
+          width: 180, flexShrink: 0,
+          borderLeft: '1px solid var(--border)',
+          display: 'flex', flexDirection: 'column',
+          overflowY: 'auto',
+        }}>
+          <div style={{ padding: '14px 16px 10px', fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.1em', borderBottom: '1px solid var(--border)' }}>
+            All Crafts
+          </div>
+          {crafts.map((craft, i) => (
+            <button
+              key={i}
+              onClick={() => setActive(i)}
+              style={{
+                padding: '14px 16px', textAlign: 'left', border: 'none',
+                borderBottom: i < crafts.length - 1 ? '1px solid var(--border)' : 'none',
+                background: active === i ? 'var(--gold-dim)' : 'transparent',
+                cursor: 'pointer', transition: 'background 0.15s',
+                fontFamily: 'var(--font-body)',
+              }}
+              onMouseEnter={e => { if (active !== i) e.currentTarget.style.background = 'var(--surface2)'; }}
+              onMouseLeave={e => { if (active !== i) e.currentTarget.style.background = 'transparent'; }}
+            >
+              <div style={{
+                fontSize: 13, fontWeight: active === i ? 500 : 400,
+                color: active === i ? 'var(--gold)' : 'var(--text2)',
+                lineHeight: 1.4,
+              }}>{craft.craft_name}</div>
+              {craft.is_primary && (
+                <div style={{ fontSize: 10, color: active === i ? 'var(--gold)' : 'var(--text4)', marginTop: 2 }}>Primary</div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Skeleton loader ──────────────────────────────────────────────────────────
 function Skeleton({ w = '100%', h = 16, r = 6, style }) {
   return (
@@ -460,27 +609,6 @@ export default function StudioProfile() {
         {/* ── LEFT COLUMN ── */}
         <div>
 
-          {/* USPs */}
-          {s.usps?.length > 0 && (
-            <div className="profile-fade profile-fade-1" style={{ marginBottom: 44 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {s.usps.map((usp, i) => (
-                  <div key={i} style={{
-                    display: 'flex', gap: 14, alignItems: 'flex-start',
-                    padding: '16px 20px',
-                    background: i === 0 ? 'var(--gold-dim)' : 'var(--surface)',
-                    border: `1px solid ${i === 0 ? 'rgba(196,110,73,0.2)' : 'var(--border)'}`,
-                    borderLeft: `3px solid ${i === 0 ? 'var(--gold)' : 'var(--border)'}`,
-                    borderRadius: 10,
-                  }}>
-                    <span style={{ color: 'var(--gold)', fontSize: 16, marginTop: 1, flexShrink: 0 }}>✦</span>
-                    <span style={{ fontSize: 14, color: i === 0 ? 'var(--text)' : 'var(--text2)', lineHeight: 1.55, fontWeight: i === 0 ? 500 : 400 }}>{usp}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Work portfolio gallery */}
           {hasWork && (
             <div className="profile-fade profile-fade-2" style={{ marginBottom: 44 }}>
@@ -499,52 +627,33 @@ export default function StudioProfile() {
             </div>
           )}
 
-          {/* Crafts */}
-          {s.crafts?.length > 0 && (
-            <div className="profile-fade profile-fade-3" style={{ marginBottom: 44 }}>
-              <Section title="Crafts & Specialisations">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  {s.crafts.map((c, i) => (
-                    <div key={c.id || i} style={{
-                      padding: '18px 20px',
+          {/* Section 3: Top Strengths — "What We're Known For" */}
+          {s.usps?.length > 0 && (
+            <div className="profile-fade profile-fade-2" style={{ marginBottom: 44 }}>
+              <Section title="What We're Known For">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {s.usps.slice(0, 4).map((usp, i) => (
+                    <div key={i} style={{
+                      display: 'flex', gap: 14, alignItems: 'flex-start',
+                      padding: '14px 18px',
                       background: 'var(--surface)',
                       border: '1px solid var(--border)',
-                      borderLeft: `3px solid ${c.is_primary ? 'var(--gold)' : 'var(--border)'}`,
                       borderRadius: 10,
                     }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: c.specialization ? 8 : 0 }}>
-                        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                          <span style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)' }}>{c.craft_name}</span>
-                          {c.is_primary && (
-                            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-dim)', padding: '2px 8px', borderRadius: 10, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Primary</span>
-                          )}
-                          {c.innovation_level && (
-                            <span style={{ fontSize: 10, color: 'var(--text3)', background: 'var(--surface2)', padding: '2px 8px', borderRadius: 10 }}>
-                              {c.innovation_level} innovation
-                            </span>
-                          )}
-                        </div>
-                        <div style={{ display: 'flex', gap: 16, flexShrink: 0 }}>
-                          {c.sampling_time_weeks && (
-                            <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: 11, color: 'var(--text4)' }}>Sampling</div>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)' }}>{c.sampling_time_weeks}w</div>
-                            </div>
-                          )}
-                          {c.production_timeline_months_50units && (
-                            <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: 11, color: 'var(--text4)' }}>50 units</div>
-                              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)' }}>{c.production_timeline_months_50units}mo</div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      {c.specialization && (
-                        <p style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.65, marginTop: 2 }}>{c.specialization}</p>
-                      )}
+                      <span style={{ color: 'var(--gold)', fontSize: 14, marginTop: 2, flexShrink: 0 }}>•</span>
+                      <span style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.6 }}>{usp}</span>
                     </div>
                   ))}
                 </div>
+              </Section>
+            </div>
+          )}
+
+          {/* Section 5A: Crafts carousel */}
+          {s.crafts?.length > 0 && (
+            <div className="profile-fade profile-fade-3" style={{ marginBottom: 44 }}>
+              <Section title="Crafts & Specialisations">
+                <CraftCarousel crafts={s.crafts} />
               </Section>
             </div>
           )}
@@ -575,24 +684,26 @@ export default function StudioProfile() {
             </div>
           )}
 
-          {/* Brands */}
+          {/* Section 6A: Past Buyers */}
           {s.brands?.length > 0 && (
             <div className="profile-fade" style={{ marginBottom: 44 }}>
-              <Section title="Worked with">
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              <Section title="Brands We've Worked With">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {s.brands.map((b, i) => (
                     <div key={i} style={{
-                      display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '8px 16px',
-                      background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10,
+                      display: 'flex', gap: 14, alignItems: 'flex-start',
+                      padding: '14px 18px',
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 10,
                     }}>
-                      {b.image_url && (
-                        <img src={b.image_url} alt={b.brand_name} style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: 4 }} />
-                      )}
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{b.brand_name}</div>
-                        {b.scope && <div style={{ fontSize: 11, color: 'var(--text4)' }}>{b.scope}</div>}
-                      </div>
+                      <span style={{ color: 'var(--gold)', fontSize: 14, marginTop: 2, flexShrink: 0 }}>•</span>
+                      <span style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.6 }}>
+                        {b.scope
+                          ? <>{b.scope} for <strong style={{ color: 'var(--text)', fontWeight: 500 }}>{b.brand_name}</strong></>
+                          : <strong style={{ color: 'var(--text)', fontWeight: 500 }}>{b.brand_name}</strong>
+                        }
+                      </span>
                     </div>
                   ))}
                 </div>

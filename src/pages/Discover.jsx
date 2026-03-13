@@ -337,7 +337,7 @@ export default function Discover() {
                 <h2 style={{
                   fontFamily: 'var(--font-display)',
                   fontSize: 'clamp(24px, 2.8vw, 38px)',
-                  fontWeight: 700, color: 'var(--text)', marginBottom: 10,
+                  fontWeight: 400, color: 'var(--text)', marginBottom: 10,
                   lineHeight: 1.15, letterSpacing: '-0.01em',
                 }}>
                   {STEPS[step - 1].q}
@@ -588,7 +588,7 @@ function StepBody({ step, answers, set }) {
                   fontFamily: 'var(--font-body)', transition: 'all 0.15s',
                 }}
               >
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>{opt.label}</div>
+                <div style={{ fontSize: 15, fontWeight: 400, color: 'var(--text)' }}>{opt.label}</div>
               </button>
             ))}
           </div>
@@ -611,7 +611,7 @@ function StepBody({ step, answers, set }) {
                 <h3 style={{
                   fontFamily: 'var(--font-display)',
                   fontSize: 'clamp(18px, 2vw, 26px)',
-                  fontWeight: 700, color: 'var(--text)', margin: 0,
+                  fontWeight: 400, color: 'var(--text)', margin: 0,
                   lineHeight: 1.2, letterSpacing: '-0.01em',
                 }}>
                   Do you know which technique(s) you'd like to use?
@@ -754,7 +754,7 @@ function StepBody({ step, answers, set }) {
                 fontFamily: 'var(--font-body)', transition: 'all 0.15s',
               }}
             >
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', lineHeight: 1.5 }}>{opt.label}</div>
+              <div style={{ fontSize: 14, fontWeight: 400, color: 'var(--text)', lineHeight: 1.5 }}>{opt.label}</div>
             </button>
           ))}
         </div>
@@ -777,7 +777,7 @@ function StepBody({ step, answers, set }) {
               }}
             >
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>{s.label}</div>
+                <div style={{ fontSize: 14, fontWeight: 400, color: 'var(--text)', marginBottom: 4 }}>{s.label}</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)' }}>{s.desc}</div>
               </div>
               <div style={{

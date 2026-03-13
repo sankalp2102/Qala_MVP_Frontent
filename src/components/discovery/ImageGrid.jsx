@@ -39,8 +39,8 @@ export default function ImageGrid({ selected, onToggle }) {
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
           <span style={{
-            background: 'rgba(255,255,255,0.1)', borderRadius: 12,
-            padding: '2px 10px', color: '#fff', fontWeight: 600, fontSize: 11,
+            background: 'var(--gold)', borderRadius: 12,
+            padding: '2px 10px', color: '#fff', fontWeight: 500, fontSize: 11,
           }}>
             {selected.length} selected
           </span>

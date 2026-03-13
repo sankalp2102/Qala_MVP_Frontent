@@ -184,7 +184,7 @@ export default function DiscoverResults() {
           <div
             className="fade-in"
             style={{
-              marginTop: 40, marginLeft: 40, marginRight: 40, padding: '16px 24px',
+              marginTop: 40, marginLeft: 60, marginRight: 60, padding: '16px 24px',
               background: 'var(--surface)', border: '1px solid var(--border)',
               borderRadius: 12, display: 'flex', alignItems: 'center',
               justifyContent: 'space-between', flexWrap: 'wrap', gap: 12,
@@ -217,11 +217,11 @@ export default function DiscoverResults() {
 
         {/* Zero match state */}
         {data?.zero_match && recs.length === 0 && (
-          <div className="fade-in" style={{ marginTop: 48, textAlign: 'center', padding: '0 40px' }}>
+          <div className="fade-in" style={{ marginTop: 48, textAlign: 'center', padding: '0 60px' }}>
             <div style={{ fontSize: 40, marginBottom: 20 }}>🔍</div>
             <h2 style={{
               fontFamily: 'var(--font-display)', fontSize: 32,
-              fontWeight: 700, color: 'var(--text)', marginBottom: 12,
+              fontWeight: 400, color: 'var(--text)', marginBottom: 12,
             }}>
               No exact matches found
             </h2>
@@ -265,13 +265,13 @@ export default function DiscoverResults() {
         {/* Main recommendations */}
         {recs.length > 0 && (
           <div className="fade-in" style={{ marginTop: 52 }}>
-            <div style={{ textAlign: 'center', marginBottom: 28, padding: '0 40px' }}>
+            <div style={{ textAlign: 'center', marginBottom: 28, padding: '0 60px' }}>
               <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8, fontWeight: 600 }}>
                   Matched studios
                 </div>
                 <h2 style={{
                   fontFamily: 'var(--font-display)', fontSize: 'clamp(22px,2.5vw,34px)',
-                  fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em',
+                  fontWeight: 400, color: 'var(--text)', letterSpacing: '-0.01em',
                   lineHeight: 1.3, maxWidth: 600, margin: '0 auto',
                 }}>
                   Based on what you've shared, here are a few studios that could be right for you
@@ -304,16 +304,16 @@ export default function DiscoverResults() {
                 overflowX: 'auto', paddingBottom: 24,
                 scrollbarWidth: 'none', msOverflowStyle: 'none',
                 scrollSnapType: 'x mandatory',
-                paddingLeft: 40, paddingRight: 40,
+                paddingLeft: 60, paddingRight: 60,
               }}
             >
               {recs.map((rec, i) => (
                 <div
                   key={rec.studio_id || i}
                   style={{
-                    minWidth: 'calc(100vw - 120px)',
-                    maxWidth: 'calc(100vw - 120px)',
-                    flex: '0 0 calc(100vw - 120px)',
+                    minWidth: 'calc(100vw - 160px)',
+                    maxWidth: 'calc(100vw - 160px)',
+                    flex: '0 0 calc(100vw - 160px)',
                     scrollSnapAlign: 'start',
                     animation: `fadeUp 0.5s ease ${0.1 + i * 0.08}s both`,
                   }}
@@ -354,12 +354,12 @@ export default function DiscoverResults() {
 
         {/* Bonus visual matches */}
         {bonus.length > 0 && (
-          <div className="fade-in" style={{ marginTop: 64, padding: '0 40px' }}>
+          <div className="fade-in" style={{ marginTop: 64, padding: '0 60px' }}>
             <div style={{ marginBottom: 8, textAlign: 'center' }}>
               <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8, fontWeight: 600 }}>
                 Also worth exploring
               </div>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700, color: 'var(--text2)' }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 400, color: 'var(--text2)' }}>
                 Visual matches
               </h3>
               <p style={{ fontSize: 13, color: 'var(--text4)', marginTop: 6 }}>
@@ -383,7 +383,7 @@ export default function DiscoverResults() {
 
         {/* Empty state */}
         {recs.length === 0 && bonus.length === 0 && !data?.zero_match && (
-          <div style={{ textAlign: 'center', padding: '80px 40px' }}>
+          <div style={{ textAlign: 'center', padding: '80px 60px' }}>
             <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 24 }}>
               No studios are registered yet. Check back soon.
             </div>
@@ -399,8 +399,8 @@ export default function DiscoverResults() {
           borderTop: '1px solid var(--border)',
           paddingTop: 60,
           paddingBottom: 80,
-          paddingLeft: 40,
-          paddingRight: 40,
+          paddingLeft: 60,
+          paddingRight: 60,
         }}>
           <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
             <div style={{
@@ -411,7 +411,7 @@ export default function DiscoverResults() {
             </div>
             <h3 style={{
               fontFamily: 'var(--font-display)', fontSize: 'clamp(22px, 2.5vw, 32px)',
-              fontWeight: 700, color: 'var(--text)', marginBottom: 10, letterSpacing: '-0.01em',
+              fontWeight: 400, color: 'var(--text)', marginBottom: 10, letterSpacing: '-0.01em',
             }}>
               Tell us directly — we'll find<br />the right studio for you.
             </h3>
