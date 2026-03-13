@@ -19,8 +19,10 @@ api.interceptors.response.use(r => r, async err => {
           withCredentials: true,
         });
         const t = res.headers['st-access-token'];
+        const r = res.headers['st-refresh-token'];
         if (t) {
           localStorage.setItem('qala_token', t);
+          if (r) localStorage.setItem('qala_refresh', r);
           err.config.headers.authorization = `Bearer ${t}`;
           return api.request(err.config);
         }
