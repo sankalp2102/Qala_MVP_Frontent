@@ -248,7 +248,7 @@ export default function SectionC({ profileId, onSave }) {
 
       {crafts.length > 0 && !adding && (
         <button className="btn btn-primary btn-lg" onClick={submit} disabled={submitting}>
-          {submitting ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Submitting…</> : 'Should be Save Section C'}
+          {submitting ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Submitting…</> : 'Save Section C'}
         </button>
       )}
     </div>
