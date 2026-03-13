@@ -219,7 +219,7 @@ export default function SectionA({ profileId, onSave }) {
         </div>
       </CardSection>
 
-      {/* A.6 Contacts */}
+      {/* A.5 Contacts */}
       <CardSection title="A.5 — Studio Contacts">
         <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
           Who should we contact at your studio? Add the key people (owner, designer, production manager, etc.)

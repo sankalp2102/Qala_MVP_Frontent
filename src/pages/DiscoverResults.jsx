@@ -87,7 +87,7 @@ export default function DiscoverResults() {
   // ── Loading ──────────────────────────────────────────────────────────────
   if (loading) return (
     <div style={{
-      minHeight: '100vh', background: '#F8F5F1',
+      minHeight: '100vh', background: 'var(--bg)',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', gap: 16,
     }}>
@@ -119,7 +119,7 @@ export default function DiscoverResults() {
   // ── Error ────────────────────────────────────────────────────────────────
   if (error) return (
     <div style={{
-      minHeight: '100vh', background: '#F8F5F1',
+      minHeight: '100vh', background: 'var(--bg)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       flexDirection: 'column', gap: 16,
     }}>
@@ -134,7 +134,7 @@ export default function DiscoverResults() {
   const summary = data?.buyer_summary         || {};
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F8F5F1' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <style>{`
         @keyframes fadeUp { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: none } }
         @keyframes spin   { to { transform: rotate(360deg) } }
@@ -524,12 +524,12 @@ export default function DiscoverResults() {
                     disabled={inquirySubmitting}
                     style={{
                       padding: '11px 28px',
-                      background: inquirySubmitting ? 'var(--surface3)' : '#fff',
-                      color: inquirySubmitting ? 'var(--text4)' : '#FFFFFF',
-                      border: 'none', borderRadius: 8,
-                      fontSize: 13, fontWeight: 700,
+                      background: inquirySubmitting ? 'var(--surface3)' : 'var(--gold)',
+                      color: inquirySubmitting ? 'var(--text4)' : '#fff',
+                      border: 'none', borderRadius: 'var(--radius)',
+                      fontSize: 13, fontWeight: 500,
                       cursor: inquirySubmitting ? 'default' : 'pointer',
-                      fontFamily: 'var(--font-body)', transition: 'all 0.2s',
+                      fontFamily: 'var(--font-body)', transition: 'background 0.18s ease',
                       display: 'flex', alignItems: 'center', gap: 8,
                     }}
                   >
@@ -560,6 +560,69 @@ export default function DiscoverResults() {
           </div>
         </div>
 
+      </div>
+
+      {/* ── Browse Full Directory CTA ─────────────────────────── */}
+      <div style={{
+        borderTop: '1px solid var(--border)',
+        padding: '64px 48px',
+        textAlign: 'center',
+        background: 'var(--bg)',
+      }}>
+        <div style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 11, fontWeight: 500,
+          letterSpacing: '0.16em', textTransform: 'uppercase',
+          color: 'var(--text4)', marginBottom: 18,
+        }}>
+          Not what you were looking for?
+        </div>
+        <h2 style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 'clamp(26px, 3.5vw, 38px)',
+          fontWeight: 300,
+          color: 'var(--text)',
+          lineHeight: 1.15,
+          marginBottom: 14,
+          letterSpacing: '-0.01em',
+        }}>
+          Browse the full{' '}
+          <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>Studio Directory</em>
+        </h2>
+        <p style={{
+          fontFamily: 'var(--font-body)',
+          fontSize: 14, fontWeight: 300,
+          color: 'var(--text3)', lineHeight: 1.7,
+          maxWidth: 400, margin: '0 auto 32px',
+        }}>
+          Explore every studio on Qala — filter by craft, fabric, and product type at your own pace.
+        </p>
+        <button
+          onClick={() => nav('/directory')}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '12px 28px',
+            borderRadius: 'var(--radius)',
+            border: '1.5px solid var(--text)',
+            background: 'transparent',
+            color: 'var(--text)',
+            fontSize: 13, fontWeight: 500,
+            fontFamily: 'var(--font-body)',
+            letterSpacing: '0.04em',
+            cursor: 'pointer',
+            transition: 'background 0.18s ease, color 0.18s ease, border-color 0.18s ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'var(--text)';
+            e.currentTarget.style.color = 'var(--bg)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = 'var(--text)';
+          }}
+        >
+          Browse all studios →
+        </button>
       </div>
 
       {/* Auth gate modal */}

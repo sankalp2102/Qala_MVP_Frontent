@@ -809,6 +809,15 @@ export default function StudioProfile() {
 
       </div>
 
+      {/* ── Portfolio lightbox (all work + bts images) ── */}
+      {btsOpen && (
+        <Lightbox
+          images={allImages}
+          startIndex={0}
+          onClose={() => setBtsOpen(false)}
+        />
+      )}
+
       {/* ── Inquiry form modal ── */}
       {inquiryOpen && (
         <InquiryForm

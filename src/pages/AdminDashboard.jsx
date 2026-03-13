@@ -82,6 +82,7 @@ function buildStudioRow(profile, onboarding) {
     'Website':                  sd.website_url || '',
     'Instagram':                sd.instagram_url || '',
     'POC Working Style':        sd.poc_working_style || '',
+    'Directory Description':    sd.short_description || '',
     'Contacts':                 contacts,
     'USPs':                     usps,
     'Hero Image URL':           heroUrl,
@@ -394,13 +395,23 @@ function ProfileReview() {
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
               {editableKeys.map(([k]) => (
-                <div className="field" key={k}>
+                <div className="field" key={k} style={ k === 'short_description' ? { gridColumn: '1 / -1' } : {} }>
                   <label style={{ fontSize:11 }}>{k.replace(/_/g,' ')}</label>
-                  <input
-                    value={form[k] ?? ''}
-                    onChange={e => setForm(f => ({...f, [k]: e.target.value}))}
-                    style={{ fontSize:13 }}
-                  />
+                  {k === 'short_description' ? (
+                    <textarea
+                      value={form[k] ?? ''}
+                      onChange={e => setForm(f => ({...f, [k]: e.target.value}))}
+                      style={{ fontSize:13, resize:'vertical', minHeight:80 }}
+                      placeholder="Short directory card blurb (max ~180 chars)"
+                      maxLength={200}
+                    />
+                  ) : (
+                    <input
+                      value={form[k] ?? ''}
+                      onChange={e => setForm(f => ({...f, [k]: e.target.value}))}
+                      style={{ fontSize:13 }}
+                    />
+                  )}
                 </div>
               ))}
             </div>
