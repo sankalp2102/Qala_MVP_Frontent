@@ -59,6 +59,7 @@ export const onboardingAPI = {
   putStudio:   (pid,d) => api.put('/api/seller/onboarding/studio/', d, { headers: ph(pid) }),
   patchStudio: (pid,d) => api.patch('/api/seller/onboarding/studio/', d, { headers: ph(pid) }),
   addContact:  (pid,d) => api.post('/api/seller/onboarding/studio/contacts/', d, { headers: ph(pid) }),
+  patchContact:(pid,id,d) => api.patch(`/api/seller/onboarding/studio/contacts/${id}/`, d, { headers: ph(pid) }),
   delContact:  (pid,id) => api.delete(`/api/seller/onboarding/studio/contacts/${id}/`, { headers: ph(pid) }),
   putUSPs:     (pid,d) => api.put('/api/seller/onboarding/studio/usps/', d, { headers: ph(pid) }),
   uploadMedia:       (pid,f) => api.post('/api/seller/onboarding/studio/media/', f, { headers: ph(pid) }),
@@ -157,4 +158,13 @@ export const discoveryAPI = {
     axios.post(`${BASE}/api/discovery/studios/${profileId}/inquire/`, data, {
       headers: { 'Content-Type': 'application/json' },
     }),
+
+  // Feature 6 — Studio Directory
+  getStudioDirectory: ({ craft = '', fabric = '', productType = '' } = {}) => {
+    const params = {};
+    if (craft)       params.craft        = craft;
+    if (fabric)      params.fabric       = fabric;
+    if (productType) params.product_type = productType;
+    return axios.get(`${BASE}/api/studios/directory/`, { params });
+  },
 };

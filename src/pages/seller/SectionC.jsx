@@ -40,6 +40,8 @@ export default function SectionC({ profileId, onSave }) {
   const [draft, setDraft]         = useState(emptyDraft());
   const [saving, setSaving]       = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingCraft, setEditingCraft] = useState(null); // craft object being edited
+  const [editDraft, setEditDraft] = useState(null);       // draft fields for the edit
 
   useEffect(() => {
     if (!profileId) return;
@@ -77,6 +79,51 @@ export default function SectionC({ profileId, onSave }) {
   const delCraft = async id => {
     try { await onboardingAPI.delCraft(profileId, id); setCrafts(x => x.filter(y => y.id !== id)); }
     catch { error('Failed to remove craft'); }
+  };
+
+  const startEditCraft = (c) => {
+    setEditingCraft(c.id);
+    setEditDraft({
+      craft_name: c.craft_name || '',
+      specialization: c.specialization || '',
+      is_primary: c.is_primary ?? true,
+      innovation_level: c.innovation_level || 'medium',
+      limitations: c.limitations || '',
+      fabric_limitations: c.fabric_limitations || '',
+      sampling_time_weeks: c.sampling_time_weeks || '',
+      production_timeline_months_50units: c.production_timeline_months_50units || '',
+      delay_likelihood: c.delay_likelihood || 'low',
+      delay_common_reasons: c.delay_common_reasons || '',
+      image: null, // new image upload only — existing image stays if null
+    });
+    setAdding(false); // close add form if open
+  };
+
+  const saveEditCraft = async (craftId) => {
+    if (!editDraft.craft_name.trim()) { error('Craft name is required'); return; }
+    setSaving(true);
+    try {
+      const fd = new FormData();
+      fd.append('craft_name', editDraft.craft_name);
+      fd.append('is_primary', editDraft.is_primary);
+      if (editDraft.specialization) fd.append('specialization', editDraft.specialization);
+      if (editDraft.innovation_level) fd.append('innovation_level', editDraft.innovation_level);
+      if (editDraft.limitations) fd.append('limitations', editDraft.limitations);
+      if (editDraft.fabric_limitations) fd.append('fabric_limitations', editDraft.fabric_limitations);
+      if (editDraft.sampling_time_weeks) fd.append('sampling_time_weeks', editDraft.sampling_time_weeks);
+      if (editDraft.production_timeline_months_50units) fd.append('production_timeline_months_50units', editDraft.production_timeline_months_50units);
+      if (editDraft.delay_likelihood) fd.append('delay_likelihood', editDraft.delay_likelihood);
+      if (editDraft.delay_common_reasons) fd.append('delay_common_reasons', editDraft.delay_common_reasons);
+      if (editDraft.image) fd.append('image', editDraft.image);
+
+      const r = await onboardingAPI.patchCraft(profileId, craftId, fd);
+      setCrafts(x => x.map(y => y.id === craftId ? r.data : y));
+      setEditingCraft(null);
+      setEditDraft(null);
+      success('Craft updated!');
+    } catch (e) {
+      error(e.response?.data ? JSON.stringify(e.response.data) : 'Failed to save craft');
+    } finally { setSaving(false); }
   };
 
   const submit = async () => {
@@ -124,28 +171,121 @@ export default function SectionC({ profileId, onSave }) {
 
       {/* Existing crafts */}
       {crafts.map(c => (
-        <div key={c.id} className="card fade-up" style={{ marginBottom: 14, borderLeft: `3px solid ${c.is_primary ? 'var(--gold)' : 'var(--border2)'}` }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                <span style={{ fontWeight: 700, fontSize: 17, color: 'var(--text)' }}>{c.craft_name}</span>
-                {c.is_primary && <span className="badge badge-gold">Primary</span>}
-              </div>
-              {c.specialization && <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 10, lineHeight: 1.6 }}>{c.specialization}</p>}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: 12 }}>
-                {c.innovation_level && <span style={{ color: innovColor[c.innovation_level] }}>◆ {c.innovation_level} innovation</span>}
-                {c.sampling_time_weeks && <span style={{ color: 'var(--text3)' }}>{c.sampling_time_weeks} wk sampling</span>}
-                {c.production_timeline_months_50units && <span style={{ color: 'var(--text3)' }}>{c.production_timeline_months_50units} mo for 50 units</span>}
-                {c.delay_likelihood && <span style={{ color: delayColor[c.delay_likelihood] }}>{c.delay_likelihood} delay risk</span>}
-              </div>
-              {c.limitations && <p style={{ fontSize: 12, color: 'var(--text4)', marginTop: 4 }}>Technique limits: {c.limitations}</p>}
-              {c.fabric_limitations && <p style={{ fontSize: 12, color: 'var(--text4)', marginTop: 2 }}>Fabric limits: {c.fabric_limitations}</p>}
-              {c.file_name && <p style={{ fontSize: 11, color: 'var(--teal)', marginTop: 6 }}>{c.file_name}</p>}
-              {c.is_flagged && !c.flag_resolved && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 8 }}>Admin flagged: {c.flag_reason}</div>}
+        editingCraft === c.id ? (
+          /* ── Inline edit form ── */
+          <div key={c.id} className="card fade-up" style={{ marginBottom: 14, borderColor: 'rgba(200,165,90,0.35)', background: 'var(--gold-dim)' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--gold)', marginBottom: 20 }}>
+              Editing: {c.craft_name}
             </div>
-            <button className="btn btn-danger btn-sm" style={{ marginLeft: 16 }} onClick={() => delCraft(c.id)}>Remove</button>
+            <div style={{ display: 'grid', gap: 18 }}>
+
+              <Field label="Craft Name *" hint="Be specific: 'Hand Block Printing' is better than 'Printing'">
+                <input value={editDraft.craft_name} onChange={e => setEditDraft(d => ({ ...d, craft_name: e.target.value }))} placeholder="e.g. Hand Block Printing" />
+              </Field>
+
+              <Field label="Specialization / Technique Details" hint="Describe the specific sub-techniques, regional variations, or design styles you practice">
+                <textarea value={editDraft.specialization} onChange={e => setEditDraft(d => ({ ...d, specialization: e.target.value }))} rows={3}
+                  placeholder="e.g. Specialise in dabu resist printing on Mulmul and Chanderi. Work with vegetable and mineral dyes." />
+              </Field>
+
+              <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer', padding: '12px 14px', borderRadius: 'var(--radius)', border: `1px solid ${editDraft.is_primary ? 'rgba(200,165,90,0.5)' : 'var(--border2)'}`, background: editDraft.is_primary ? 'rgba(200,165,90,0.15)' : 'var(--surface2)' }}>
+                <input type="checkbox" checked={editDraft.is_primary} onChange={e => setEditDraft(d => ({ ...d, is_primary: e.target.checked }))}
+                  style={{ accentColor: 'var(--gold)', width: 15, height: 15, marginTop: 2 }} />
+                <div>
+                  <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 14 }}>Primary Craft</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Primary crafts are ones you are expert in and mostly work with.</div>
+                </div>
+              </label>
+
+              <RadioGroup
+                label="Innovation Level"
+                hint="How would you describe your approach to this craft?"
+                options={INNOV_OPTS}
+                value={editDraft.innovation_level}
+                onChange={v => setEditDraft(d => ({ ...d, innovation_level: v }))}
+              />
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <Field label="Sampling Time (weeks)" hint="How long to deliver 1 sample from brief to door?">
+                  <input type="number" step="0.5" min="0" value={editDraft.sampling_time_weeks}
+                    onChange={e => setEditDraft(d => ({ ...d, sampling_time_weeks: e.target.value }))} placeholder="e.g. 2" />
+                </Field>
+                <Field label="Production: 50 units (months)" hint="How many months to produce 50 finished units?">
+                  <input type="number" step="0.5" min="0" value={editDraft.production_timeline_months_50units}
+                    onChange={e => setEditDraft(d => ({ ...d, production_timeline_months_50units: e.target.value }))} placeholder="e.g. 1.5" />
+                </Field>
+              </div>
+
+              <RadioGroup
+                label="Delay Likelihood"
+                hint="How likely are delays in this craft's production?"
+                options={DELAY_OPTS}
+                value={editDraft.delay_likelihood}
+                onChange={v => setEditDraft(d => ({ ...d, delay_likelihood: v }))}
+              />
+
+              <Field label="Common Delay Reasons" hint="What typically causes delays? Leave blank if delays are rare.">
+                <input value={editDraft.delay_common_reasons}
+                  onChange={e => setEditDraft(d => ({ ...d, delay_common_reasons: e.target.value }))}
+                  placeholder="e.g. Monsoon season affects drying time, artisan availability" />
+              </Field>
+
+              <Field label="Well Known Limitations" hint="Design elements or materials that don't work well with this craft?">
+                <textarea value={editDraft.fabric_limitations} onChange={e => setEditDraft(d => ({ ...d, fabric_limitations: e.target.value }))} rows={3}
+                  placeholder="e.g. Does not adhere well on synthetic blends or polyester." />
+              </Field>
+
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+                  Replace Craft Image (optional)
+                </div>
+                {c.file_name && !editDraft.image && (
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8 }}>Current: {c.file_name}</div>
+                )}
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setEditDraft(d => ({ ...d, image: e.target.files[0] }))} style={{ display: 'none' }} />
+                  <span className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
+                    {editDraft.image ? editDraft.image.name : '+ Upload new image'}
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+              <button className="btn btn-primary" onClick={() => saveEditCraft(c.id)} disabled={saving}>
+                {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save Changes'}
+              </button>
+              <button className="btn btn-ghost" onClick={() => { setEditingCraft(null); setEditDraft(null); }}>Cancel</button>
+            </div>
           </div>
-        </div>
+        ) : (
+          /* ── Read view ── */
+          <div key={c.id} className="card fade-up" style={{ marginBottom: 14, borderLeft: `3px solid ${c.is_primary ? 'var(--gold)' : 'var(--border2)'}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontWeight: 700, fontSize: 17, color: 'var(--text)' }}>{c.craft_name}</span>
+                  {c.is_primary && <span className="badge badge-gold">Primary</span>}
+                </div>
+                {c.specialization && <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 10, lineHeight: 1.6 }}>{c.specialization}</p>}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: 12 }}>
+                  {c.innovation_level && <span style={{ color: innovColor[c.innovation_level] }}>◆ {c.innovation_level} innovation</span>}
+                  {c.sampling_time_weeks && <span style={{ color: 'var(--text3)' }}>{c.sampling_time_weeks} wk sampling</span>}
+                  {c.production_timeline_months_50units && <span style={{ color: 'var(--text3)' }}>{c.production_timeline_months_50units} mo for 50 units</span>}
+                  {c.delay_likelihood && <span style={{ color: delayColor[c.delay_likelihood] }}>{c.delay_likelihood} delay risk</span>}
+                </div>
+                {c.limitations && <p style={{ fontSize: 12, color: 'var(--text4)', marginTop: 4 }}>Technique limits: {c.limitations}</p>}
+                {c.fabric_limitations && <p style={{ fontSize: 12, color: 'var(--text4)', marginTop: 2 }}>Fabric limits: {c.fabric_limitations}</p>}
+                {c.file_name && <p style={{ fontSize: 11, color: 'var(--teal)', marginTop: 6 }}>{c.file_name}</p>}
+                {c.is_flagged && !c.flag_resolved && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 8 }}>Admin flagged: {c.flag_reason}</div>}
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexShrink: 0, marginLeft: 16 }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => startEditCraft(c)}>Edit</button>
+                <button className="btn btn-danger btn-sm" onClick={() => delCraft(c.id)}>Remove</button>
+              </div>
+            </div>
+          </div>
+        )
       ))}
 
       {/* Add form */}
@@ -248,7 +388,7 @@ export default function SectionC({ profileId, onSave }) {
 
       {crafts.length > 0 && !adding && (
         <button className="btn btn-primary btn-lg" onClick={submit} disabled={submitting}>
-          {submitting ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Submitting…</> : 'Save Section C'}
+          {submitting ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Submitting…</> : 'Submit Section C'}
         </button>
       )}
     </div>

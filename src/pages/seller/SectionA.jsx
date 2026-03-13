@@ -53,7 +53,7 @@ export default function SectionA({ profileId, onSave }) {
 
   const [form, setForm] = useState({
     studio_name: '', location_city: '', location_state: '',
-    years_in_operation: '', website_url: '', instagram_url: '', poc_working_style: ''
+    years_in_operation: '', website_url: '', instagram_url: '', poc_working_style: '',
   });
   const [flags, setFlags] = useState({});
   const [contacts, setContacts]     = useState([]);
@@ -62,6 +62,7 @@ export default function SectionA({ profileId, onSave }) {
   const [workMedia, setWorkMedia]   = useState([]);
   const [newContact, setNewContact] = useState({ name: '', role: '', email: '', phone: '' });
   const [addingC, setAddingC]       = useState(false);
+  const [editingContact, setEditingContact] = useState(null); // { id, name, role, email, phone }
   const [saving, setSaving]         = useState(false);
   const [uploading, setUploading]   = useState('');
 
@@ -126,6 +127,21 @@ export default function SectionA({ profileId, onSave }) {
   const delContact = async id => {
     try { await API.delContact(profileId, id); setContacts(c => c.filter(x => x.id !== id)); }
     catch { error('Failed'); }
+  };
+
+  const saveEditContact = async () => {
+    if (!editingContact.name || !editingContact.role) { error('Name and role required'); return; }
+    try {
+      const r = await API.patchContact(profileId, editingContact.id, {
+        name: editingContact.name,
+        role: editingContact.role,
+        email: editingContact.email,
+        phone: editingContact.phone,
+      });
+      setContacts(c => c.map(x => x.id === editingContact.id ? r.data : x));
+      setEditingContact(null);
+      success('Contact updated');
+    } catch { error('Failed to update contact'); }
   };
 
   const uploadMedia = async (e, mediaType) => {
@@ -209,21 +225,47 @@ export default function SectionA({ profileId, onSave }) {
           Who should we contact at your studio? Add the key people (owner, designer, production manager, etc.)
         </p>
         {contacts.map(c => (
-          <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--radius)', marginBottom: 8, border: '1px solid var(--border)' }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{c.name}</div>
-              <div style={{ fontSize: 13, color: 'var(--gold)', marginTop: 2 }}>{c.role}</div>
-              <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>
-                {c.email && <span>{c.email}</span>}
-                {c.email && c.phone && <span> · </span>}
-                {c.phone && <span>{c.phone}</span>}
+          editingContact?.id === c.id ? (
+            /* ── Inline edit form ── */
+            <div key={c.id} style={{ padding: 16, border: '1px solid rgba(200,165,90,0.35)', borderRadius: 'var(--radius)', marginBottom: 8, background: 'var(--gold-dim)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Editing contact</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <Field label="Name *"><input value={editingContact.name} onChange={e => setEditingContact(x => ({ ...x, name: e.target.value }))} placeholder="e.g. Priya Sharma" /></Field>
+                <Field label="Role *"><input value={editingContact.role} onChange={e => setEditingContact(x => ({ ...x, role: e.target.value }))} placeholder="e.g. Studio Owner" /></Field>
+                <Field label="Email"><input type="email" value={editingContact.email || ''} onChange={e => setEditingContact(x => ({ ...x, email: e.target.value }))} placeholder="priya@studio.com" /></Field>
+                <Field label="Phone"><input value={editingContact.phone || ''} onChange={e => setEditingContact(x => ({ ...x, phone: e.target.value }))} placeholder="+91 98765 43210" /></Field>
               </div>
-              {c.is_flagged && !c.flag_resolved && (
-                <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>{c.flag_reason}</div>
-              )}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-teal btn-sm" onClick={saveEditContact}>Save Changes</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setEditingContact(null)}>Cancel</button>
+              </div>
             </div>
-            <button className="btn btn-danger btn-sm" onClick={() => delContact(c.id)}>Remove</button>
-          </div>
+          ) : (
+            /* ── Read view ── */
+            <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--radius)', marginBottom: 8, border: '1px solid var(--border)' }}>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{c.name}</div>
+                <div style={{ fontSize: 13, color: 'var(--gold)', marginTop: 2 }}>{c.role}</div>
+                <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>
+                  {c.email && <span>{c.email}</span>}
+                  {c.email && c.phone && <span> · </span>}
+                  {c.phone && <span>{c.phone}</span>}
+                </div>
+                {c.is_flagged && !c.flag_resolved && (
+                  <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>{c.flag_reason}</div>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexShrink: 0, marginLeft: 12 }}>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setEditingContact({ id: c.id, name: c.name, role: c.role, email: c.email || '', phone: c.phone || '' })}
+                >
+                  Edit
+                </button>
+                <button className="btn btn-danger btn-sm" onClick={() => delContact(c.id)}>Remove</button>
+              </div>
+            </div>
+          )
         ))}
         {addingC ? (
           <div style={{ padding: 16, border: '1px solid var(--border2)', borderRadius: 'var(--radius)', marginTop: 8, background: 'var(--surface2)' }}>
