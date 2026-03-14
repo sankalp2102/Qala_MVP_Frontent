@@ -14,7 +14,7 @@ api.interceptors.response.use(r => r, async err => {
     err.config._retry = true;
     try {
       const res = await axios.post(`${BASE}/auth/session/refresh`, {}, {
-        headers: { 'rid': 'session' },
+        headers: { 'rid': 'session', 'st-auth-mode': 'cookie' },
         withCredentials: true,
       });
       const t = res.headers['st-access-token'];
@@ -37,10 +37,10 @@ api.interceptors.response.use(r => r, async err => {
 export const authAPI = {
   signin:  (email, password) => axios.post(`${BASE}/auth/signin`,
     { formFields: [{ id:'email', value:email }, { id:'password', value:password }] },
-    { headers: { 'Content-Type':'application/json', rid:'emailpassword' }, withCredentials: true }),
+    { headers: { 'Content-Type':'application/json', 'rid':'emailpassword', 'st-auth-mode':'cookie' }, withCredentials: true }),
   signup:  (email, password) => axios.post(`${BASE}/auth/signup`,
     { formFields: [{ id:'email', value:email }, { id:'password', value:password }] },
-    { headers: { 'Content-Type':'application/json', rid:'emailpassword' }, withCredentials: true }),
+    { headers: { 'Content-Type':'application/json', 'rid':'emailpassword', 'st-auth-mode':'cookie' }, withCredentials: true }),
   signout: () => api.post('/auth/signout'),
   me:      () => api.get('/api/me/'),
 };
