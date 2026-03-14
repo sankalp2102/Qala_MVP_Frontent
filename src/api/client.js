@@ -10,33 +10,25 @@ api.interceptors.request.use(cfg => {
 });
 
 api.interceptors.response.use(r => r, async err => {
-  if (err.response?.status === 401) {
-    const refresh = localStorage.getItem('qala_refresh');
-    if (refresh) {
-      try {
-        const res = await axios.post(`${BASE}/auth/session/refresh`, {}, {
-          headers: { 'st-refresh-token': refresh, 'rid': 'session' },
-          withCredentials: true,
-        });
-        const t = res.headers['st-access-token'];
-        const r = res.headers['st-refresh-token'];
-        if (t) {
-          localStorage.setItem('qala_token', t);
-          if (r) localStorage.setItem('qala_refresh', r);
-          err.config.headers.authorization = `Bearer ${t}`;
-          return api.request(err.config);
-        }
-      } catch {
-        // Refresh failed - session is dead, force re-login
-        localStorage.removeItem('qala_token');
-        localStorage.removeItem('qala_refresh');
-        window.location.href = '/login?reason=session_expired';
-        return Promise.reject(err);
+  if (err.response?.status === 401 && !err.config._retry) {
+    err.config._retry = true;
+    try {
+      const res = await axios.post(`${BASE}/auth/session/refresh`, {}, {
+        headers: { 'rid': 'session' },
+        withCredentials: true,
+      });
+      const t = res.headers['st-access-token'];
+      if (t) {
+        localStorage.setItem('qala_token', t);
+        err.config.headers.authorization = `Bearer ${t}`;
+        return api.request(err.config);
       }
-    } else {
-      // No refresh token at all - force re-login
+    } catch {
+      // Refresh failed - session truly expired
       localStorage.removeItem('qala_token');
+      localStorage.removeItem('qala_refresh');
       window.location.href = '/login?reason=session_expired';
+      return Promise.reject(err);
     }
   }
   return Promise.reject(err);

@@ -18,10 +18,8 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     const r = await authAPI.signin(email, password);
     if (r.data.status !== 'OK') throw new Error(r.data.formFields?.[0]?.error || 'Login failed');
-    const token   = r.headers['st-access-token'];
-    const refresh = r.headers['st-refresh-token'];
-    if (token)   localStorage.setItem('qala_token', token);
-    if (refresh) localStorage.setItem('qala_refresh', refresh);
+    const token = r.headers['st-access-token'];
+    if (token) localStorage.setItem('qala_token', token);
     const me = await authAPI.me();
     setUser(me.data);
     return me.data;
