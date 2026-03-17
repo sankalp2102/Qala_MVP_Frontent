@@ -5,7 +5,7 @@ import { Toast } from '../../components/Toast';
 
 const emptyDraft = () => ({
   craft_name: '', specialization: '', is_primary: true,
-  innovation_level: 'medium', limitations: '', fabric_limitations: '',
+  innovation_level: 'medium', limitations: '',
   sampling_time_weeks: '', production_timeline_months_50units: '',
   delay_likelihood: 'low', delay_common_reasons: '',
   image: null,
@@ -56,14 +56,17 @@ export default function SectionC({ profileId, onSave }) {
       fd.append('craft_name', draft.craft_name);
       fd.append('is_primary', draft.is_primary);
       fd.append('order', crafts.length + 1);
-      if (draft.specialization) fd.append('specialization', draft.specialization);
-      if (draft.innovation_level) fd.append('innovation_level', draft.innovation_level);
-      if (draft.limitations) fd.append('limitations', draft.limitations);
-      if (draft.fabric_limitations) fd.append('fabric_limitations', draft.fabric_limitations);
-      if (draft.sampling_time_weeks) fd.append('sampling_time_weeks', draft.sampling_time_weeks);
-      if (draft.production_timeline_months_50units) fd.append('production_timeline_months_50units', draft.production_timeline_months_50units);
-      if (draft.delay_likelihood) fd.append('delay_likelihood', draft.delay_likelihood);
-      if (draft.delay_common_reasons) fd.append('delay_common_reasons', draft.delay_common_reasons);
+      
+      // Always send these fields (even if empty string)
+      fd.append('specialization', draft.specialization || '');
+      fd.append('innovation_level', draft.innovation_level || 'medium');
+      fd.append('limitations', draft.limitations || '');
+      fd.append('sampling_time_weeks', draft.sampling_time_weeks || '');
+      fd.append('production_timeline_months_50units', draft.production_timeline_months_50units || '');
+      fd.append('delay_likelihood', draft.delay_likelihood || 'low');
+      fd.append('delay_common_reasons', draft.delay_common_reasons || '');
+      
+      // Only send image if one is selected
       if (draft.image) fd.append('image', draft.image);
 
       const r = await onboardingAPI.addCraft(profileId, fd);
@@ -89,7 +92,6 @@ export default function SectionC({ profileId, onSave }) {
       is_primary: c.is_primary ?? true,
       innovation_level: c.innovation_level || 'medium',
       limitations: c.limitations || '',
-      fabric_limitations: c.fabric_limitations || '',
       sampling_time_weeks: c.sampling_time_weeks || '',
       production_timeline_months_50units: c.production_timeline_months_50units || '',
       delay_likelihood: c.delay_likelihood || 'low',
@@ -106,14 +108,17 @@ export default function SectionC({ profileId, onSave }) {
       const fd = new FormData();
       fd.append('craft_name', editDraft.craft_name);
       fd.append('is_primary', editDraft.is_primary);
-      if (editDraft.specialization) fd.append('specialization', editDraft.specialization);
-      if (editDraft.innovation_level) fd.append('innovation_level', editDraft.innovation_level);
-      if (editDraft.limitations) fd.append('limitations', editDraft.limitations);
-      if (editDraft.fabric_limitations) fd.append('fabric_limitations', editDraft.fabric_limitations);
-      if (editDraft.sampling_time_weeks) fd.append('sampling_time_weeks', editDraft.sampling_time_weeks);
-      if (editDraft.production_timeline_months_50units) fd.append('production_timeline_months_50units', editDraft.production_timeline_months_50units);
-      if (editDraft.delay_likelihood) fd.append('delay_likelihood', editDraft.delay_likelihood);
-      if (editDraft.delay_common_reasons) fd.append('delay_common_reasons', editDraft.delay_common_reasons);
+      
+      // Text fields - always send (even if empty)
+      fd.append('specialization', editDraft.specialization || '');
+      fd.append('innovation_level', editDraft.innovation_level || 'medium');
+      fd.append('limitations', editDraft.limitations || '');
+      fd.append('sampling_time_weeks', editDraft.sampling_time_weeks || '');
+      fd.append('production_timeline_months_50units', editDraft.production_timeline_months_50units || '');
+      fd.append('delay_likelihood', editDraft.delay_likelihood || 'low');
+      fd.append('delay_common_reasons', editDraft.delay_common_reasons || '');
+      
+      // Only send image if a new one is selected
       if (editDraft.image) fd.append('image', editDraft.image);
 
       const r = await onboardingAPI.patchCraft(profileId, craftId, fd);
@@ -122,6 +127,7 @@ export default function SectionC({ profileId, onSave }) {
       setEditDraft(null);
       success('Craft updated!');
     } catch (e) {
+      console.error('Save craft error:', e.response?.data);
       error(e.response?.data ? JSON.stringify(e.response.data) : 'Failed to save craft');
     } finally { setSaving(false); }
   };
@@ -231,7 +237,7 @@ export default function SectionC({ profileId, onSave }) {
               </Field>
 
               <Field label="Well Known Limitations" hint="Design elements or materials that don't work well with this craft?">
-                <textarea value={editDraft.fabric_limitations} onChange={e => setEditDraft(d => ({ ...d, fabric_limitations: e.target.value }))} rows={3}
+                <textarea value={editDraft.limitations} onChange={e => setEditDraft(d => ({ ...d, limitations: e.target.value }))} rows={3}
                   placeholder="e.g. Does not adhere well on synthetic blends or polyester." />
               </Field>
 
@@ -274,8 +280,7 @@ export default function SectionC({ profileId, onSave }) {
                   {c.production_timeline_months_50units && <span style={{ color: 'var(--text3)' }}>{c.production_timeline_months_50units} mo for 50 units</span>}
                   {c.delay_likelihood && <span style={{ color: delayColor[c.delay_likelihood] }}>{c.delay_likelihood} delay risk</span>}
                 </div>
-                {c.limitations && <p style={{ fontSize: 12, color: 'var(--text4)', marginTop: 4 }}>Technique limits: {c.limitations}</p>}
-                {c.fabric_limitations && <p style={{ fontSize: 12, color: 'var(--text4)', marginTop: 2 }}>Fabric limits: {c.fabric_limitations}</p>}
+                {c.limitations && <p style={{ fontSize: 12, color: 'var(--text4)', marginTop: 4 }}>Limitations: {c.limitations}</p>}
                 {c.file_name && <p style={{ fontSize: 11, color: 'var(--teal)', marginTop: 6 }}>{c.file_name}</p>}
                 {c.is_flagged && !c.flag_resolved && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 8 }}>Admin flagged: {c.flag_reason}</div>}
               </div>
@@ -355,7 +360,7 @@ export default function SectionC({ profileId, onSave }) {
             {/* Limitations — 2 columns */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <Field label="C.1 — Well Known Limitations" hint="Are there specific design elements, materials, or techniques that don't work well with this craft?">
-                <textarea value={draft.fabric_limitations} onChange={e => setDraft(d => ({ ...d, fabric_limitations: e.target.value }))} rows={3}
+                <textarea value={draft.limitations} onChange={e => setDraft(d => ({ ...d, limitations: e.target.value }))} rows={3}
                   placeholder="e.g. Does not adhere well on synthetic blends or polyester. Colour fastness issues on georgette. Not recommended for stretch fabrics." />
               </Field>
             </div>
