@@ -256,7 +256,7 @@ export default function SectionB({ profileId, onSave }) {
           <p style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 12 }}>Add any fabrics you work with that aren't in the list above. Each one will appear as a selected fabric with a description field.</p>
 
           {/* Existing custom fabrics */}
-          {Object.entries(fabrics).filter(([name, entry]) => entry.works_with && entry.category === 'other_custom').map(([f, entry]) => {
+          {Object.entries(fabrics).filter(([name, entry]) => entry.works_with && entry.category === 'other').map(([f, entry]) => {
             const isPrimary = entry.is_primary === true;
             const isSecondary = entry.is_primary === false;
             return (
@@ -264,8 +264,8 @@ export default function SectionB({ profileId, onSave }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                   <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{f}</span>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <button onClick={() => setFabricPrimary(f, 'other_custom', isPrimary ? null : true)} style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-body)', border: `1px solid ${isPrimary ? 'rgba(255,255,255,0.3)' : 'var(--border2)'}`, background: isPrimary ? 'var(--gold-dim)' : 'transparent', color: isPrimary ? 'var(--gold)' : 'var(--text4)', fontWeight: isPrimary ? 600 : 400 }}>Primary</button>
-                    <button onClick={() => setFabricPrimary(f, 'other_custom', isSecondary ? null : false)} style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-body)', border: `1px solid ${isSecondary ? 'var(--border3)' : 'var(--border2)'}`, background: isSecondary ? 'var(--surface4)' : 'transparent', color: isSecondary ? 'var(--text2)' : 'var(--text4)', fontWeight: isSecondary ? 600 : 400 }}>Secondary</button>
+                    <button onClick={() => setFabricPrimary(f, 'other', isPrimary ? null : true)} style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-body)', border: `1px solid ${isPrimary ? 'rgba(255,255,255,0.3)' : 'var(--border2)'}`, background: isPrimary ? 'var(--gold-dim)' : 'transparent', color: isPrimary ? 'var(--gold)' : 'var(--text4)', fontWeight: isPrimary ? 600 : 400 }}>Primary</button>
+                    <button onClick={() => setFabricPrimary(f, 'other', isSecondary ? null : false)} style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-body)', border: `1px solid ${isSecondary ? 'var(--border3)' : 'var(--border2)'}`, background: isSecondary ? 'var(--surface4)' : 'transparent', color: isSecondary ? 'var(--text2)' : 'var(--text4)', fontWeight: isSecondary ? 600 : 400 }}>Secondary</button>
                     <button onClick={() => setFabrics(fbs => { const n = { ...fbs }; delete n[f]; return n; })} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 15, padding: '2px 4px' }}>×</button>
                   </div>
                 </div>
@@ -288,7 +288,7 @@ export default function SectionB({ profileId, onSave }) {
                   const val = e.target.value.trim();
                   if (!val) return;
                   if (fabrics[val]) { e.target.value = ''; return; }
-                  setFabrics(fbs => ({ ...fbs, [val]: { category: 'other_custom', fabric_name: val, works_with: true, is_primary: null, innovation_note: '' } }));
+                  setFabrics(fbs => ({ ...fbs, [val]: { category: 'other', fabric_name: val, works_with: true, is_primary: null, innovation_note: '' } }));
                   e.target.value = '';
                 }
               }}
@@ -298,7 +298,7 @@ export default function SectionB({ profileId, onSave }) {
               const val = inp?.value?.trim();
               if (!val) return;
               if (fabrics[val]) { inp.value = ''; return; }
-              setFabrics(fbs => ({ ...fbs, [val]: { category: 'other_custom', fabric_name: val, works_with: true, is_primary: null, innovation_note: '' } }));
+              setFabrics(fbs => ({ ...fbs, [val]: { category: 'other', fabric_name: val, works_with: true, is_primary: null, innovation_note: '' } }));
               inp.value = '';
             }}>+ Add</button>
           </div>
