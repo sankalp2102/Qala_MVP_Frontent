@@ -31,19 +31,61 @@ const PRODUCT_LIST = [
 // ── Fabric list matching FabricAnswer model categories ──
 const FABRIC_CATEGORIES = [
   { cat: 'cotton', label: 'Cotton Based', fabrics: [
-    'Mulmul','Cambric','Poplin','Voile','Lawn','Dobby Cotton','Jacquard Cotton','Slub Cotton','Khadi Cotton',
+    'General Cotton',
+    'Organic cotton',
+    'Kala cotton',
+    'Cotton mulmul / muslin',
+    'Cotton poplin',
+    'Cotton cambric',
+    'Cotton voile',
+    'Cotton satin',
+    'Cotton-silk blend',
+    'Cotton-linen blend',
+    'Other cotton blends',
+    'Other cotton fabric',
   ]},
   { cat: 'silk', label: 'Silk Based', fabrics: [
-    'Chanderi Silk','Banarasi Silk','Dupion Silk','Georgette Silk','Crepe Silk','Raw Silk / Kosa Silk','Tussar Silk','Matka Silk',
+    'General Silk',
+    'Mulberry silk',
+    'Tussar silk',
+    'Eri silk',
+    'Muga silk',
+    'Silk crepe',
+    'Silk georgette',
+    'Silk chiffon',
+    'Silk satin',
+    'Silk blends',
+    'Other silk fabric',
   ]},
   { cat: 'linen', label: 'Linen & Bast', fabrics: [
-    'Pure Linen','Linen-Cotton Blend','Linen-Silk Blend','Hemp','Ramie',
+    'Linen',
+    'Linen blends',
+    'Hemp',
+    'Hemp blends',
+    'Other bast fiber fabric',
   ]},
   { cat: 'wool', label: 'Wool Based', fabrics: [
-    'Merino Wool','Pashmina','Shahtoosh-style Wool','Tweed','Woollen Dobby',
+    'General Wool',
+    'Pashmina',
+    'Other Fine wool',
+    'Wool blends',
+    'Other wool fabric',
   ]},
-  { cat: 'other', label: 'Others / Man-made', fabrics: [
-    'Bamboo Jersey','Modal','Tencel / Lyocell','Viscose / Rayon','Polyester','Recycled Polyester','Nylon','Organza','Net / Tulle',
+  { cat: 'regenerated', label: 'Regenerated / Cellulosic', fabrics: [
+    'Viscose',
+    'Rayon',
+    'Modal',
+    'Lyocell / Tencel',
+    'Other regenerated cellulosic fabric',
+  ]},
+  { cat: 'handcrafted', label: 'Handcrafted / Heritage', fabrics: [
+    'Handloom cotton',
+    'Handloom silk',
+    'Handwoven Wool',
+    'Other handloom fabric',
+  ]},
+  { cat: 'other', label: 'Other', fabrics: [
+    'Other fabric',
   ]},
 ];
 
