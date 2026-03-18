@@ -153,13 +153,22 @@ export default function SectionB({ profileId, onSave }) {
       fd.append('brand_name', newBrand.brand_name);
       if (newBrand.scope) fd.append('scope', newBrand.scope);
       if (brandImg) fd.append('image', brandImg);
-      fd.append('order', brands.length + 1);
+      
+      // Calculate order from current state length synchronously
+      const currentOrder = brands.length + 1;
+      fd.append('order', currentOrder);
+      
       const r = await onboardingAPI.addBrand(profileId, fd);
-      setBrands(b => [...b, r.data]);
+      
+      // Update state and ensure we add to the list
+      setBrands(prevBrands => [...prevBrands, r.data]);
       setNewBrand({ brand_name: '', scope: '' });
       setBrandImg(null);
       success('Brand added');
-    } catch { error('Failed to add brand'); }
+    } catch (err) { 
+      console.error('Failed to add brand:', err);
+      error('Failed to add brand'); 
+    }
   };
 
   const delBrand = async id => {
@@ -170,11 +179,22 @@ export default function SectionB({ profileId, onSave }) {
   const addAward = async () => {
     if (!newAward.award_name) { error('Award name required'); return; }
     try {
-      const r = await onboardingAPI.addAward(profileId, { ...newAward, order: awards.length + 1 });
-      setAwards(a => [...a, r.data]);
+      // Calculate order from current state length synchronously
+      const currentOrder = awards.length + 1;
+      
+      const r = await onboardingAPI.addAward(profileId, { 
+        ...newAward, 
+        order: currentOrder 
+      });
+      
+      // Update state and ensure we add to the list
+      setAwards(prevAwards => [...prevAwards, r.data]);
       setNewAward({ award_name: '', link: '' });
       success('Award added');
-    } catch { error('Failed to add award'); }
+    } catch (err) { 
+      console.error('Failed to add award:', err);
+      error('Failed to add award'); 
+    }
   };
 
   return (
@@ -381,7 +401,7 @@ export default function SectionB({ profileId, onSave }) {
               <span className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>{brandImg ? brandImg.name : '+ Attach Image'}</span>
             </label>
           </div>
-          <button className="btn btn-outline btn-sm" onClick={addBrand}>+ Add Brand</button>
+          <button className="btn btn-outline btn-sm" onClick={addBrand}>Save Brand</button>
         </div>
       </CardSection>
 
@@ -410,7 +430,7 @@ export default function SectionB({ profileId, onSave }) {
               <input type="url" value={newAward.link} onChange={e => setNewAward(a => ({ ...a, link: e.target.value }))} placeholder="https://..." />
             </div>
           </div>
-          <button className="btn btn-outline btn-sm" onClick={addAward}>+ Add Award / Mention</button>
+          <button className="btn btn-outline btn-sm" onClick={addAward}>Save Award / Mention</button>
         </div>
       </CardSection>
 

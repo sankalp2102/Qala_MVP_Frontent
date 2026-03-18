@@ -89,13 +89,13 @@ export default function Landing() {
     logo: {
       display: 'flex', alignItems: 'center', gap: 10,
       fontFamily: 'var(--font-display)', fontSize: 22,
-      fontWeight: 700, color: 'var(--text)', letterSpacing: '0.1em',
+      fontWeight: 400, color: 'var(--text)', letterSpacing: '0.1em',
     },
     logoMark: {
       width: 32, height: 32, borderRadius: 8,
       border: '1px solid var(--border)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: 16, fontFamily: 'var(--font-display)', fontWeight: 700,
+      fontSize: 16, fontFamily: 'var(--font-display)', fontWeight: 400,
     },
     loginLink: {
       fontSize: 12, color: 'var(--text3)', letterSpacing: '0.08em',
@@ -117,7 +117,7 @@ export default function Landing() {
     },
     headline: {
       fontFamily: 'var(--font-display)', fontSize: 'clamp(38px, 5.5vw, 80px)',
-      fontWeight: 700, color: 'var(--text)', lineHeight: 1.08,
+      fontWeight: 400, color: 'var(--text)', lineHeight: 1.08,
       textAlign: 'center', maxWidth: 820, marginBottom: 20,
       letterSpacing: '-0.01em',
     },
@@ -130,8 +130,8 @@ export default function Landing() {
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
     },
     cta: {
-      padding: '16px 48px', background: '#C46E49', color: '#FFFFFF',
-      border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 700,
+      padding: '16px 48px', background: '#1A1612', color: '#F5F0E8',
+      border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 500,
       letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer',
       transition: 'transform 0.2s, box-shadow 0.2s, background 0.2s',
       fontFamily: 'var(--font-body)',
@@ -152,16 +152,16 @@ export default function Landing() {
       background: 'rgba(255,255,255,0.5)',
     },
     stepNum: {
-      fontFamily: 'var(--font-display)', fontSize: 48, fontWeight: 700,
+      fontFamily: 'var(--font-display)', fontSize: 48, fontWeight: 400,
       color: 'rgba(196,110,73,0.12)', lineHeight: 1, marginBottom: 16,
       letterSpacing: '-0.02em',
     },
     stepLabel: {
-      fontSize: 10, fontWeight: 600, color: 'var(--text3)',
+      fontSize: 10, fontWeight: 400, color: 'var(--text3)',
       letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12,
     },
     stepTitle: {
-      fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 600,
+      fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 400,
       color: 'var(--text)', marginBottom: 10, letterSpacing: '-0.01em',
     },
     stepDesc: {
@@ -191,7 +191,7 @@ export default function Landing() {
       <style>{`
         @keyframes pulse { 0%,100%{opacity:0.6} 50%{opacity:1} }
         @keyframes floatY { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
-        .cta-btn:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 40px rgba(196,110,73,0.3) !important; background: #A85A38 !important; }
+        .cta-btn:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 40px rgba(196,110,73,0.3) !important; background: #C46E49 !important; }
         .cta-btn:active { transform: translateY(0) !important; }
         .resume-chip:hover { border-color: var(--border2) !important; background: rgba(255,255,255,0.9) !important; }
         .login-link:hover { color: var(--text) !important; border-color: var(--border2) !important; }
