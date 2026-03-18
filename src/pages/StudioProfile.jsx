@@ -337,17 +337,6 @@ function CraftCarousel({ crafts }) {
           ) : (
             <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, opacity: 0.15 }}>🧵</div>
           )}
-          {/* Primary badge */}
-          {c.is_primary && (
-            <div style={{
-              position: 'absolute', top: 12, left: 12,
-              background: 'rgba(26,22,18,0.7)', backdropFilter: 'blur(6px)',
-              color: 'var(--gold)', fontSize: 10, fontWeight: 600,
-              letterSpacing: '0.1em', textTransform: 'uppercase',
-              padding: '4px 10px', borderRadius: 20,
-              border: '1px solid rgba(196,110,73,0.3)',
-            }}>Primary Craft</div>
-          )}
         </div>
 
         {/* Details */}
@@ -462,9 +451,6 @@ function CraftCarousel({ crafts }) {
                 color: active === i ? 'var(--gold)' : 'var(--text2)',
                 lineHeight: 1.4,
               }}>{craft.craft_name}</div>
-              {craft.is_primary && (
-                <div style={{ fontSize: 10, color: active === i ? 'var(--gold)' : 'var(--text4)', marginTop: 2 }}>Primary</div>
-              )}
             </button>
           ))}
         </div>
@@ -530,7 +516,7 @@ export default function StudioProfile() {
       <div style={{ height: 64, background: 'var(--surface)', borderBottom: '1px solid var(--border)' }} />
       {/* Hero placeholder */}
       <div style={{ height: 480, background: 'var(--surface2)' }} />
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '48px 32px', display: 'grid', gridTemplateColumns: '1fr 340px', gap: 48 }}>
+      <div className="studio-layout" style={{ maxWidth: 1100, margin: '0 auto', padding: '48px 24px', display: 'grid', gridTemplateColumns: '1fr 320px', gap: 40 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <Skeleton h={44} w="60%" r={8} />
           <Skeleton h={20} w="40%" />
@@ -568,6 +554,10 @@ export default function StudioProfile() {
         .profile-fade-3 { animation-delay: 0.2s; }
         .profile-fade-4 { animation-delay: 0.28s; }
         @keyframes lbIn{from{opacity:0}to{opacity:1}}
+        @media (max-width: 900px) {
+          .studio-layout { grid-template-columns: 1fr !important; }
+          .studio-sidebar { position: static !important; }
+        }
       `}</style>
 
       {/* ── Sticky top bar ── */}
@@ -624,34 +614,28 @@ export default function StudioProfile() {
           }}>
             {s.studio_name}
           </h1>
-          {s.years_in_operation && (
-            <div className="profile-fade profile-fade-3" style={{ marginTop: 10, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
-              Est. {Math.round(new Date().getFullYear() - parseFloat(s.years_in_operation))} · {s.years_in_operation} years in operation
-            </div>
+          {s.short_description && (
+            <p className="profile-fade profile-fade-3" style={{
+              marginTop: 12, fontSize: 14, color: 'rgba(255,255,255,0.7)',
+              lineHeight: 1.6, maxWidth: 560,
+            }}>
+              {s.short_description}
+            </p>
           )}
         </div>
       </div>
 
       {/* ── Main layout ── */}
-      <div style={{ maxWidth: 1140, margin: '0 auto', padding: '48px 32px', display: 'grid', gridTemplateColumns: '1fr 340px', gap: 56, alignItems: 'start' }}>
+      <div className="studio-layout" style={{ maxWidth: 1100, margin: '0 auto', padding: '48px 24px', display: 'grid', gridTemplateColumns: '1fr 320px', gap: 40, alignItems: 'start' }}>
 
         {/* ── LEFT COLUMN ── */}
-        <div>
+        <div style={{ minWidth: 0 }}>
 
           {/* Work portfolio gallery */}
           {hasWork && (
             <div className="profile-fade profile-fade-2" style={{ marginBottom: 44 }}>
               <Section title="Portfolio">
                 <Gallery images={s.work_images} />
-                {s.work_images.length > 5 && (
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setBtsOpen(true)}
-                    style={{ marginTop: 12, fontSize: 12 }}
-                  >
-                    View all {s.work_images.length} photos →
-                  </button>
-                )}
               </Section>
             </div>
           )}
@@ -767,7 +751,7 @@ export default function StudioProfile() {
           {/* BTS images */}
           {hasBts && (
             <div className="profile-fade" style={{ marginBottom: 44 }}>
-              <Section title="Behind the Scenes">
+              <Section title="Inside Our Studio">
                 <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8 }}>
                   {s.bts_images.slice(0, 8).map((img, i) => (
                     <img key={i} src={img.url} alt=""
@@ -796,7 +780,7 @@ export default function StudioProfile() {
         </div>
 
         {/* ── RIGHT COLUMN — Sticky sidebar ── */}
-        <div style={{ position: 'sticky', top: 80, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div className="studio-sidebar" style={{ position: 'sticky', top: 80, display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
 
           {/* Contact card */}
           <div style={{
@@ -889,12 +873,6 @@ export default function StudioProfile() {
                   </span>
                 </div>
               )}
-              {s.crafts?.length > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, color: 'var(--text4)' }}>Crafts</span>
-                  <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500 }}>{s.crafts.length}</span>
-                </div>
-              )}
             </div>
 
             {/* MOQ entries */}
@@ -910,24 +888,6 @@ export default function StudioProfile() {
               </div>
             )}
           </div>
-
-          {/* Online presence */}
-          {(s.website_url || s.instagram_url) && (
-            <div style={{ display: 'flex', gap: 10 }}>
-              {s.website_url && (
-                <a href={s.website_url} target="_blank" rel="noopener noreferrer" className="btn btn-ghost"
-                  style={{ flex: 1, justifyContent: 'center', fontSize: 12, textAlign: 'center' }}>
-                  🌐 Website
-                </a>
-              )}
-              {s.instagram_url && (
-                <a href={s.instagram_url} target="_blank" rel="noopener noreferrer" className="btn btn-ghost"
-                  style={{ flex: 1, justifyContent: 'center', fontSize: 12, textAlign: 'center' }}>
-                  📸 Instagram
-                </a>
-              )}
-            </div>
-          )}
 
           {/* Contacts */}
           {s.contacts?.length > 0 && (

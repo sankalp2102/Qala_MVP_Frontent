@@ -61,9 +61,11 @@ api.interceptors.response.use(
       } catch {
         // Refresh truly failed — session is dead
         onRefreshDone(null);
+        const wasLoggedIn = !!localStorage.getItem('qala_token');
         localStorage.removeItem('qala_token');
-        // Only redirect if we're not already on the login page
-        if (!window.location.pathname.startsWith('/login')) {
+        // Only redirect if the user was previously logged in (actual session expiry).
+        // Anonymous users hitting auth endpoints should NOT be redirected.
+        if (wasLoggedIn && !window.location.pathname.startsWith('/login')) {
           window.location.href = '/login?reason=session_expired';
         }
         return Promise.reject(err);

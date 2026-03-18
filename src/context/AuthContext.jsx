@@ -9,14 +9,17 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Try to restore session — either from Bearer token or cookies.
-    // The interceptor in client.js handles 401 → refresh automatically,
-    // so me() will succeed if there's a valid refresh token (even if
-    // the access token is expired or missing from localStorage).
+    // Only try to restore session if there's evidence of a prior login.
+    // Without a token, the user is anonymous — skip the me() call entirely.
+    const token = localStorage.getItem('qala_token');
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     authAPI.me()
       .then(r => setUser(r.data))
       .catch(() => {
-        // Only clear if refresh also failed (interceptor already tried)
+        // Refresh also failed (interceptor already tried) — session is truly dead
         localStorage.removeItem('qala_token');
       })
       .finally(() => setLoading(false));
