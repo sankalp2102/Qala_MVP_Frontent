@@ -65,6 +65,7 @@ export default function SectionA({ profileId, onSave }) {
   const [editingContact, setEditingContact] = useState(null); // { id, name, role, email, phone }
   const [saving, setSaving]         = useState(false);
   const [uploading, setUploading]   = useState('');
+  const [uploadProgress, setUploadProgress] = useState(null); // { done, total, failed }
 
   useEffect(() => {
     if (!profileId) return;
@@ -145,20 +146,53 @@ export default function SectionA({ profileId, onSave }) {
   };
 
   const uploadMedia = async (e, mediaType) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploading(mediaType);
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('media_type', mediaType);
-      fd.append('order', 1);
-      const r = await API.uploadStudioMedia(profileId, fd);
-      if (mediaType === 'hero') setHeroMedia(r.data);
-      else setWorkMedia(m => [...m, r.data]);
-      success('Uploaded!');
-    } catch { error('Upload failed'); }
-    finally { setUploading(''); }
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    e.target.value = '';
+
+    // Hero: only take the last file selected (replaces existing)
+    if (mediaType === 'hero') {
+      const file = files[files.length - 1];
+      setUploading('hero');
+      try {
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('media_type', 'hero');
+        fd.append('order', 1);
+        const r = await API.uploadStudioMedia(profileId, fd);
+        setHeroMedia(r.data);
+        success('Uploaded!');
+      } catch { error('Upload failed'); }
+      finally { setUploading(''); }
+      return;
+    }
+
+    // Work dump: sequential multi-upload
+    setUploading('work_dump');
+    setUploadProgress({ done: 0, total: files.length, failed: 0 });
+    let done = 0, failed = 0;
+
+    for (const file of files) {
+      try {
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('media_type', 'work_dump');
+        fd.append('order', 1);
+        const r = await API.uploadStudioMedia(profileId, fd);
+        setWorkMedia(m => [...m, r.data]);
+      } catch {
+        failed++;
+      }
+      done++;
+      setUploadProgress({ done, total: files.length, failed });
+    }
+
+    if (failed === 0) success(`${files.length} file${files.length > 1 ? 's' : ''} uploaded!`);
+    else if (failed < files.length) error(`${failed} of ${files.length} failed — rest uploaded.`);
+    else error('All uploads failed. Check file types and sizes.');
+
+    setUploading('');
+    setUploadProgress(null);
   };
 
   const delMedia = async (mediaId, mediaType) => {
@@ -344,12 +378,17 @@ export default function SectionA({ profileId, onSave }) {
           </div>
         )}
         <label style={{ display: 'inline-block' }}>
-          <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" onChange={e => uploadMedia(e, 'work_dump')} style={{ display: 'none' }} />
-          <span className="btn btn-outline btn-sm" style={{ cursor: 'pointer' }}>
-            {uploading === 'work_dump' ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Uploading…</> : '+ Upload Image / Video'}
+          <input type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" onChange={e => uploadMedia(e, 'work_dump')} style={{ display: 'none' }} />
+          <span className="btn btn-outline btn-sm" style={{ cursor: uploading === 'work_dump' ? 'not-allowed' : 'pointer', opacity: uploading === 'work_dump' ? 0.6 : 1 }}>
+            {uploading === 'work_dump'
+              ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Uploading {uploadProgress?.done || 0} / {uploadProgress?.total || 0}…</>
+              : '+ Upload Images / Videos'}
           </span>
         </label>
-        <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 8 }}>Images: JPG · PNG · WEBP up to 10 MB · Videos: MP4 · MOV up to 100 MB</p>
+        {uploadProgress && uploadProgress.failed > 0 && (
+          <span style={{ fontSize: 11, color: 'var(--red)', marginLeft: 10 }}>{uploadProgress.failed} failed</span>
+        )}
+        <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 8 }}>Select multiple files at once · Images: JPG · PNG · WEBP up to 10 MB · Videos: MP4 · MOV up to 100 MB</p>
       </CardSection>
 
       <button className="btn btn-primary btn-lg fade-up" onClick={save} disabled={saving}>

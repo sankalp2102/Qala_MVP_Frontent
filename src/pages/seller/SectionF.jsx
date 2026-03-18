@@ -19,6 +19,7 @@ export default function SectionF({ profileId, onSave }) {
   const [media, setMedia]       = useState([]);
   const [saving, setSaving]     = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(null); // { done, total, failed }
 
   useEffect(() => {
     if (!profileId) return;
@@ -43,22 +44,34 @@ export default function SectionF({ profileId, onSave }) {
   };
 
   const upload = async e => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    e.target.value = '';
+
     setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('order', media.length + 1);
-      const r = await onboardingAPI.uploadBTS(profileId, fd);
-      setMedia(m => [...m, r.data]);
-      success('Uploaded!');
-    } catch (e) {
-      error(e.response?.data?.file?.[0] || 'Upload failed. Check file type and size.');
-    } finally {
-      setUploading(false);
-      e.target.value = '';
+    setUploadProgress({ done: 0, total: files.length, failed: 0 });
+    let done = 0, failed = 0;
+
+    for (const file of files) {
+      try {
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('order', media.length + done + 1);
+        const r = await onboardingAPI.uploadBTS(profileId, fd);
+        setMedia(m => [...m, r.data]);
+      } catch {
+        failed++;
+      }
+      done++;
+      setUploadProgress({ done, total: files.length, failed });
     }
+
+    if (failed === 0) success(`${files.length} file${files.length > 1 ? 's' : ''} uploaded!`);
+    else if (failed < files.length) error(`${failed} of ${files.length} failed — rest uploaded.`);
+    else error('All uploads failed. Check file types and sizes.');
+
+    setUploading(false);
+    setUploadProgress(null);
   };
 
   const delMedia = async id => {
@@ -157,18 +170,22 @@ export default function SectionF({ profileId, onSave }) {
         <label style={{ display: 'inline-block' }}>
           <input
             type="file"
+            multiple
             accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/x-msvideo"
             onChange={upload}
             style={{ display: 'none' }}
           />
-          <span className="btn btn-outline" style={{ cursor: 'pointer' }}>
+          <span className="btn btn-outline" style={{ cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
             {uploading
-              ? <><span className="spinner" style={{ width: 15, height: 15 }} /> Uploading…</>
-              : '+ Upload Photo or Video'}
+              ? <><span className="spinner" style={{ width: 15, height: 15 }} /> Uploading {uploadProgress?.done || 0} / {uploadProgress?.total || 0}…</>
+              : '+ Upload Photos or Videos'}
           </span>
         </label>
+        {uploadProgress && uploadProgress.failed > 0 && (
+          <span style={{ fontSize: 11, color: 'var(--red)', marginLeft: 10 }}>{uploadProgress.failed} failed</span>
+        )}
         <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 10 }}>
-          Images: JPG · PNG · WEBP up to 10 MB &nbsp;|&nbsp; Videos: MP4 · MOV · AVI up to 100 MB
+          Select multiple files at once · Images: JPG · PNG · WEBP up to 10 MB &nbsp;|&nbsp; Videos: MP4 · MOV · AVI up to 100 MB
         </p>
       </CardSection>
 
