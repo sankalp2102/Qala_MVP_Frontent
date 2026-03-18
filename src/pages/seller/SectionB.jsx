@@ -106,6 +106,8 @@ export default function SectionB({ profileId, onSave }) {
   const [awards, setAwards]     = useState([]);
   const [newBrand, setNewBrand] = useState({ brand_name: '', scope: '' });
   const [brandImg, setBrandImg] = useState(null);
+  const [editingBrand, setEditingBrand] = useState(null);
+  const [editBrandImg, setEditBrandImg] = useState(null);
   const [newAward, setNewAward] = useState({ award_name: '', link: '' });
   const [saving, setSaving]     = useState(false);
 
@@ -174,6 +176,21 @@ export default function SectionB({ profileId, onSave }) {
   const delBrand = async id => {
     try { await onboardingAPI.delBrand(profileId, id); setBrands(b => b.filter(x => x.id !== id)); }
     catch { error('Failed'); }
+  };
+
+  const saveEditBrand = async () => {
+    if (!editingBrand.brand_name) { error('Brand name required'); return; }
+    try {
+      const fd = new FormData();
+      fd.append('brand_name', editingBrand.brand_name);
+      fd.append('scope', editingBrand.scope || '');
+      if (editBrandImg) fd.append('image', editBrandImg);
+      const r = await onboardingAPI.patchBrand(profileId, editingBrand.id, fd);
+      setBrands(b => b.map(x => x.id === editingBrand.id ? r.data : x));
+      setEditingBrand(null);
+      setEditBrandImg(null);
+      success('Brand updated');
+    } catch { error('Failed to update brand'); }
   };
 
   const addAward = async () => {
@@ -374,14 +391,54 @@ export default function SectionB({ profileId, onSave }) {
           Which brands or buyers have you worked with? List them here — this builds trust with new buyers.
         </p>
         {brands.map(b => (
-          <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--radius)', marginBottom: 8, border: '1px solid var(--border)' }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{b.brand_name}</div>
-              {b.scope && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>{b.scope}</div>}
-              {b.file_name && <div style={{ fontSize: 11, color: 'var(--teal)', marginTop: 3 }}>{b.file_name}</div>}
+          editingBrand?.id === b.id ? (
+            /* ── Inline edit form ── */
+            <div key={b.id} style={{ padding: 16, border: '1px solid rgba(200,165,90,0.35)', borderRadius: 'var(--radius)', marginBottom: 8, background: 'var(--gold-dim)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Editing brand</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10, marginBottom: 10 }}>
+                <div className="field">
+                  <label>Brand / Buyer Name *</label>
+                  <input value={editingBrand.brand_name} onChange={e => setEditingBrand(x => ({ ...x, brand_name: e.target.value }))} placeholder="e.g. Good Earth" />
+                </div>
+                <div className="field">
+                  <label>Scope of Work</label>
+                  <input value={editingBrand.scope || ''} onChange={e => setEditingBrand(x => ({ ...x, scope: e.target.value }))} placeholder="e.g. Hand block printed kurtas for SS23 collection, 200 pcs" />
+                </div>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>Replace Image</div>
+                {editingBrand.file_name && !editBrandImg && (
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 6 }}>Current: {editingBrand.file_name}</div>
+                )}
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setEditBrandImg(e.target.files[0])} style={{ display: 'none' }} />
+                  <span className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>{editBrandImg ? editBrandImg.name : '↺ Choose New Image'}</span>
+                </label>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-teal btn-sm" onClick={saveEditBrand}>Save Changes</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => { setEditingBrand(null); setEditBrandImg(null); }}>Cancel</button>
+              </div>
             </div>
-            <button className="btn btn-danger btn-sm" onClick={() => delBrand(b.id)}>Remove</button>
-          </div>
+          ) : (
+            /* ── Read view ── */
+            <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--radius)', marginBottom: 8, border: '1px solid var(--border)' }}>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{b.brand_name}</div>
+                {b.scope && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>{b.scope}</div>}
+                {b.file_name && <div style={{ fontSize: 11, color: 'var(--teal)', marginTop: 3 }}>{b.file_name}</div>}
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexShrink: 0, marginLeft: 12 }}>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setEditingBrand({ id: b.id, brand_name: b.brand_name, scope: b.scope || '', file_name: b.file_name || '' })}
+                >
+                  Edit
+                </button>
+                <button className="btn btn-danger btn-sm" onClick={() => delBrand(b.id)}>Remove</button>
+              </div>
+            </div>
+          )
         ))}
         <div style={{ padding: 16, border: '1px solid var(--border2)', borderRadius: 'var(--radius)', marginTop: 8, background: 'var(--surface2)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10, marginBottom: 10 }}>
