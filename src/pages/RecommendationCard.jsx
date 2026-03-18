@@ -170,9 +170,9 @@ export default function RecommendationCard({ rec, position, isBonus }) {
           href={'/studio/' + rec.studio_id}
           style={{
             display: 'block', width: '100%', padding: '12px',
-            borderRadius: 'var(--radius)',
-            background: 'var(--gold)',
-            color: '#fff',
+            borderRadius: 8,
+            background: '#1A1612',
+            color: '#F5F0E8',
             border: 'none',
             fontSize: 13, fontWeight: 500, cursor: 'pointer',
             fontFamily: 'var(--font-body)',
@@ -181,8 +181,8 @@ export default function RecommendationCard({ rec, position, isBonus }) {
             boxSizing: 'border-box',
             transition: 'background 0.18s ease',
           }}
-          onMouseEnter={e => e.currentTarget.style.background = 'var(--gold-d)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'var(--gold)'}
+          onMouseEnter={e => e.currentTarget.style.background = '#C46E49'}
+          onMouseLeave={e => e.currentTarget.style.background = '#1A1612'}
         >
           View Profile →
         </a>

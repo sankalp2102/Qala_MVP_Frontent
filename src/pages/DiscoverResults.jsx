@@ -142,7 +142,7 @@ export default function DiscoverResults() {
         .sugg-chip:hover  { border-color: rgba(196,110,73,0.5) !important; background: rgba(196,110,73,0.05) !important; }
         .scroll-btn:hover { background: rgba(196,110,73,0.1) !important; }
         .back-btn:hover   { color: var(--text) !important; }
-        .inquiry-btn:hover { border-color: rgba(196,110,73,0.6) !important; background: rgba(196,110,73,0.05) !important; }
+        .inquiry-btn:hover { background: #1A1612 !important; color: #F5F0E8 !important; border-color: #1A1612 !important; }
       `}</style>
 
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
@@ -426,10 +426,10 @@ export default function DiscoverResults() {
                 onClick={() => setInquiryOpen(true)}
                 style={{
                   padding: '12px 28px', background: 'transparent',
-                  border: '1px solid rgba(196,110,73,0.3)', borderRadius: 8,
-                  color: 'var(--text)', fontSize: 13, fontWeight: 600,
+                  border: '1.5px solid rgba(26, 22, 18, 0.15)', borderRadius: 8,
+                  color: 'var(--text)', fontSize: 13, fontWeight: 500,
                   cursor: 'pointer', fontFamily: 'var(--font-body)',
-                  transition: 'border-color 0.2s, background 0.2s',
+                  transition: 'border-color 0.2s, background 0.2s, color 0.2s',
                   letterSpacing: '0.03em',
                 }}
               >
@@ -524,14 +524,16 @@ export default function DiscoverResults() {
                     disabled={inquirySubmitting}
                     style={{
                       padding: '11px 28px',
-                      background: inquirySubmitting ? 'var(--surface3)' : 'var(--gold)',
-                      color: inquirySubmitting ? 'var(--text4)' : '#fff',
-                      border: 'none', borderRadius: 'var(--radius)',
+                      background: inquirySubmitting ? 'var(--surface3)' : '#1A1612',
+                      color: inquirySubmitting ? 'var(--text4)' : '#F5F0E8',
+                      border: 'none', borderRadius: 8,
                       fontSize: 13, fontWeight: 500,
                       cursor: inquirySubmitting ? 'default' : 'pointer',
                       fontFamily: 'var(--font-body)', transition: 'background 0.18s ease',
                       display: 'flex', alignItems: 'center', gap: 8,
                     }}
+                    onMouseEnter={(e) => { if (!inquirySubmitting) e.target.style.background = '#C46E49'; }}
+                    onMouseLeave={(e) => { if (!inquirySubmitting) e.target.style.background = '#1A1612'; }}
                   >
                     {inquirySubmitting && (
                       <span className="spinner" style={{ width: 14, height: 14, borderColor: 'var(--surface4)', borderTopColor: '#555' }} />

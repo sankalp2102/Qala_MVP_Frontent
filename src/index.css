@@ -99,59 +99,84 @@ input, textarea, select { font-family: var(--font-body); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--border2); }
 
-/* ── BUTTONS ── */
+/* ── BUTTONS ── CONSISTENT SYSTEM: Black → Orange on hover ── */
 .btn {
   display: inline-flex; align-items: center; gap: 8px;
-  padding: 12px 24px; border-radius: var(--radius);
+  padding: 12px 24px; border-radius: 8px;
   font-size: 16px; font-weight: 500; border: none;
-  transition: all 0.2s ease; white-space: nowrap;
-  letter-spacing: 0.02em; position: relative;
+  transition: background 0.22s ease, transform 0.18s ease, box-shadow 0.22s ease;
+  white-space: nowrap; letter-spacing: 0.02em; position: relative;
   font-family: var(--font-body);
 }
+
+/* PRIMARY: Black button → orange hover */
 .btn-primary {
-  background: var(--gold);
-  color: #FFFFFF;
+  background: #1A1612;
+  color: #F5F0E8;
+  border: none;
 }
-.btn-primary:hover { background: var(--gold-d); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(184, 92, 56, 0.3); }
+.btn-primary:hover { background: #C46E49; }
 .btn-primary:active { transform: translateY(0); }
 
+/* SECONDARY: Outlined → filled black on hover */
 .btn-secondary {
   background: transparent; color: var(--text);
   border: 1.5px solid rgba(26, 22, 18, 0.15);
 }
-.btn-secondary:hover { background: var(--text); color: var(--bg); border-color: var(--text); }
+.btn-secondary:hover { background: #1A1612; color: #F5F0E8; border-color: #1A1612; }
 
+/* TERTIARY: Text-only → orange on hover */
 .btn-tertiary {
   background: transparent; color: var(--text2);
   border: none; padding: 8px 12px; font-size: 13px; font-weight: 400;
 }
-.btn-tertiary:hover { color: var(--gold); text-decoration: underline; }
+.btn-tertiary:hover { color: #C46E49; }
 
-.btn-teal { background: var(--teal-dim); color: var(--teal); border: 1px solid rgba(122,140,110,0.3); font-weight: 500; }
-.btn-teal:hover { background: rgba(122,140,110,0.18); transform: translateY(-1px); }
-
-.btn-terra { background: rgba(212,131,106,0.1); color: var(--terra-l); border: 1px solid rgba(212,131,106,0.3); font-weight: 500; }
-.btn-terra:hover { background: rgba(212,131,106,0.2); transform: translateY(-1px); }
-
-.btn-outline {
-  background: transparent; color: var(--gold);
-  border: 1.5px solid var(--gold);
+/* TEAL: For status/info buttons */
+.btn-teal {
+  background: var(--teal-dim); color: var(--teal);
+  border: 1px solid rgba(122,140,110,0.3); font-weight: 500;
 }
-.btn-outline:hover { background: var(--gold-dim); }
+.btn-teal:hover { background: rgba(122,140,110,0.18); }
 
+/* TERRA: For secondary accents */
+.btn-terra {
+  background: rgba(212,131,106,0.1); color: var(--terra-l);
+  border: 1px solid rgba(212,131,106,0.3); font-weight: 500;
+}
+.btn-terra:hover { background: rgba(212,131,106,0.2); }
+
+/* OUTLINE: Outlined → filled black on hover (same as secondary) */
+.btn-outline {
+  background: transparent; color: var(--text);
+  border: 1.5px solid rgba(26, 22, 18, 0.15);
+}
+.btn-outline:hover { background: #1A1612; color: #F5F0E8; border-color: #1A1612; }
+
+/* GHOST: Light button → black fill on hover */
 .btn-ghost {
   background: transparent; color: var(--text2);
   border: 1.5px solid rgba(26, 22, 18, 0.15);
 }
-.btn-ghost:hover { background: var(--text); color: var(--bg); border-color: var(--text); }
+.btn-ghost:hover { background: #1A1612; color: #F5F0E8; border-color: #1A1612; }
 
-.btn-danger { background: var(--red-dim); color: var(--red); border: 1px solid rgba(201,64,64,0.2); }
+/* DANGER: For delete/destructive actions */
+.btn-danger {
+  background: var(--red-dim); color: var(--red);
+  border: 1px solid rgba(201,64,64,0.2);
+}
 .btn-danger:hover { background: rgba(201,64,64,0.15); }
 
+/* SIZE VARIANTS */
 .btn-sm  { padding: 6px 14px; font-size: 13px; }
 .btn-lg  { padding: 13px 32px; font-size: 16px; }
 .btn-xl  { padding: 16px 40px; font-size: 16px; }
-.btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+/* DISABLED STATE */
+.btn:disabled {
+  opacity: 0.35; cursor: not-allowed;
+  transform: none !important; box-shadow: none !important;
+}
 
 /* ── FORM ELEMENTS ── */
 .field { display: flex; flex-direction: column; gap: 7px; }
