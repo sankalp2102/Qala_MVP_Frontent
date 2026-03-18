@@ -48,6 +48,10 @@ export default function SectionD({ profileId, onSave }) {
   });
   const [flags, setFlags] = useState({});
   const [reqs, setReqs]   = useState([{ order: 1, question: '' }, { order: 2, question: '' }]);
+  const [coordinator, setCoordinator] = useState({ name: '', position: '', writeup: '' });
+  const [coordImg, setCoordImg]       = useState(null);
+  const [coordExisting, setCoordExisting] = useState(null); // existing file_name from server
+  const [savingCoord, setSavingCoord] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -68,8 +72,34 @@ export default function SectionD({ profileId, onSave }) {
       if (d.buyer_requirements?.length) {
         setReqs(d.buyer_requirements.map(r => ({ order: r.order, question: r.question })));
       }
+      if (d.buyer_coordinator) {
+        setCoordinator({
+          name: d.buyer_coordinator.name || '',
+          position: d.buyer_coordinator.position || '',
+          writeup: d.buyer_coordinator.writeup || '',
+        });
+        setCoordExisting(d.buyer_coordinator.file_name || null);
+      }
     }).catch(() => {});
   }, [profileId]);
+
+  const saveCoordinator = async () => {
+    if (!coordinator.name.trim()) { error('Coordinator name is required'); return; }
+    setSavingCoord(true);
+    try {
+      const fd = new FormData();
+      fd.append('name', coordinator.name);
+      fd.append('position', coordinator.position);
+      fd.append('writeup', coordinator.writeup);
+      if (coordImg) fd.append('image', coordImg);
+      const r = await onboardingAPI.putCoordinator(profileId, fd);
+      setCoordExisting(r.data.file_name || null);
+      setCoordImg(null);
+      success('Coordinator saved!');
+    } catch (e) {
+      error(e.response?.data ? JSON.stringify(e.response.data) : 'Failed to save coordinator');
+    } finally { setSavingCoord(false); }
+  };
 
   const save = async () => {
     setSaving(true);
@@ -163,6 +193,61 @@ export default function SectionD({ profileId, onSave }) {
             + Add Question
           </button>
         )}
+      </CardSection>
+
+      {/* D.5 Buyer Coordinator */}
+      <CardSection title="D.5 — Buyer Coordinator">
+        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 6, lineHeight: 1.7 }}>
+          Who from your team is typically responsible for coordinating &amp; working with the buyers?
+        </p>
+        <p style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 16 }}>
+          Tell us their name, position in your organisation and a little bit about them — their background, working style etc.
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+          <div className="field">
+            <label>Name *</label>
+            <input value={coordinator.name} onChange={e => setCoordinator(c => ({ ...c, name: e.target.value }))} placeholder="e.g. Priya Sharma" />
+          </div>
+          <div className="field">
+            <label>Position</label>
+            <input value={coordinator.position} onChange={e => setCoordinator(c => ({ ...c, position: e.target.value }))} placeholder="e.g. Studio Manager / Head of Production" />
+          </div>
+        </div>
+
+        <div className="field" style={{ marginBottom: 14 }}>
+          <label>About them</label>
+          <textarea
+            value={coordinator.writeup}
+            onChange={e => setCoordinator(c => ({ ...c, writeup: e.target.value }))}
+            rows={4}
+            placeholder="e.g. Priya has 12 years of experience in textile production. She manages all buyer relationships from initial brief through to final delivery. She's detail-oriented, responsive, and prefers WhatsApp for quick updates and email for formal communication."
+            style={{
+              width: '100%', padding: '12px 16px',
+              border: '1.5px solid var(--border)', borderRadius: 'var(--radius)',
+              background: 'var(--surface)', color: 'var(--text)',
+              fontSize: 14, fontFamily: 'var(--font-body)', lineHeight: 1.7, resize: 'vertical',
+            }}
+          />
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>Photo</div>
+          {coordExisting && !coordImg && (
+            <div style={{ fontSize: 12, color: 'var(--teal)', marginBottom: 6 }}>Current: {coordExisting}</div>
+          )}
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setCoordImg(e.target.files?.[0] || null)} style={{ display: 'none' }} />
+            <span className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
+              {coordImg ? coordImg.name : coordExisting ? '↺ Replace Photo' : '+ Upload Photo'}
+            </span>
+          </label>
+          <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 6 }}>JPG · PNG · WEBP up to 10 MB</p>
+        </div>
+
+        <button className="btn btn-outline btn-sm" onClick={saveCoordinator} disabled={savingCoord}>
+          {savingCoord ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Saving…</> : coordExisting || coordinator.name ? 'Update Coordinator' : 'Save Coordinator'}
+        </button>
       </CardSection>
 
       <button className="btn btn-primary btn-lg fade-up" onClick={save} disabled={saving}>
