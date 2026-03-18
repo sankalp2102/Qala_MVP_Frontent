@@ -2,6 +2,16 @@ import axios from 'axios';
 const BASE = import.meta.env.VITE_API_URL || 'https://api.qala.studio';
 const api = axios.create({ baseURL: BASE, withCredentials: true });
 
+// Track if a refresh is already in-flight to prevent duplicate refreshes
+let isRefreshing = false;
+let refreshQueue = []; // queued requests waiting for refresh to finish
+
+function onRefreshDone(newToken) {
+  refreshQueue.forEach(cb => cb(newToken));
+  refreshQueue = [];
+}
+
+// ── Request interceptor: attach Bearer token + rid header ──
 api.interceptors.request.use(cfg => {
   const token = localStorage.getItem('qala_token');
   if (token) cfg.headers.authorization = `Bearer ${token}`;
@@ -9,38 +19,86 @@ api.interceptors.request.use(cfg => {
   return cfg;
 });
 
-api.interceptors.response.use(r => r, async err => {
-  if (err.response?.status === 401 && !err.config._retry) {
-    err.config._retry = true;
-    try {
-      const res = await axios.post(`${BASE}/auth/session/refresh`, {}, {
-        headers: { 'rid': 'session', 'st-auth-mode': 'cookie' },
-        withCredentials: true,
-      });
-      const t = res.headers['st-access-token'];
-      if (t) {
-        localStorage.setItem('qala_token', t);
-        err.config.headers.authorization = `Bearer ${t}`;
-        return api.request(err.config);
+// ── Response interceptor: capture rotated access tokens + handle 401 refresh ──
+api.interceptors.response.use(
+  res => {
+    // SuperTokens rotates the access token on responses — capture it
+    const newToken = res.headers['st-access-token'];
+    if (newToken) localStorage.setItem('qala_token', newToken);
+    return res;
+  },
+  async err => {
+    const originalRequest = err.config;
+
+    if (err.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      // If a refresh is already in-flight, queue this request
+      if (isRefreshing) {
+        return new Promise(resolve => {
+          refreshQueue.push(token => {
+            if (token) originalRequest.headers.authorization = `Bearer ${token}`;
+            resolve(api.request(originalRequest));
+          });
+        });
       }
-    } catch {
-      // Refresh failed - session truly expired
-      localStorage.removeItem('qala_token');
-      localStorage.removeItem('qala_refresh');
-      window.location.href = '/login?reason=session_expired';
-      return Promise.reject(err);
+
+      isRefreshing = true;
+      try {
+        const res = await axios.post(`${BASE}/auth/session/refresh`, {}, {
+          headers: { 'rid': 'session', 'st-auth-mode': 'cookie' },
+          withCredentials: true,
+        });
+        const t = res.headers['st-access-token'];
+        if (t) {
+          localStorage.setItem('qala_token', t);
+          originalRequest.headers.authorization = `Bearer ${t}`;
+        }
+        // Even if no header token, the refresh may have set new cookies —
+        // retry the original request which will go through with cookies
+        onRefreshDone(t || null);
+        return api.request(originalRequest);
+      } catch {
+        // Refresh truly failed — session is dead
+        onRefreshDone(null);
+        localStorage.removeItem('qala_token');
+        // Only redirect if we're not already on the login page
+        if (!window.location.pathname.startsWith('/login')) {
+          window.location.href = '/login?reason=session_expired';
+        }
+        return Promise.reject(err);
+      } finally {
+        isRefreshing = false;
+      }
     }
+    return Promise.reject(err);
   }
-  return Promise.reject(err);
-});
+);
 
 export const authAPI = {
-  signin:  (email, password) => axios.post(`${BASE}/auth/signin`,
-    { formFields: [{ id:'email', value:email }, { id:'password', value:password }] },
-    { headers: { 'Content-Type':'application/json', 'rid':'emailpassword', 'st-auth-mode':'cookie' }, withCredentials: true }),
-  signup:  (email, password) => axios.post(`${BASE}/auth/signup`,
-    { formFields: [{ id:'email', value:email }, { id:'password', value:password }] },
-    { headers: { 'Content-Type':'application/json', 'rid':'emailpassword', 'st-auth-mode':'cookie' }, withCredentials: true }),
+  signin: (email, password) => {
+    const p = axios.post(`${BASE}/auth/signin`,
+      { formFields: [{ id:'email', value:email }, { id:'password', value:password }] },
+      { headers: { 'Content-Type':'application/json', 'rid':'emailpassword', 'st-auth-mode':'cookie' }, withCredentials: true },
+    );
+    // Capture token from signin response
+    p.then(r => {
+      const t = r.headers['st-access-token'];
+      if (t) localStorage.setItem('qala_token', t);
+    }).catch(() => {});
+    return p;
+  },
+  signup: (email, password) => {
+    const p = axios.post(`${BASE}/auth/signup`,
+      { formFields: [{ id:'email', value:email }, { id:'password', value:password }] },
+      { headers: { 'Content-Type':'application/json', 'rid':'emailpassword', 'st-auth-mode':'cookie' }, withCredentials: true },
+    );
+    p.then(r => {
+      const t = r.headers['st-access-token'];
+      if (t) localStorage.setItem('qala_token', t);
+    }).catch(() => {});
+    return p;
+  },
   signout: () => api.post('/auth/signout'),
   me:      () => api.get('/api/me/'),
 };
