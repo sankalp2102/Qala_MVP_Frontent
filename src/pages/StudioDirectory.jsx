@@ -127,21 +127,6 @@ function StudioCard({ studio, onClick }) {
           position: 'absolute', inset: 0,
           background: 'linear-gradient(160deg, transparent 30%, rgba(26,22,18,0.5))',
         }} />
-
-        {/* Location */}
-        {studio.location && (
-          <span style={{
-            position: 'absolute', bottom: 10, right: 12,
-            fontSize: 11, color: 'rgba(255,255,255,0.9)', fontWeight: 300,
-            display: 'flex', alignItems: 'center', gap: 4,
-          }}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
-            {studio.location}
-          </span>
-        )}
       </div>
 
       {/* Card body */}
@@ -266,9 +251,9 @@ export default function StudioDirectory() {
   const [error, setError]         = useState(null);
   const [allData, setAllData]     = useState(null);
   const [filters, setFilters]     = useState({
-    craft:       searchParams.get('craft')   || '',
-    fabric:      searchParams.get('fabric')  || '',
-    productType: searchParams.get('product') || '',
+    craft:       searchParams.get('craft')?.split(',').filter(Boolean)   || [],
+    fabric:      searchParams.get('fabric')?.split(',').filter(Boolean)  || [],
+    productType: searchParams.get('product')?.split(',').filter(Boolean) || [],
   });
 
   // Collect all unique option values from the loaded studios
@@ -312,37 +297,51 @@ export default function StudioDirectory() {
     return all.filter(s => {
       if (seen.has(s.studio_id)) return false;
       seen.add(s.studio_id);
-      const craftMatch = !filters.craft ||
-        (s.primary_craft || '').toLowerCase().includes(filters.craft.toLowerCase()) ||
-        (s.secondary_crafts || []).some(c => c.toLowerCase().includes(filters.craft.toLowerCase()));
-      const fabricMatch = !filters.fabric ||
-        (s.fabrics || []).some(f => f.toLowerCase().includes(filters.fabric.toLowerCase()));
-      const productMatch = !filters.productType ||
-        (s.product_types || []).some(p =>
-          p.replace(/_/g, ' ').toLowerCase().includes(filters.productType.toLowerCase())
+      const craftMatch = filters.craft.length === 0 ||
+        filters.craft.some(fc =>
+          (s.primary_craft || '').toLowerCase().includes(fc.toLowerCase()) ||
+          (s.secondary_crafts || []).some(c => c.toLowerCase().includes(fc.toLowerCase()))
+        );
+      const fabricMatch = filters.fabric.length === 0 ||
+        filters.fabric.some(ff =>
+          (s.fabrics || []).some(f => f.toLowerCase().includes(ff.toLowerCase()))
+        );
+      const productMatch = filters.productType.length === 0 ||
+        filters.productType.some(fp =>
+          (s.product_types || []).some(p =>
+            p.replace(/_/g, ' ').toLowerCase().includes(fp.toLowerCase())
+          )
         );
       return craftMatch && fabricMatch && productMatch;
     });
   }, [allData, filters]);
 
   const setFilter = (key, val) => {
-    const next = { ...filters, [key]: filters[key] === val ? '' : val };
+    const next = { ...filters };
+    if (!val) {
+      // Clicked "All" — clear that filter
+      next[key] = [];
+    } else {
+      // Toggle the value in/out of the array
+      const arr = next[key];
+      next[key] = arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val];
+    }
     setFilters(next);
     const p = {};
-    if (next.craft)       p.craft   = next.craft;
-    if (next.fabric)      p.fabric  = next.fabric;
-    if (next.productType) p.product = next.productType;
+    if (next.craft.length)       p.craft   = next.craft.join(',');
+    if (next.fabric.length)      p.fabric  = next.fabric.join(',');
+    if (next.productType.length) p.product = next.productType.join(',');
     setSearchParams(p, { replace: true });
   };
 
   const clearAll = () => {
-    setFilters({ craft: '', fabric: '', productType: '' });
+    setFilters({ craft: [], fabric: [], productType: [] });
     setSearchParams({}, { replace: true });
   };
 
   const displayed    = filteredStudios();
   const totalVisible = displayed.length;
-  const hasAnyFilter = filters.craft || filters.fabric || filters.productType;
+  const hasAnyFilter = filters.craft.length > 0 || filters.fabric.length > 0 || filters.productType.length > 0;
   const totalStudios = allData?.total_count || 0;
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -440,9 +439,9 @@ export default function StudioDirectory() {
           <span style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text2)', fontWeight: 500, whiteSpace: 'nowrap' }}>
             Craft
           </span>
-          <Chip label="All" active={!filters.craft} onClick={() => setFilter('craft', '')} />
+          <Chip label="All" active={filters.craft.length === 0} onClick={() => setFilter('craft', '')} />
           {options.crafts.map(c => (
-            <Chip key={c} label={c} active={filters.craft === c} onClick={() => setFilter('craft', c)} />
+            <Chip key={c} label={c} active={filters.craft.includes(c)} onClick={() => setFilter('craft', c)} />
           ))}
         </div>
 
@@ -455,9 +454,9 @@ export default function StudioDirectory() {
           <span style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text2)', fontWeight: 500, whiteSpace: 'nowrap' }}>
             Fabric
           </span>
-          <Chip label="All" active={!filters.fabric} onClick={() => setFilter('fabric', '')} />
+          <Chip label="All" active={filters.fabric.length === 0} onClick={() => setFilter('fabric', '')} />
           {options.fabrics.slice(0, 8).map(f => (
-            <Chip key={f} label={f} active={filters.fabric === f} onClick={() => setFilter('fabric', f)} />
+            <Chip key={f} label={f} active={filters.fabric.includes(f)} onClick={() => setFilter('fabric', f)} />
           ))}
         </div>
 
@@ -469,9 +468,9 @@ export default function StudioDirectory() {
           <span style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text2)', fontWeight: 500, whiteSpace: 'nowrap' }}>
             Product
           </span>
-          <Chip label="All" active={!filters.productType} onClick={() => setFilter('productType', '')} />
+          <Chip label="All" active={filters.productType.length === 0} onClick={() => setFilter('productType', '')} />
           {options.productTypes.slice(0, 8).map(p => (
-            <Chip key={p} label={p} active={filters.productType === p} onClick={() => setFilter('productType', p)} />
+            <Chip key={p} label={p} active={filters.productType.includes(p)} onClick={() => setFilter('productType', p)} />
           ))}
         </div>
 
