@@ -5,6 +5,7 @@ import { DashLayout } from '../components/DashLayout';
 import { Spinner } from '../components/Spinner';
 import { useToast } from '../hooks/useToast';
 import { Toast } from '../components/Toast';
+import PasswordInput from '../components/PasswordInput';
 
 const sLabel = { submitted:'Submitted', in_progress:'In Progress', not_started:'Not Started', flagged:'Flagged', approved:'Approved' };
 const sBadge = s => ({ submitted:'badge-green', in_progress:'badge-orange', not_started:'badge-gray', flagged:'badge-red', approved:'badge-teal' }[s]||'badge-gray');
@@ -806,7 +807,7 @@ function CreateSeller() {
         </div>
         <div className="field">
           <label>Password *</label>
-          <input type="password" placeholder="Min 8 chars · 1 number · 1 uppercase" required
+          <PasswordInput placeholder="Min 8 chars · 1 number · 1 uppercase" required
             value={form.password} onChange={e => setForm(f => ({...f, password: e.target.value}))} />
         </div>
         <div className="field">

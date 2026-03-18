@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../api/client';
+import PasswordInput from '../components/PasswordInput';
 import qalaLogo from '../assets/qala-logo.png';
 
 export default function Login() {
@@ -77,7 +78,7 @@ export default function Login() {
           </div>
           <div className="field">
             <label>Password</label>
-            <input type="password" placeholder="••••••••" value={pass} onChange={e => setPass(e.target.value)} required />
+            <PasswordInput placeholder="••••••••" value={pass} onChange={e => setPass(e.target.value)} required />
             {tab === 'signup' && <span className="hint">Min 8 chars · 1 number · 1 uppercase</span>}
           </div>
 
