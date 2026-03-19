@@ -254,7 +254,7 @@ export default function Discover() {
         .option-card.sel  { border-color: #C46E49 !important; background: rgba(196,110,73,0.08) !important; }
         .option-card.sel div { color: #C46E49 !important; }
         .nav-btn:hover { background: rgba(196,110,73,0.06) !important; }
-        .continue-btn:not(:disabled):hover { background: #A85A38 !important; }
+        .continue-btn:not(:disabled):hover { background: #C46E49 !important; }
         @media(max-width: 900px) {
           .discover-split { flex-direction: column !important; }
           .discover-right { display: none !important; }
@@ -395,8 +395,8 @@ export default function Discover() {
                 onClick={() => goTo(getNextStep())}
                 disabled={!canProceed()}
                 style={{
-                  background: canProceed() ? '#C46E49' : 'var(--border)',
-                  color: canProceed() ? '#FFFFFF' : 'var(--text3)',
+                  background: canProceed() ? '#1A1612' : 'var(--border)',
+                  color: canProceed() ? '#F5F0E8' : 'var(--text3)',
                   border: 'none', padding: '9px 28px', borderRadius: 8,
                   fontSize: 13, fontWeight: 700,
                   cursor: canProceed() ? 'pointer' : 'not-allowed',
@@ -411,8 +411,8 @@ export default function Discover() {
                 onClick={handleSubmit}
                 disabled={submitting || !canProceed()}
                 style={{
-                  background: submitting || !canProceed() ? 'var(--border)' : '#C46E49',
-                  color: submitting || !canProceed() ? 'var(--text3)' : '#FFFFFF',
+                  background: submitting || !canProceed() ? 'var(--border)' : '#1A1612',
+                  color: submitting || !canProceed() ? 'var(--text3)' : '#F5F0E8',
                   border: 'none', padding: '9px 28px', borderRadius: 8,
                   fontSize: 13, fontWeight: 700, cursor: 'pointer',
                   fontFamily: 'var(--font-body)', transition: 'all 0.2s',
