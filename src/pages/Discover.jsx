@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { discoveryAPI } from '../api/client';
 import ChipSelect from '../components/discovery/ChipSelect';
 import ImageGrid from '../components/discovery/ImageGrid';
-import KnittingAnimation from '../components/discovery/KnittingAnimation';
 import qalaLogo from '../assets/qala-logo.png';
 
 const TOTAL_STEPS = 8;
@@ -115,7 +114,6 @@ export default function Discover() {
   const [anim, setAnim]             = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState('');
-  const [rowsKnitted, setRowsKnitted] = useState(0);
 
   const [answers, setAnswers] = useState({
     visual_selection_ids: [],
@@ -169,7 +167,6 @@ export default function Discover() {
     if (next < 1 || next > TOTAL_STEPS) return;
     const goingForward = next > step;
     setDir(goingForward ? 1 : -1);
-    if (goingForward) setRowsKnitted(Math.round((next / TOTAL_STEPS) * 16));
     setAnim(true);
     setTimeout(() => {
       setStep(next);
@@ -215,7 +212,6 @@ export default function Discover() {
   };
 
   const handleSubmit = async () => {
-    setRowsKnitted(16);;
     setSubmitting(true);
     setError('');
     try {
@@ -408,47 +404,49 @@ export default function Discover() {
               </button>
             ) : (
               <button
+                className="continue-btn"
                 onClick={handleSubmit}
                 disabled={submitting || !canProceed()}
                 style={{
                   background: submitting || !canProceed() ? 'var(--border)' : '#1A1612',
                   color: submitting || !canProceed() ? 'var(--text3)' : '#F5F0E8',
                   border: 'none', padding: '9px 28px', borderRadius: 8,
-                  fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  fontSize: 13, fontWeight: 700,
+                  cursor: submitting || !canProceed() ? 'not-allowed' : 'pointer',
                   fontFamily: 'var(--font-body)', transition: 'all 0.2s',
                   display: 'flex', alignItems: 'center', gap: 8,
+                  letterSpacing: '0.03em',
                 }}
               >
                 {submitting && <span className="spinner" style={{ width: 14, height: 14, borderColor: 'var(--surface4)', borderTopColor: '#000' }} />}
-                {submitting ? 'Finding studios…' : 'Find my studios →'}
+                {submitting ? 'Finding studios…' : 'Find Studios →'}
               </button>
             )}
           </div>
         </div>
 
-        {/* RIGHT — 40% — Knitting animation */}
+        {/* RIGHT — 40% — Contextual helper */}
         <div className="discover-right" style={{
           width: '40%',
           background: '#F8F5F1',
           display: 'flex',
           flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '48px 40px',
           overflow: 'hidden',
         }}>
-          {/* Animation shrinks to give space to hint block */}
-          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-            <KnittingAnimation rowsKnitted={rowsKnitted} />
-          </div>
-
           {STEPS[step - 1].hint && (
-            <div style={{
-              flexShrink: 0,
-              padding: '20px 32px 28px',
-            }}>
+            <div
+              key={step}
+              className={anim ? 'step-exit' : dir === 1 ? 'step-enter-fwd' : 'step-enter-back'}
+              style={{ maxWidth: 320 }}
+            >
               <p style={{
                 margin: 0,
-                fontSize: 12,
-                color: 'var(--text3)',
-                lineHeight: 1.80,
+                fontSize: 14,
+                color: 'var(--text2)',
+                lineHeight: 1.85,
                 fontStyle: 'italic',
                 whiteSpace: 'pre-line',
                 letterSpacing: '0.01em',
@@ -457,10 +455,10 @@ export default function Discover() {
               </p>
               {step === 8 && answers.timeline && (
                 <p className="inline-step-reveal" style={{
-                  margin: '12px 0 0',
-                  fontSize: 12,
-                  color: 'var(--text3)',
-                  lineHeight: 1.80,
+                  margin: '16px 0 0',
+                  fontSize: 14,
+                  color: 'var(--text2)',
+                  lineHeight: 1.85,
                   fontStyle: 'italic',
                   whiteSpace: 'pre-line',
                   letterSpacing: '0.01em',
