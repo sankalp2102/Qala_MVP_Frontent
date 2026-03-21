@@ -535,40 +535,149 @@ export default function DiscoverResults() {
           </div>
         )}
 
-        {/* Zero match */}
+        {/* ── Zero match — Layout 1 Featured Card ───────────────────── */}
         {data?.zero_match && recs.length === 0 && (
-          <div className="fade-in" style={{ textAlign: 'center', padding: '40px 60px 24px', flexShrink: 0 }}>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(20px, 2.5vw, 30px)', fontWeight: 400, color: 'var(--text)', marginBottom: 12 }}>
-              No exact matches found
-            </h2>
-            <p style={{ fontSize: 14, color: 'var(--text3)', maxWidth: 480, margin: '0 auto 28px', lineHeight: 1.7 }}>
-              Your combination is quite specific. Try adjusting one of these:
-            </p>
+          <div className="fade-in" style={{ padding: '48px 40px 60px', maxWidth: 680, margin: '0 auto', width: '100%' }}>
+
+            {/* Heading */}
+            <div style={{ textAlign: 'center', marginBottom: 36 }}>
+              <h2 style={{
+                fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 3vw, 40px)',
+                fontWeight: 400, color: 'var(--text)', marginBottom: 12, lineHeight: 1.2,
+              }}>
+                Good news: we have options
+              </h2>
+              <p style={{ fontSize: 15, color: 'var(--text3)', lineHeight: 1.6, maxWidth: 440, margin: '0 auto' }}>
+                Your requirements are specific, which is great. Here's how we can find studios that match. The final product will match your vision perfectly.
+              </p>
+            </div>
+
+            {/* Suggestion cards */}
+            {suggs.length === 0 && (
+              <div style={{
+                padding: '24px 28px', borderRadius: 14, marginBottom: 24,
+                background: 'var(--surface)', border: '1px solid var(--border2)',
+                textAlign: 'center',
+              }}>
+                <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.4 }}>🔍</div>
+                <div style={{ fontSize: 15, color: 'var(--text2)', fontWeight: 500, marginBottom: 6 }}>
+                  No close alternatives found either
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6, maxWidth: 380, margin: '0 auto' }}>
+                  This specific combination isn't available in our current studio network.
+                  Browse the full directory or send us your requirement directly — we'll source it manually.
+                </div>
+              </div>
+            )}
             {suggs.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginBottom: 28 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 24 }}>
                 {suggs.map((s, i) => (
-                  <button key={i} className="sugg-chip" onClick={() => applySuggestion(s)} disabled={applying === s.change_type} style={{
-                    padding: '12px 20px', borderRadius: 24, border: '1px solid var(--border2)',
-                    background: 'rgba(255,255,255,0.8)', cursor: 'pointer', fontFamily: 'var(--font-body)',
-                    transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 10,
-                  }}>
-                    {applying === s.change_type && <span className="spinner" style={{ width: 12, height: 12 }} />}
-                    <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{s.message}</div>
-                      {s.studios_count > 0 && <div style={{ fontSize: 11, color: 'var(--green)', marginTop: 2 }}>{s.studios_count} studio{s.studios_count !== 1 ? 's' : ''} available</div>}
-                    </div>
-                  </button>
+                  i === 0 ? (
+                    /* Featured card — first suggestion, gradient terracotta */
+                    <button
+                      key={i}
+                      onClick={() => applySuggestion(s)}
+                      disabled={applying === s.change_type}
+                      style={{
+                        width: '100%', padding: '28px 32px', borderRadius: 14, border: 'none',
+                        background: 'linear-gradient(135deg, #B85C38 0%, #C46E49 50%, #D4836A 100%)',
+                        color: '#fff', cursor: applying === s.change_type ? 'default' : 'pointer',
+                        textAlign: 'left', transition: 'transform 0.2s, box-shadow 0.2s',
+                        position: 'relative', overflow: 'hidden', fontFamily: 'var(--font-body)',
+                        opacity: applying === s.change_type ? 0.8 : 1,
+                      }}
+                      onMouseEnter={e => { if (applying !== s.change_type) { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(184,92,56,0.35)'; }}}
+                      onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+                    >
+                      {/* Subtle radial glow */}
+                      <div style={{
+                        position: 'absolute', top: '-50%', right: '-20%',
+                        width: '60%', height: '200%',
+                        background: 'radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%)',
+                        pointerEvents: 'none',
+                      }} />
+
+                      {/* Studios count badge */}
+                      {s.studios_count > 0 && (
+                        <div style={{
+                          display: 'inline-block', marginBottom: 14,
+                          background: 'rgba(255,255,255,0.2)', padding: '5px 14px',
+                          borderRadius: 100, fontSize: 11, fontWeight: 600,
+                          letterSpacing: '0.08em', textTransform: 'uppercase',
+                        }}>
+                          {s.studios_count} Studio{s.studios_count !== 1 ? 's' : ''} Available
+                        </div>
+                      )}
+
+                      <div style={{ fontSize: 'clamp(17px, 2vw, 22px)', fontFamily: 'var(--font-display)', fontWeight: 400, marginBottom: 20, lineHeight: 1.3 }}>
+                        {s.message}
+                      </div>
+
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 8,
+                        background: 'rgba(255,255,255,0.18)', padding: '10px 20px',
+                        borderRadius: 8, fontSize: 13, fontWeight: 500,
+                        transition: 'background 0.2s',
+                      }}>
+                        {applying === s.change_type
+                          ? <><span className="spinner" style={{ width: 13, height: 13, borderColor: 'rgba(255,255,255,0.4)', borderTopColor: '#fff' }} /> Applying…</>
+                          : <>View these studios →</>
+                        }
+                      </div>
+                    </button>
+                  ) : (
+                    /* Secondary cards — remaining suggestions */
+                    <button
+                      key={i}
+                      onClick={() => applySuggestion(s)}
+                      disabled={applying === s.change_type}
+                      style={{
+                        width: '100%', padding: '20px 24px', borderRadius: 12,
+                        border: '1.5px solid var(--border2)', background: 'var(--surface)',
+                        cursor: applying === s.change_type ? 'default' : 'pointer',
+                        textAlign: 'left', transition: 'border-color 0.2s, transform 0.2s',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        fontFamily: 'var(--font-body)',
+                        opacity: applying === s.change_type ? 0.7 : 1,
+                      }}
+                      onMouseEnter={e => { if (applying !== s.change_type) { e.currentTarget.style.borderColor = '#C46E49'; e.currentTarget.style.transform = 'translateY(-2px)'; }}}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.transform = 'none'; }}
+                    >
+                      <div>
+                        <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>{s.message}</div>
+                        {s.studios_count > 0 && (
+                          <div style={{ fontSize: 12, color: '#C46E49', fontWeight: 500 }}>
+                            {s.studios_count} studio{s.studios_count !== 1 ? 's' : ''} available
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, marginLeft: 16 }}>
+                        {applying === s.change_type && <span className="spinner" style={{ width: 13, height: 13 }} />}
+                        <span style={{ fontSize: 18, color: 'var(--text3)' }}>→</span>
+                      </div>
+                    </button>
+                  )
                 ))}
               </div>
             )}
-            <button onClick={() => nav('/directory')} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 28px', borderRadius: 8,
-              background: '#1A1612', color: '#F5F0E8', border: 'none', fontSize: 13, fontWeight: 500,
-              fontFamily: 'var(--font-body)', letterSpacing: '0.04em', cursor: 'pointer', transition: 'background 0.18s ease',
-            }}
-              onMouseEnter={e => e.currentTarget.style.background = '#C46E49'}
-              onMouseLeave={e => e.currentTarget.style.background = '#1A1612'}
-            >Browse all studios →</button>
+
+            {/* Browse all — secondary outline */}
+            <div style={{ textAlign: 'center' }}>
+              <button
+                onClick={() => nav('/directory')}
+                style={{
+                  padding: '12px 28px', borderRadius: 8,
+                  border: '1.5px solid rgba(26,22,18,0.15)',
+                  background: 'transparent', color: 'var(--text)',
+                  fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                  fontFamily: 'var(--font-body)', transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#1A1612'; e.currentTarget.style.color = '#F5F0E8'; e.currentTarget.style.borderColor = '#1A1612'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.borderColor = 'rgba(26,22,18,0.15)'; }}
+              >
+                Browse all studios →
+              </button>
+            </div>
           </div>
         )}
 

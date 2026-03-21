@@ -113,7 +113,7 @@ function StudioCard({ studio, onClick }) {
           <img
             src={imageUrl}
             alt={studio.studio_name}
-            loading="lazy"
+            loading='lazy'
             onError={() => setImgError(true)}
             style={{
               width: '100%', height: '100%', objectFit: 'cover', display: 'block',
@@ -240,6 +240,156 @@ function Chip({ label, active, onClick }) {
     >
       {label}
     </button>
+  );
+}
+
+
+// ─── Collapsible filter group ───────────────────────────────────────────────
+const VISIBLE_COUNT = 3;
+
+function FilterGroup({ label, options, activeValues, isAll, onAll, onToggle, isLast }) {
+  const [expanded, setExpanded] = useState(false);
+  const hiddenCount = Math.max(0, options.length - VISIBLE_COUNT);
+  const hasHiddenActive = activeValues.some(v => !options.slice(0, VISIBLE_COUNT).includes(v));
+
+  return (
+    <div style={{
+      position: 'relative',
+      borderRight: isLast ? 'none' : '1px solid var(--border)',
+      paddingRight: isLast ? 0 : 20,
+      marginRight: isLast ? 0 : 20,
+    }}>
+      {/* Single-line row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 52, flexShrink: 0 }}>
+        <span style={{
+          fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase',
+          color: 'var(--text3)', fontWeight: 600, whiteSpace: 'nowrap', marginRight: 2,
+        }}>
+          {label}
+        </span>
+
+        {/* All chip */}
+        <Chip label="All" active={isAll} onClick={onAll} />
+
+        {/* First VISIBLE_COUNT chips */}
+        {options.slice(0, VISIBLE_COUNT).map(opt => (
+          <Chip
+            key={opt}
+            label={opt}
+            active={activeValues.includes(opt)}
+            onClick={() => onToggle(opt)}
+          />
+        ))}
+
+        {/* +N more button */}
+        {hiddenCount > 0 && (
+          <button
+            onClick={() => setExpanded(e => !e)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '5px 12px', borderRadius: 100, border: '1.5px solid',
+              borderColor: expanded || hasHiddenActive ? '#C46E49' : 'rgba(26,22,18,0.15)',
+              background: expanded ? 'rgba(196,110,73,0.08)' : 'transparent',
+              color: expanded || hasHiddenActive ? '#C46E49' : 'var(--text3)',
+              fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 500,
+              cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.18s',
+            }}
+          >
+            {expanded ? 'Collapse ▲' : `+${hiddenCount} more${hasHiddenActive ? ' ●' : ''}`}
+          </button>
+        )}
+      </div>
+
+      {/* Expanded dropdown panel */}
+      {expanded && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 200,
+          background: 'var(--bg)', border: '1px solid var(--border)',
+          borderRadius: 12, padding: '16px 18px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+          display: 'flex', flexWrap: 'wrap', gap: 8,
+          maxWidth: 480, minWidth: 280,
+          animation: 'fadeDown 0.18s ease both',
+        }}>
+          {options.slice(VISIBLE_COUNT).map(opt => (
+            <Chip
+              key={opt}
+              label={opt}
+              active={activeValues.includes(opt)}
+              onClick={() => { onToggle(opt); }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Full filter bar ────────────────────────────────────────────────────────
+function FilterBar({ options, filters, setFilter, clearAll, totalVisible, hasAnyFilter }) {
+  return (
+    <>
+      <style>{`
+        @keyframes fadeDown {
+          from { opacity: 0; transform: translateY(-6px); }
+          to   { opacity: 1; transform: none; }
+        }
+      `}</style>
+      <nav style={{
+        background: 'var(--bg)', borderBottom: '1px solid var(--border)',
+        padding: '0 48px', position: 'sticky', top: 0, zIndex: 100,
+        display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0,
+      }}>
+        <FilterGroup
+          label="Craft"
+          options={options.crafts}
+          activeValues={filters.craft}
+          isAll={filters.craft.length === 0}
+          onAll={() => setFilter('craft', '')}
+          onToggle={v => setFilter('craft', v)}
+          isLast={false}
+        />
+        <FilterGroup
+          label="Fabric"
+          options={options.fabrics}
+          activeValues={filters.fabric}
+          isAll={filters.fabric.length === 0}
+          onAll={() => setFilter('fabric', '')}
+          onToggle={v => setFilter('fabric', v)}
+          isLast={false}
+        />
+        <FilterGroup
+          label="Product"
+          options={options.productTypes}
+          activeValues={filters.productType}
+          isAll={filters.productType.length === 0}
+          onAll={() => setFilter('productType', '')}
+          onToggle={v => setFilter('productType', v)}
+          isLast={true}
+        />
+
+        {/* Results count */}
+        <div style={{
+          marginLeft: 'auto', fontSize: 12, color: 'var(--text3)',
+          whiteSpace: 'nowrap', fontWeight: 300, paddingLeft: 20,
+          flexShrink: 0, alignSelf: 'center',
+        }}>
+          Showing <strong style={{ color: 'var(--text)', fontWeight: 500 }}>{totalVisible}</strong> studios
+          {hasAnyFilter && (
+            <button
+              onClick={clearAll}
+              style={{
+                marginLeft: 12, fontSize: 11, color: 'var(--gold)',
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontFamily: 'var(--font-body)', padding: 0, textDecoration: 'underline',
+              }}
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      </nav>
+    </>
   );
 }
 
@@ -426,75 +576,14 @@ export default function StudioDirectory() {
       </div>
 
       {/* ── STICKY FILTER BAR ───────────────────────────────────────────── */}
-      <nav className="dir-filter-zone" style={{
-        background: 'var(--bg)', borderBottom: '1px solid var(--border)',
-        padding: '0 48px', position: 'sticky', top: 0, zIndex: 100,
-        display: 'flex', alignItems: 'stretch', gap: 0,
-      }}>
-        {/* Craft filter */}
-        <div className="dir-filter-group" style={{
-          display: 'flex', alignItems: 'center', gap: 8, padding: '18px 0',
-          borderRight: '1px solid var(--border)',
-          paddingRight: 28, marginRight: 28, flexWrap: 'wrap',
-        }}>
-          <span style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text2)', fontWeight: 500, whiteSpace: 'nowrap' }}>
-            Craft
-          </span>
-          <Chip label="All" active={filters.craft.length === 0} onClick={() => setFilter('craft', '')} />
-          {options.crafts.map(c => (
-            <Chip key={c} label={c} active={filters.craft.includes(c)} onClick={() => setFilter('craft', c)} />
-          ))}
-        </div>
-
-        {/* Fabric filter */}
-        <div className="dir-filter-group" style={{
-          display: 'flex', alignItems: 'center', gap: 8, padding: '18px 0',
-          borderRight: '1px solid var(--border)',
-          paddingRight: 28, marginRight: 28, flexWrap: 'wrap',
-        }}>
-          <span style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text2)', fontWeight: 500, whiteSpace: 'nowrap' }}>
-            Fabric
-          </span>
-          <Chip label="All" active={filters.fabric.length === 0} onClick={() => setFilter('fabric', '')} />
-          {options.fabrics.slice(0, 8).map(f => (
-            <Chip key={f} label={f} active={filters.fabric.includes(f)} onClick={() => setFilter('fabric', f)} />
-          ))}
-        </div>
-
-        {/* Product type filter */}
-        <div className="dir-filter-group" style={{
-          display: 'flex', alignItems: 'center', gap: 8, padding: '18px 0',
-          flexWrap: 'wrap',
-        }}>
-          <span style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text2)', fontWeight: 500, whiteSpace: 'nowrap' }}>
-            Product
-          </span>
-          <Chip label="All" active={filters.productType.length === 0} onClick={() => setFilter('productType', '')} />
-          {options.productTypes.slice(0, 8).map(p => (
-            <Chip key={p} label={p} active={filters.productType.includes(p)} onClick={() => setFilter('productType', p)} />
-          ))}
-        </div>
-
-        {/* Results count */}
-        <div style={{
-          marginLeft: 'auto', fontSize: 12, color: 'var(--text3)',
-          alignSelf: 'center', whiteSpace: 'nowrap', fontWeight: 300, paddingLeft: 20,
-        }}>
-          Showing <strong style={{ color: 'var(--text)', fontWeight: 500 }}>{totalVisible}</strong> studios
-          {hasAnyFilter && (
-            <button
-              onClick={clearAll}
-              style={{
-                marginLeft: 12, fontSize: 11, color: 'var(--gold)',
-                background: 'none', border: 'none', cursor: 'pointer',
-                fontFamily: 'var(--font-body)', padding: 0, textDecoration: 'underline',
-              }}
-            >
-              Clear filters
-            </button>
-          )}
-        </div>
-      </nav>
+      <FilterBar
+        options={options}
+        filters={filters}
+        setFilter={setFilter}
+        clearAll={clearAll}
+        totalVisible={totalVisible}
+        hasAnyFilter={hasAnyFilter}
+      />
 
       {/* ── MAIN CONTENT ─────────────────────────────────────────────────── */}
       <main style={{ padding: '40px 48px 80px', maxWidth: 1400, margin: '0 auto' }}>
