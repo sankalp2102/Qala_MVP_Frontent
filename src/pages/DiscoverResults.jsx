@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { discoveryAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -24,8 +24,182 @@ const PencilIcon = () => (
   </svg>
 );
 
+// ─── DatePicker component ───────────────────────────────────────────────────
+function DatePicker({ selectedDates, setSelectedDates }) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const [viewYear, setViewYear] = React.useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = React.useState(today.getMonth());
+  const [open, setOpen] = React.useState(false);
+
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const dayNames = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+  // Build calendar grid
+  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const toKey = (y, m, d) => `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+
+  const handleDayClick = (day) => {
+    if (!day) return;
+    const clickedKey = toKey(viewYear, viewMonth, day);
+    const clickedDate = new Date(viewYear, viewMonth, day);
+
+    if (selectedDates.includes(clickedKey)) {
+      // Deselect this date
+      setSelectedDates(selectedDates.filter(d => d !== clickedKey));
+    } else if (selectedDates.length === 0) {
+      // First selection ever — auto-select clicked + next 2 days
+      const toAdd = [clickedKey];
+      for (let i = 1; i <= 2; i++) {
+        const next = new Date(clickedDate);
+        next.setDate(next.getDate() + i);
+        toAdd.push(toKey(next.getFullYear(), next.getMonth(), next.getDate()));
+      }
+      setSelectedDates(toAdd.sort());
+    } else {
+      // Subsequent selection — add just this one date
+      setSelectedDates([...selectedDates, clickedKey].sort());
+    }
+  };
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
+    else setViewMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
+    else setViewMonth(m => m + 1);
+  };
+
+  const formatSelected = (key) => {
+    const [y, m, d] = key.split('-');
+    return new Date(y, m-1, d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  };
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <label style={{ display: 'block', fontSize: 12, color: 'var(--text3)', marginBottom: 6, fontWeight: 500 }}>
+        Preferred dates <span style={{ fontWeight: 400, color: 'var(--text4)' }}>(optional)</span>
+      </label>
+
+      {/* Trigger button */}
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%', padding: '9px 12px', borderRadius: 8,
+          border: '1px solid var(--border2)', background: 'var(--bg)',
+          fontFamily: 'var(--font-body)', fontSize: 13, color: selectedDates.length ? 'var(--text)' : 'var(--text4)',
+          cursor: 'pointer', textAlign: 'left',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}
+      >
+        <span>
+          {selectedDates.length === 0
+            ? 'Select dates…'
+            : selectedDates.map(formatSelected).join('  ·  ')}
+        </span>
+        <span style={{ fontSize: 10, color: 'var(--text4)' }}>{open ? '▲' : '▼'}</span>
+      </button>
+
+      {/* Selected chips */}
+      {selectedDates.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+          {selectedDates.map(key => (
+            <span key={key} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              padding: '3px 10px', borderRadius: 20,
+              background: 'rgba(196,110,73,0.1)', border: '1px solid rgba(196,110,73,0.25)',
+              fontSize: 12, color: 'var(--text2)',
+            }}>
+              {formatSelected(key)}
+              <button
+                type="button"
+                onClick={() => setSelectedDates(selectedDates.filter(d => d !== key))}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text4)', fontSize: 13, padding: 0, lineHeight: 1, display: 'flex', alignItems: 'center' }}
+              >×</button>
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={() => setSelectedDates([])}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text4)', fontSize: 11, padding: '3px 6px', fontFamily: 'var(--font-body)' }}
+          >Clear all</button>
+        </div>
+      )}
+
+      {/* Calendar dropdown */}
+      {open && (
+        <div style={{
+          position: 'absolute', zIndex: 50, top: 'calc(100% + 8px)', left: 0,
+          background: 'var(--surface)', border: '1px solid var(--border2)',
+          borderRadius: 12, padding: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+          minWidth: 280,
+        }}>
+          {/* Month nav */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <button type="button" onClick={prevMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--text2)', padding: '2px 8px' }}>‹</button>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-body)' }}>
+              {monthNames[viewMonth]} {viewYear}
+            </span>
+            <button type="button" onClick={nextMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--text2)', padding: '2px 8px' }}>›</button>
+          </div>
+
+          {/* Day names */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: 4 }}>
+            {dayNames.map(d => (
+              <div key={d} style={{ textAlign: 'center', fontSize: 10, color: 'var(--text4)', fontWeight: 600, padding: '2px 0', letterSpacing: '0.05em' }}>{d}</div>
+            ))}
+          </div>
+
+          {/* Day cells */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+            {cells.map((day, idx) => {
+              if (!day) return <div key={idx} />;
+              const key = toKey(viewYear, viewMonth, day);
+              const isSelected = selectedDates.includes(key);
+              const isPast = new Date(viewYear, viewMonth, day) < today;
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => !isPast && handleDayClick(day)}
+                  style={{
+                    width: '100%', aspectRatio: '1', borderRadius: 6, border: 'none',
+                    background: isSelected ? '#C46E49' : 'transparent',
+                    color: isPast ? 'var(--text4)' : isSelected ? '#fff' : 'var(--text)',
+                    cursor: isPast ? 'default' : 'pointer',
+                    fontSize: 13, fontFamily: 'var(--font-body)',
+                    opacity: isPast ? 0.35 : 1,
+                    fontWeight: isSelected ? 600 : 400,
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={e => { if (!isPast && !isSelected) e.currentTarget.style.background = 'rgba(196,110,73,0.12)'; }}
+                  onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
+
+          <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 10, marginBottom: 0, lineHeight: 1.5 }}>
+            Click a date to select it + next 2 days. Click again to deselect.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Shared inquiry form ────────────────────────────────────────────────────
-function InquiryForm({ name, setName, email, setEmail, dateFrom, setDateFrom, dateTo, setDateTo, message, setMessage, error, submitting, onSubmit, onCancel }) {
+function InquiryForm({ name, setName, email, setEmail, selectedDates, setSelectedDates, message, setMessage, error, submitting, onSubmit, onCancel }) {
   return (
     <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeUp 0.3s ease both', textAlign: 'left' }}>
       <div style={{ display: 'flex', gap: 12 }}>
@@ -38,23 +212,7 @@ function InquiryForm({ name, setName, email, setEmail, dateFrom, setDateFrom, da
           <input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required />
         </div>
       </div>
-      <div>
-        <label style={{ display: 'block', fontSize: 12, color: 'var(--text3)', marginBottom: 6, fontWeight: 500 }}>
-          Please let us know if you have preferred dates
-        </label>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <div className="field" style={{ flex: 1, marginBottom: 0 }}>
-            <label style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>From</label>
-            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ fontFamily: 'var(--font-body)', width: '100%' }} />
-          </div>
-          <span style={{ color: 'var(--text4)', fontSize: 13, marginTop: 18 }}>–</span>
-          <div className="field" style={{ flex: 1, marginBottom: 0 }}>
-            <label style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>To <span style={{ fontWeight: 400, textTransform: 'none' }}>(optional)</span></label>
-            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} min={dateFrom || undefined} style={{ fontFamily: 'var(--font-body)', width: '100%' }} />
-          </div>
-        </div>
-        <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 4, marginBottom: 0 }}>Pick a single date or select both for a range</p>
-      </div>
+      <DatePicker selectedDates={selectedDates} setSelectedDates={setSelectedDates} />
       <div className="field">
         <label>Additional comments</label>
         <textarea placeholder="Tell us about your project — fabric preferences, craft, quantity, timeline, design stage, anything that helps..." value={message} onChange={e => setMessage(e.target.value)} style={{ minHeight: 100, resize: 'vertical' }} />
@@ -141,8 +299,7 @@ export default function DiscoverResults() {
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [inquiryName, setInquiryName] = useState('');
   const [inquiryEmail, setInquiryEmail] = useState('');
-  const [inquiryDateFrom, setInquiryDateFrom] = useState('');
-  const [inquiryDateTo, setInquiryDateTo] = useState('');
+  const [inquiryDates, setInquiryDates] = useState([]);
   const [inquiryMessage, setInquiryMessage] = useState('');
   const [inquirySubmitting, setInquirySubmitting] = useState(false);
   const [inquiryDone, setInquiryDone] = useState(false);
@@ -168,9 +325,9 @@ export default function DiscoverResults() {
     setInquirySubmitting(true);
     try {
       const tok = discoveryAPI.getStoredSession();
-      let dateLine = '';
-      if (inquiryDateFrom && inquiryDateTo) dateLine = `\nPreferred dates: ${inquiryDateFrom} to ${inquiryDateTo}`;
-      else if (inquiryDateFrom) dateLine = `\nPreferred date: ${inquiryDateFrom}`;
+      const dateLine = inquiryDates.length > 0
+        ? '\nPreferred dates: ' + inquiryDates.map(d => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })).join(', ')
+        : '';
       const fullMessage = [inquiryMessage, dateLine].filter(Boolean).join('');
       await discoveryAPI.submitCustomInquiry({ name: inquiryName, email: inquiryEmail, message: fullMessage, session_token: tok || '' });
       setInquiryDone(true);
@@ -238,7 +395,7 @@ export default function DiscoverResults() {
 
   // ── Render ──
   return (
-    <div style={{ height: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
       <style>{`
         @keyframes fadeUp { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: none } }
         @keyframes spin   { to { transform: rotate(360deg) } }
@@ -350,8 +507,7 @@ export default function DiscoverResults() {
             <InquiryForm
               name={inquiryName} setName={setInquiryName}
               email={inquiryEmail} setEmail={setInquiryEmail}
-              dateFrom={inquiryDateFrom} setDateFrom={setInquiryDateFrom}
-              dateTo={inquiryDateTo} setDateTo={setInquiryDateTo}
+              selectedDates={inquiryDates} setSelectedDates={setInquiryDates}
               message={inquiryMessage} setMessage={setInquiryMessage}
               error={inquiryError} submitting={inquirySubmitting}
               onSubmit={submitInquiry}
@@ -362,7 +518,7 @@ export default function DiscoverResults() {
       )}
 
       {/* ── Body — heading + carousel fills remaining height ──────────── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
 
         {/* Subheading — compact, below header */}
         {recs.length > 0 && (
@@ -573,8 +729,7 @@ export default function DiscoverResults() {
                 <InquiryForm
                   name={inquiryName} setName={setInquiryName}
                   email={inquiryEmail} setEmail={setInquiryEmail}
-                  dateFrom={inquiryDateFrom} setDateFrom={setInquiryDateFrom}
-                  dateTo={inquiryDateTo} setDateTo={setInquiryDateTo}
+                  selectedDates={inquiryDates} setSelectedDates={setInquiryDates}
                   message={inquiryMessage} setMessage={setInquiryMessage}
                   error={inquiryError} submitting={inquirySubmitting}
                   onSubmit={submitInquiry}
