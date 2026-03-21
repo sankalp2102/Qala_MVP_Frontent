@@ -796,13 +796,13 @@ export default function DiscoverResults() {
         <div style={{ borderTop: '1px solid var(--border)', padding: '48px 60px 64px', flexShrink: 0 }}>
           <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
             <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>
-              Not finding what you need?
+              Want to talk it through?
             </div>
             <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px, 2.5vw, 32px)', fontWeight: 400, color: 'var(--text)', marginBottom: 10, letterSpacing: '-0.01em' }}>
-              Tell us directly — we'll find the right studio for you.
+              Schedule a call with our sourcing team.
             </h3>
             <p style={{ fontSize: 14, color: 'var(--text3)', lineHeight: 1.7, marginBottom: 28 }}>
-              Describe what you're looking for and our team will reach out personally with hand-picked options.
+              We'll walk through your project together and help you find the studio that's the right fit for your vision.
             </p>
 
             {!inquiryOpen && !inquiryDone && (
