@@ -138,7 +138,7 @@ function Gallery({ images }) {
             style={{ cursor: 'pointer', overflow: 'hidden', position: 'relative', height: 148 }}
             onClick={() => setLb(i + 1)}
           >
-            <img src={img.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.4s ease' }}
+            <img src={img.url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.4s ease' }}
               onMouseEnter={e => e.target.style.transform = 'scale(1.06)'}
               onMouseLeave={e => e.target.style.transform = 'scale(1)'}
             />
@@ -332,6 +332,7 @@ function CraftCarousel({ crafts }) {
               key={imageUrl}
               src={imageUrl}
               alt={c.craft_name}
+              loading="lazy"
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'opacity 0.3s ease' }}
             />
           ) : (
@@ -754,7 +755,7 @@ export default function StudioProfile() {
               <Section title="Inside Our Studio">
                 <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8 }}>
                   {s.bts_images.slice(0, 8).map((img, i) => (
-                    <img key={i} src={img.url} alt=""
+                    <img key={i} src={img.url} alt="" loading="lazy"
                       onClick={() => { setBtsStartIndex(i); setBtsLightboxOpen(true); }}
                       style={{ width: 140, height: 100, objectFit: 'cover', borderRadius: 8, flexShrink: 0, cursor: 'pointer', transition: 'transform 0.2s' }}
                       onMouseEnter={e => e.target.style.transform = 'scale(1.03)'}

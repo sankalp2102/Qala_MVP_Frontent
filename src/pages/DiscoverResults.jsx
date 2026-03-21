@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { discoveryAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -6,24 +6,147 @@ import RecommendationCard from '../components/discovery/RecommendationCard';
 import AuthGateModal from '../components/AuthGateModal';
 import qalaLogo from '../assets/qala-logo.png';
 
+// ─── Calendar icon ──────────────────────────────────────────────────────────
+const CalendarIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+);
+
+// ─── Pencil icon ────────────────────────────────────────────────────────────
+const PencilIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+  </svg>
+);
+
+// ─── Shared inquiry form ────────────────────────────────────────────────────
+function InquiryForm({ name, setName, email, setEmail, dateFrom, setDateFrom, dateTo, setDateTo, message, setMessage, error, submitting, onSubmit, onCancel }) {
+  return (
+    <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeUp 0.3s ease both', textAlign: 'left' }}>
+      <div style={{ display: 'flex', gap: 12 }}>
+        <div className="field" style={{ flex: 1 }}>
+          <label>First name</label>
+          <input type="text" placeholder="Your name" value={name} onChange={e => setName(e.target.value)} required />
+        </div>
+        <div className="field" style={{ flex: 1 }}>
+          <label>Email</label>
+          <input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required />
+        </div>
+      </div>
+      <div>
+        <label style={{ display: 'block', fontSize: 12, color: 'var(--text3)', marginBottom: 6, fontWeight: 500 }}>
+          Please let us know if you have preferred dates
+        </label>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <div className="field" style={{ flex: 1, marginBottom: 0 }}>
+            <label style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>From</label>
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ fontFamily: 'var(--font-body)', width: '100%' }} />
+          </div>
+          <span style={{ color: 'var(--text4)', fontSize: 13, marginTop: 18 }}>–</span>
+          <div className="field" style={{ flex: 1, marginBottom: 0 }}>
+            <label style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>To <span style={{ fontWeight: 400, textTransform: 'none' }}>(optional)</span></label>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} min={dateFrom || undefined} style={{ fontFamily: 'var(--font-body)', width: '100%' }} />
+          </div>
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 4, marginBottom: 0 }}>Pick a single date or select both for a range</p>
+      </div>
+      <div className="field">
+        <label>Additional comments</label>
+        <textarea placeholder="Tell us about your project — fabric preferences, craft, quantity, timeline, design stage, anything that helps..." value={message} onChange={e => setMessage(e.target.value)} style={{ minHeight: 100, resize: 'vertical' }} />
+      </div>
+      {error && (
+        <div style={{ padding: '10px 14px', fontSize: 13, color: 'var(--red)', background: 'var(--red-dim)', border: '1px solid rgba(255,85,85,0.3)', borderLeft: '3px solid var(--red)', borderRadius: 8 }}>
+          {error}
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <button type="submit" disabled={submitting} style={{
+          padding: '11px 28px', background: submitting ? 'var(--surface3)' : '#1A1612',
+          color: submitting ? 'var(--text4)' : '#F5F0E8', border: 'none', borderRadius: 8,
+          fontSize: 13, fontWeight: 500, cursor: submitting ? 'default' : 'pointer',
+          fontFamily: 'var(--font-body)', transition: 'background 0.18s ease',
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}
+          onMouseEnter={e => { if (!submitting) e.target.style.background = '#C46E49'; }}
+          onMouseLeave={e => { if (!submitting) e.target.style.background = '#1A1612'; }}
+        >
+          {submitting && <span className="spinner" style={{ width: 14, height: 14, borderColor: 'var(--surface4)', borderTopColor: '#555' }} />}
+          {submitting ? 'Sending…' : 'Send to Qala team →'}
+        </button>
+        {onCancel && (
+          <button type="button" onClick={onCancel} style={{ padding: '11px 18px', background: 'none', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text3)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Cancel</button>
+        )}
+      </div>
+      <p style={{ fontSize: 11, color: 'var(--text4)', lineHeight: 1.6, margin: 0 }}>Your questionnaire answers will be shared with the Qala team automatically.</p>
+    </form>
+  );
+}
+
+// ─── Directory CTA card ─────────────────────────────────────────────────────
+function DirectoryCTACard({ onNavigate }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16,
+        overflow: 'hidden', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', height: '100%',
+        textAlign: 'center', padding: '48px 36px',
+        transition: 'border-color 0.2s',
+        borderColor: hovered ? 'var(--border3)' : 'var(--border)',
+      }}
+    >
+      <div style={{ fontSize: 40, marginBottom: 20, opacity: 0.3 }}>🏛</div>
+      <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10 }}>
+        Want to explore more?
+      </div>
+      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px, 2.5vw, 30px)', fontWeight: 300, color: 'var(--text)', lineHeight: 1.2, marginBottom: 10, letterSpacing: '-0.01em' }}>
+        Browse the full <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>Studio Directory</em>
+      </h3>
+      <p style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.7, maxWidth: 320, marginBottom: 28 }}>
+        Explore every studio on Qala — filter by craft, fabric, and product type at your own pace.
+      </p>
+      <button onClick={onNavigate} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 28px', borderRadius: 8,
+        background: '#1A1612', color: '#F5F0E8', border: 'none', fontSize: 13, fontWeight: 500,
+        fontFamily: 'var(--font-body)', letterSpacing: '0.04em', cursor: 'pointer', transition: 'background 0.18s ease',
+      }}
+        onMouseEnter={e => e.currentTarget.style.background = '#C46E49'}
+        onMouseLeave={e => e.currentTarget.style.background = '#1A1612'}
+      >Browse all studios →</button>
+    </div>
+  );
+}
+
+// ─── Main page ──────────────────────────────────────────────────────────────
 export default function DiscoverResults() {
   const nav = useNavigate();
   const { user } = useAuth();
-  const [data,     setData]    = useState(null);
-  const [loading,  setLoading] = useState(true);
-  const [error,    setError]   = useState('');
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [authGate, setAuthGate] = useState(null);
   const [applying, setApplying] = useState(null);
   const carouselRef = useRef();
+  const [activeCard, setActiveCard] = useState(0);
 
-  // Custom inquiry form state
-  const [inquiryOpen,       setInquiryOpen]       = useState(false);
-  const [inquiryName,       setInquiryName]       = useState('');
-  const [inquiryEmail,      setInquiryEmail]      = useState('');
-  const [inquiryMessage,    setInquiryMessage]    = useState('');
+  const [headerInquiryOpen, setHeaderInquiryOpen] = useState(false);
+  const [inquiryOpen, setInquiryOpen] = useState(false);
+  const [inquiryName, setInquiryName] = useState('');
+  const [inquiryEmail, setInquiryEmail] = useState('');
+  const [inquiryDateFrom, setInquiryDateFrom] = useState('');
+  const [inquiryDateTo, setInquiryDateTo] = useState('');
+  const [inquiryMessage, setInquiryMessage] = useState('');
   const [inquirySubmitting, setInquirySubmitting] = useState(false);
-  const [inquiryDone,       setInquiryDone]       = useState(false);
-  const [inquiryError,      setInquiryError]      = useState('');
+  const [inquiryDone, setInquiryDone] = useState(false);
+  const [inquiryError, setInquiryError] = useState('');
 
   const load = async () => {
     const tok = discoveryAPI.getStoredSession();
@@ -45,18 +168,17 @@ export default function DiscoverResults() {
     setInquirySubmitting(true);
     try {
       const tok = discoveryAPI.getStoredSession();
-      await discoveryAPI.submitCustomInquiry({
-        name:          inquiryName,
-        email:         inquiryEmail,
-        message:       inquiryMessage,
-        session_token: tok || '',
-      });
+      let dateLine = '';
+      if (inquiryDateFrom && inquiryDateTo) dateLine = `\nPreferred dates: ${inquiryDateFrom} to ${inquiryDateTo}`;
+      else if (inquiryDateFrom) dateLine = `\nPreferred date: ${inquiryDateFrom}`;
+      const fullMessage = [inquiryMessage, dateLine].filter(Boolean).join('');
+      await discoveryAPI.submitCustomInquiry({ name: inquiryName, email: inquiryEmail, message: fullMessage, session_token: tok || '' });
       setInquiryDone(true);
+      setHeaderInquiryOpen(false);
+      setInquiryOpen(false);
     } catch {
       setInquiryError('Something went wrong. Please try again.');
-    } finally {
-      setInquirySubmitting(false);
-    }
+    } finally { setInquirySubmitting(false); }
   };
 
   const applySuggestion = async suggestion => {
@@ -64,317 +186,333 @@ export default function DiscoverResults() {
     if (!tok) return;
     setApplying(suggestion.change_type);
     try {
-      const r = await discoveryAPI.editRecommendations(tok, {
-        apply_suggestion: suggestion.apply_patch,
-      });
+      const r = await discoveryAPI.editRecommendations(tok, { apply_suggestion: suggestion.apply_patch });
       setData(r.data);
     } catch {} finally { setApplying(null); }
   };
 
   const handleContact = studio => {
-    if (user) {
-      nav('/studio/' + studio.studio_id);
-    } else {
-      setAuthGate({ studio });
+    if (user) nav('/studio/' + studio.studio_id);
+    else setAuthGate({ studio });
+  };
+
+  const recs = data?.recommendations || [];
+  const bonus = data?.bonus_visual_matches || [];
+  const suggs = data?.zero_match_suggestions || [];
+  const summary = data?.buyer_summary || {};
+  const totalCards = recs.length > 0 ? recs.length + 1 : 0;
+
+  const scrollToCard = useCallback((index) => {
+    if (!carouselRef.current || totalCards === 0) return;
+    const clamped = Math.max(0, Math.min(index, totalCards - 1));
+    setActiveCard(clamped);
+    const card = carouselRef.current.children[clamped];
+    if (card) {
+      const scrollLeft = card.offsetLeft - (carouselRef.current.offsetWidth - card.offsetWidth) / 2;
+      carouselRef.current.scrollTo({ left: scrollLeft, behavior: 'smooth' });
     }
-  };
+  }, [totalCards]);
 
-  const scroll = dir => {
-    if (!carouselRef.current) return;
-    carouselRef.current.scrollBy({ left: dir * 380, behavior: 'smooth' });
-  };
-
-  // ── Loading ──────────────────────────────────────────────────────────────
+  // ── Loading ──
   if (loading) return (
-    <div style={{
-      minHeight: '100vh', background: 'var(--bg)',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center', gap: 16,
-    }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
       <div style={{ position: 'relative', width: 60, height: 60 }}>
-        <div style={{
-          position: 'absolute', inset: 0, borderRadius: '50%',
-          border: '1px solid rgba(196,110,73,0.15)',
-          animation: 'spin 2s linear infinite',
-        }} />
-        <div style={{
-          position: 'absolute', inset: 8, borderRadius: '50%',
-          border: '1px solid rgba(196,110,73,0.25)',
-          animation: 'spin 1.4s linear infinite reverse',
-        }} />
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
+        <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid rgba(196,110,73,0.15)', animation: 'spin 2s linear infinite' }} />
+        <div style={{ position: 'absolute', inset: 8, borderRadius: '50%', border: '1px solid rgba(196,110,73,0.25)', animation: 'spin 1.4s linear infinite reverse' }} />
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <img src={qalaLogo} alt="Qala" style={{ height: 22, width: 'auto' }} />
         </div>
       </div>
-      <div style={{ fontSize: 13, color: 'var(--text3)', letterSpacing: '0.06em' }}>
-        Finding your studios…
-      </div>
+      <div style={{ fontSize: 13, color: 'var(--text3)', letterSpacing: '0.06em' }}>Finding your studios…</div>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   );
 
-  // ── Error ────────────────────────────────────────────────────────────────
+  // ── Error ──
   if (error) return (
-    <div style={{
-      minHeight: '100vh', background: 'var(--bg)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      flexDirection: 'column', gap: 16,
-    }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
       <div style={{ fontSize: 13, color: 'var(--red)' }}>{error}</div>
       <button onClick={load} className="btn btn-ghost btn-sm">Try again</button>
     </div>
   );
 
-  const recs    = data?.recommendations       || [];
-  const bonus   = data?.bonus_visual_matches  || [];
-  const suggs   = data?.zero_match_suggestions || [];
-  const summary = data?.buyer_summary         || {};
-
+  // ── Render ──
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+    <div style={{ height: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <style>{`
         @keyframes fadeUp { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: none } }
         @keyframes spin   { to { transform: rotate(360deg) } }
-        .fade-in          { animation: fadeUp 0.5s ease both; }
-        .sugg-chip:hover  { border-color: rgba(196,110,73,0.5) !important; background: rgba(196,110,73,0.05) !important; }
-        .scroll-btn:hover { background: rgba(196,110,73,0.1) !important; }
-        .back-btn:hover   { color: var(--text) !important; }
-        .inquiry-btn:hover { background: #1A1612 !important; color: #F5F0E8 !important; border-color: #1A1612 !important; }
+        .fade-in { animation: fadeUp 0.5s ease both; }
+        .sugg-chip:hover { border-color: rgba(196,110,73,0.5) !important; background: rgba(196,110,73,0.05) !important; }
+        .help-btn:hover { background: #C46E49 !important; }
+        .carousel-arrow:hover:not(:disabled) { background: rgba(26,22,18,0.06) !important; border-color: var(--border3) !important; }
+        .carousel-scroll::-webkit-scrollbar { display: none; }
+        .pencil-btn:hover { color: #C46E49 !important; }
       `}</style>
 
-      {/* ── Top bar ─────────────────────────────────────────────────────── */}
+      {/* ── Header ─────────────────────────────────────────────────────── */}
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '20px 40px', borderBottom: '1px solid var(--border)',
-        position: 'sticky', top: 0, background: 'rgba(248,245,241,0.95)',
-        backdropFilter: 'blur(12px)', zIndex: 20,
+        display: 'grid',
+        gridTemplateColumns: '1fr auto 1fr',
+        alignItems: 'center',
+        padding: '0 24px',
+        height: 64,
+        borderBottom: '1px solid var(--border)',
+        background: 'rgba(248,245,241,0.97)',
+        backdropFilter: 'blur(12px)',
+        zIndex: 20,
+        flexShrink: 0,
       }}>
-        <button
-          className="back-btn"
-          onClick={() => nav('/discover')}
-          style={{
-            background: 'none', border: 'none', color: 'var(--text3)',
-            fontSize: 13, cursor: 'pointer', letterSpacing: '0.06em',
-            display: 'flex', alignItems: 'center', gap: 6,
-            fontFamily: 'var(--font-body)', transition: 'color 0.2s',
-          }}
-        >← Edit answers</button>
+        {/* Left — logo */}
+        <div>
+          <img
+            src={qalaLogo}
+            alt="Qala"
+            style={{ height: 32, width: 'auto', cursor: 'pointer', display: 'block' }}
+            onClick={() => nav('/')}
+          />
+        </div>
 
-        <img src={qalaLogo} alt="Qala" style={{ height: 36, width: 'auto', display: 'block' }} />
+        {/* Center — search pill + pencil */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, justifyContent: 'center' }}>
+          {summary.display ? (
+            <>
+              <span style={{
+                fontSize: 'clamp(13px, 1.4vw, 17px)',
+                fontWeight: 600,
+                color: 'var(--text)',
+                fontFamily: 'var(--font-body)',
+                letterSpacing: '-0.01em',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '50vw',
+              }}>
+                {summary.display}
+              </span>
+              <button
+                className="pencil-btn"
+                onClick={() => nav('/discover')}
+                title="Edit search"
+                style={{
+                  background: 'none', border: 'none', padding: '3px 5px',
+                  cursor: 'pointer', color: 'var(--text3)',
+                  display: 'flex', alignItems: 'center',
+                  transition: 'color 0.2s', flexShrink: 0,
+                }}
+              >
+                <PencilIcon />
+              </button>
+            </>
+          ) : (
+            <span style={{ fontSize: 13, color: 'var(--text3)', fontFamily: 'var(--font-body)' }}>
+              Studio matches
+            </span>
+          )}
+        </div>
 
-        <button
-          onClick={() => { discoveryAPI.clearSession(); nav('/discover'); }}
-          style={{
-            background: 'none', border: '1px solid var(--border)',
-            color: 'var(--text3)', fontSize: 11, cursor: 'pointer',
-            padding: '6px 14px', borderRadius: 6, letterSpacing: '0.06em',
-            fontFamily: 'var(--font-body)',
-          }}
-        >Start over</button>
+        {/* Right — Help Me Decide */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button className="help-btn" onClick={() => setHeaderInquiryOpen(true)} style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '9px 20px', borderRadius: 8, background: '#1A1612', color: '#F5F0E8',
+            border: 'none', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-body)',
+            letterSpacing: '0.03em', cursor: 'pointer', transition: 'background 0.2s',
+            whiteSpace: 'nowrap',
+          }}>
+            <CalendarIcon /> Help Me Decide
+          </button>
+        </div>
       </div>
 
-      {/* ── Main content ────────────────────────────────────────────────── */}
-      <div style={{ padding: '0 0 100px' }}>
-
-        {/* Buyer summary strip */}
-        {summary.display && (
-          <div
-            className="fade-in"
-            style={{
-              marginTop: 40, marginLeft: 60, marginRight: 60, padding: '16px 24px',
-              background: 'var(--surface)', border: '1px solid var(--border)',
-              borderRadius: 12, display: 'flex', alignItems: 'center',
-              justifyContent: 'space-between', flexWrap: 'wrap', gap: 12,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{
-                width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                background: recs.length > 0 ? 'var(--green)' : 'var(--amber)',
-              }} />
-              <div>
-                <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>
-                  Your search
-                </div>
-                <div style={{ fontSize: 14, color: 'var(--text2)', fontWeight: 500 }}>
-                  {summary.display}
-                </div>
-              </div>
+      {/* ── Help Me Decide modal ───────────────────────────────────────── */}
+      {headerInquiryOpen && !inquiryDone && (
+        <div
+          onClick={() => setHeaderInquiryOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 100,
+            background: 'rgba(15,10,8,0.5)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+            animation: 'fadeUp 0.2s ease both',
+          }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 520, background: 'var(--surface)', borderRadius: 16,
+            border: '1px solid var(--border)', padding: '32px 28px 8px',
+            boxShadow: '0 24px 80px rgba(0,0,0,0.2)',
+          }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 400, color: 'var(--text)', marginBottom: 6, textAlign: 'center' }}>
+              Help Me Decide
             </div>
-            <button
-              onClick={() => nav('/discover')}
-              style={{
-                background: 'none', border: '1px solid var(--border2)',
-                color: 'var(--text3)', fontSize: 12, cursor: 'pointer',
-                padding: '6px 16px', borderRadius: 6, fontFamily: 'var(--font-body)',
-              }}
-            >Edit →</button>
+            <p style={{ fontSize: 13, color: 'var(--text3)', textAlign: 'center', marginBottom: 20, lineHeight: 1.6 }}>
+              Share your details and our team will reach out with hand-picked options.
+            </p>
+            <InquiryForm
+              name={inquiryName} setName={setInquiryName}
+              email={inquiryEmail} setEmail={setInquiryEmail}
+              dateFrom={inquiryDateFrom} setDateFrom={setInquiryDateFrom}
+              dateTo={inquiryDateTo} setDateTo={setInquiryDateTo}
+              message={inquiryMessage} setMessage={setInquiryMessage}
+              error={inquiryError} submitting={inquirySubmitting}
+              onSubmit={submitInquiry}
+              onCancel={() => { setHeaderInquiryOpen(false); setInquiryError(''); }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── Body — heading + carousel fills remaining height ──────────── */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+
+        {/* Subheading — compact, below header */}
+        {recs.length > 0 && (
+          <div className="fade-in" style={{ textAlign: 'center', padding: '16px 40px 10px', flexShrink: 0 }}>
+            <p style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'clamp(16px, 1.8vw, 22px)',
+              fontWeight: 400, color: 'var(--text2)',
+              letterSpacing: '-0.01em', lineHeight: 1.3,
+              margin: 0,
+            }}>
+              Based on what you've shared, here are studios that could be right for you
+            </p>
           </div>
         )}
 
-        {/* Zero match state */}
+        {/* Zero match */}
         {data?.zero_match && recs.length === 0 && (
-          <div className="fade-in" style={{ marginTop: 48, textAlign: 'center', padding: '0 60px' }}>
-            <div style={{ fontSize: 40, marginBottom: 20 }}>🔍</div>
-            <h2 style={{
-              fontFamily: 'var(--font-display)', fontSize: 32,
-              fontWeight: 400, color: 'var(--text)', marginBottom: 12,
-            }}>
+          <div className="fade-in" style={{ textAlign: 'center', padding: '40px 60px 24px', flexShrink: 0 }}>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(20px, 2.5vw, 30px)', fontWeight: 400, color: 'var(--text)', marginBottom: 12 }}>
               No exact matches found
             </h2>
-            <p style={{ fontSize: 14, color: 'var(--text3)', maxWidth: 480, margin: '0 auto 40px', lineHeight: 1.7 }}>
-              Your combination is quite specific. Try adjusting one of these to unlock matching studios:
+            <p style={{ fontSize: 14, color: 'var(--text3)', maxWidth: 480, margin: '0 auto 28px', lineHeight: 1.7 }}>
+              Your combination is quite specific. Try adjusting one of these:
             </p>
             {suggs.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginBottom: 28 }}>
                 {suggs.map((s, i) => (
-                  <button
-                    key={i}
-                    className="sugg-chip"
-                    onClick={() => applySuggestion(s)}
-                    disabled={applying === s.change_type}
-                    style={{
-                      padding: '12px 20px', borderRadius: 24,
-                      border: '1px solid var(--border2)',
-                      background: 'rgba(255,255,255,0.8)', cursor: 'pointer',
-                      fontFamily: 'var(--font-body)', transition: 'all 0.15s',
-                      display: 'flex', alignItems: 'center', gap: 10,
-                    }}
-                  >
-                    {applying === s.change_type && (
-                      <span className="spinner" style={{ width: 12, height: 12 }} />
-                    )}
+                  <button key={i} className="sugg-chip" onClick={() => applySuggestion(s)} disabled={applying === s.change_type} style={{
+                    padding: '12px 20px', borderRadius: 24, border: '1px solid var(--border2)',
+                    background: 'rgba(255,255,255,0.8)', cursor: 'pointer', fontFamily: 'var(--font-body)',
+                    transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 10,
+                  }}>
+                    {applying === s.change_type && <span className="spinner" style={{ width: 12, height: 12 }} />}
                     <div style={{ textAlign: 'left' }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{s.message}</div>
-                      {s.studios_count > 0 && (
-                        <div style={{ fontSize: 11, color: 'var(--green)', marginTop: 2 }}>
-                          {s.studios_count} studio{s.studios_count !== 1 ? 's' : ''} available
-                        </div>
-                      )}
+                      {s.studios_count > 0 && <div style={{ fontSize: 11, color: 'var(--green)', marginTop: 2 }}>{s.studios_count} studio{s.studios_count !== 1 ? 's' : ''} available</div>}
                     </div>
                   </button>
                 ))}
               </div>
             )}
+            <button onClick={() => nav('/directory')} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 28px', borderRadius: 8,
+              background: '#1A1612', color: '#F5F0E8', border: 'none', fontSize: 13, fontWeight: 500,
+              fontFamily: 'var(--font-body)', letterSpacing: '0.04em', cursor: 'pointer', transition: 'background 0.18s ease',
+            }}
+              onMouseEnter={e => e.currentTarget.style.background = '#C46E49'}
+              onMouseLeave={e => e.currentTarget.style.background = '#1A1612'}
+            >Browse all studios →</button>
           </div>
         )}
 
-        {/* Main recommendations */}
+        {/* ── Carousel ────────────────────────────────────────────────── */}
         {recs.length > 0 && (
-          <div className="fade-in" style={{ marginTop: 52 }}>
-            <div style={{ textAlign: 'center', marginBottom: 28, padding: '0 60px' }}>
-              <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8, fontWeight: 600 }}>
-                  Matched studios
-                </div>
-                <h2 style={{
-                  fontFamily: 'var(--font-display)', fontSize: 'clamp(22px,2.5vw,34px)',
-                  fontWeight: 400, color: 'var(--text)', letterSpacing: '-0.01em',
-                  lineHeight: 1.3, maxWidth: 600, margin: '0 auto',
-                }}>
-                  Based on what you've shared, here are a few studios that could be right for you
-                </h2>
-              {/* Dot indicators */}
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center', marginTop: 16 }}>
-                {recs.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => {
-                      if (!carouselRef.current) return;
-                      const cardW = carouselRef.current.offsetWidth;
-                      carouselRef.current.scrollTo({ left: i * (cardW + 20), behavior: 'smooth' });
-                    }}
-                    style={{
-                      width: 8, height: 8, borderRadius: '50%', border: 'none',
-                      background: 'var(--border2)', cursor: 'pointer', padding: 0,
-                      transition: 'background 0.2s',
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
+          <div className="fade-in" style={{
+            /* Explicit height: viewport minus header(64) minus subheading(~68) minus counter area(40) */
+            height: 'calc(100vh - 140px)',
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+            flexShrink: 0,
+          }}>
+            {/* Left arrow */}
+            <button className="carousel-arrow" onClick={() => scrollToCard(activeCard - 1)} disabled={activeCard === 0} style={{
+              position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', zIndex: 10,
+              width: 44, height: 44, borderRadius: '50%',
+              border: '1px solid var(--border2)', background: 'rgba(248,245,241,0.95)', backdropFilter: 'blur(8px)',
+              color: activeCard === 0 ? 'var(--text4)' : 'var(--text)',
+              cursor: activeCard === 0 ? 'default' : 'pointer',
+              fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.15s', opacity: activeCard === 0 ? 0.3 : 1,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            }}>←</button>
 
-            {/* Full-width snap carousel */}
+            {/* Cards scroll container — explicit height minus counter space */}
             <div
               ref={carouselRef}
+              className="carousel-scroll"
               style={{
-                display: 'flex', gap: 20,
-                overflowX: 'auto', paddingBottom: 24,
-                scrollbarWidth: 'none', msOverflowStyle: 'none',
+                display: 'flex',
+                gap: 24,
+                overflowX: 'auto',
+                overflowY: 'hidden',
                 scrollSnapType: 'x mandatory',
-                paddingLeft: 60, paddingRight: 60,
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+                padding: '8px 68px',
+                height: 'calc(100% - 32px)',  /* leave 32px for counter */
+                alignItems: 'stretch',
               }}
             >
               {recs.map((rec, i) => (
-                <div
-                  key={rec.studio_id || i}
-                  style={{
-                    minWidth: 'calc(100vw - 160px)',
-                    maxWidth: 'calc(100vw - 160px)',
-                    flex: '0 0 calc(100vw - 160px)',
-                    scrollSnapAlign: 'start',
-                    animation: `fadeUp 0.5s ease ${0.1 + i * 0.08}s both`,
-                  }}
-                >
-                  <RecommendationCard
-                    rec={rec}
-                    position={i + 1}
-                    onContact={handleContact}
-                    isBonus={false}
-                  />
+                <div key={rec.studio_id || i} style={{
+                  minWidth: 'calc(100vw - 160px)',
+                  maxWidth: 'calc(100vw - 160px)',
+                  flex: '0 0 calc(100vw - 160px)',
+                  scrollSnapAlign: 'center',
+                  animation: `fadeUp 0.5s ease ${0.1 + i * 0.08}s both`,
+                }}>
+                  <RecommendationCard rec={rec} position={i + 1} onContact={handleContact} isBonus={false} />
                 </div>
               ))}
+              {/* Directory CTA card */}
+              <div style={{
+                minWidth: 'calc(100vw - 160px)',
+                maxWidth: 'calc(100vw - 160px)',
+                flex: '0 0 calc(100vw - 160px)',
+                scrollSnapAlign: 'center',
+                animation: `fadeUp 0.5s ease ${0.1 + recs.length * 0.08}s both`,
+              }}>
+                <DirectoryCTACard onNavigate={() => nav('/directory')} />
+              </div>
             </div>
 
-            {/* Arrow nav below */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 16 }}>
-              {['←', '→'].map((arrow, i) => (
-                <button
-                  key={arrow}
-                  className="scroll-btn"
-                  onClick={() => {
-                    if (!carouselRef.current) return;
-                    const cardW = carouselRef.current.offsetWidth;
-                    carouselRef.current.scrollBy({ left: (i === 0 ? -1 : 1) * (cardW + 20), behavior: 'smooth' });
-                  }}
-                  style={{
-                    width: 44, height: 44, borderRadius: '50%',
-                    border: '1px solid var(--border2)', background: 'transparent',
-                    color: 'var(--text2)', cursor: 'pointer', fontSize: 16,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'background 0.15s',
-                  }}
-                >{arrow}</button>
-              ))}
+            {/* Right arrow */}
+            <button className="carousel-arrow" onClick={() => scrollToCard(activeCard + 1)} disabled={activeCard === totalCards - 1} style={{
+              position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', zIndex: 10,
+              width: 44, height: 44, borderRadius: '50%',
+              border: '1px solid var(--border2)', background: 'rgba(248,245,241,0.95)', backdropFilter: 'blur(8px)',
+              color: activeCard === totalCards - 1 ? 'var(--text4)' : 'var(--text)',
+              cursor: activeCard === totalCards - 1 ? 'default' : 'pointer',
+              fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.15s', opacity: activeCard === totalCards - 1 ? 0.3 : 1,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            }}>→</button>
+
+            {/* Card counter */}
+            <div style={{
+              textAlign: 'center', height: 32,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 11, color: 'var(--text4)', letterSpacing: '0.08em',
+            }}>
+              {activeCard + 1} / {totalCards}
             </div>
           </div>
         )}
 
-        {/* Bonus visual matches */}
+        {/* Bonus visual matches — scrollable below the fold */}
         {bonus.length > 0 && (
-          <div className="fade-in" style={{ marginTop: 64, padding: '0 60px' }}>
+          <div className="fade-in" style={{ padding: '32px 60px 40px', flexShrink: 0 }}>
             <div style={{ marginBottom: 8, textAlign: 'center' }}>
-              <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8, fontWeight: 600 }}>
-                Also worth exploring
-              </div>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 400, color: 'var(--text2)' }}>
-                Visual matches
-              </h3>
-              <p style={{ fontSize: 13, color: 'var(--text4)', marginTop: 6 }}>
-                These studios match your aesthetic but differ on some practical criteria.
-              </p>
+              <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8, fontWeight: 600 }}>Also worth exploring</div>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 400, color: 'var(--text2)' }}>Visual matches</h3>
+              <p style={{ fontSize: 13, color: 'var(--text4)', marginTop: 6 }}>These studios match your aesthetic but differ on some practical criteria.</p>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20, marginTop: 24 }}>
               {bonus.map((rec, i) => (
                 <div key={rec.studio_id || i} style={{ animation: `fadeUp 0.5s ease ${0.1 + i * 0.06}s both` }}>
-                  <RecommendationCard
-                    rec={rec}
-                    position={i + 1}
-                    onContact={handleContact}
-                    isBonus={true}
-                  />
+                  <RecommendationCard rec={rec} position={i + 1} onContact={handleContact} isBonus={true} />
                 </div>
               ))}
             </div>
@@ -383,248 +521,69 @@ export default function DiscoverResults() {
 
         {/* Empty state */}
         {recs.length === 0 && bonus.length === 0 && !data?.zero_match && (
-          <div style={{ textAlign: 'center', padding: '80px 60px' }}>
-            <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 24 }}>
-              No studios are registered yet. Check back soon.
-            </div>
-            <button onClick={() => nav('/')} className="btn btn-ghost btn-sm">
-              Back to home
-            </button>
+          <div style={{ textAlign: 'center', padding: '80px 60px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 24 }}>No studios registered yet. Check back soon.</div>
+            <button onClick={() => nav('/')} className="btn btn-ghost btn-sm">Back to home</button>
           </div>
         )}
 
-        {/* ── Custom Inquiry Section ───────────────────────────────────── */}
-        <div style={{
-          marginTop: 80,
-          borderTop: '1px solid var(--border)',
-          paddingTop: 60,
-          paddingBottom: 80,
-          paddingLeft: 60,
-          paddingRight: 60,
-        }}>
+        {/* ── Bottom inquiry section ───────────────────────────────────── */}
+        <div style={{ borderTop: '1px solid var(--border)', padding: '48px 60px 64px', flexShrink: 0 }}>
           <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
-            <div style={{
-              fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em',
-              textTransform: 'uppercase', fontWeight: 600, marginBottom: 12,
-            }}>
+            <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>
               Not finding what you need?
             </div>
-            <h3 style={{
-              fontFamily: 'var(--font-display)', fontSize: 'clamp(22px, 2.5vw, 32px)',
-              fontWeight: 400, color: 'var(--text)', marginBottom: 10, letterSpacing: '-0.01em',
-            }}>
-              Tell us directly — we'll find<br />the right studio for you.
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px, 2.5vw, 32px)', fontWeight: 400, color: 'var(--text)', marginBottom: 10, letterSpacing: '-0.01em' }}>
+              Tell us directly — we'll find the right studio for you.
             </h3>
             <p style={{ fontSize: 14, color: 'var(--text3)', lineHeight: 1.7, marginBottom: 28 }}>
               Describe what you're looking for and our team will reach out personally with hand-picked options.
             </p>
 
-            {/* CTA button */}
             {!inquiryOpen && !inquiryDone && (
-              <button
-                className="inquiry-btn"
-                onClick={() => setInquiryOpen(true)}
-                style={{
-                  padding: '12px 28px', background: 'transparent',
-                  border: '1.5px solid rgba(26, 22, 18, 0.15)', borderRadius: 8,
-                  color: 'var(--text)', fontSize: 13, fontWeight: 500,
-                  cursor: 'pointer', fontFamily: 'var(--font-body)',
-                  transition: 'border-color 0.2s, background 0.2s, color 0.2s',
-                  letterSpacing: '0.03em',
-                }}
-              >
-                Send a custom requirement →
-              </button>
+              <button onClick={() => setInquiryOpen(true)} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                padding: '12px 28px', background: '#1A1612', color: '#F5F0E8',
+                border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 500,
+                cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'background 0.2s', letterSpacing: '0.03em',
+              }}
+                onMouseEnter={e => e.currentTarget.style.background = '#C46E49'}
+                onMouseLeave={e => e.currentTarget.style.background = '#1A1612'}
+              ><CalendarIcon /> Send a custom requirement →</button>
             )}
 
-            {/* Success state */}
             {inquiryDone && (
               <div style={{
-                display: 'flex', alignItems: 'flex-start', gap: 16,
-                padding: '20px 24px',
-                background: 'rgba(90,232,122,0.06)',
-                border: '1px solid rgba(90,232,122,0.2)',
-                borderLeft: '3px solid var(--green)',
-                borderRadius: 10,
-                animation: 'fadeUp 0.4s ease both',
+                display: 'flex', alignItems: 'flex-start', gap: 16, padding: '20px 24px',
+                background: 'rgba(90,232,122,0.06)', border: '1px solid rgba(90,232,122,0.2)',
+                borderLeft: '3px solid var(--green)', borderRadius: 10, animation: 'fadeUp 0.4s ease both', textAlign: 'left',
               }}>
                 <div style={{ fontSize: 22, lineHeight: 1 }}>✓</div>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--green)', marginBottom: 4 }}>
-                    We've received your requirement
-                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--green)', marginBottom: 4 }}>We've received your requirement</div>
                   <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6 }}>
-                    The Qala team will review your brief and get back to you at{' '}
-                    <strong style={{ color: 'var(--text2)' }}>{inquiryEmail}</strong>{' '}
-                    within 1–2 business days.
+                    The Qala team will review your brief and get back to you at <strong style={{ color: 'var(--text2)' }}>{inquiryEmail}</strong> within 1–2 business days.
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Inquiry form */}
             {inquiryOpen && !inquiryDone && (
-              <form
-                onSubmit={submitInquiry}
-                style={{
-                  display: 'flex', flexDirection: 'column', gap: 16,
-                  background: 'var(--surface)',
-                  border: '1px solid var(--border2)',
-                  borderRadius: 12, padding: '28px',
-                  animation: 'fadeUp 0.3s ease both',
-                }}
-              >
-                <div style={{ display: 'flex', gap: 12 }}>
-                  <div className="field" style={{ flex: 1 }}>
-                    <label>First name</label>
-                    <input
-                      type="text"
-                      placeholder="Your name"
-                      value={inquiryName}
-                      onChange={e => setInquiryName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="field" style={{ flex: 1 }}>
-                    <label>Email</label>
-                    <input
-                      type="email"
-                      placeholder="you@example.com"
-                      value={inquiryEmail}
-                      onChange={e => setInquiryEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="field">
-                  <label>What are you looking for?</label>
-                  <textarea
-                    placeholder="Tell us about your project — fabric preferences, craft, quantity, timeline, design stage, anything that helps..."
-                    value={inquiryMessage}
-                    onChange={e => setInquiryMessage(e.target.value)}
-                    required
-                    style={{ minHeight: 120, resize: 'vertical' }}
-                  />
-                </div>
-
-                {inquiryError && (
-                  <div style={{
-                    padding: '10px 14px', fontSize: 13, color: 'var(--red)',
-                    background: 'var(--red-dim)', border: '1px solid rgba(255,85,85,0.3)',
-                    borderLeft: '3px solid var(--red)', borderRadius: 8,
-                  }}>
-                    {inquiryError}
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <button
-                    type="submit"
-                    disabled={inquirySubmitting}
-                    style={{
-                      padding: '11px 28px',
-                      background: inquirySubmitting ? 'var(--surface3)' : '#1A1612',
-                      color: inquirySubmitting ? 'var(--text4)' : '#F5F0E8',
-                      border: 'none', borderRadius: 8,
-                      fontSize: 13, fontWeight: 500,
-                      cursor: inquirySubmitting ? 'default' : 'pointer',
-                      fontFamily: 'var(--font-body)', transition: 'background 0.18s ease',
-                      display: 'flex', alignItems: 'center', gap: 8,
-                    }}
-                    onMouseEnter={(e) => { if (!inquirySubmitting) e.target.style.background = '#C46E49'; }}
-                    onMouseLeave={(e) => { if (!inquirySubmitting) e.target.style.background = '#1A1612'; }}
-                  >
-                    {inquirySubmitting && (
-                      <span className="spinner" style={{ width: 14, height: 14, borderColor: 'var(--surface4)', borderTopColor: '#555' }} />
-                    )}
-                    {inquirySubmitting ? 'Sending…' : 'Send to Qala team →'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setInquiryOpen(false); setInquiryError(''); }}
-                    style={{
-                      padding: '11px 18px', background: 'none',
-                      border: '1px solid var(--border)', borderRadius: 8,
-                      color: 'var(--text3)', fontSize: 13, cursor: 'pointer',
-                      fontFamily: 'var(--font-body)',
-                    }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-
-                <p style={{ fontSize: 11, color: 'var(--text4)', lineHeight: 1.6, margin: 0 }}>
-                  Your questionnaire answers will be shared with the Qala team automatically so you don't need to repeat yourself.
-                </p>
-              </form>
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border2)', borderRadius: 12, padding: '28px', animation: 'fadeUp 0.3s ease both' }}>
+                <InquiryForm
+                  name={inquiryName} setName={setInquiryName}
+                  email={inquiryEmail} setEmail={setInquiryEmail}
+                  dateFrom={inquiryDateFrom} setDateFrom={setInquiryDateFrom}
+                  dateTo={inquiryDateTo} setDateTo={setInquiryDateTo}
+                  message={inquiryMessage} setMessage={setInquiryMessage}
+                  error={inquiryError} submitting={inquirySubmitting}
+                  onSubmit={submitInquiry}
+                  onCancel={() => { setInquiryOpen(false); setInquiryError(''); }}
+                />
+              </div>
             )}
           </div>
         </div>
-
-      </div>
-
-      {/* ── Browse Full Directory CTA ─────────────────────────── */}
-      <div style={{
-        borderTop: '1px solid var(--border)',
-        padding: '64px 48px',
-        textAlign: 'center',
-        background: 'var(--bg)',
-      }}>
-        <div style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 11, fontWeight: 500,
-          letterSpacing: '0.16em', textTransform: 'uppercase',
-          color: 'var(--text4)', marginBottom: 18,
-        }}>
-          Not what you were looking for?
-        </div>
-        <h2 style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 'clamp(26px, 3.5vw, 38px)',
-          fontWeight: 300,
-          color: 'var(--text)',
-          lineHeight: 1.15,
-          marginBottom: 14,
-          letterSpacing: '-0.01em',
-        }}>
-          Browse the full{' '}
-          <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>Studio Directory</em>
-        </h2>
-        <p style={{
-          fontFamily: 'var(--font-body)',
-          fontSize: 14, fontWeight: 300,
-          color: 'var(--text3)', lineHeight: 1.7,
-          maxWidth: 400, margin: '0 auto 32px',
-        }}>
-          Explore every studio on Qala — filter by craft, fabric, and product type at your own pace.
-        </p>
-        <button
-          onClick={() => nav('/directory')}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            padding: '12px 28px',
-            borderRadius: 'var(--radius)',
-            border: '1.5px solid var(--text)',
-            background: 'transparent',
-            color: 'var(--text)',
-            fontSize: 13, fontWeight: 500,
-            fontFamily: 'var(--font-body)',
-            letterSpacing: '0.04em',
-            cursor: 'pointer',
-            transition: 'background 0.18s ease, color 0.18s ease, border-color 0.18s ease',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = 'var(--text)';
-            e.currentTarget.style.color = 'var(--bg)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = 'var(--text)';
-          }}
-        >
-          Browse all studios →
-        </button>
       </div>
 
       {/* Auth gate modal */}
