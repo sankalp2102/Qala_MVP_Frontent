@@ -1264,6 +1264,183 @@ function DiscoveryInquiries() {
 
 /* ── MAIN EXPORT ── */
 export default function AdminDashboard() {
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STUDIO DESCRIPTIONS PAGE
+// ─────────────────────────────────────────────────────────────────────────────
+function StudioDescriptions() {
+  const { success, error } = useToast();
+  const [studios, setStudios]   = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [forms, setForms]       = useState({});   // { [profile_id]: string }
+  const [saving, setSaving]     = useState({});   // { [profile_id]: bool }
+  const [saved,  setSaved]      = useState({});   // { [profile_id]: bool }
+
+  useEffect(() => {
+    adminAPI.listProfiles()
+      .then(r => {
+        const list = r.data || [];
+        setStudios(list);
+        // Pre-fill form state with existing descriptions
+        const init = {};
+        list.forEach(s => { init[s.profile_id] = s.short_description || ''; });
+        setForms(init);
+      })
+      .catch(() => error('Failed to load studios'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async (profileId) => {
+    setSaving(s => ({ ...s, [profileId]: true }));
+    setSaved(s => ({ ...s, [profileId]: false }));
+    try {
+      await adminAPI.editSection(profileId, 'studio', {
+        short_description: forms[profileId] || '',
+      });
+      setSaved(s => ({ ...s, [profileId]: true }));
+      success('Description saved!');
+      // Reset saved tick after 3s
+      setTimeout(() => setSaved(s => ({ ...s, [profileId]: false })), 3000);
+    } catch(e) {
+      error(e.response?.data ? JSON.stringify(e.response.data) : 'Save failed');
+    } finally {
+      setSaving(s => ({ ...s, [profileId]: false }));
+    }
+  };
+
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60 }}>
+      <Spinner />
+    </div>
+  );
+
+  const filled   = studios.filter(s => forms[s.profile_id]?.trim()).length;
+  const total    = studios.length;
+
+  return (
+    <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 24px' }}>
+      {/* Header */}
+      <div style={{ marginBottom: 28 }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 500, color: 'var(--text)', marginBottom: 6 }}>
+          Studio Descriptions
+        </h2>
+        <p style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6 }}>
+          Write a short bio for each studio. This appears on the studio's public profile page, overlaid on the hero image.
+          Keep it under 180 characters — punchy and specific.
+        </p>
+        <div style={{
+          marginTop: 14, display: 'inline-flex', alignItems: 'center', gap: 8,
+          padding: '6px 14px', borderRadius: 20,
+          background: filled === total ? 'rgba(90,232,122,0.08)' : 'rgba(232,184,80,0.08)',
+          border: `1px solid ${filled === total ? 'rgba(90,232,122,0.2)' : 'rgba(232,184,80,0.2)'}`,
+          fontSize: 12, color: filled === total ? 'var(--green)' : 'var(--amber)',
+          fontWeight: 500,
+        }}>
+          {filled} / {total} studios have descriptions
+        </div>
+      </div>
+
+      {/* Studio list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {studios.map(studio => {
+          const pid      = studio.profile_id;
+          const val      = forms[pid] ?? '';
+          const charLeft = 180 - val.length;
+          const isSaving = saving[pid];
+          const isSaved  = saved[pid];
+          const hasDesc  = val.trim().length > 0;
+
+          return (
+            <div key={pid} style={{
+              background: 'var(--surface)',
+              border: `1px solid ${hasDesc ? 'var(--border)' : 'rgba(232,184,80,0.25)'}`,
+              borderRadius: 12, padding: '20px 22px',
+              transition: 'border-color 0.2s',
+            }}>
+              {/* Studio name + status */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-display)' }}>
+                    {studio.business_name || studio.profile_name}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text4)', marginTop: 2 }}>
+                    {studio.business_name} · ID {pid}
+                  </div>
+                </div>
+                {!hasDesc && (
+                  <span style={{
+                    fontSize: 10, fontWeight: 600, letterSpacing: '0.08em',
+                    textTransform: 'uppercase', color: 'var(--amber)',
+                    padding: '3px 8px', borderRadius: 4,
+                    background: 'rgba(232,184,80,0.1)',
+                    border: '1px solid rgba(232,184,80,0.2)',
+                  }}>No description</span>
+                )}
+              </div>
+
+              {/* Textarea */}
+              <textarea
+                value={val}
+                onChange={e => {
+                  if (e.target.value.length <= 180) {
+                    setForms(f => ({ ...f, [pid]: e.target.value }));
+                    setSaved(s => ({ ...s, [pid]: false }));
+                  }
+                }}
+                placeholder={`Write a short bio for ${studio.business_name || studio.profile_name}…`}
+                style={{
+                  width: '100%', minHeight: 80, resize: 'vertical',
+                  fontFamily: 'var(--font-body)', fontSize: 13,
+                  color: 'var(--text)', background: 'var(--bg)',
+                  border: '1px solid var(--border2)', borderRadius: 8,
+                  padding: '10px 12px', lineHeight: 1.6,
+                  outline: 'none', boxSizing: 'border-box',
+                }}
+                onFocus={e => e.target.style.borderColor = 'var(--gold)'}
+                onBlur={e => e.target.style.borderColor = 'var(--border2)'}
+              />
+
+              {/* Footer: char count + save button */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
+                <span style={{
+                  fontSize: 11,
+                  color: charLeft < 20 ? 'var(--red)' : 'var(--text4)',
+                }}>
+                  {charLeft} characters remaining
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {isSaved && (
+                    <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 500 }}>
+                      ✓ Saved
+                    </span>
+                  )}
+                  <button
+                    onClick={() => handleSave(pid)}
+                    disabled={isSaving}
+                    style={{
+                      padding: '8px 20px', borderRadius: 6,
+                      background: isSaving ? 'var(--surface3)' : '#1A1612',
+                      color: isSaving ? 'var(--text4)' : '#F5F0E8',
+                      border: 'none', fontSize: 12, fontWeight: 500,
+                      cursor: isSaving ? 'default' : 'pointer',
+                      fontFamily: 'var(--font-body)', transition: 'background 0.18s',
+                      display: 'flex', alignItems: 'center', gap: 6,
+                    }}
+                    onMouseEnter={e => { if (!isSaving) e.currentTarget.style.background = '#C46E49'; }}
+                    onMouseLeave={e => { if (!isSaving) e.currentTarget.style.background = '#1A1612'; }}
+                  >
+                    {isSaving ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
   const navItems = [
     { to: '/admin',                              icon: '', label: 'Overview',         end: true },
     { to: '/admin/review',                       icon: '', label: 'Review Profile'              },
@@ -1271,6 +1448,7 @@ export default function AdminDashboard() {
     { to: '/admin/discovery',                    icon: '', label: 'Discovery'                   },
     { to: '/admin/discovery/inquiries',          icon: '', label: 'Inquiries'                   },
     { to: '/admin/discovery/studio-inquiries',   icon: '', label: 'Studio Inquiries'            },
+    { to: '/admin/studio-descriptions',          icon: '', label: 'Studio Descriptions'         },
   ];
   return (
     <DashLayout nav={navItems}>
@@ -1283,6 +1461,7 @@ export default function AdminDashboard() {
         <Route path="discovery/:buyerId"             element={<DiscoveryBuyerDetail />}   />
         <Route path="discovery/inquiries"            element={<DiscoveryInquiries />}     />
         <Route path="discovery/studio-inquiries"     element={<StudioInquiries />}        />
+        <Route path="studio-descriptions"             element={<StudioDescriptions />}     />
       </Routes>
     </DashLayout>
   );
