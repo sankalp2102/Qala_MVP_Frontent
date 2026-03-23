@@ -48,7 +48,7 @@ export default function RecommendationCard({ rec, position, isBonus }) {
       </div>
 
       {/* Hero image */}
-      <div style={{ height: 420, background: 'var(--surface2)', flexShrink: 0, overflow: 'hidden' }}>
+      <div style={{ height: 340, background: 'var(--surface2)', flexShrink: 0, overflow: 'hidden' }}>
         {hero ? (
           <img
             src={hero.url}

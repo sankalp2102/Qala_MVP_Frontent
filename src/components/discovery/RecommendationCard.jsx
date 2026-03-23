@@ -48,7 +48,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact }
       </div>
 
       {/* Hero image — taller to fill the larger card */}
-      <div style={{ height: 420, background: 'var(--surface2)', flexShrink: 0, overflow: 'hidden' }}>
+      <div style={{ height: 340, background: 'var(--surface2)', flexShrink: 0, overflow: 'hidden' }}>
         {hero ? (
           <img
             src={hero.url}
@@ -65,11 +65,11 @@ export default function RecommendationCard({ rec, position, isBonus, onContact }
       </div>
 
       {/* Card body */}
-      <div style={{ padding: '22px 24px', flex: 1, display: 'flex', flexDirection: 'column', gap: 14, overflow: 'auto' }}>
+      <div style={{ padding: '20px 22px', flex: 1, display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' }}>
 
         {/* Studio name + location */}
         <div>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700, color: '#fff', marginBottom: 4 }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 3 }}>
             {rec.studio_name || 'Studio'}
           </h3>
           {rec.location && (
@@ -96,7 +96,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact }
         {rec.match_reasoning && Object.keys(rec.match_reasoning).length > 0 && (
           <div style={{
             background: 'var(--surface2)', borderRadius: 10,
-            padding: '14px 16px', fontSize: 13, color: 'var(--text2)', lineHeight: 1.7,
+            padding: '12px 14px', fontSize: 12, color: 'var(--text2)', lineHeight: 1.6,
           }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
               Why this studio
@@ -147,7 +147,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact }
         <button
           onClick={() => onContact(rec)}
           style={{
-            display: 'block', width: '100%', padding: '14px', borderRadius: 8,
+            display: 'block', width: '100%', padding: '12px', borderRadius: 8,
             background: '#fff', color: '#000', border: 'none',
             fontSize: 13, fontWeight: 700, cursor: 'pointer',
             fontFamily: 'var(--font-body)', transition: 'background 0.2s',
