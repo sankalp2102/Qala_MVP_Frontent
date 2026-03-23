@@ -47,7 +47,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact }
         {isBonus ? 'Visual Match' : rank.label}
       </div>
 
-      {/* Hero image — taller to fill the larger card */}
+      {/* Hero image */}
       <div style={{ height: 220, background: 'var(--surface2)', flexShrink: 0, overflow: 'hidden' }}>
         {hero ? (
           <img
@@ -69,7 +69,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact }
 
         {/* Studio name + location */}
         <div>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: '#fff', marginBottom: 4 }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
             {rec.studio_name || 'Studio'}
           </h3>
           {rec.location && (
@@ -102,7 +102,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact }
               Why this studio
             </div>
             {Object.values(rec.match_reasoning).filter(Boolean).slice(0, 2).map((r, i) => (
-              <div key={i} style={{ marginBottom: 5 }}>· {typeof r === 'string' ? r : JSON.stringify(r)}</div>
+              <div key={i} style={{ marginBottom: 5 }}>· {typeof r === 'string' ? r : r.explanation}</div>
             ))}
           </div>
         )}
@@ -117,13 +117,11 @@ export default function RecommendationCard({ rec, position, isBonus, onContact }
               </div>
               {rec.what_best_at.slice(0, 3).map((w, i) => (
                 <div key={i} style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 5, display: 'flex', gap: 6 }}>
-                  <span style={{ color: 'var(--green)', flexShrink: 0 }}>✓</span> {w}
+                  <span style={{ color: 'var(--green)', flexShrink: 0 }}>✓</span> {typeof w === 'string' ? w : w.explanation}
                 </div>
               ))}
             </div>
           )}
-
-
         </div>
 
         {/* Bonus mismatches */}
@@ -136,7 +134,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact }
               Visual match — some differences
             </div>
             {rec.mismatches.map((m, i) => (
-              <div key={i} style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 2 }}>· {m}</div>
+              <div key={i} style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 2 }}>· {typeof m === 'string' ? m : m.explanation}</div>
             ))}
           </div>
         )}

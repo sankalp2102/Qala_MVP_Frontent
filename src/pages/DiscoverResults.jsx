@@ -294,6 +294,8 @@ export default function DiscoverResults() {
   const [applying, setApplying] = useState(null);
   const carouselRef = useRef();
   const [activeCard, setActiveCard] = useState(0);
+  const aestheticRef = useRef();
+  const [activeAesthetic, setActiveAesthetic] = useState(0);
 
   const [headerInquiryOpen, setHeaderInquiryOpen] = useState(false);
   const [inquiryOpen, setInquiryOpen] = useState(false);
@@ -368,6 +370,17 @@ export default function DiscoverResults() {
       carouselRef.current.scrollTo({ left: scrollLeft, behavior: 'smooth' });
     }
   }, [totalCards]);
+
+  const scrollAesthetic = useCallback((index) => {
+    if (!aestheticRef.current || bonus.length === 0) return;
+    const clamped = Math.max(0, Math.min(index, bonus.length - 1));
+    setActiveAesthetic(clamped);
+    const card = aestheticRef.current.children[clamped];
+    if (card) {
+      const scrollLeft = card.offsetLeft - (aestheticRef.current.offsetWidth - card.offsetWidth) / 2;
+      aestheticRef.current.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+    }
+  }, [bonus.length]);
 
   // ── Loading ──
   if (loading) return (
@@ -765,20 +778,71 @@ export default function DiscoverResults() {
           </div>
         )}
 
-        {/* Bonus visual matches — scrollable below the fold */}
+        {/* ── Aesthetic Matches carousel ─────────────────────────────── */}
         {bonus.length > 0 && (
-          <div className="fade-in" style={{ padding: '32px 60px 40px', flexShrink: 0 }}>
-            <div style={{ marginBottom: 8, textAlign: 'center' }}>
-              <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8, fontWeight: 600 }}>Also worth exploring</div>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 400, color: 'var(--text2)' }}>Visual matches</h3>
-              <p style={{ fontSize: 13, color: 'var(--text4)', marginTop: 6 }}>These studios match your aesthetic but differ on some practical criteria.</p>
+          <div className="fade-in" style={{ flexShrink: 0, paddingBottom: 20 }}>
+            {/* Section heading */}
+            <div style={{ padding: '28px 40px 12px', textAlign: 'center' }}>
+              <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6, fontWeight: 600 }}>
+                Also worth exploring
+              </div>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(17px, 2vw, 22px)', fontWeight: 400, color: 'var(--text2)', margin: 0 }}>
+                Aesthetic Matches
+              </h3>
+              <p style={{ fontSize: 12, color: 'var(--text4)', marginTop: 4 }}>
+                These studios match your aesthetic but differ on some practical criteria.
+              </p>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20, marginTop: 24 }}>
-              {bonus.map((rec, i) => (
-                <div key={rec.studio_id || i} style={{ animation: `fadeUp 0.5s ease ${0.1 + i * 0.06}s both` }}>
-                  <RecommendationCard rec={rec} position={i + 1} onContact={handleContact} isBonus={true} />
+
+            {/* Carousel with side arrows */}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', padding: '0 0 8px' }}>
+              {/* Left arrow */}
+              <button className="carousel-arrow" onClick={() => scrollAesthetic(activeAesthetic - 1)} disabled={activeAesthetic === 0} style={{
+                position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', zIndex: 10,
+                width: 40, height: 40, borderRadius: '50%',
+                border: '1px solid var(--border2)', background: 'rgba(248,245,241,0.92)', backdropFilter: 'blur(8px)',
+                color: activeAesthetic === 0 ? 'var(--text4)' : 'var(--text)',
+                cursor: activeAesthetic === 0 ? 'default' : 'pointer',
+                fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s', opacity: activeAesthetic === 0 ? 0.35 : 1,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+              }}>←</button>
+
+              {/* Cards */}
+              <div ref={aestheticRef} className="carousel-scroll" style={{
+                display: 'flex', gap: 16, overflowX: 'auto', overflowY: 'hidden',
+                scrollSnapType: 'x mandatory', scrollbarWidth: 'none', msOverflowStyle: 'none',
+                padding: '8px 64px', flex: 1, alignItems: 'stretch',
+              }}>
+                {bonus.map((rec, i) => (
+                  <div key={rec.studio_id || i} style={{
+                    minWidth: 'min(600px, 65vw)', maxWidth: 'min(600px, 65vw)', flex: '0 0 min(600px, 65vw)',
+                    scrollSnapAlign: 'center',
+                    animation: `fadeUp 0.5s ease ${0.1 + i * 0.08}s both`,
+                  }}>
+                    <RecommendationCard rec={rec} position={i + 1} onContact={handleContact} isBonus={true} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Right arrow */}
+              <button className="carousel-arrow" onClick={() => scrollAesthetic(activeAesthetic + 1)} disabled={activeAesthetic === bonus.length - 1} style={{
+                position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', zIndex: 10,
+                width: 40, height: 40, borderRadius: '50%',
+                border: '1px solid var(--border2)', background: 'rgba(248,245,241,0.92)', backdropFilter: 'blur(8px)',
+                color: activeAesthetic === bonus.length - 1 ? 'var(--text4)' : 'var(--text)',
+                cursor: activeAesthetic === bonus.length - 1 ? 'default' : 'pointer',
+                fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s', opacity: activeAesthetic === bonus.length - 1 ? 0.35 : 1,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+              }}>→</button>
+
+              {/* Counter */}
+              {bonus.length > 1 && (
+                <div style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', fontSize: 11, color: 'var(--text4)', letterSpacing: '0.06em' }}>
+                  {activeAesthetic + 1} / {bonus.length}
                 </div>
-              ))}
+              )}
             </div>
           </div>
         )}

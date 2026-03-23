@@ -17,18 +17,15 @@ const PRODUCT_TYPES = [
 ];
 
 const FABRICS = [
-  'Cotton','Linen','Silk','Wool','Cashmere','Polyester','Viscose / Rayon',
-  'Modal','Bamboo','Hemp','Denim','Khadi','Handloom cotton','Chanderi',
-  'Banarasi silk','Organza','Chiffon','Crepe','Jersey','Fleece',
-  'Angora wool','Leather / Faux leather','Velvet','Jacquard','Ikat',
+  'Cotton', 'Silk', 'Linen', 'Wool',
+  'Regenerated Fabrics', 'Handloom Fabrics', 'Cashmere',
 ];
 
 const CRAFTS = [
-  'Hand block printing','Screen printing','Digital printing','Natural dyeing',
-  'Embroidery','Hand embroidery','Machine embroidery','Zari / Zardozi',
-  'Smocking','Quilting','Weaving','Handloom weaving','Knitting','Crochet',
-  'Batik','Shibori / Tie dye','Appliqué','Patchwork','Beadwork',
-  'Mirror work','Sequin work','Cut work','Aari work',
+  'Hand Block Printing', 'Tie Dye', 'Embroidery', 'Applique',
+  'Patchwork', 'Crochet', 'Knitting', 'Handweaving',
+  'Hand Spinning', 'Natural/Plant Based Dyes', 'Kantha',
+  'Upcycled Fabrics', 'Eco Printing', 'Ikkat',
 ];
 
 const PROCESS_STAGES = [
