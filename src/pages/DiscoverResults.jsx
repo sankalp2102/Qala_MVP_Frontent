@@ -349,8 +349,7 @@ export default function DiscoverResults() {
   };
 
   const handleContact = studio => {
-    if (user) nav('/studio/' + studio.studio_id);
-    else setAuthGate({ studio });
+    nav('/studio/' + studio.studio_id);
   };
 
   const recs = data?.recommendations || [];

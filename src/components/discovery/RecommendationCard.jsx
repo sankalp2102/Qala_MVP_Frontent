@@ -48,7 +48,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact }
       </div>
 
       {/* Hero image — taller to fill the larger card */}
-      <div style={{ height: 340, background: 'var(--surface2)', flexShrink: 0, overflow: 'hidden' }}>
+      <div style={{ height: 220, background: 'var(--surface2)', flexShrink: 0, overflow: 'hidden' }}>
         {hero ? (
           <img
             src={hero.url}
@@ -65,11 +65,11 @@ export default function RecommendationCard({ rec, position, isBonus, onContact }
       </div>
 
       {/* Card body */}
-      <div style={{ padding: '20px 22px', flex: 1, display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' }}>
+      <div style={{ padding: '20px 22px', flex: 1, display: 'flex', flexDirection: 'column', gap: 14 }}>
 
         {/* Studio name + location */}
         <div>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 3 }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: '#fff', marginBottom: 4 }}>
             {rec.studio_name || 'Studio'}
           </h3>
           {rec.location && (
@@ -96,7 +96,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact }
         {rec.match_reasoning && Object.keys(rec.match_reasoning).length > 0 && (
           <div style={{
             background: 'var(--surface2)', borderRadius: 10,
-            padding: '12px 14px', fontSize: 12, color: 'var(--text2)', lineHeight: 1.6,
+            padding: '14px 16px', fontSize: 13, color: 'var(--text2)', lineHeight: 1.7,
           }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
               Why this studio
@@ -146,16 +146,18 @@ export default function RecommendationCard({ rec, position, isBonus, onContact }
         {/* CTA */}
         <button
           onClick={() => onContact(rec)}
+          className="cta-btn"
           style={{
-            display: 'block', width: '100%', padding: '12px', borderRadius: 8,
-            background: '#fff', color: '#000', border: 'none',
-            fontSize: 13, fontWeight: 700, cursor: 'pointer',
-            fontFamily: 'var(--font-body)', transition: 'background 0.2s',
-            letterSpacing: '0.04em', textAlign: 'center',
+            display: 'block', width: '100%', padding: '14px 24px', borderRadius: 8,
+            background: '#1A1612', color: '#F5F0E8', border: 'none',
+            fontSize: 12, fontWeight: 500, cursor: 'pointer',
+            fontFamily: 'var(--font-body)',
+            letterSpacing: '0.06em', textTransform: 'uppercase', textAlign: 'center',
+            transition: 'transform 0.2s, box-shadow 0.2s, background 0.2s',
             boxSizing: 'border-box',
           }}
-          onMouseEnter={e => e.currentTarget.style.background = '#E0E0E0'}
-          onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+          onMouseEnter={e => { e.currentTarget.style.background = '#C46E49'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 40px rgba(196,110,73,0.3)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = '#1A1612'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
         >
           View Profile →
         </button>

@@ -48,7 +48,7 @@ export default function RecommendationCard({ rec, position, isBonus }) {
       </div>
 
       {/* Hero image */}
-      <div style={{ height: 340, background: 'var(--surface2)', flexShrink: 0, overflow: 'hidden' }}>
+      <div style={{ height: 220, background: 'var(--surface2)', flexShrink: 0, overflow: 'hidden' }}>
         {hero ? (
           <img
             src={hero.url}
@@ -95,7 +95,7 @@ export default function RecommendationCard({ rec, position, isBonus }) {
         {rec.match_reasoning && Object.keys(rec.match_reasoning).length > 0 && (
           <div style={{
             background: 'var(--surface2)', borderRadius: 10,
-            padding: '12px 14px', fontSize: 12, color: 'var(--text2)', lineHeight: 1.6,
+            padding: '14px 16px', fontSize: 13, color: 'var(--text2)', lineHeight: 1.7,
           }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>
               Why this studio
@@ -142,21 +142,22 @@ export default function RecommendationCard({ rec, position, isBonus }) {
         {/* CTA */}
         <a
           href={'/studio/' + rec.studio_id}
+          className="cta-btn"
           style={{
-            display: 'block', width: '100%', padding: '12px',
+            display: 'block', width: '100%', padding: '14px 24px',
             borderRadius: 8,
             background: '#1A1612',
             color: '#F5F0E8',
             border: 'none',
-            fontSize: 13, fontWeight: 500, cursor: 'pointer',
+            fontSize: 12, fontWeight: 500, cursor: 'pointer',
             fontFamily: 'var(--font-body)',
-            letterSpacing: '0.04em',
+            letterSpacing: '0.06em', textTransform: 'uppercase',
             textAlign: 'center', textDecoration: 'none',
             boxSizing: 'border-box',
-            transition: 'background 0.18s ease',
+            transition: 'transform 0.2s, box-shadow 0.2s, background 0.2s',
           }}
-          onMouseEnter={e => e.currentTarget.style.background = '#C46E49'}
-          onMouseLeave={e => e.currentTarget.style.background = '#1A1612'}
+          onMouseEnter={e => { e.currentTarget.style.background = '#C46E49'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 40px rgba(196,110,73,0.3)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = '#1A1612'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
         >
           View Profile →
         </a>
