@@ -311,8 +311,21 @@ function InquiryForm({ studio, onClose, onSuccess }) {
 }
 
 // ─── Craft Carousel ───────────────────────────────────────────────────────────
+// Navigation: vertical list on right (click) + keyboard arrows. No arrow buttons per PRD.
 function CraftCarousel({ crafts }) {
   const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    const handler = e => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown')
+        setActive(i => Math.min(i + 1, crafts.length - 1));
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp')
+        setActive(i => Math.max(i - 1, 0));
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [crafts.length]);
+
   const c = crafts[active];
   const BASE = 'https://api.qala.studio';
   const imageUrl = c.image_url
@@ -391,34 +404,7 @@ function CraftCarousel({ crafts }) {
               <span style={{ fontWeight: 500, color: 'var(--text2)' }}>Common delay reasons: </span>{c.delay_common_reasons}
             </div>
           )}
-
-          {/* Arrows */}
-          {crafts.length > 1 && (
-            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-              <button
-                onClick={() => setActive(i => (i - 1 + crafts.length) % crafts.length)}
-                style={{
-                  width: 36, height: 36, borderRadius: '50%',
-                  background: 'var(--gold)', border: 'none', color: '#fff',
-                  fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'background 0.15s',
-                }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--gold-d)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'var(--gold)'}
-              >‹</button>
-              <button
-                onClick={() => setActive(i => (i + 1) % crafts.length)}
-                style={{
-                  width: 36, height: 36, borderRadius: '50%',
-                  background: 'var(--gold)', border: 'none', color: '#fff',
-                  fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'background 0.15s',
-                }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--gold-d)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'var(--gold)'}
-              >›</button>
-            </div>
-          )}
+          {/* No arrow buttons — navigation via right-side list + keyboard arrows */}
         </div>
       </div>
 
@@ -645,17 +631,15 @@ export default function StudioProfile() {
           {s.usps?.length > 0 && (
             <div className="profile-fade profile-fade-2" style={{ marginBottom: 44 }}>
               <Section title="What We're Known For">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '8px 0', background: 'var(--surface)' }}>
                   {s.usps.slice(0, 4).map((usp, i) => (
                     <div key={i} style={{
                       display: 'flex', gap: 14, alignItems: 'flex-start',
-                      padding: '14px 18px',
-                      background: 'var(--surface)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 10,
+                      padding: '14px 22px',
+                      borderBottom: i < Math.min(s.usps.length, 4) - 1 ? '1px solid var(--border)' : 'none',
                     }}>
-                      <span style={{ color: 'var(--gold)', fontSize: 14, marginTop: 2, flexShrink: 0 }}>•</span>
-                      <span style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.6 }}>{usp}</span>
+                      <span style={{ color: 'var(--gold)', fontSize: 18, lineHeight: 1, marginTop: 1, flexShrink: 0 }}>•</span>
+                      <span style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.65 }}>{usp}</span>
                     </div>
                   ))}
                 </div>
@@ -691,7 +675,7 @@ export default function StudioProfile() {
               <Section title="Fabrics">
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {s.fabrics.map(f => (
-                    <Tag key={f.fabric_name} gold={f.is_primary}>{f.fabric_name}</Tag>
+                    <Tag key={f.fabric_name}>{f.fabric_name}</Tag>
                   ))}
                 </div>
               </Section>
@@ -702,20 +686,18 @@ export default function StudioProfile() {
           {s.brands?.length > 0 && (
             <div className="profile-fade" style={{ marginBottom: 44 }}>
               <Section title="Brands We've Worked With">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '8px 0', background: 'var(--surface)' }}>
                   {s.brands.map((b, i) => (
                     <div key={i} style={{
                       display: 'flex', gap: 14, alignItems: 'flex-start',
-                      padding: '14px 18px',
-                      background: 'var(--surface)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 10,
+                      padding: '14px 22px',
+                      borderBottom: i < s.brands.length - 1 ? '1px solid var(--border)' : 'none',
                     }}>
-                      <span style={{ color: 'var(--gold)', fontSize: 14, marginTop: 2, flexShrink: 0 }}>•</span>
-                      <span style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.6 }}>
+                      <span style={{ color: 'var(--gold)', fontSize: 18, lineHeight: 1, marginTop: 1, flexShrink: 0 }}>•</span>
+                      <span style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.65 }}>
                         {b.scope
-                          ? <>{b.scope} for <strong style={{ color: 'var(--text)', fontWeight: 500 }}>{b.brand_name}</strong></>
-                          : <strong style={{ color: 'var(--text)', fontWeight: 500 }}>{b.brand_name}</strong>
+                          ? <>{b.scope} for <strong style={{ color: 'var(--text)', fontWeight: 600 }}>{b.brand_name}</strong></>
+                          : <strong style={{ color: 'var(--text)', fontWeight: 600 }}>{b.brand_name}</strong>
                         }
                       </span>
                     </div>
@@ -762,6 +744,51 @@ export default function StudioProfile() {
                       onMouseLeave={e => e.target.style.transform = 'scale(1)'}
                     />
                   ))}
+                </div>
+              </Section>
+            </div>
+          )}
+
+          {/* Section 7: Who You'll Be Working With — BuyerCoordinator */}
+          {s.coordinator && (
+            <div className="profile-fade" style={{ marginBottom: 44 }}>
+              <Section title="Who You'll Be Working With">
+                <div style={{
+                  border: '1px solid var(--border)', borderRadius: 12,
+                  padding: '28px 28px', background: 'var(--surface)',
+                  display: 'flex', gap: 24, alignItems: 'flex-start',
+                }}>
+                  {/* Photo */}
+                  {s.coordinator.image_url && (
+                    <div style={{ flexShrink: 0 }}>
+                      <img
+                        src={s.coordinator.image_url}
+                        alt={s.coordinator.name}
+                        loading="lazy"
+                        style={{
+                          width: 88, height: 88, borderRadius: '50%',
+                          objectFit: 'cover', display: 'block',
+                          border: '2px solid var(--border)',
+                        }}
+                      />
+                    </div>
+                  )}
+                  {/* Text */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>
+                      {s.coordinator.name}
+                    </div>
+                    {s.coordinator.position && (
+                      <div style={{ fontSize: 12, color: 'var(--gold)', fontWeight: 500, letterSpacing: '0.04em', marginBottom: 12 }}>
+                        {s.coordinator.position}
+                      </div>
+                    )}
+                    {s.coordinator.writeup && (
+                      <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.75, margin: 0 }}>
+                        {s.coordinator.writeup}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </Section>
             </div>
@@ -890,23 +917,6 @@ export default function StudioProfile() {
             )}
           </div>
 
-          {/* Contacts */}
-          {s.contacts?.length > 0 && (
-            <div style={{
-              background: 'var(--surface)', border: '1px solid var(--border)',
-              borderRadius: 16, padding: '20px 24px',
-            }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 14 }}>Contacts</div>
-              {s.contacts.map((c, i) => (
-                <div key={i} style={{ marginBottom: i < s.contacts.length - 1 ? 12 : 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{c.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--gold)', marginBottom: 2 }}>{c.role}</div>
-                  {c.email && <div style={{ fontSize: 11, color: 'var(--text4)' }}>{c.email}</div>}
-                  {c.phone && <div style={{ fontSize: 11, color: 'var(--text4)' }}>{c.phone}</div>}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
       </div>
