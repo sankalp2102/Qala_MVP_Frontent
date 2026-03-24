@@ -236,13 +236,19 @@ export default function Landing() {
           </div>
 
           <h1 style={{ ...S.headline, ...transBase, transitionDelay: '0.1s' }}>
-            Your one-stop to<br />
-            <em style={{ color: 'var(--gold)', fontStyle: 'italic' }}>manufacturing</em> in India —<br />
-            from idea to production.
+            Connect with India's Finest <span style={{ color: 'var(--gold)' }}>Craft Studios</span>
           </h1>
 
-          <p style={{ ...S.sub, ...transBase, transitionDelay: '0.2s' }}>
-            Artisanal&nbsp;&nbsp;·&nbsp;&nbsp;Ethical&nbsp;&nbsp;·&nbsp;&nbsp;Sustainable
+          <p style={{
+            ...S.sub,
+            ...transBase,
+            transitionDelay: '0.2s',
+            textTransform: 'none',
+            letterSpacing: '0.01em',
+            maxWidth: 860,
+            lineHeight: 1.6,
+          }}>
+            Qala matches fashion brands with designer-led production houses across India: embroidery, block print, handloom, natural dye and more. We manage everything from sourcing to delivery.
           </p>
 
           <div style={{ ...S.ctaWrap, ...transBase, transitionDelay: '0.3s' }}>
@@ -251,7 +257,7 @@ export default function Landing() {
               style={S.cta}
               onClick={() => nav('/discover')}
             >
-              Tell us what you're looking for →
+              Tell us What you want to Make
             </button>
 
             {hasSession && (
@@ -274,7 +280,7 @@ export default function Landing() {
           opacity: 0.4, animation: 'floatY 2.5s ease-in-out infinite',
         }}>
           <div style={{ width: 1, height: 40, background: 'var(--border2)' }} />
-          <span style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text3)' }}>Scroll</span>
+          <span style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text3)' }}>How It Works</span>
         </div>
       </section>
 
