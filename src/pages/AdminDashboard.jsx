@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
-import { adminAPI } from '../api/client';
+import { adminAPI, onboardingAPI } from '../api/client';
 import { DashLayout } from '../components/DashLayout';
 import { Spinner } from '../components/Spinner';
 import { useToast } from '../hooks/useToast';
@@ -16,6 +16,13 @@ const MODEL_TO_SECTION = {
   collab_design:     'collab',
   production_scale:  'production',
   process_readiness: 'process',
+};
+
+const FLAG_FIELD_OPTIONS = {
+  studio_details:    ['studio_name', 'location', 'years', 'website', 'poc'],
+  collab_design:     ['designer', 'references', 'iterations'],
+  production_scale:  ['capacity', 'minimums'],
+  process_readiness: ['steps'],
 };
 
 const SKIP_KEYS = [
@@ -500,9 +507,29 @@ function ProfileReview() {
   };
 
   // ── MediaViewer ──
-  const MediaViewer = ({ files, title }) => {
+  const MediaViewer = ({ files, title, mediaType, profileId, onDeleted }) => {
     const [lightbox, setLightbox] = useState(null);
+    const [deleting, setDeleting] = useState(null);
     if (!files?.length) return null;
+
+    const handleDelete = async (fileId) => {
+      if (!confirm('Delete this file permanently?')) return;
+      setDeleting(fileId);
+      try {
+        if (mediaType === 'bts') {
+          await onboardingAPI.delBTS(profileId, fileId);
+        } else {
+          await onboardingAPI.delStudioMedia(profileId, fileId);
+        }
+        success('File deleted');
+        if (onDeleted) onDeleted();
+      } catch(e) {
+        error(e.response?.data?.detail || 'Delete failed');
+      } finally {
+        setDeleting(null);
+      }
+    };
+
     return (
       <div style={{ marginBottom: 16 }}>
         {title && <div style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>{title}</div>}
@@ -514,25 +541,57 @@ function ProfileReview() {
             const isVideo = (f.mime_type || '').startsWith('video/');
             if (!src) return null;
             return (
-              <div key={f.id || i} onClick={() => setLightbox(src)}
-                style={{ position:'relative', width:88, height:88, borderRadius:8, overflow:'hidden', cursor:'pointer', background:'var(--surface3)', border:'1px solid var(--border)', flexShrink:0 }}>
-                {isVideo
-                  ? <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:4 }}>
-                      <span style={{ fontSize:20 }}>▶</span>
-                      <span style={{ fontSize:9, color:'var(--text4)' }}>VIDEO</span>
-                    </div>
-                  : <img src={src} alt={f.caption || f.file_name || ''} style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e => { e.target.style.display='none'; }} />
-                }
+              <div key={f.id || i} style={{ position:'relative', width:88, height:88, borderRadius:8, overflow:'hidden', background:'var(--surface3)', border:'1px solid var(--border)', flexShrink:0 }}>
+                <div onClick={() => setLightbox({ src, isVideo })} style={{ cursor:'pointer', width:'100%', height:'100%' }}>
+                  {isVideo
+                    ? <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:4 }}>
+                        <span style={{ fontSize:20 }}>▶</span>
+                        <span style={{ fontSize:9, color:'var(--text4)' }}>VIDEO</span>
+                      </div>
+                    : <img src={src} alt={f.caption || f.file_name || ''} style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e => { e.target.style.display='none'; }} />
+                  }
+                </div>
                 {f.media_type && <span style={{ position:'absolute', bottom:3, left:3, fontSize:8, fontWeight:700, background:'rgba(0,0,0,0.6)', color:'#fff', padding:'1px 5px', borderRadius:3, textTransform:'uppercase' }}>{f.media_type}</span>}
+                {/* Delete button */}
+                {profileId && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDelete(f.id); }}
+                    disabled={deleting === f.id}
+                    style={{
+                      position:'absolute', top:3, right:3, width:20, height:20, borderRadius:'50%',
+                      background:'rgba(0,0,0,0.6)', border:'none', color:'#fff',
+                      fontSize:11, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+                      opacity: deleting === f.id ? 0.5 : 0.7,
+                      transition:'opacity 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '0.7'}
+                  >
+                    {deleting === f.id ? '…' : '✕'}
+                  </button>
+                )}
               </div>
             );
           })}
         </div>
         {lightbox && (
-          <div onClick={() => setLightbox(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.85)', zIndex:9999, display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
-            {(lightbox.match(/\.(mp4|mov|avi)/i))
-              ? <video src={lightbox} controls autoPlay style={{ maxWidth:'90vw', maxHeight:'85vh', borderRadius:8 }} onClick={e => e.stopPropagation()} />
-              : <img src={lightbox} alt="" style={{ maxWidth:'90vw', maxHeight:'85vh', borderRadius:8, objectFit:'contain' }} onClick={e => e.stopPropagation()} />
+          <div onClick={() => setLightbox(null)} style={{
+            position:'fixed', inset:0, background:'rgba(0,0,0,0.85)', zIndex:9999,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            padding:24, overflow:'hidden',
+          }}>
+            {lightbox.isVideo
+              ? <video
+                  src={lightbox.src} controls autoPlay
+                  style={{ maxWidth:'90vw', maxHeight:'85vh', borderRadius:8, display:'block' }}
+                  onClick={e => e.stopPropagation()}
+                />
+              : <img
+                  src={lightbox.src} alt=""
+                  style={{ maxWidth:'90vw', maxHeight:'85vh', borderRadius:8, objectFit:'contain', display:'block', width:'auto', height:'auto' }}
+                  onClick={e => e.stopPropagation()}
+                  onError={e => { e.target.src = ''; e.target.alt = 'Failed to load image'; e.target.style.background = 'var(--surface3)'; e.target.style.padding = '40px'; e.target.style.color = 'var(--text3)'; }}
+                />
             }
             <button onClick={() => setLightbox(null)} style={{ position:'fixed', top:20, right:24, background:'none', border:'none', color:'#fff', fontSize:28, cursor:'pointer', lineHeight:1 }}>✕</button>
           </div>
@@ -701,19 +760,31 @@ function ProfileReview() {
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
                 <div className="field">
                   <label>Model / Section</label>
-                  <select value={flagForm.model} onChange={e => setFlagForm(f=>({...f, model:e.target.value}))}>
-                    {['studio_details','product_types','collab_design','production_scale','process_readiness','craft','fabric_answer','brand_experience','award_mention','studio_contact','studio_usp','moq_entry','buyer_requirement'].map(m =>
+                  <select value={flagForm.model} onChange={e => {
+                    const m = e.target.value;
+                    const fieldOpts = FLAG_FIELD_OPTIONS[m];
+                    setFlagForm(f=>({...f, model: m, field: fieldOpts ? fieldOpts[0] : ''}));
+                  }}>
+                    {['studio_details','product_types','collab_design','production_scale','process_readiness','craft','fabric_answer','brand_experience','award_mention','studio_contact','studio_usp','studio_media','moq_entry','buyer_requirement','bts_media'].map(m =>
                       <option key={m} value={m}>{m.replace(/_/g,' ')}</option>
                     )}
                   </select>
                 </div>
                 <div className="field">
-                  <label>Field Name</label>
-                  <input
-                    value={flagForm.field}
-                    onChange={e => setFlagForm(f=>({...f, field:e.target.value}))}
-                    placeholder="e.g. studio_name"
-                  />
+                  <label>Field to flag</label>
+                  {FLAG_FIELD_OPTIONS[flagForm.model] ? (
+                    <select value={flagForm.field} onChange={e => setFlagForm(f=>({...f, field:e.target.value}))}>
+                      {FLAG_FIELD_OPTIONS[flagForm.model].map(f =>
+                        <option key={f} value={f}>{f.replace(/_/g,' ')}</option>
+                      )}
+                    </select>
+                  ) : (
+                    <input
+                      value={flagForm.field}
+                      onChange={e => setFlagForm(f=>({...f, field:e.target.value}))}
+                      placeholder="Leave blank to flag entire row"
+                    />
+                  )}
                 </div>
               </div>
               <div className="field" style={{ marginBottom:14 }}>
@@ -743,7 +814,7 @@ function ProfileReview() {
           <div className="card fade-up">
 
             <Block title="Section A — Studio Details" data={onboarding.studio_details} model="studio_details" profileId={pid} onSaved={() => loadOnboarding(selected)} />
-            <MediaViewer files={onboarding.studio_details?.media_files} title="Studio Media (Hero / Work Samples)" />
+            <MediaViewer files={onboarding.studio_details?.media_files} title="Studio Media (Hero / Work Samples)" mediaType="studio" profileId={pid} onDeleted={() => loadOnboarding(selected)} />
 
             <hr style={{ border:'none', borderTop:'1px solid var(--border)', margin:'4px 0 20px' }} />
             <ProductsBlock
@@ -763,7 +834,7 @@ function ProfileReview() {
 
             <hr style={{ border:'none', borderTop:'1px solid var(--border)', margin:'4px 0 20px' }} />
             <Block title="Section F — Process Readiness" data={onboarding.process_readiness} model="process_readiness" profileId={pid} onSaved={() => loadOnboarding(selected)} />
-            <MediaViewer files={onboarding.process_readiness?.bts_media} title="BTS / Process Media" />
+            <MediaViewer files={onboarding.process_readiness?.bts_media} title="BTS / Process Media" mediaType="bts" profileId={pid} onDeleted={() => loadOnboarding(selected)} />
 
           </div>
         )
