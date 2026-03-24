@@ -584,7 +584,7 @@ export default function StudioProfile() {
           )}
         </div>
         <Link to="/">
-          <img src={qalaLogo} alt="Qala" style={{ height: 48, width: 'auto' }} />
+          <img src={qalaLogo} alt="Qala" className="qala-logo" />
         </Link>
       </div>
 

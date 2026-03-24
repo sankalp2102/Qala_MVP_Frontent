@@ -389,7 +389,7 @@ export default function DiscoverResults() {
         <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid rgba(196,110,73,0.15)', animation: 'spin 2s linear infinite' }} />
         <div style={{ position: 'absolute', inset: 8, borderRadius: '50%', border: '1px solid rgba(196,110,73,0.25)', animation: 'spin 1.4s linear infinite reverse' }} />
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <img src={qalaLogo} alt="Qala" style={{ height: 22, width: 'auto' }} />
+          <img src={qalaLogo} alt="Qala" className="qala-logo" />
         </div>
       </div>
       <div style={{ fontSize: 13, color: 'var(--text3)', letterSpacing: '0.06em' }}>Finding your studios…</div>
@@ -437,7 +437,8 @@ export default function DiscoverResults() {
           <img
             src={qalaLogo}
             alt="Qala"
-            style={{ height: 32, width: 'auto', cursor: 'pointer', display: 'block' }}
+            className="qala-logo"
+            style={{ cursor: 'pointer' }}
             onClick={() => nav('/')}
           />
         </div>

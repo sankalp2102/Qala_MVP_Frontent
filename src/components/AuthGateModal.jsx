@@ -75,7 +75,7 @@ export default function AuthGateModal({ onClose, onSuccess, studioName }) {
 
         {/* Header */}
         <div style={{ marginBottom: 28 }}>
-          <img src={qalaLogo} alt="Qala" style={{ height: 30, width: 'auto', display: 'block', marginBottom: 16 }} />
+          <img src={qalaLogo} alt="Qala" className="qala-logo" style={{ marginBottom: 16 }} />
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
             Save your matches
           </h2>

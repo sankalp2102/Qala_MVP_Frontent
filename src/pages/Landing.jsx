@@ -205,7 +205,7 @@ export default function Landing() {
       {/* Nav */}
       <div style={S.nav} className="nav-wrap">
         <div style={S.logo}>
-          <img src={qalaLogo} alt="Qala" style={{ height: 60, width: 'auto', display: 'block' }} />
+          <img src={qalaLogo} alt="Qala" className="qala-logo" />
         </div>
         <button
           className="login-link"

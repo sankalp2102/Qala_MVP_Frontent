@@ -42,7 +42,7 @@ export default function Login() {
 
         {/* Logo */}
         <Link to="/" style={{ display:'block', marginBottom:40, textDecoration:'none' }}>
-          <img src={qalaLogo} alt="Qala" style={{ height: 70, width:'auto', display:'block' }} />
+          <img src={qalaLogo} alt="Qala" className="qala-logo" />
         </Link>
 
         {/* heading */}

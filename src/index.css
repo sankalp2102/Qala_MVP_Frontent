@@ -67,6 +67,9 @@
   --shadow:      0 2px 8px rgba(0, 0, 0, 0.08);
   --shadow-lg:   0 8px 24px rgba(26, 22, 18, 0.12);
   --shadow-gold: 0 4px 20px rgba(184, 92, 56, 0.4);
+
+  /* ── Brand logo ── */
+  --qala-logo-size: 28px;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -93,6 +96,12 @@ body::before {
 a { color: inherit; text-decoration: none; }
 button { cursor: pointer; font-family: var(--font-body); }
 input, textarea, select { font-family: var(--font-body); }
+
+.qala-logo {
+  height: var(--qala-logo-size);
+  width: auto;
+  display: block;
+}
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }

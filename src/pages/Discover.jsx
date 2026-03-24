@@ -270,26 +270,7 @@ export default function Discover() {
           }}>
             ←
           </button>
-          <img src={qalaLogo} alt="Qala" style={{ height: 80, width: 'auto', display: 'block' }} />
-        </div>
-
-        <div style={{ flex: 1, maxWidth: 320, margin: '0 32px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              Question {step} of {TOTAL_STEPS}
-            </span>
-            <span style={{ fontSize: 10, color: 'var(--text4)' }}>
-              {Math.round((step / TOTAL_STEPS) * 100)}%
-            </span>
-          </div>
-          <div style={{ height: 2, background: 'var(--border)', borderRadius: 1 }}>
-            <div style={{
-              height: '100%', borderRadius: 1,
-              background: '#C46E49',
-              width: `${(step / TOTAL_STEPS) * 100}%`,
-              transition: 'width 0.4s cubic-bezier(0.4,0,0.2,1)',
-            }} />
-          </div>
+          <img src={qalaLogo} alt="Qala" className="qala-logo" />
         </div>
 
         <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>

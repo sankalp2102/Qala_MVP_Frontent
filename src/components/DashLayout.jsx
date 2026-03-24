@@ -19,7 +19,7 @@ export function DashLayout({ children, nav: navItems }) {
       }}>
         {/* Logo */}
         <div style={{ padding:'22px 20px 18px', borderBottom:'1px solid var(--border)' }}>
-          <img src={qalaLogo} alt="Qala" style={{ height: 26, width: 'auto', display: 'block', marginBottom: 6 }} />
+          <img src={qalaLogo} alt="Qala" className="qala-logo" style={{ marginBottom: 6 }} />
           <div style={{ fontSize:11, color:'var(--text4)', letterSpacing:'0.08em', textTransform:'uppercase' }}>
             {user?.role === 'admin' ? 'Admin Panel' : 'Seller Studio'}
           </div>
