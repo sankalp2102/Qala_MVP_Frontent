@@ -552,7 +552,8 @@ export default function DiscoverResults() {
         {data?.zero_match && recs.length === 0 && (
           <div className="fade-in" style={{ padding: '48px 40px 60px', maxWidth: 680, margin: '0 auto', width: '100%' }}>
 
-            {/* Heading */}
+            {/* Heading — only when there are suggestion cards to show */}
+            {suggs.length > 0 && (
             <div style={{ textAlign: 'center', marginBottom: 36 }}>
               <h2 style={{
                 fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 3vw, 40px)',
@@ -564,22 +565,51 @@ export default function DiscoverResults() {
                 Your requirements are specific, which is great. Here's how we can find studios that match. The final product will match your vision perfectly.
               </p>
             </div>
+            )}
 
             {/* Suggestion cards */}
             {suggs.length === 0 && (
-              <div style={{
-                padding: '24px 28px', borderRadius: 14, marginBottom: 24,
-                background: 'var(--surface)', border: '1px solid var(--border2)',
-                textAlign: 'center',
-              }}>
-                <div style={{ fontSize: 28, marginBottom: 12, opacity: 0.4 }}>🔍</div>
-                <div style={{ fontSize: 15, color: 'var(--text2)', fontWeight: 500, marginBottom: 6 }}>
-                  No close alternatives found either
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6, maxWidth: 380, margin: '0 auto' }}>
-                  This specific combination isn't available in our current studio network.
-                  Browse the full directory or send us your requirement directly — we'll source it manually.
-                </div>
+              <div style={{ marginBottom: 24 }}>
+                {!inquiryDone ? (
+                  <div style={{
+                    padding: '32px 28px', borderRadius: 14,
+                    background: 'var(--surface)', border: '1px solid var(--border2)',
+                  }}>
+                    <div style={{ textAlign: 'center', marginBottom: 28 }}>
+                      <h3 style={{
+                        fontFamily: 'var(--font-display)', fontSize: 'clamp(20px, 2.5vw, 26px)',
+                        fontWeight: 400, color: 'var(--text)', marginBottom: 10, lineHeight: 1.3,
+                      }}>
+                        Your requirement is specific, and that's great.
+                      </h3>
+                      <p style={{ fontSize: 14, color: 'var(--text3)', lineHeight: 1.7, maxWidth: 460, margin: '0 auto' }}>
+                        This specific combination isn't in our online directory yet, but our network extends far beyond what you see here. Share your details and we'll personally connect you with studios from our broader network.
+                      </p>
+                    </div>
+                    <InquiryForm
+                      name={inquiryName} setName={setInquiryName}
+                      email={inquiryEmail} setEmail={setInquiryEmail}
+                      selectedDates={inquiryDates} setSelectedDates={setInquiryDates}
+                      message={inquiryMessage} setMessage={setInquiryMessage}
+                      error={inquiryError} submitting={inquirySubmitting}
+                      onSubmit={submitInquiry}
+                    />
+                  </div>
+                ) : (
+                  <div style={{
+                    padding: '40px 28px', borderRadius: 14,
+                    background: 'var(--surface)', border: '1px solid var(--border2)',
+                    textAlign: 'center',
+                  }}>
+                    <div style={{ fontSize: 32, marginBottom: 12 }}>✓</div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 400, color: 'var(--text)', marginBottom: 8 }}>
+                      We've received your details
+                    </div>
+                    <p style={{ fontSize: 14, color: 'var(--text3)', lineHeight: 1.6, maxWidth: 380, margin: '0 auto' }}>
+                      Our team will personally review your requirements and connect you with the right studios. Expect to hear from us soon.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
             {suggs.length > 0 && (
@@ -674,7 +704,8 @@ export default function DiscoverResults() {
               </div>
             )}
 
-            {/* Browse all — secondary outline */}
+            {/* Browse all — secondary outline (only when suggestions exist) */}
+            {suggs.length > 0 && (
             <div style={{ textAlign: 'center' }}>
               <button
                 onClick={() => nav('/directory')}
@@ -691,6 +722,7 @@ export default function DiscoverResults() {
                 Browse all studios →
               </button>
             </div>
+            )}
           </div>
         )}
 
@@ -741,7 +773,7 @@ export default function DiscoverResults() {
                   scrollSnapAlign: 'center',
                   animation: `fadeUp 0.5s ease ${0.1 + i * 0.08}s both`,
                 }}>
-                  <RecommendationCard rec={rec} position={i + 1} onContact={handleContact} isBonus={false} />
+                  <RecommendationCard rec={rec} position={i + 1} onContact={handleContact} isBonus={false} buyerSummary={summary} />
                 </div>
               ))}
               {/* Directory CTA card */}
@@ -821,7 +853,7 @@ export default function DiscoverResults() {
                     scrollSnapAlign: 'center',
                     animation: `fadeUp 0.5s ease ${0.1 + i * 0.08}s both`,
                   }}>
-                    <RecommendationCard rec={rec} position={i + 1} onContact={handleContact} isBonus={true} />
+                    <RecommendationCard rec={rec} position={i + 1} onContact={handleContact} isBonus={true} buyerSummary={summary} />
                   </div>
                 ))}
               </div>
@@ -856,8 +888,8 @@ export default function DiscoverResults() {
           </div>
         )}
 
-        {/* ── Bottom inquiry section ───────────────────────────────────── */}
-        <div style={{ borderTop: '1px solid var(--border)', padding: '48px 60px 64px', flexShrink: 0 }}>
+        {/* ── Bottom inquiry section (hidden when zero-match + no suggestions — form is inline above) */}
+        <div style={{ borderTop: '1px solid var(--border)', padding: '48px 60px 64px', flexShrink: 0, display: (data?.zero_match && recs.length === 0 && (data?.zero_match_suggestions || []).length === 0) ? 'none' : 'block' }}>
           <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
             <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>
               Want to talk it through?

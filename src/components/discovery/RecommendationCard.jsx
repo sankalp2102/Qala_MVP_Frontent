@@ -6,7 +6,52 @@ const RANKING_STYLES = {
   low:    { bg: 'rgba(160,160,160,0.08)',color: '#A0A0A0', border: 'rgba(160,160,160,0.2)', label: 'Possible Match' },
 };
 
-export default function RecommendationCard({ rec, position, isBonus, onContact }) {
+const BATCH_LABELS = {
+  under_30: 'Under 30 pieces',
+  '30_100': '30–100 pieces',
+  over_100: '100+ pieces',
+  not_sure: '',
+};
+
+function buildWhyLines(rec, buyerSummary, isBonus) {
+  if (isBonus || !buyerSummary) return null;
+  const lines = [];
+  const isPrimary = rec.core_capability_fit === 'high';
+
+  // Fabric line
+  const buyerFabrics = (buyerSummary.fabrics || []).slice(0, 3);
+  const studioPrimaryFabrics = (rec.primary_fabrics || []).slice(0, 3);
+  if (buyerFabrics.length > 0) {
+    if (isPrimary) {
+      lines.push(`Works extensively with ${buyerFabrics.join(', ')}`);
+    } else {
+      const extras = studioPrimaryFabrics.filter(f => !buyerFabrics.includes(f)).slice(0, 2);
+      const extrasText = extras.length > 0 ? ` among others like ${extras.join(', ')}` : '';
+      lines.push(`Works with ${buyerFabrics.join(', ')}${extrasText}`);
+    }
+  }
+
+  // Craft line
+  const buyerCrafts = (buyerSummary.crafts || []).slice(0, 3);
+  if (buyerCrafts.length > 0) {
+    if (isPrimary) {
+      lines.push(`Strong capability & experience in ${buyerCrafts.join(', ')}`);
+    } else {
+      lines.push(`Comfortable with ${buyerCrafts.join(', ')} techniques`);
+    }
+  }
+
+  // Batch size line
+  const batchKey = buyerSummary.batch_size;
+  const batchLabel = BATCH_LABELS[batchKey];
+  if (batchLabel) {
+    lines.push(`Comfortable with your batch size — ${batchLabel}`);
+  }
+
+  return lines.length > 0 ? lines : null;
+}
+
+export default function RecommendationCard({ rec, position, isBonus, onContact, buyerSummary }) {
   const rank = RANKING_STYLES[rec.ranking] || RANKING_STYLES.medium;
   const hero = rec.hero_images?.[0];
 
@@ -92,20 +137,23 @@ export default function RecommendationCard({ rec, position, isBonus, onContact }
           </div>
         )}
 
-        {/* Match reasoning */}
-        {rec.match_reasoning && Object.keys(rec.match_reasoning).length > 0 && (
-          <div style={{
-            background: 'var(--surface2)', borderRadius: 10,
-            padding: '14px 16px', fontSize: 13, color: 'var(--text2)', lineHeight: 1.7,
-          }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
-              Why this studio
+        {/* Why this studio */}
+        {(() => {
+          const whyLines = buildWhyLines(rec, buyerSummary, isBonus);
+          return whyLines ? (
+            <div style={{
+              background: 'var(--surface2)', borderRadius: 10,
+              padding: '14px 16px', fontSize: 13, color: 'var(--text2)', lineHeight: 1.7,
+            }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
+                Why this studio
+              </div>
+              {whyLines.map((line, i) => (
+                <div key={i} style={{ marginBottom: 5 }}>· {line}</div>
+              ))}
             </div>
-            {Object.values(rec.match_reasoning).filter(Boolean).slice(0, 2).map((r, i) => (
-              <div key={i} style={{ marginBottom: 5 }}>· {typeof r === 'string' ? r : r.explanation}</div>
-            ))}
-          </div>
-        )}
+          ) : null;
+        })()}
 
         {/* Two-column: Best at + Keep in mind */}
         <div style={{ display: 'flex', gap: 16 }}>
