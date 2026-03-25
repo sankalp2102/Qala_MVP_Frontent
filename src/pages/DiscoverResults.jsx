@@ -754,22 +754,22 @@ export default function DiscoverResults() {
               className="carousel-scroll"
               style={{
                 display: 'flex',
-                gap: 24,
+                gap: 200,
                 overflowX: 'auto',
                 overflowY: 'hidden',
                 scrollSnapType: 'x mandatory',
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
-                padding: '8px 68px',
+                padding: '8px 48px 8px 120px',
                 height: 'calc(100% - 32px)',  /* leave 32px for counter */
                 alignItems: 'stretch',
               }}
             >
               {recs.map((rec, i) => (
                 <div key={rec.studio_id || i} style={{
-                  minWidth: 'calc(100vw - 160px)',
-                  maxWidth: 'calc(100vw - 160px)',
-                  flex: '0 0 calc(100vw - 160px)',
+                  minWidth: 'min(920px, calc(100vw - 90px))',
+                  maxWidth: 'min(920px, calc(100vw - 90px))',
+                  flex: '0 0 min(920px, calc(100vw - 90px))',
                   scrollSnapAlign: 'center',
                   animation: `fadeUp 0.5s ease ${0.1 + i * 0.08}s both`,
                 }}>
@@ -778,9 +778,9 @@ export default function DiscoverResults() {
               ))}
               {/* Directory CTA card */}
               <div style={{
-                minWidth: 'calc(100vw - 160px)',
-                maxWidth: 'calc(100vw - 160px)',
-                flex: '0 0 calc(100vw - 160px)',
+                minWidth: 'min(920px, calc(100vw - 90px))',
+                maxWidth: 'min(920px, calc(100vw - 90px))',
+                flex: '0 0 min(920px, calc(100vw - 90px))',
                 scrollSnapAlign: 'center',
                 animation: `fadeUp 0.5s ease ${0.1 + recs.length * 0.08}s both`,
               }}>
@@ -843,13 +843,13 @@ export default function DiscoverResults() {
 
               {/* Cards */}
               <div ref={aestheticRef} className="carousel-scroll" style={{
-                display: 'flex', gap: 16, overflowX: 'auto', overflowY: 'hidden',
+                display: 'flex', gap: 200, overflowX: 'auto', overflowY: 'hidden',
                 scrollSnapType: 'x mandatory', scrollbarWidth: 'none', msOverflowStyle: 'none',
-                padding: '8px 64px', flex: 1, alignItems: 'stretch',
+                padding: '8px 48px 8px 120px', flex: 1, alignItems: 'stretch',
               }}>
                 {bonus.map((rec, i) => (
                   <div key={rec.studio_id || i} style={{
-                    minWidth: 'min(600px, 65vw)', maxWidth: 'min(600px, 65vw)', flex: '0 0 min(600px, 65vw)',
+                    minWidth: 'min(920px, calc(100vw - 90px))', maxWidth: 'min(920px, calc(100vw - 90px))', flex: '0 0 min(920px, calc(100vw - 90px))',
                     scrollSnapAlign: 'center',
                     animation: `fadeUp 0.5s ease ${0.1 + i * 0.08}s both`,
                   }}>

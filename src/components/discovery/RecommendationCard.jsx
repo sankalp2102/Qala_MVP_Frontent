@@ -14,9 +14,15 @@ const BATCH_LABELS = {
 };
 
 function buildWhyLines(rec, buyerSummary, isBonus) {
-  if (isBonus || !buyerSummary) return null;
+  if (isBonus || !buyerSummary) return [];
   const lines = [];
   const isPrimary = rec.core_capability_fit === 'high';
+
+  // Product line — from match_reasoning if available
+  const productMatch = rec.match_reasoning?.product_match;
+  if (productMatch && typeof productMatch === 'string') {
+    lines.push(productMatch);
+  }
 
   // Fabric line
   const buyerFabrics = (buyerSummary.fabrics || []).slice(0, 3);
@@ -48,12 +54,31 @@ function buildWhyLines(rec, buyerSummary, isBonus) {
     lines.push(`Comfortable with your batch size — ${batchLabel}`);
   }
 
-  return lines.length > 0 ? lines : null;
+  // Visual affinity
+  if (rec.match_reasoning?.visual_affinity === true) {
+    lines.push('Their aesthetic aligns with the images you selected');
+  }
+
+  return lines;
 }
 
 export default function RecommendationCard({ rec, position, isBonus, onContact, buyerSummary }) {
+  const [activeTab, setActiveTab] = useState('why');
   const rank = RANKING_STYLES[rec.ranking] || RANKING_STYLES.medium;
   const hero = rec.hero_images?.[0];
+  const whyLines = buildWhyLines(rec, buyerSummary, isBonus);
+  const bestAt = (rec.what_best_at || []).filter(Boolean);
+
+  // For bonus cards, only show "best at" tab
+  const tabs = isBonus
+    ? [{ key: 'best', label: "What They're Best At" }]
+    : [
+        { key: 'why',  label: 'Why Recommended' },
+        { key: 'best', label: "What They're Best At" },
+      ];
+
+  // USP blurb from studio details
+  const blurb = rec.short_description || null;
 
   return (
     <div style={{
@@ -110,64 +135,93 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
       </div>
 
       {/* Card body */}
-      <div style={{ padding: '20px 22px', flex: 1, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ padding: '24px 28px', flex: 1, display: 'flex', flexDirection: 'column' }}>
 
-        {/* Studio name + location */}
-        <div>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
+        {/* Studio name + location + years */}
+        <div style={{ marginBottom: 6 }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 600, color: 'var(--text)', marginBottom: 2, lineHeight: 1.2 }}>
             {rec.studio_name || 'Studio'}
           </h3>
-          {rec.location && (
-            <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 4 }}>
-              📍 {rec.location}
-            </div>
-          )}
+          <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+            {[rec.location, rec.years_in_operation ? `Est. ${Math.round(new Date().getFullYear() - rec.years_in_operation)}` : null].filter(Boolean).join(' · ')}
+          </div>
         </div>
 
-        {/* Craft tags */}
-        {rec.primary_crafts?.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {rec.primary_crafts.slice(0, 5).map(c => (
+        {/* Blurb / tagline */}
+        {blurb && (
+          <div style={{ fontSize: 13, color: 'var(--text2)', fontStyle: 'italic', lineHeight: 1.5, marginBottom: 10 }}>
+            &ldquo;{blurb}&rdquo;
+          </div>
+        )}
+
+        {/* Craft + fabric tags */}
+        {(rec.primary_crafts?.length > 0 || rec.primary_fabrics?.length > 0) && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+            {(rec.primary_crafts || []).slice(0, 3).map(c => (
               <span key={c} style={{
+                padding: '4px 12px', borderRadius: 12,
+                background: 'rgba(196,110,73,0.08)', border: '1px solid rgba(196,110,73,0.2)',
+                fontSize: 11, color: '#B85C38', fontWeight: 500,
+              }}>{c}</span>
+            ))}
+            {(rec.primary_fabrics || []).slice(0, 2).map(f => (
+              <span key={f} style={{
                 padding: '4px 12px', borderRadius: 12,
                 background: 'var(--surface3)', border: '1px solid var(--border)',
                 fontSize: 11, color: 'var(--text2)',
-              }}>{c}</span>
+              }}>{f}</span>
             ))}
           </div>
         )}
 
-        {/* Why this studio */}
-        {(() => {
-          const whyLines = buildWhyLines(rec, buyerSummary, isBonus);
-          return whyLines ? (
-            <div style={{
-              background: 'var(--surface2)', borderRadius: 10,
-              padding: '14px 16px', fontSize: 13, color: 'var(--text2)', lineHeight: 1.7,
-            }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
-                Why this studio
-              </div>
-              {whyLines.map((line, i) => (
-                <div key={i} style={{ marginBottom: 5 }}>· {line}</div>
-              ))}
-            </div>
-          ) : null;
-        })()}
+        {/* ── Tabs ─────────────────────────────────────────────── */}
+        <div style={{ borderBottom: '1px solid var(--border)', display: 'flex', gap: 0, marginBottom: 16 }}>
+          {tabs.map(t => (
+            <button
+              key={t.key}
+              onClick={() => setActiveTab(t.key)}
+              style={{
+                padding: '10px 16px', fontSize: 13, fontWeight: 500,
+                color: activeTab === t.key ? '#B85C38' : 'var(--text3)',
+                background: 'none', border: 'none', cursor: 'pointer',
+                borderBottom: activeTab === t.key ? '2px solid #B85C38' : '2px solid transparent',
+                fontFamily: 'var(--font-body)', transition: 'color 0.15s, border-color 0.15s',
+                marginBottom: -1,
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
 
-        {/* Two-column: Best at + Keep in mind */}
-        <div style={{ display: 'flex', gap: 16 }}>
-          {/* Best at */}
-          {rec.what_best_at?.length > 0 && (
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
-                Best at
-              </div>
-              {rec.what_best_at.slice(0, 3).map((w, i) => (
-                <div key={i} style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 5, display: 'flex', gap: 6 }}>
-                  <span style={{ color: 'var(--green)', flexShrink: 0 }}>✓</span> {typeof w === 'string' ? w : w.explanation}
+        {/* ── Tab content ──────────────────────────────────────── */}
+        <div style={{ flex: 1, minHeight: 120 }}>
+
+          {/* Why Recommended */}
+          {activeTab === 'why' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {whyLines.length > 0 ? whyLines.map((line, i) => (
+                <div key={i} style={{ display: 'flex', gap: 10, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+                  <span style={{ color: 'var(--text4)', flexShrink: 0, marginTop: 1 }}>·</span>
+                  <span>{line}</span>
                 </div>
-              ))}
+              )) : (
+                <div style={{ fontSize: 13, color: 'var(--text4)' }}>Match details not available.</div>
+              )}
+            </div>
+          )}
+
+          {/* What They're Best At */}
+          {activeTab === 'best' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {bestAt.length > 0 ? bestAt.slice(0, 5).map((w, i) => (
+                <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+                  <span style={{ color: '#5AE87A', flexShrink: 0, marginTop: 1 }}>✓</span>
+                  <span>{typeof w === 'string' ? w : w.explanation}</span>
+                </div>
+              )) : (
+                <div style={{ fontSize: 13, color: 'var(--text4)' }}>Details coming soon.</div>
+              )}
             </div>
           )}
         </div>
@@ -176,7 +230,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
         {isBonus && rec.mismatches?.length > 0 && (
           <div style={{
             background: 'rgba(232,184,80,0.05)', border: '1px solid rgba(232,184,80,0.15)',
-            borderRadius: 8, padding: '10px 12px',
+            borderRadius: 8, padding: '10px 12px', marginTop: 14,
           }}>
             <div style={{ fontSize: 10, color: 'var(--amber)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>
               Visual match — some differences
@@ -186,8 +240,6 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
             ))}
           </div>
         )}
-
-        <div style={{ flex: 1 }} />
 
         {/* CTA */}
         <button
@@ -200,7 +252,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
             fontFamily: 'var(--font-body)',
             letterSpacing: '0.06em', textTransform: 'uppercase', textAlign: 'center',
             transition: 'transform 0.2s, box-shadow 0.2s, background 0.2s',
-            boxSizing: 'border-box',
+            boxSizing: 'border-box', marginTop: 16,
           }}
           onMouseEnter={e => { e.currentTarget.style.background = '#C46E49'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 40px rgba(196,110,73,0.3)'; }}
           onMouseLeave={e => { e.currentTarget.style.background = '#1A1612'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
