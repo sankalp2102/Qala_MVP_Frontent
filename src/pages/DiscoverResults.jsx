@@ -481,17 +481,32 @@ export default function DiscoverResults() {
           )}
         </div>
 
-        {/* Right — Help Me Decide */}
+        {/* Right — contextual button */}
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button className="help-btn" onClick={() => setHeaderInquiryOpen(true)} style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '9px 20px', borderRadius: 8, background: '#1A1612', color: '#F5F0E8',
-            border: 'none', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-body)',
-            letterSpacing: '0.03em', cursor: 'pointer', transition: 'background 0.2s',
-            whiteSpace: 'nowrap',
-          }}>
-            <CalendarIcon /> Help Me Decide
-          </button>
+          {data?.zero_match && recs.length === 0 && suggs.length === 0 ? (
+            <button onClick={() => nav('/directory')} style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '9px 20px', borderRadius: 8, background: '#1A1612', color: '#F5F0E8',
+              border: 'none', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-body)',
+              letterSpacing: '0.03em', cursor: 'pointer', transition: 'background 0.2s',
+              whiteSpace: 'nowrap',
+            }}
+              onMouseEnter={e => e.currentTarget.style.background = '#C46E49'}
+              onMouseLeave={e => e.currentTarget.style.background = '#1A1612'}
+            >
+              Show All Studios →
+            </button>
+          ) : (
+            <button className="help-btn" onClick={() => setHeaderInquiryOpen(true)} style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '9px 20px', borderRadius: 8, background: '#1A1612', color: '#F5F0E8',
+              border: 'none', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-body)',
+              letterSpacing: '0.03em', cursor: 'pointer', transition: 'background 0.2s',
+              whiteSpace: 'nowrap',
+            }}>
+              <CalendarIcon /> Help Me Decide
+            </button>
+          )}
         </div>
       </div>
 
