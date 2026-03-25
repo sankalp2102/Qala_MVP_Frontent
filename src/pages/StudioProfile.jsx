@@ -5,6 +5,14 @@ import { discoveryAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import qalaLogo from '../assets/qala-logo.png';
 
+const MEDIA_BASE = 'https://api.qala.studio';
+/** Ensure image URL is absolute — backend may return relative paths behind proxy */
+function mediaUrl(url) {
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
+  return MEDIA_BASE + url;
+}
+
 // ─── Lightbox ────────────────────────────────────────────────────────────────
 function Lightbox({ images, startIndex, onClose }) {
   const [idx, setIdx] = useState(startIndex);
@@ -64,7 +72,7 @@ function Lightbox({ images, startIndex, onClose }) {
         }}
       >
         <img
-          src={images[idx]?.url}
+          src={mediaUrl(images[idx]?.url)}
           style={{
             maxWidth: '88vw', maxHeight: '80vh',
             width: 'auto', height: 'auto',
@@ -92,7 +100,7 @@ function Lightbox({ images, startIndex, onClose }) {
         {images.map((img, i) => (
           <img
             key={i}
-            src={img.url}
+            src={mediaUrl(img.url)}
             onClick={e => { e.stopPropagation(); setIdx(i); }}
             style={{
               width: 52, height: 40, objectFit: 'cover', borderRadius: 5, cursor: 'pointer',
@@ -127,7 +135,7 @@ function Gallery({ images }) {
           style={{ gridRow: '1 / 3', cursor: 'pointer', overflow: 'hidden', position: 'relative', minHeight: 300 }}
           onClick={() => setLb(0)}
         >
-          <img src={first[0]?.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.4s ease' }}
+          <img src={mediaUrl(first[0]?.url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.4s ease' }}
             onMouseEnter={e => e.target.style.transform = 'scale(1.04)'}
             onMouseLeave={e => e.target.style.transform = 'scale(1)'}
           />
@@ -138,7 +146,7 @@ function Gallery({ images }) {
             style={{ cursor: 'pointer', overflow: 'hidden', position: 'relative', height: 148 }}
             onClick={() => setLb(i + 1)}
           >
-            <img src={img.url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.4s ease' }}
+            <img src={mediaUrl(img.url)} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.4s ease' }}
               onMouseEnter={e => e.target.style.transform = 'scale(1.06)'}
               onMouseLeave={e => e.target.style.transform = 'scale(1)'}
             />
@@ -327,10 +335,7 @@ function CraftCarousel({ crafts }) {
   }, [crafts.length]);
 
   const c = crafts[active];
-  const BASE = 'https://api.qala.studio';
-  const imageUrl = c.image_url
-    ? (c.image_url.startsWith('http') ? c.image_url : BASE + c.image_url)
-    : null;
+  const imageUrl = mediaUrl(c.image_url);
 
   return (
     <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'var(--surface)' }}>
@@ -496,7 +501,7 @@ export default function StudioProfile() {
   }, []);
 
   const allImages = studio
-    ? [...(studio.work_images || []), ...(studio.bts_images || [])]
+    ? [...(studio.work_images || []), ...(studio.bts_images || [])].map(img => ({ ...img, url: mediaUrl(img.url) }))
     : [];
 
   // ── Loading ──
@@ -581,7 +586,7 @@ export default function StudioProfile() {
       {/* ── Hero ── */}
       <div ref={heroRef} style={{ position: 'relative', height: 480, overflow: 'hidden', background: 'var(--surface2)' }}>
         {heroUrl ? (
-          <img src={heroUrl} alt={s.studio_name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          <img src={mediaUrl(heroUrl)} alt={s.studio_name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.15, fontSize: 72 }}>🏛</div>
         )}
@@ -741,7 +746,7 @@ export default function StudioProfile() {
               <Section title="Inside Our Studio">
                 <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8 }}>
                   {s.bts_images.slice(0, 8).map((img, i) => (
-                    <img key={i} src={img.url} alt="" loading="lazy"
+                    <img key={i} src={mediaUrl(img.url)} alt="" loading="lazy"
                       onClick={() => { setBtsStartIndex(i); setBtsLightboxOpen(true); }}
                       style={{ width: 140, height: 100, objectFit: 'cover', borderRadius: 8, flexShrink: 0, cursor: 'pointer', transition: 'transform 0.2s' }}
                       onMouseEnter={e => e.target.style.transform = 'scale(1.03)'}
@@ -766,7 +771,7 @@ export default function StudioProfile() {
                   {s.coordinator.image_url && (
                     <div style={{ flexShrink: 0 }}>
                       <img
-                        src={s.coordinator.image_url}
+                        src={mediaUrl(s.coordinator.image_url)}
                         alt={s.coordinator.name}
                         loading="lazy"
                         style={{

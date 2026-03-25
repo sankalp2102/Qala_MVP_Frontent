@@ -1,5 +1,12 @@
 import { useState } from 'react';
 
+const MEDIA_BASE = 'https://api.qala.studio';
+function mediaUrl(url) {
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
+  return MEDIA_BASE + url;
+}
+
 const RANKING_STYLES = {
   high:   { bg: 'rgba(90,232,122,0.08)', color: '#5AE87A', border: 'rgba(90,232,122,0.2)',  label: 'Strong Match' },
   medium: { bg: 'rgba(232,184,80,0.08)', color: '#E8B850', border: 'rgba(232,184,80,0.2)',  label: 'Good Match' },
@@ -121,7 +128,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
       <div style={{ height: 220, background: 'var(--surface2)', flexShrink: 0, overflow: 'hidden' }}>
         {hero ? (
           <img
-            src={hero.url}
+            src={mediaUrl(hero.url)}
             alt={rec.studio_name}
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />
