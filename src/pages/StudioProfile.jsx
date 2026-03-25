@@ -476,6 +476,10 @@ export default function StudioProfile() {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
+
+  useEffect(() => {
     discoveryAPI.getStudioProfile(id)
       .then(r => setStudio(r.data))
       .catch(e => {
