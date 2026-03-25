@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, NavLink } from 'react-router-dom';
 import qalaLogo from '../assets/qala-logo.png';
@@ -5,18 +6,54 @@ import qalaLogo from '../assets/qala-logo.png';
 export function DashLayout({ children, nav: navItems }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const doLogout = async () => { await logout(); navigate('/'); };
 
   return (
     <div style={{ display:'flex', minHeight:'100vh', background:'var(--bg)' }}>
+      <style>{`
+        .dash-sidebar {
+          width: 240px; flex-shrink: 0;
+          background: var(--surface);
+          border-right: 1px solid var(--border);
+          display: flex; flex-direction: column;
+          position: sticky; top: 0; height: 100vh; overflow-y: auto;
+          transition: transform 0.25s ease;
+          z-index: 50;
+        }
+        .dash-hamburger { display: none; }
+        .dash-overlay { display: none; }
+        @media (max-width: 1024px) {
+          .dash-sidebar {
+            position: fixed; left: 0; top: 0;
+            transform: translateX(-100%);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.1);
+          }
+          .dash-sidebar.open { transform: translateX(0); }
+          .dash-hamburger {
+            display: flex; align-items: center; justify-content: center;
+            position: fixed; top: 14px; left: 14px; z-index: 40;
+            width: 40px; height: 40px; border-radius: 8px;
+            background: var(--surface); border: 1px solid var(--border);
+            cursor: pointer; font-size: 18; color: var(--text);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+          }
+          .dash-overlay {
+            display: block; position: fixed; inset: 0; z-index: 45;
+            background: rgba(0,0,0,0.3);
+          }
+          .dash-main { padding-top: 60px; }
+        }
+      `}</style>
+
+      {/* Mobile hamburger */}
+      <button className="dash-hamburger" onClick={() => setSidebarOpen(true)}>☰</button>
+
+      {/* Overlay */}
+      {sidebarOpen && <div className="dash-overlay" onClick={() => setSidebarOpen(false)} />}
+
       {/* SIDEBAR */}
-      <aside style={{
-        width:240, flexShrink:0,
-        background:'var(--surface)',
-        borderRight:'1px solid var(--border)',
-        display:'flex', flexDirection:'column',
-        position:'sticky', top:0, height:'100vh', overflowY:'auto',
-      }}>
+      <aside className={`dash-sidebar ${sidebarOpen ? 'open' : ''}`}>
         {/* Logo */}
         <div style={{ padding:'22px 20px 18px', borderBottom:'1px solid var(--border)' }}>
           <img src={qalaLogo} alt="Qala" className="qala-logo" style={{ marginBottom: 6 }} />
@@ -29,6 +66,7 @@ export function DashLayout({ children, nav: navItems }) {
         <nav style={{ flex:1, padding:'12px 8px', overflowY:'auto' }}>
           {navItems.map(item => (
             <NavLink key={item.to} to={item.to} end={item.to === '/dashboard' || item.to === '/admin'}
+              onClick={() => setSidebarOpen(false)}
               style={({ isActive }) => ({
                 display:'flex', alignItems:'center', gap:10,
                 padding:'9px 12px', borderRadius:'var(--radius)',
@@ -73,7 +111,7 @@ export function DashLayout({ children, nav: navItems }) {
       </aside>
 
       {/* MAIN */}
-      <main style={{ flex:1, overflowY:'auto', minHeight:'100vh' }}>
+      <main className="dash-main" style={{ flex:1, overflowY:'auto', minHeight:'100vh' }}>
         {children}
       </main>
     </div>

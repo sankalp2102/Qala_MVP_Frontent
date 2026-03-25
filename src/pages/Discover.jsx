@@ -295,7 +295,7 @@ export default function Discover() {
           width: '60%', display: 'flex', flexDirection: 'column',
           borderRight: '1px solid var(--border)', overflow: 'hidden',
         }}>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '48px 52px 100px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: 'clamp(24px, 4vw, 48px) clamp(20px, 4vw, 52px) 100px' }}>
             <div
               className={anim ? 'step-exit' : dir === 1 ? 'step-enter-fwd' : 'step-enter-back'}
               key={step}
@@ -340,7 +340,7 @@ export default function Discover() {
 
           {/* Bottom nav */}
           <div style={{
-            flexShrink: 0, padding: '16px 52px',
+            flexShrink: 0, padding: '16px clamp(20px, 4vw, 52px)',
             borderTop: '1px solid var(--border)',
             background: 'rgba(248,245,241,0.97)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,

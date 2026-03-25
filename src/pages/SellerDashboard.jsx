@@ -38,7 +38,7 @@ function Overview({ snapshot, flags }) {
   }).length;
 
   return (
-    <div style={{ padding:'40px 48px', maxWidth:960 }}>
+    <div style={{ padding:'clamp(20px, 3vw, 40px) clamp(16px, 4vw, 48px)', maxWidth:960 }}>
 
       {/* Header */}
       <div className="fade-up" style={{ marginBottom:40 }}>
@@ -82,7 +82,7 @@ function Overview({ snapshot, flags }) {
       </div>
 
       {/* Section grid */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))', gap:16 }}>
         {SECTIONS.map((sec, i) => {
           const st   = status?.[`section_${sec.key}_status`] || 'not_started';
           const done = st === 'submitted' || st === 'approved';
@@ -141,7 +141,7 @@ function SellerInquiries({ profileId }) {
   });
 
   return (
-    <div style={{ padding: '40px 48px' }}>
+    <div style={{ padding: 'clamp(20px, 3vw, 40px) clamp(16px, 4vw, 48px)' }}>
       <div className="fade-up" style={{ marginBottom: 36 }}>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 42, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
           Buyer <em style={{ color: 'var(--gold)' }}>Inquiries</em>

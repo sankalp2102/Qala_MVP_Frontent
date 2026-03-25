@@ -183,7 +183,7 @@ function Overview() {
   const flagged  = profiles.filter(p=>['a','b','c','d','e','f'].some(k=>p.section_statuses?.[`section_${k}_status`]==='flagged')).length;
 
   return (
-    <div style={{ padding:'40px 48px' }}>
+    <div style={{ padding:'clamp(20px, 3vw, 40px) clamp(16px, 4vw, 48px)' }}>
       <div className="fade-up" style={{ marginBottom:40, display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
         <div>
           <h1 style={{ fontFamily:'var(--font-display)', fontSize:42, fontWeight:700, color:'var(--text)', marginBottom:6 }}>
@@ -213,7 +213,7 @@ function Overview() {
       </div>
 
       {/* Stats row */}
-      <div className="fade-up" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:36 }}>
+      <div className="fade-up" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:16, marginBottom:36 }}>
         {[
           { label:'Total Profiles',   value:profiles.length, color:'var(--text)'  },
           { label:'Fully Complete',   value:complete,        color:'var(--green)' },
@@ -401,7 +401,7 @@ function ProfileReview() {
             <div style={{ fontSize:11, fontWeight:600, color:'var(--teal)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:14 }}>
               Editing — changes save directly to seller's profile
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))', gap:12, marginBottom:14 }}>
               {editableKeys.map(([k]) => (
                 <div className="field" key={k} style={ k === 'short_description' ? { gridColumn: '1 / -1' } : {} }>
                   <label style={{ fontSize:11 }}>{k.replace(/_/g,' ')}</label>
@@ -666,7 +666,7 @@ function ProfileReview() {
                 <div style={{ fontSize:11, fontWeight:600, color:'var(--teal)', letterSpacing:'0.06em', textTransform:'uppercase', marginBottom:12 }}>
                   Editing craft
                 </div>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))', gap:10, marginBottom:12 }}>
                   {craftEditableKeys(c).map(([k]) => (
                     <div className="field" key={k}>
                       <label style={{ fontSize:11 }}>{k.replace(/_/g,' ')}</label>
@@ -695,7 +695,7 @@ function ProfileReview() {
   const pid = selected?.profile_id || selected?.id;
 
   return (
-    <div style={{ padding:'40px 48px' }}>
+    <div style={{ padding:'clamp(20px, 3vw, 40px) clamp(16px, 4vw, 48px)' }}>
       <Toast toasts={toasts} />
 
       <div className="fade-up" style={{ marginBottom:32 }}>
@@ -757,7 +757,7 @@ function ProfileReview() {
               <div style={{ fontFamily:'var(--font-display)', fontSize:18, fontWeight:600, color:'var(--red)', marginBottom:16 }}>
                 Flag a Field
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))', gap:12, marginBottom:12 }}>
                 <div className="field">
                   <label>Model / Section</label>
                   <select value={flagForm.model} onChange={e => {
@@ -864,7 +864,7 @@ function CreateSeller() {
   };
 
   return (
-    <div style={{ padding:'40px 48px', maxWidth:520 }}>
+    <div style={{ padding:'clamp(20px, 3vw, 40px) clamp(16px, 4vw, 48px)', maxWidth:520 }}>
       <Toast toasts={toasts} />
       <div className="fade-up" style={{ marginBottom:36 }}>
         <h1 style={{ fontFamily:'var(--font-display)', fontSize:34, fontWeight:700, color:'var(--text)', marginBottom:8 }}>Create Seller</h1>
@@ -940,7 +940,7 @@ function DiscoveryOverview() {
   const timelineLabel= { '1_3_months':'1–3 months', '3_6_months':'3–6 months', '6_plus_months':'6+ months', not_sure:'Not sure', flexible:'Flexible' };
 
   return (
-    <div style={{ padding: '40px 48px' }}>
+    <div style={{ padding: 'clamp(20px, 3vw, 40px) clamp(16px, 4vw, 48px)' }}>
       <div className="fade-up" style={{ marginBottom: 40 }}>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 42, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
           Discovery <em style={{ color: 'var(--gold)' }}>Insights</em>
@@ -948,7 +948,7 @@ function DiscoveryOverview() {
         <p style={{ color: 'var(--text3)', fontSize: 15 }}>All buyer sessions, matches, and what they're looking for.</p>
       </div>
 
-      <div className="fade-up" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 36 }}>
+      <div className="fade-up" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 36 }}>
         {[
           { label: 'Total Buyers',     value: stats.total,        color: 'var(--text)'  },
           { label: 'Got Matches',      value: stats.has_match,    color: 'var(--green)' },
@@ -962,7 +962,7 @@ function DiscoveryOverview() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 36 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20, marginBottom: 36 }}>
         <div className="card fade-up">
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)', marginBottom: 16 }}>Most Requested Crafts</div>
           {top_crafts.length === 0
@@ -1086,7 +1086,7 @@ function DiscoveryBuyerDetail() {
   const rankColor = r => ({ high: 'var(--green)', medium: 'var(--amber)', low: 'var(--red)' }[r] || 'var(--text3)');
 
   return (
-    <div style={{ padding: '40px 48px' }}>
+    <div style={{ padding: 'clamp(20px, 3vw, 40px) clamp(16px, 4vw, 48px)' }}>
       <button className="btn btn-ghost btn-sm" onClick={() => nav('/admin/discovery')} style={{ marginBottom: 24 }}>← Back to Discovery</button>
       <div className="card card-gold fade-up" style={{ marginBottom: 24, padding: '20px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
@@ -1104,7 +1104,7 @@ function DiscoveryBuyerDetail() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20, marginBottom: 20 }}>
         <div className="card fade-up">
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)', marginBottom: 16 }}>Questionnaire Answers</div>
           <Field label="Products"         value={buyer.product_types} />
@@ -1200,7 +1200,7 @@ function StudioInquiries() {
   });
 
   return (
-    <div style={{ padding: '40px 48px' }}>
+    <div style={{ padding: 'clamp(20px, 3vw, 40px) clamp(16px, 4vw, 48px)' }}>
       <div className="fade-up" style={{ marginBottom: 36 }}>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 42, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
           Studio <em style={{ color: 'var(--gold)' }}>Inquiries</em>
@@ -1284,7 +1284,7 @@ function DiscoveryInquiries() {
   });
 
   return (
-    <div style={{ padding: '40px 48px' }}>
+    <div style={{ padding: 'clamp(20px, 3vw, 40px) clamp(16px, 4vw, 48px)' }}>
       <div className="fade-up" style={{ marginBottom: 36 }}>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 42, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
           Custom <em style={{ color: 'var(--gold)' }}>Inquiries</em>

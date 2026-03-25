@@ -550,12 +550,12 @@ export default function DiscoverResults() {
 
         {/* ── Zero match — Layout 1 Featured Card ───────────────────── */}
         {data?.zero_match && recs.length === 0 && (
-          <div className="fade-in" style={{ padding: '48px 40px 60px', maxWidth: suggs.length > 0 ? 920 : 680, margin: '0 auto', width: '100%' }}>
+          <div className="fade-in" style={{ padding: 'clamp(24px, 4vw, 48px) clamp(20px, 3vw, 40px) 60px', maxWidth: suggs.length > 0 ? 920 : 680, margin: '0 auto', width: '100%' }}>
 
             {/* ── Layout 2: Side-by-Side (when suggestions exist) ──────── */}
             {suggs.length > 0 && (
               <div style={{
-                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40,
+                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: 'clamp(20px, 3vw, 40px)',
                 marginBottom: 24,
               }}>
                 {/* Left — context */}
@@ -727,22 +727,22 @@ export default function DiscoverResults() {
               className="carousel-scroll"
               style={{
                 display: 'flex',
-                gap: 200,
+                gap: 'clamp(40px, 14vw, 200px)',
                 overflowX: 'auto',
                 overflowY: 'hidden',
                 scrollSnapType: 'x mandatory',
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
-                padding: '8px 48px 8px 120px',
+                padding: '8px clamp(24px, 3vw, 48px) 8px clamp(24px, 8vw, 120px)',
                 height: 'calc(100% - 32px)',  /* leave 32px for counter */
                 alignItems: 'stretch',
               }}
             >
               {recs.map((rec, i) => (
                 <div key={rec.studio_id || i} style={{
-                  minWidth: 'min(920px, calc(100vw - 90px))',
-                  maxWidth: 'min(920px, calc(100vw - 90px))',
-                  flex: '0 0 min(920px, calc(100vw - 90px))',
+                  minWidth: 'clamp(320px, 64vw, 920px)',
+                  maxWidth: 'clamp(320px, 64vw, 920px)',
+                  flex: '0 0 clamp(320px, 64vw, 920px)',
                   scrollSnapAlign: 'center',
                   animation: `fadeUp 0.5s ease ${0.1 + i * 0.08}s both`,
                 }}>
@@ -751,9 +751,9 @@ export default function DiscoverResults() {
               ))}
               {/* Directory CTA card */}
               <div style={{
-                minWidth: 'min(920px, calc(100vw - 90px))',
-                maxWidth: 'min(920px, calc(100vw - 90px))',
-                flex: '0 0 min(920px, calc(100vw - 90px))',
+                minWidth: 'clamp(320px, 64vw, 920px)',
+                maxWidth: 'clamp(320px, 64vw, 920px)',
+                flex: '0 0 clamp(320px, 64vw, 920px)',
                 scrollSnapAlign: 'center',
                 animation: `fadeUp 0.5s ease ${0.1 + recs.length * 0.08}s both`,
               }}>
@@ -816,13 +816,13 @@ export default function DiscoverResults() {
 
               {/* Cards */}
               <div ref={aestheticRef} className="carousel-scroll" style={{
-                display: 'flex', gap: 200, overflowX: 'auto', overflowY: 'hidden',
+                display: 'flex', gap: 'clamp(40px, 14vw, 200px)', overflowX: 'auto', overflowY: 'hidden',
                 scrollSnapType: 'x mandatory', scrollbarWidth: 'none', msOverflowStyle: 'none',
-                padding: '8px 48px 8px 120px', flex: 1, alignItems: 'stretch',
+                padding: '8px clamp(24px, 3vw, 48px) 8px clamp(24px, 8vw, 120px)', flex: 1, alignItems: 'stretch',
               }}>
                 {bonus.map((rec, i) => (
                   <div key={rec.studio_id || i} style={{
-                    minWidth: 'min(920px, calc(100vw - 90px))', maxWidth: 'min(920px, calc(100vw - 90px))', flex: '0 0 min(920px, calc(100vw - 90px))',
+                    minWidth: 'clamp(320px, 64vw, 920px)', maxWidth: 'clamp(320px, 64vw, 920px)', flex: '0 0 clamp(320px, 64vw, 920px)',
                     scrollSnapAlign: 'center',
                     animation: `fadeUp 0.5s ease ${0.1 + i * 0.08}s both`,
                   }}>
@@ -862,7 +862,7 @@ export default function DiscoverResults() {
         )}
 
         {/* ── Bottom inquiry section (hidden when zero-match + no suggestions — form is inline above) */}
-        <div style={{ borderTop: '1px solid var(--border)', padding: '48px 60px 64px', flexShrink: 0, display: (data?.zero_match && recs.length === 0 && (data?.zero_match_suggestions || []).length === 0) ? 'none' : 'block' }}>
+        <div style={{ borderTop: '1px solid var(--border)', padding: 'clamp(32px, 4vw, 48px) clamp(24px, 4vw, 60px) 64px', flexShrink: 0, display: (data?.zero_match && recs.length === 0 && (data?.zero_match_suggestions || []).length === 0) ? 'none' : 'block' }}>
           <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
             <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>
               Want to talk it through?
