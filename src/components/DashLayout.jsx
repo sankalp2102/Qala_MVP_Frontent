@@ -65,7 +65,7 @@ export function DashLayout({ children, nav: navItems }) {
         {/* Nav */}
         <nav style={{ flex:1, padding:'12px 8px', overflowY:'auto' }}>
           {navItems.map(item => (
-            <NavLink key={item.to} to={item.to} end={item.to === '/dashboard' || item.to === '/admin'}
+            <NavLink key={item.to} to={item.to} end={item.end ?? false}
               onClick={() => setSidebarOpen(false)}
               style={({ isActive }) => ({
                 display:'flex', alignItems:'center', gap:10,

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import { adminAPI, onboardingAPI } from '../api/client';
 import { DashLayout } from '../components/DashLayout';
 import { Spinner } from '../components/Spinner';
@@ -281,22 +281,51 @@ function ProfileReview() {
   const [flagForm,    setFlagForm]    = useState({ model:'studio_details', field:'studio_name', reason:'' });
   const [flagging,    setFlagging]    = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [verifyConfirm, setVerifyConfirm] = useState(false);
+  const [toggling,    setToggling]    = useState(false);
   const { toasts, success, error } = useToast();
-
-  useEffect(() => {
-    adminAPI.listProfiles().then(r => {
-      const profs = r.data || [];
-      setProfiles(profs);
-      if (profs.length) { setSelected(profs[0]); loadOnboarding(profs[0]); }
-    }).catch(() => {});
-  }, []);
+  const { pid: urlPid } = useParams();
 
   const loadOnboarding = p => {
     setOnboarding(null);
     adminAPI.getOnboarding(p.profile_id||p.id).then(r=>setOnboarding(r.data)).catch(()=>{});
   };
 
-  const selectProfile = p => { setSelected(p); loadOnboarding(p); setShowFlag(false); };
+  useEffect(() => {
+    adminAPI.listProfiles().then(r => {
+      const profs = r.data || [];
+      setProfiles(profs);
+      const target = urlPid
+        ? profs.find(p => String(p.profile_id || p.id) === String(urlPid)) || profs[0]
+        : profs[0];
+      if (target) { setSelected(target); loadOnboarding(target); }
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlPid]);
+
+  const selectProfile = p => { setSelected(p); loadOnboarding(p); setShowFlag(false); setVerifyConfirm(false); };
+
+  const toggleVerified = async () => {
+    if (!selected) return;
+    setToggling(true);
+    try {
+      const res = await adminAPI.toggleVerified(selected.profile_id || selected.id);
+      const newState = res.data.is_verified;
+      // Update selected and profiles list in-place — no full reload needed
+      setSelected(s => ({ ...s, is_verified: newState }));
+      setProfiles(ps => ps.map(p =>
+        (p.profile_id || p.id) === (selected.profile_id || selected.id)
+          ? { ...p, is_verified: newState }
+          : p
+      ));
+      success(newState ? 'Studio verified — now visible in directory & matching.' : 'Studio unverified — hidden from directory & matching.');
+    } catch(e) {
+      error(e.response?.data?.detail || 'Toggle failed. Try again.');
+    } finally {
+      setToggling(false);
+      setVerifyConfirm(false);
+    }
+  };
 
   const submitFlag = async () => {
     if (!flagForm.reason) { error('Reason is required'); return; }
@@ -721,15 +750,46 @@ function ProfileReview() {
           <div className="card card-gold fade-up" style={{ marginBottom:20, padding:'20px 24px' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
               <div>
-                <div style={{ fontWeight:700, fontSize:16, color:'var(--text)', marginBottom:4 }}>
-                  {selected.business_name || selected.email || `Profile #${pid}`}
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
+                  <div style={{ fontWeight:700, fontSize:16, color:'var(--text)' }}>
+                    {selected.business_name || selected.email || `Profile #${pid}`}
+                  </div>
+                  {/* Verified badge */}
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
+                    padding: '3px 10px', borderRadius: 20,
+                    background: selected.is_verified ? 'rgba(58,158,98,0.1)' : 'rgba(26,22,18,0.06)',
+                    color: selected.is_verified ? 'var(--green)' : 'var(--text4)',
+                    border: `1px solid ${selected.is_verified ? 'rgba(58,158,98,0.25)' : 'var(--border)'}`,
+                  }}>
+                    {selected.is_verified ? '✓ Verified' : '○ Not Verified'}
+                  </span>
                 </div>
                 <div style={{ fontSize:13, color:'var(--text3)' }}>
                   {selected.seller_email || selected.email} · {selected.completion_percentage||0}% complete
                 </div>
                 <SectionBadges statuses={selected.section_statuses} />
               </div>
-              <div style={{ display:'flex', gap:8 }}>
+              <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                {/* Verify / Unverify toggle */}
+                <button
+                  onClick={() => setVerifyConfirm(true)}
+                  disabled={toggling}
+                  style={{
+                    padding:'9px 16px', borderRadius:8, fontSize:12, fontWeight:600,
+                    background: selected.is_verified ? 'rgba(201,64,64,0.08)' : 'rgba(58,158,98,0.1)',
+                    color: selected.is_verified ? 'var(--red)' : 'var(--green)',
+                    border: `1px solid ${selected.is_verified ? 'rgba(201,64,64,0.3)' : 'rgba(58,158,98,0.3)'}`,
+                    cursor: toggling ? 'not-allowed' : 'pointer',
+                    fontFamily:'var(--font-body)', transition:'all 0.2s',
+                  }}
+                >
+                  {toggling
+                    ? <span className="spinner" style={{width:13,height:13}} />
+                    : selected.is_verified ? 'Unverify Studio' : 'Verify Studio'
+                  }
+                </button>
                 {onboarding && (
                   <button
                     onClick={downloadSingle}
@@ -750,6 +810,61 @@ function ProfileReview() {
               </div>
             </div>
           </div>
+
+          {/* Verify confirmation modal */}
+          {verifyConfirm && (
+            <div style={{
+              position:'fixed', inset:0, zIndex:9000,
+              background:'rgba(26,14,8,0.55)', backdropFilter:'blur(6px)',
+              display:'flex', alignItems:'center', justifyContent:'center', padding:20,
+            }} onClick={() => setVerifyConfirm(false)}>
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{
+                  background:'var(--surface)', borderRadius:16,
+                  padding:'32px 36px', width:'100%', maxWidth:420,
+                  border:'1px solid var(--border)', boxShadow:'var(--shadow-lg)',
+                }}
+              >
+                <div style={{ fontSize:28, marginBottom:14, textAlign:'center' }}>
+                  {selected.is_verified ? '⚠️' : '✅'}
+                </div>
+                <div style={{ fontFamily:'var(--font-display)', fontSize:22, fontWeight:700, color:'var(--text)', marginBottom:10, textAlign:'center' }}>
+                  {selected.is_verified ? 'Unverify this studio?' : 'Verify this studio?'}
+                </div>
+                <p style={{ fontSize:13, color:'var(--text3)', lineHeight:1.65, textAlign:'center', marginBottom:24 }}>
+                  {selected.is_verified
+                    ? <>Unverifying <strong style={{color:'var(--text)'}}>{selected.business_name}</strong> will immediately hide them from the directory, search results, and all buyer matching. This takes effect instantly.</>
+                    : <>Verifying <strong style={{color:'var(--text)'}}>{selected.business_name}</strong> will make them visible in the directory and eligible for buyer matching. Make sure their profile is complete before proceeding.</>
+                  }
+                </p>
+                <div style={{ display:'flex', gap:10 }}>
+                  <button
+                    onClick={toggleVerified}
+                    disabled={toggling}
+                    style={{
+                      flex:1, padding:'12px', borderRadius:8, fontSize:13, fontWeight:600,
+                      background: selected.is_verified ? 'var(--red)' : 'var(--green)',
+                      color:'#fff', border:'none', cursor: toggling ? 'not-allowed' : 'pointer',
+                      fontFamily:'var(--font-body)', transition:'all 0.2s',
+                    }}
+                  >
+                    {toggling
+                      ? <><span className="spinner" style={{width:14,height:14,borderColor:'rgba(255,255,255,0.3)',borderTopColor:'#fff'}} /> Working…</>
+                      : selected.is_verified ? 'Yes, Unverify' : 'Yes, Verify'
+                    }
+                  </button>
+                  <button
+                    onClick={() => setVerifyConfirm(false)}
+                    className="btn btn-ghost"
+                    style={{ flex:1, justifyContent:'center' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Flag form */}
           {showFlag && (
@@ -1022,7 +1137,7 @@ function DiscoveryOverview() {
           : (
             <div style={{ display: 'grid', gap: 10 }}>
               {filtered.map(b => (
-                <div key={b.id} onClick={() => nav(`discovery/${b.id}`)} className="card-hover"
+                <div key={b.id} onClick={() => nav(`/admin/discovery/${b.id}`)} className="card-hover"
                   style={{ padding: '16px 20px', background: 'var(--surface2)', borderRadius: 10, cursor: 'pointer', border: `1px solid ${b.zero_match ? 'rgba(224,85,85,0.25)' : b.rec_count > 0 ? 'rgba(90,232,122,0.15)' : 'var(--border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
@@ -1059,7 +1174,7 @@ function DiscoveryBuyerDetail() {
   const [data,    setData]    = useState(null);
   const [loading, setLoading] = useState(true);
   const nav = useNavigate();
-  const buyerId = window.location.pathname.split('/').pop();
+  const { buyerId } = useParams();
 
   useEffect(() => {
     adminAPI.getDiscoveryBuyer(buyerId).then(r => setData(r.data)).catch(() => {}).finally(() => setLoading(false));
@@ -1073,7 +1188,7 @@ function DiscoveryBuyerDetail() {
     </div>
   );
 
-  const { buyer, recommendations, inquiries } = data;
+  const { buyer, recommendations, inquiries, visual_images = [] } = data;
   const Field = ({ label, value }) => {
     if (!value || (Array.isArray(value) && value.length === 0)) return null;
     return (
@@ -1096,7 +1211,7 @@ function DiscoveryBuyerDetail() {
             <div style={{ fontSize: 12, color: 'var(--text4)' }}>Session: {buyer.session_token} · {new Date(buyer.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {buyer.journey_stage && <span className="badge badge-teal" style={{ fontSize: 11 }}>{buyer.journey_stage.replace(/_/g, ' ')}</span>}
+            {buyer.journey_stage && <span className="badge badge-teal" style={{ fontSize: 11 }}>{{ figuring_it_out:'Figuring It Out', build_with_support:'Build with Support', ready_to_produce:'Ready to Produce' }[buyer.journey_stage] || buyer.journey_stage.replace(/_/g, ' ')}</span>}
             <span style={{ fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 12, background: recommendations.length > 0 ? 'rgba(90,232,122,0.1)' : 'var(--red-dim)', color: recommendations.length > 0 ? 'var(--green)' : 'var(--red)' }}>
               {recommendations.length > 0 ? `${recommendations.length} match${recommendations.length !== 1 ? 'es' : ''}` : 'No match'}
             </span>
@@ -1115,6 +1230,36 @@ function DiscoveryBuyerDetail() {
           <Field label="Crafts"           value={buyer.crafts} />
           <Field label="Craft flexible"   value={buyer.craft_is_flexible ? 'Yes' : null} />
           <Field label="Craft not sure"   value={buyer.craft_not_sure ? 'Yes' : null} />
+          <Field label="Visual selections" value={buyer.visual_selection_ids?.length > 0 ? `${buyer.visual_selection_ids.length} image${buyer.visual_selection_ids.length !== 1 ? 's' : ''} selected` : null} />
+          {visual_images.length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                Visual Selections — Q1 ({visual_images.length})
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                {visual_images.map(img => (
+                  <div key={img.id} style={{ position: 'relative', aspectRatio: '1', borderRadius: 6, overflow: 'hidden', background: 'var(--surface3)', border: '1px solid var(--border)' }}
+                    title={img.studio_name || ''}>
+                    {img.image_url
+                      ? <img src={img.image_url} alt={img.studio_name || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={e => { e.target.style.display = 'none'; }} />
+                      : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, opacity: 0.3 }}>🖼</div>
+                    }
+                    {img.studio_name && (
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.55)', padding: '3px 5px' }}>
+                        <div style={{ fontSize: 9, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{img.studio_name}</div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {visual_images.length === 0 && buyer.visual_selection_ids?.length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: 'var(--surface2)', borderRadius: 7, marginBottom: 5 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Visual Selections</span>
+              <span style={{ fontSize: 13, color: 'var(--text4)' }}>{buyer.visual_selection_ids.length} selected (images unavailable)</span>
+            </div>
+          )}
           <Field label="Experimentation"  value={buyer.experimentation} />
           <Field label="Process stage"    value={buyer.process_stage} />
           <Field label="Design support"   value={buyer.design_support} />
@@ -1327,7 +1472,7 @@ function DiscoveryInquiries() {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: 12, color: 'var(--text4)' }}>{new Date(inq.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
-                      {inq.buyer && <button onClick={() => nav(`discovery/${inq.buyer.id}`)} className="btn btn-ghost btn-sm" style={{ fontSize: 11, marginTop: 4 }}>View session →</button>}
+                      {inq.buyer && <button onClick={() => nav(`/admin/discovery/${inq.buyer.id}`)} className="btn btn-ghost btn-sm" style={{ fontSize: 11, marginTop: 4 }}>View session →</button>}
                     </div>
                   </div>
                   <div style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.7, marginBottom: inq.buyer ? 12 : 0 }}>{inq.message}</div>
@@ -1533,7 +1678,7 @@ function StudioDescriptions() {
     { to: '/admin',                              icon: '', label: 'Overview',         end: true },
     { to: '/admin/review',                       icon: '', label: 'Review Profile'              },
     { to: '/admin/create-seller',                icon: '', label: 'Create Seller'               },
-    { to: '/admin/discovery',                    icon: '', label: 'Discovery'                   },
+    { to: '/admin/discovery',                    icon: '', label: 'Discovery',          end: true  },
     { to: '/admin/discovery/inquiries',          icon: '', label: 'Inquiries'                   },
     { to: '/admin/discovery/studio-inquiries',   icon: '', label: 'Studio Inquiries'            },
     { to: '/admin/studio-descriptions',          icon: '', label: 'Studio Descriptions'         },
@@ -1546,9 +1691,9 @@ function StudioDescriptions() {
         <Route path="review/:pid"                    element={<ProfileReview />}          />
         <Route path="create-seller"                  element={<CreateSeller />}           />
         <Route path="discovery"                      element={<DiscoveryOverview />}      />
-        <Route path="discovery/:buyerId"             element={<DiscoveryBuyerDetail />}   />
         <Route path="discovery/inquiries"            element={<DiscoveryInquiries />}     />
         <Route path="discovery/studio-inquiries"     element={<StudioInquiries />}        />
+        <Route path="discovery/:buyerId"             element={<DiscoveryBuyerDetail />}   />
         <Route path="studio-descriptions"             element={<StudioDescriptions />}     />
       </Routes>
     </DashLayout>

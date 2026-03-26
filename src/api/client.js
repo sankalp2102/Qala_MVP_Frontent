@@ -159,6 +159,7 @@ export const adminAPI = {
   listProfiles:  () => api.get('/api/admin/seller-profiles/'),
   getOnboarding: pid => api.get(`/api/admin/seller-profiles/${pid}/onboarding/`),
   flagField:     (pid,d) => api.post(`/api/admin/seller-profiles/${pid}/flag/`, d),
+  toggleVerified: pid   => api.post(`/api/admin/seller-profiles/${pid}/toggle-verified/`),
   editSection:   (pid, section, d) => api.patch(`/api/admin/seller-profiles/${pid}/edit/${section}/`, d),
   // Discovery
   getDiscoveryBuyers:       () => api.get('/api/admin/discovery/buyers/'),
