@@ -244,13 +244,26 @@ function Chip({ label, active, onClick }) {
 }
 
 
+// ─── Pinned filter order ─────────────────────────────────────────────────────
+const PINNED_CRAFTS        = ['Hand Block Printing', 'Embroidery', 'Tie Dye'];
+const PINNED_FABRICS       = ['Cotton Based', 'Silk Based', 'Wool Based'];
+const PINNED_PRODUCT_TYPES = ['Dresses', 'Trousers / Pants', 'Tops'];
+
 // ─── Collapsible filter group ───────────────────────────────────────────────
 const VISIBLE_COUNT = 3;
 
-function FilterGroup({ label, options, activeValues, isAll, onAll, onToggle, isLast }) {
+function FilterGroup({ label, options, pinned = [], activeValues, isAll, onAll, onToggle, isLast }) {
   const [expanded, setExpanded] = useState(false);
-  const hiddenCount = Math.max(0, options.length - VISIBLE_COUNT);
-  const hasHiddenActive = activeValues.some(v => !options.slice(0, VISIBLE_COUNT).includes(v));
+
+  // Pinned first (case-insensitive match against live options), then rest alphabetically
+  const lc = s => s.toLowerCase();
+  const ordered = [
+    ...pinned.filter(p => options.some(o => lc(o) === lc(p))).map(p => options.find(o => lc(o) === lc(p))),
+    ...options.filter(o => !pinned.some(p => lc(p) === lc(o))),
+  ];
+
+  const hiddenCount    = Math.max(0, ordered.length - VISIBLE_COUNT);
+  const hasHiddenActive = activeValues.some(v => !ordered.slice(0, VISIBLE_COUNT).includes(v));
 
   return (
     <div style={{
@@ -271,8 +284,8 @@ function FilterGroup({ label, options, activeValues, isAll, onAll, onToggle, isL
         {/* All chip */}
         <Chip label="All" active={isAll} onClick={onAll} />
 
-        {/* First VISIBLE_COUNT chips */}
-        {options.slice(0, VISIBLE_COUNT).map(opt => (
+        {/* First VISIBLE_COUNT chips — pinned order */}
+        {ordered.slice(0, VISIBLE_COUNT).map(opt => (
           <Chip
             key={opt}
             label={opt}
@@ -311,7 +324,7 @@ function FilterGroup({ label, options, activeValues, isAll, onAll, onToggle, isL
           maxWidth: 480, minWidth: 280,
           animation: 'fadeDown 0.18s ease both',
         }}>
-          {options.slice(VISIBLE_COUNT).map(opt => (
+          {ordered.slice(VISIBLE_COUNT).map(opt => (
             <Chip
               key={opt}
               label={opt}
@@ -343,6 +356,7 @@ function FilterBar({ options, filters, setFilter, clearAll, totalVisible, hasAny
         <FilterGroup
           label="Craft"
           options={options.crafts}
+          pinned={PINNED_CRAFTS}
           activeValues={filters.craft}
           isAll={filters.craft.length === 0}
           onAll={() => setFilter('craft', '')}
@@ -352,6 +366,7 @@ function FilterBar({ options, filters, setFilter, clearAll, totalVisible, hasAny
         <FilterGroup
           label="Fabric"
           options={options.fabrics}
+          pinned={PINNED_FABRICS}
           activeValues={filters.fabric}
           isAll={filters.fabric.length === 0}
           onAll={() => setFilter('fabric', '')}
@@ -361,6 +376,7 @@ function FilterBar({ options, filters, setFilter, clearAll, totalVisible, hasAny
         <FilterGroup
           label="Product"
           options={options.productTypes}
+          pinned={PINNED_PRODUCT_TYPES}
           activeValues={filters.productType}
           isAll={filters.productType.length === 0}
           onAll={() => setFilter('productType', '')}
