@@ -227,6 +227,25 @@ function SellerInquiries({ profileId }) {
                   </div>
                 )}
 
+                {/* Attachment */}
+                {inq.attachment_url && (
+                  <div style={{ marginBottom: 14 }}>
+                    <a
+                      href={`https://api.qala.studio/media/${inq.attachment_url}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 7,
+                        fontSize: 12, color: 'var(--gold)', textDecoration: 'none',
+                        background: 'var(--gold-dim)', border: '1px solid rgba(200,160,60,0.25)',
+                        borderRadius: 6, padding: '6px 12px', fontWeight: 500,
+                      }}
+                    >
+                      📎 View attached file
+                    </a>
+                  </div>
+                )}
+
                 {/* Buyer brief tags */}
                 {inq.buyer && (
                   <div style={{ paddingTop: 12, borderTop: '1px solid var(--border)' }}>

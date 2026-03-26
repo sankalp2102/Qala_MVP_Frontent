@@ -184,6 +184,171 @@ function Tag({ children, gold }) {
 }
 
 // ─── Section block ────────────────────────────────────────────────────────────
+// ─── Brand Strip ─────────────────────────────────────────────────────────────
+function BrandStrip({ brands }) {
+  const stripRef = useRef(null);
+  const dragging = useRef(false);
+  const startX   = useRef(0);
+  const scrollX  = useRef(0);
+
+  const onMouseDown = e => {
+    dragging.current = true;
+    startX.current   = e.pageX - stripRef.current.offsetLeft;
+    scrollX.current  = stripRef.current.scrollLeft;
+    stripRef.current.style.cursor = 'grabbing';
+  };
+  const onMouseMove = e => {
+    if (!dragging.current) return;
+    e.preventDefault();
+    const x    = e.pageX - stripRef.current.offsetLeft;
+    const walk = (x - startX.current) * 1.2;
+    stripRef.current.scrollLeft = scrollX.current - walk;
+  };
+  const onMouseUp = () => {
+    dragging.current = false;
+    if (stripRef.current) stripRef.current.style.cursor = 'grab';
+  };
+
+  return (
+    <div
+      ref={stripRef}
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
+      onMouseLeave={onMouseUp}
+      style={{
+        display: 'flex',
+        gap: 16,
+        overflowX: 'auto',
+        paddingBottom: 8,
+        cursor: 'grab',
+        userSelect: 'none',
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
+        WebkitOverflowScrolling: 'touch',
+      }}
+    >
+      <style>{`.brand-strip::-webkit-scrollbar{display:none}`}</style>
+      {brands.map((b, i) => (
+        <BrandCard key={i} brand={b} />
+      ))}
+    </div>
+  );
+}
+
+function BrandCard({ brand }) {
+  const [imgErr, setImgErr] = useState(false);
+  const img  = mediaUrl(brand.image_url);
+  const showImage = img && !imgErr;
+  const initial = (brand.brand_name || '?')[0].toUpperCase();
+
+  return (
+    <div style={{
+      position: 'relative',
+      flexShrink: 0,
+      width: 260,
+      height: 300,
+      borderRadius: 14,
+      overflow: 'hidden',
+      border: '1px solid var(--border2)',
+      background: showImage ? '#1A1612' : 'var(--surface2)',
+    }}>
+
+      {/* Full-bleed image */}
+      {showImage ? (
+        <img
+          src={img}
+          alt={brand.brand_name}
+          draggable={false}
+          onError={() => setImgErr(true)}
+          style={{
+            position: 'absolute', inset: 0,
+            width: '100%', height: '100%',
+            objectFit: 'cover',
+            opacity: 0.75,
+            transition: 'opacity 0.3s',
+          }}
+        />
+      ) : (
+        /* No-image fallback — warm surface with large initial */
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(145deg, var(--surface3) 0%, var(--surface4) 100%)',
+        }} />
+      )}
+
+      {/* Bottom gradient overlay */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: showImage
+          ? 'linear-gradient(to top, rgba(15,8,4,0.92) 0%, rgba(15,8,4,0.4) 50%, transparent 100%)'
+          : 'linear-gradient(to top, rgba(26,14,8,0.85) 0%, rgba(26,14,8,0.2) 60%, transparent 100%)',
+      }} />
+
+      {/* Large decorative initial — bottom-left */}
+      <div style={{
+        position: 'absolute',
+        bottom: -12,
+        left: 12,
+        fontFamily: 'var(--font-display)',
+        fontSize: 120,
+        fontWeight: 700,
+        lineHeight: 1,
+        color: showImage ? 'rgba(255,255,255,0.08)' : 'rgba(184,92,56,0.12)',
+        pointerEvents: 'none',
+        userSelect: 'none',
+        letterSpacing: '-0.04em',
+      }}>
+        {initial}
+      </div>
+
+      {/* Text panel */}
+      <div style={{
+        position: 'absolute',
+        bottom: 0, left: 0, right: 0,
+        padding: '0 18px 18px',
+      }}>
+        {/* Brand name */}
+        <div style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 22,
+          fontWeight: 600,
+          fontStyle: 'italic',
+          color: showImage ? '#F5F0E8' : 'var(--text)',
+          lineHeight: 1.2,
+          marginBottom: 6,
+        }}>
+          {brand.brand_name}
+        </div>
+
+        {/* Scope */}
+        {brand.scope && (
+          <div style={{
+            fontSize: 11,
+            color: showImage ? 'rgba(245,240,232,0.7)' : 'var(--text3)',
+            lineHeight: 1.55,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}>
+            {brand.scope}
+          </div>
+        )}
+      </div>
+
+      {/* Top-left thin rust accent bar */}
+      <div style={{
+        position: 'absolute',
+        top: 0, left: 0,
+        width: 3, height: 44,
+        background: 'var(--gold)',
+        borderRadius: '0 0 3px 0',
+      }} />
+    </div>
+  );
+}
+
 function Section({ title, children, style }) {
   return (
     <div style={{ marginBottom: 36, ...style }}>
@@ -203,13 +368,34 @@ function Section({ title, children, style }) {
 // ─── Inquiry Form ─────────────────────────────────────────────────────────────
 function InquiryForm({ studio, onClose, onSuccess }) {
   const { user } = useAuth();
-  const [name,    setName]    = useState(user?.name  || '');
-  const [email,   setEmail]   = useState(user?.email || '');
-  const [answers, setAnswers] = useState(
+  const [name,       setName]       = useState(user?.name  || '');
+  const [email,      setEmail]      = useState(user?.email || '');
+  const [answers,    setAnswers]    = useState(
     (studio.pre_call_questions || []).map(q => ({ question: q.question, answer: '' }))
   );
+  const [attachment, setAttachment] = useState(null);
+  const [fileErr,    setFileErr]    = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [err, setErr] = useState('');
+  const [err,        setErr]        = useState('');
+
+  const ACCEPTED = ['.pdf', '.ppt', '.pptx', '.doc', '.docx'];
+  const MAX_MB   = 10;
+
+  const handleFile = e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    if (!ACCEPTED.includes(ext)) {
+      setFileErr(`Only ${ACCEPTED.join(', ')} files are accepted.`);
+      return;
+    }
+    if (file.size > MAX_MB * 1024 * 1024) {
+      setFileErr(`File must be under ${MAX_MB}MB.`);
+      return;
+    }
+    setFileErr('');
+    setAttachment(file);
+  };
 
   const submit = async e => {
     e.preventDefault();
@@ -218,11 +404,15 @@ function InquiryForm({ studio, onClose, onSuccess }) {
     try {
       const { discoveryAPI } = await import('../api/client');
       const tok = discoveryAPI.getStoredSession();
-      await discoveryAPI.studioInquiry(studio.studio_id, {
-        name, email,
-        answers: answers.filter(a => a.answer.trim()),
-        session_token: tok || undefined,
-      });
+      await discoveryAPI.studioInquiry(
+        studio.studio_id,
+        {
+          name, email,
+          answers: answers.filter(a => a.answer.trim()),
+          session_token: tok || undefined,
+        },
+        attachment || null,
+      );
       onSuccess?.();
     } catch (e) {
       setErr(e.response?.data?.errors ? JSON.stringify(e.response.data.errors) : 'Something went wrong. Try again.');
@@ -255,7 +445,7 @@ function InquiryForm({ studio, onClose, onSuccess }) {
             {studio.studio_name}
           </h2>
           <p style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6 }}>
-            Introduce yourself and answer the studio's questions. They'll get back to you directly.
+            Share your contact details and answer a few studio questions before we introduce you.
           </p>
         </div>
 
@@ -293,6 +483,63 @@ function InquiryForm({ studio, onClose, onSuccess }) {
             </div>
           )}
 
+          {/* File attachment */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                Attach a file
+              </span>
+              <span style={{ fontSize: 10, color: 'var(--text4)', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 7px', fontWeight: 500 }}>
+                Optional
+              </span>
+            </div>
+
+            {attachment ? (
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                background: 'var(--surface2)', border: '1px solid var(--border)',
+                borderRadius: 8, padding: '10px 14px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 18 }}>📎</span>
+                  <div>
+                    <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>{attachment.name}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text4)' }}>{(attachment.size / 1024).toFixed(0)} KB</div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setAttachment(null); setFileErr(''); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text4)', fontSize: 18, lineHeight: 1, padding: 4 }}
+                >×</button>
+              </div>
+            ) : (
+              <label style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                gap: 6, border: '1px dashed var(--border2)', borderRadius: 8,
+                padding: '20px 16px', cursor: 'pointer',
+                background: 'var(--surface2)', transition: 'border-color 0.2s',
+              }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--gold)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border2)'}
+              >
+                <span style={{ fontSize: 22 }}>📄</span>
+                <span style={{ fontSize: 13, color: 'var(--text3)' }}>Click to upload or drag a file here</span>
+                <span style={{ fontSize: 11, color: 'var(--text4)' }}>PDF, PPT, PPTX, DOC, DOCX · Max 10MB</span>
+                <input
+                  type="file"
+                  accept=".pdf,.ppt,.pptx,.doc,.docx"
+                  onChange={handleFile}
+                  style={{ display: 'none' }}
+                />
+              </label>
+            )}
+
+            {fileErr && (
+              <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 6 }}>{fileErr}</div>
+            )}
+          </div>
+
           {err && (
             <div style={{
               background: 'var(--red-dim)', border: '1px solid rgba(201,64,64,0.25)',
@@ -306,7 +553,7 @@ function InquiryForm({ studio, onClose, onSuccess }) {
               style={{ flex: 1, justifyContent: 'center', padding: '13px' }}>
               {submitting
                 ? <><span className="spinner" style={{ width: 15, height: 15 }} /> Sending…</>
-                : 'Send Introduction →'}
+                : 'Get Introduced →'}
             </button>
             <button type="button" className="btn btn-ghost" onClick={onClose} style={{ padding: '13px 20px' }}>
               Cancel
@@ -695,23 +942,7 @@ export default function StudioProfile() {
           {s.brands?.length > 0 && (
             <div className="profile-fade" style={{ marginBottom: 44 }}>
               <Section title="Brands We've Worked With">
-                <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '8px 0', background: 'var(--surface)' }}>
-                  {s.brands.map((b, i) => (
-                    <div key={i} style={{
-                      display: 'flex', gap: 14, alignItems: 'flex-start',
-                      padding: '14px 22px',
-                      borderBottom: i < s.brands.length - 1 ? '1px solid var(--border)' : 'none',
-                    }}>
-                      <span style={{ color: 'var(--gold)', fontSize: 18, lineHeight: 1, marginTop: 1, flexShrink: 0 }}>•</span>
-                      <span style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.65 }}>
-                        {b.scope
-                          ? <>{b.scope} for <strong style={{ color: 'var(--text)', fontWeight: 600 }}>{b.brand_name}</strong></>
-                          : <strong style={{ color: 'var(--text)', fontWeight: 600 }}>{b.brand_name}</strong>
-                        }
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <BrandStrip brands={s.brands} />
               </Section>
             </div>
           )}
@@ -842,7 +1073,7 @@ export default function StudioProfile() {
                     Connect with this studio
                   </div>
                   <p style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6 }}>
-                    Introduce yourself and your project. They'll get back to you directly.
+                    Share your contact details and answer a few studio questions before we introduce you.
                   </p>
                 </div>
 
@@ -869,7 +1100,7 @@ export default function StudioProfile() {
                   onClick={() => setInquiryOpen(true)}
                   style={{ width: '100%', justifyContent: 'center', padding: '13px', fontSize: 14 }}
                 >
-                  Send Introduction →
+                  Get Introduced →
                 </button>
               </>
             )}

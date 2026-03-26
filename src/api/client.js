@@ -210,10 +210,20 @@ export const discoveryAPI = {
   getStudioProfile: profileId =>
     axios.get(`${BASE}/api/discovery/studios/${profileId}/`),
 
-  studioInquiry: (profileId, data) =>
-    axios.post(`${BASE}/api/discovery/studios/${profileId}/inquire/`, data, {
+  studioInquiry: (profileId, data, file = null) => {
+    if (file) {
+      const fd = new FormData();
+      fd.append('name',          data.name);
+      fd.append('email',         data.email);
+      fd.append('answers',       JSON.stringify(data.answers || []));
+      if (data.session_token) fd.append('session_token', data.session_token);
+      fd.append('attachment',    file);
+      return axios.post(`${BASE}/api/discovery/studios/${profileId}/inquire/`, fd);
+    }
+    return axios.post(`${BASE}/api/discovery/studios/${profileId}/inquire/`, data, {
       headers: { 'Content-Type': 'application/json' },
-    }),
+    });
+  },
 
   // Feature 6 — Studio Directory
   getStudioDirectory: ({ craft = '', fabric = '', productType = '' } = {}) => {
