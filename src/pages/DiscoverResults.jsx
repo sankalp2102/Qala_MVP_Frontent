@@ -261,7 +261,6 @@ function DirectoryCTACard({ onNavigate }) {
         borderColor: hovered ? 'var(--border3)' : 'var(--border)',
       }}
     >
-      <div style={{ fontSize: 40, marginBottom: 20, opacity: 0.3 }}>🏛</div>
       <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10 }}>
         Want to explore more?
       </div>
@@ -449,7 +448,7 @@ export default function DiscoverResults() {
             <>
               <span style={{
                 fontSize: 'clamp(13px, 1.4vw, 17px)',
-                fontWeight: 600,
+                fontWeight: 400,
                 color: 'var(--text)',
                 fontFamily: 'var(--font-body)',
                 letterSpacing: '-0.01em',
@@ -553,7 +552,7 @@ export default function DiscoverResults() {
           <div className="fade-in" style={{ textAlign: 'center', padding: '16px 40px 10px', flexShrink: 0 }}>
             <p style={{
               fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(16px, 1.8vw, 22px)',
+              fontSize: 'clamp(20px, 2.2vw, 28px)',
               fontWeight: 400, color: 'var(--text2)',
               letterSpacing: '-0.01em', lineHeight: 1.3,
               margin: 0,
@@ -717,7 +716,6 @@ export default function DiscoverResults() {
         {/* ── Carousel ────────────────────────────────────────────────── */}
         {recs.length > 0 && (
           <div className="fade-in" style={{
-            /* Explicit height: viewport minus header(64) minus subheading(~68) minus counter area(40) */
             height: 'calc(100vh - 140px)',
             position: 'relative',
             display: 'flex',
@@ -736,7 +734,7 @@ export default function DiscoverResults() {
               boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             }}>←</button>
 
-            {/* Cards scroll container — explicit height minus counter space */}
+            {/* Cards scroll container */}
             <div
               ref={carouselRef}
               className="carousel-scroll"
@@ -748,8 +746,8 @@ export default function DiscoverResults() {
                 scrollSnapType: 'x mandatory',
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
-                padding: '8px clamp(24px, 3vw, 48px) 8px clamp(24px, 8vw, 120px)',
-                height: 'calc(100% - 32px)',  /* leave 32px for counter */
+                padding: '8px clamp(24px, 8vw, 120px) 8px clamp(24px, 8vw, 120px)',
+                height: 'calc(100% - 32px)',
                 alignItems: 'stretch',
               }}
             >
@@ -833,7 +831,7 @@ export default function DiscoverResults() {
               <div ref={aestheticRef} className="carousel-scroll" style={{
                 display: 'flex', gap: 'clamp(40px, 14vw, 200px)', overflowX: 'auto', overflowY: 'hidden',
                 scrollSnapType: 'x mandatory', scrollbarWidth: 'none', msOverflowStyle: 'none',
-                padding: '8px clamp(24px, 3vw, 48px) 8px clamp(24px, 8vw, 120px)', flex: 1, alignItems: 'stretch',
+                padding: '8px clamp(24px, 8vw, 120px) 8px clamp(24px, 8vw, 120px)', flex: 1, alignItems: 'stretch',
               }}>
                 {bonus.map((rec, i) => (
                   <div key={rec.studio_id || i} style={{

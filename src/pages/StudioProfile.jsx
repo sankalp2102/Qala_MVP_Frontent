@@ -6,10 +6,27 @@ import { useAuth } from '../context/AuthContext';
 import qalaLogo from '../assets/qala-logo.png';
 
 const MEDIA_BASE = 'https://api.qala.studio';
-/** Ensure image URL is absolute — backend may return relative paths behind proxy */
+/**
+ * Normalise any media URL to always point at api.qala.studio.
+ * Handles three cases:
+ *  1. null / undefined → null
+ *  2. Already correct absolute URL (contains api.qala.studio) → pass through
+ *  3. Relative path (/media/...) → prepend MEDIA_BASE
+ *  4. Wrong-host absolute URL (http://django:8000/... or http://localhost/...)
+ *     → strip the wrong host and prepend MEDIA_BASE
+ */
 function mediaUrl(url) {
   if (!url) return null;
-  if (url.startsWith('http')) return url;
+  if (url.includes('api.qala.studio')) return url;
+  // Extract just the path portion for any other absolute URL
+  if (url.startsWith('http')) {
+    try {
+      const { pathname } = new URL(url);
+      return MEDIA_BASE + pathname;
+    } catch {
+      return url;
+    }
+  }
   return MEDIA_BASE + url;
 }
 
@@ -438,13 +455,13 @@ function InquiryForm({ studio, onClose, onSuccess }) {
       >
         {/* Header */}
         <div style={{ marginBottom: 28 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>
+          <div style={{ fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>
             Connect with Studio
           </div>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
             {studio.studio_name}
           </h2>
-          <p style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6 }}>
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text3)', lineHeight: 1.6 }}>
             Share your contact details and answer a few studio questions before we introduce you.
           </p>
         </div>
@@ -462,34 +479,13 @@ function InquiryForm({ studio, onClose, onSuccess }) {
             </div>
           </div>
 
-          {/* Pre-call questions */}
-          {answers.length > 0 && (
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>
-                Studio's pre-call questions
-              </div>
-              {answers.map((a, i) => (
-                <div className="field" key={i} style={{ marginBottom: 14 }}>
-                  <label style={{ fontSize: 13, color: 'var(--text2)' }}>{a.question}</label>
-                  <textarea
-                    rows={2}
-                    value={a.answer}
-                    onChange={e => setAnswers(arr => arr.map((x, j) => j === i ? { ...x, answer: e.target.value } : x))}
-                    placeholder="Your answer…"
-                    style={{ resize: 'vertical', minHeight: 64 }}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* File attachment */}
+          {/* File attachment — moodboard / references */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                Attach a file
+              <span style={{ fontFamily: 'var(--font-body)', fontSize: 10, fontWeight: 600, color: 'var(--text2)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                Upload Moodboard or References
               </span>
-              <span style={{ fontSize: 10, color: 'var(--text4)', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 7px', fontWeight: 500 }}>
+              <span style={{ fontFamily: 'var(--font-body)', fontSize: 10, color: 'var(--text4)', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 7px', fontWeight: 500 }}>
                 Optional
               </span>
             </div>
@@ -503,14 +499,14 @@ function InquiryForm({ studio, onClose, onSuccess }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontSize: 18 }}>📎</span>
                   <div>
-                    <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>{attachment.name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text4)' }}>{(attachment.size / 1024).toFixed(0)} KB</div>
+                    <div style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>{attachment.name}</div>
+                    <div style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--text4)' }}>{(attachment.size / 1024).toFixed(0)} KB</div>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => { setAttachment(null); setFileErr(''); }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text4)', fontSize: 18, lineHeight: 1, padding: 4 }}
+                  style={{ fontFamily: 'var(--font-body)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text4)', fontSize: 18, lineHeight: 1, padding: 4 }}
                 >×</button>
               </div>
             ) : (
@@ -524,8 +520,8 @@ function InquiryForm({ studio, onClose, onSuccess }) {
                 onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border2)'}
               >
                 <span style={{ fontSize: 22 }}>📄</span>
-                <span style={{ fontSize: 13, color: 'var(--text3)' }}>Click to upload or drag a file here</span>
-                <span style={{ fontSize: 11, color: 'var(--text4)' }}>PDF, PPT, PPTX, DOC, DOCX · Max 10MB</span>
+                <span style={{ fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text3)' }}>Click to upload or drag a file here</span>
+                <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--text4)' }}>PDF, PPT, PPTX, DOC, DOCX · Max 10MB</span>
                 <input
                   type="file"
                   accept=".pdf,.ppt,.pptx,.doc,.docx"
@@ -536,12 +532,34 @@ function InquiryForm({ studio, onClose, onSuccess }) {
             )}
 
             {fileErr && (
-              <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 6 }}>{fileErr}</div>
+              <div style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--red)', marginTop: 6 }}>{fileErr}</div>
             )}
           </div>
 
+          {/* Pre-call questions */}
+          {answers.length > 0 && (
+            <div>
+              <div style={{ fontFamily: 'var(--font-body)', fontSize: 10, fontWeight: 600, color: 'var(--text2)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>
+                Studio's pre-call questions
+              </div>
+              {answers.map((a, i) => (
+                <div className="field" key={i} style={{ marginBottom: 14 }}>
+                  <label>{a.question}</label>
+                  <textarea
+                    rows={2}
+                    value={a.answer}
+                    onChange={e => setAnswers(arr => arr.map((x, j) => j === i ? { ...x, answer: e.target.value } : x))}
+                    placeholder="Your answer…"
+                    style={{ resize: 'vertical', minHeight: 64 }}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
           {err && (
             <div style={{
+              fontFamily: 'var(--font-body)',
               background: 'var(--red-dim)', border: '1px solid rgba(201,64,64,0.25)',
               borderLeft: '3px solid var(--red)', borderRadius: 8,
               padding: '10px 14px', fontSize: 13, color: 'var(--red)',
@@ -982,6 +1000,7 @@ export default function StudioProfile() {
                       style={{ width: 140, height: 100, objectFit: 'cover', borderRadius: 8, flexShrink: 0, cursor: 'pointer', transition: 'transform 0.2s' }}
                       onMouseEnter={e => e.target.style.transform = 'scale(1.03)'}
                       onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+                      onError={e => { e.target.style.display = 'none'; }}
                     />
                   ))}
                 </div>

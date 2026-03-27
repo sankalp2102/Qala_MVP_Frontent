@@ -3,7 +3,15 @@ import { useState } from 'react';
 const MEDIA_BASE = 'https://api.qala.studio';
 function mediaUrl(url) {
   if (!url) return null;
-  if (url.startsWith('http')) return url;
+  if (url.includes('api.qala.studio')) return url;
+  if (url.startsWith('http')) {
+    try {
+      const { pathname } = new URL(url);
+      return MEDIA_BASE + pathname;
+    } catch {
+      return url;
+    }
+  }
   return MEDIA_BASE + url;
 }
 
@@ -135,9 +143,8 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
         ) : (
           <div style={{
             width: '100%', height: '100%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 40, opacity: 0.15,
-          }}>🏛</div>
+            background: 'var(--surface3)',
+          }} />
         )}
       </div>
 
