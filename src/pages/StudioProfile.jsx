@@ -9,11 +9,11 @@ const MEDIA_BASE = 'https://api.qala.studio';
 /**
  * Normalise any media URL to always point at api.qala.studio.
  * Handles three cases:
- *  1. null / undefined → null
- *  2. Already correct absolute URL (contains api.qala.studio) → pass through
- *  3. Relative path (/media/...) → prepend MEDIA_BASE
- *  4. Wrong-host absolute URL (http://django:8000/... or http://localhost/...)
- *     → strip the wrong host and prepend MEDIA_BASE
+ * 1. null / undefined → null
+ * 2. Already correct absolute URL (contains api.qala.studio) → pass through
+ * 3. Relative path (/media/...) → prepend MEDIA_BASE
+ * 4. Wrong-host absolute URL (http://django:8000/... or http://localhost/...)
+ * → strip the wrong host and prepend MEDIA_BASE
  */
 function mediaUrl(url) {
   if (!url) return null;
@@ -445,6 +445,7 @@ function InquiryForm({ studio, onClose, onSuccess }) {
     }} onClick={onClose}>
       <div
         onClick={e => e.stopPropagation()}
+        className="inquiry-modal"
         style={{
           background: 'var(--surface)', borderRadius: 20,
           padding: '36px 40px', width: '100%', maxWidth: 520,
@@ -455,7 +456,7 @@ function InquiryForm({ studio, onClose, onSuccess }) {
       >
         {/* Header */}
         <div style={{ marginBottom: 28 }}>
-          <div style={{ fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>
+          <div style={{ fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 600, color: 'var(--gold)', marginBottom: 8 }}>
             Connect with Studio
           </div>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
@@ -482,7 +483,7 @@ function InquiryForm({ studio, onClose, onSuccess }) {
           {/* File attachment — moodboard / references */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <span style={{ fontFamily: 'var(--font-body)', fontSize: 10, fontWeight: 600, color: 'var(--text2)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 600, color: 'var(--text2)' }}>
                 Upload Moodboard or References
               </span>
               <span style={{ fontFamily: 'var(--font-body)', fontSize: 10, color: 'var(--text4)', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 7px', fontWeight: 500 }}>
@@ -539,12 +540,12 @@ function InquiryForm({ studio, onClose, onSuccess }) {
           {/* Pre-call questions */}
           {answers.length > 0 && (
             <div>
-              <div style={{ fontFamily: 'var(--font-body)', fontSize: 10, fontWeight: 600, color: 'var(--text2)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>
-                Studio's pre-call questions
+              <div style={{ fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 600, color: 'var(--text2)', marginBottom: 14 }}>
+                Studio's questions for you
               </div>
               {answers.map((a, i) => (
                 <div className="field" key={i} style={{ marginBottom: 14 }}>
-                  <label>{a.question}</label>
+                  <label>{a.question ? a.question.charAt(0).toUpperCase() + a.question.slice(1).toLowerCase() : ''}</label>
                   <textarea
                     rows={2}
                     value={a.answer}
@@ -809,12 +810,16 @@ export default function StudioProfile() {
       <style>{`
         @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
         @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+        @keyframes lbIn{from{opacity:0}to{opacity:1}}
+        
         .profile-fade { animation: fadeUp 0.5s ease both; }
         .profile-fade-1 { animation-delay: 0.05s; }
         .profile-fade-2 { animation-delay: 0.12s; }
         .profile-fade-3 { animation-delay: 0.2s; }
         .profile-fade-4 { animation-delay: 0.28s; }
-        @keyframes lbIn{from{opacity:0}to{opacity:1}}
+        
+        .inquiry-modal .field label { text-transform: none; letter-spacing: 0; font-size: 13px; }
+        
         @media (max-width: 900px) {
           .studio-layout { grid-template-columns: 1fr !important; }
           .studio-sidebar { position: static !important; }
@@ -1105,7 +1110,7 @@ export default function StudioProfile() {
                     {s.pre_call_questions.slice(0, 2).map((q, i) => (
                       <div key={i} style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4, display: 'flex', gap: 6 }}>
                         <span style={{ color: 'var(--gold)', flexShrink: 0 }}>?</span>
-                        {q.question}
+                        {q.question ? q.question.charAt(0).toUpperCase() + q.question.slice(1).toLowerCase() : ''}
                       </div>
                     ))}
                     {s.pre_call_questions.length > 2 && (
