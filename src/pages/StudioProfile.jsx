@@ -146,10 +146,10 @@ function Gallery({ images }) {
   return (
     <>
       {lb !== null && <Lightbox images={images} startIndex={lb} onClose={() => setLb(null)} />}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, borderRadius: 12, overflow: 'hidden' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: 'repeat(2, 220px)', gap: 4, borderRadius: 12, overflow: 'hidden' }}>
         {/* Main big image */}
         <div
-          style={{ gridRow: '1 / 3', cursor: 'pointer', overflow: 'hidden', position: 'relative', minHeight: 300 }}
+          style={{ gridRow: '1 / 3', cursor: 'pointer', overflow: 'hidden', position: 'relative' }}
           onClick={() => setLb(0)}
         >
           <img src={mediaUrl(first[0]?.url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.4s ease' }}
@@ -160,7 +160,7 @@ function Gallery({ images }) {
         {/* Grid of 4 thumbnails */}
         {rest.map((img, i) => (
           <div key={i}
-            style={{ cursor: 'pointer', overflow: 'hidden', position: 'relative', height: 148 }}
+            style={{ cursor: 'pointer', overflow: 'hidden', position: 'relative' }}
             onClick={() => setLb(i + 1)}
           >
             <img src={mediaUrl(img.url)} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.4s ease' }}

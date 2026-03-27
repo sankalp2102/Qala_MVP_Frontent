@@ -282,6 +282,96 @@ function DirectoryCTACard({ onNavigate }) {
   );
 }
 
+// ─── Aesthetic Match Card ────────────────────────────────────────────────────
+function AestheticCard({ rec, onContact }) {
+  const [hovered, setHovered] = useState(false);
+
+  const selectedImgs = (rec.hero_images || []).filter(img => img.is_selected);
+  const displayImgs  = selectedImgs.length > 0 ? selectedImgs : (rec.hero_images || []).slice(0, 1);
+  const matchCount   = (rec.selected_image_ids || []).length;
+
+  const MEDIA_BASE = 'https://api.qala.studio';
+  const mUrl = url => {
+    if (!url) return null;
+    if (url.includes('api.qala.studio')) return url;
+    if (url.startsWith('http')) { try { return MEDIA_BASE + new URL(url).pathname; } catch { return url; } }
+    return MEDIA_BASE + url;
+  };
+
+  // Warm gradient fallback when no images
+  const gradients = [
+    'linear-gradient(135deg, #C4956A 0%, #8A7560 100%)',
+    'linear-gradient(135deg, #A8956E 0%, #6B7A5C 100%)',
+    'linear-gradient(135deg, #B8826A 0%, #7A6B5A 100%)',
+  ];
+  const fallbackGradient = gradients[rec.studio_id % gradients.length] || gradients[0];
+
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        borderRadius: 14,
+        border: `1px solid ${hovered ? 'var(--border3)' : 'var(--border)'}`,
+        overflow: 'hidden',
+        background: 'var(--surface)',
+        transition: 'border-color 0.2s, box-shadow 0.2s',
+        boxShadow: hovered ? 'var(--shadow-lg)' : 'none',
+        cursor: 'pointer',
+      }}
+      onClick={() => onContact(rec)}
+    >
+      {/* Image strip — selected images side by side */}
+      <div style={{
+        height: 200,
+        display: 'grid',
+        gridTemplateColumns: `repeat(${Math.max(1, Math.min(displayImgs.length, 3))}, 1fr)`,
+        gap: 2,
+        background: fallbackGradient,
+      }}>
+        {displayImgs.length > 0 ? displayImgs.slice(0, 3).map((img, i) => (
+          <div key={i} style={{ overflow: 'hidden', position: 'relative' }}>
+            <img
+              src={mUrl(img.url)}
+              alt=""
+              style={{
+                width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+                transform: hovered ? 'scale(1.04)' : 'scale(1)',
+                transition: 'transform 0.4s ease',
+              }}
+              onError={e => { e.target.style.display = 'none'; }}
+            />
+          </div>
+        )) : (
+          <div style={{ background: fallbackGradient }} />
+        )}
+      </div>
+
+      {/* Bottom info panel */}
+      <div style={{ padding: '16px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
+          <span style={{
+            fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 400,
+            color: 'var(--text)', lineHeight: 1.2,
+          }}>
+            {rec.studio_name || 'Studio'}
+          </span>
+          {matchCount > 0 && (
+            <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--text4)' }}>
+              {matchCount} image{matchCount !== 1 ? 's' : ''} selected
+            </span>
+          )}
+        </div>
+        {rec.location && (
+          <div style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--text4)' }}>
+            {rec.location}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main page ──────────────────────────────────────────────────────────────
 export default function DiscoverResults() {
   const nav = useNavigate();
@@ -293,8 +383,6 @@ export default function DiscoverResults() {
   const [applying, setApplying] = useState(null);
   const carouselRef = useRef();
   const [activeCard, setActiveCard] = useState(0);
-  const aestheticRef = useRef();
-  const [activeAesthetic, setActiveAesthetic] = useState(0);
 
   const [headerInquiryOpen, setHeaderInquiryOpen] = useState(false);
   const [inquiryOpen, setInquiryOpen] = useState(false);
@@ -369,17 +457,6 @@ export default function DiscoverResults() {
       carouselRef.current.scrollTo({ left: scrollLeft, behavior: 'smooth' });
     }
   }, [totalCards]);
-
-  const scrollAesthetic = useCallback((index) => {
-    if (!aestheticRef.current || bonus.length === 0) return;
-    const clamped = Math.max(0, Math.min(index, bonus.length - 1));
-    setActiveAesthetic(clamped);
-    const card = aestheticRef.current.children[clamped];
-    if (card) {
-      const scrollLeft = card.offsetLeft - (aestheticRef.current.offsetWidth - card.offsetWidth) / 2;
-      aestheticRef.current.scrollTo({ left: scrollLeft, behavior: 'smooth' });
-    }
-  }, [bonus.length]);
 
   // ── Loading ──
   if (loading) return (
@@ -799,69 +876,29 @@ export default function DiscoverResults() {
 
         {/* ── Aesthetic Matches carousel ─────────────────────────────── */}
         {bonus.length > 0 && (
-          <div className="fade-in" style={{ flexShrink: 0, paddingBottom: 20 }}>
+          <div className="fade-in" style={{ flexShrink: 0, padding: '0 clamp(24px, 8vw, 120px) 40px' }}>
             {/* Section heading */}
-            <div style={{ padding: '28px 40px 12px', textAlign: 'center' }}>
-              <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6, fontWeight: 600 }}>
+            <div style={{ padding: '32px 0 20px' }}>
+              <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8, fontWeight: 600, fontFamily: 'var(--font-body)' }}>
                 Also worth exploring
               </div>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(17px, 2vw, 22px)', fontWeight: 400, color: 'var(--text2)', margin: 0 }}>
-                Aesthetic Matches
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(22px, 2.5vw, 30px)', fontWeight: 400, color: 'var(--text)', margin: '0 0 8px' }}>
+                Studios whose aesthetic resonated with you
               </h3>
-              <p style={{ fontSize: 12, color: 'var(--text4)', marginTop: 4 }}>
-                These studios match your aesthetic but differ on some practical criteria.
+              <p style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.65, maxWidth: 520, margin: 0, fontFamily: 'var(--font-body)' }}>
+                While they may not match all your technical requirements right now, you were drawn to their work. Worth exploring if aesthetic is your priority.
               </p>
             </div>
 
-            {/* Carousel with side arrows */}
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', padding: '0 0 8px' }}>
-              {/* Left arrow */}
-              <button className="carousel-arrow" onClick={() => scrollAesthetic(activeAesthetic - 1)} disabled={activeAesthetic === 0} style={{
-                position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', zIndex: 10,
-                width: 40, height: 40, borderRadius: '50%',
-                border: '1px solid var(--border2)', background: 'rgba(248,245,241,0.92)', backdropFilter: 'blur(8px)',
-                color: activeAesthetic === 0 ? 'var(--text4)' : 'var(--text)',
-                cursor: activeAesthetic === 0 ? 'default' : 'pointer',
-                fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.15s', opacity: activeAesthetic === 0 ? 0.35 : 1,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-              }}>←</button>
-
-              {/* Cards */}
-              <div ref={aestheticRef} className="carousel-scroll" style={{
-                display: 'flex', gap: 'clamp(40px, 14vw, 200px)', overflowX: 'auto', overflowY: 'hidden',
-                scrollSnapType: 'x mandatory', scrollbarWidth: 'none', msOverflowStyle: 'none',
-                padding: '8px clamp(24px, 8vw, 120px) 8px clamp(24px, 8vw, 120px)', flex: 1, alignItems: 'stretch',
-              }}>
-                {bonus.map((rec, i) => (
-                  <div key={rec.studio_id || i} style={{
-                    minWidth: 'clamp(320px, 64vw, 920px)', maxWidth: 'clamp(320px, 64vw, 920px)', flex: '0 0 clamp(320px, 64vw, 920px)',
-                    scrollSnapAlign: 'center',
-                    animation: `fadeUp 0.5s ease ${0.1 + i * 0.08}s both`,
-                  }}>
-                    <RecommendationCard rec={rec} position={i + 1} onContact={handleContact} isBonus={true} buyerSummary={summary} />
-                  </div>
-                ))}
-              </div>
-
-              {/* Right arrow */}
-              <button className="carousel-arrow" onClick={() => scrollAesthetic(activeAesthetic + 1)} disabled={activeAesthetic === bonus.length - 1} style={{
-                position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', zIndex: 10,
-                width: 40, height: 40, borderRadius: '50%',
-                border: '1px solid var(--border2)', background: 'rgba(248,245,241,0.92)', backdropFilter: 'blur(8px)',
-                color: activeAesthetic === bonus.length - 1 ? 'var(--text4)' : 'var(--text)',
-                cursor: activeAesthetic === bonus.length - 1 ? 'default' : 'pointer',
-                fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.15s', opacity: activeAesthetic === bonus.length - 1 ? 0.35 : 1,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-              }}>→</button>
-
-              {/* Counter */}
-              {bonus.length > 1 && (
-                <div style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', fontSize: 11, color: 'var(--text4)', letterSpacing: '0.06em' }}>
-                  {activeAesthetic + 1} / {bonus.length}
-                </div>
-              )}
+            {/* Cards grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(min(340px, 100%), 1fr))',
+              gap: 16,
+            }}>
+              {bonus.map((rec, i) => (
+                <AestheticCard key={rec.studio_id || i} rec={rec} onContact={handleContact} />
+              ))}
             </div>
           </div>
         )}
