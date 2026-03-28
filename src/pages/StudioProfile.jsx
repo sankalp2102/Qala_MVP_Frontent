@@ -8,8 +8,11 @@ import { mediaUrl, mediaOnError } from '../utils/mediaUrl';
 
 // ─── Lightbox ────────────────────────────────────────────────────────────────
 function Lightbox({ images, startIndex, onClose }) {
-  const [idx, setIdx] = useState(startIndex);
+  const [idx, setIdx]     = useState(startIndex);
+  const [muted, setMuted] = useState(true);
+  const videoRef          = useRef(null);
 
+  // Keyboard navigation
   useEffect(() => {
     const handler = e => {
       if (e.key === 'Escape')      onClose();
@@ -19,6 +22,18 @@ function Lightbox({ images, startIndex, onClose }) {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [images.length, onClose]);
+
+  // Auto-play video when idx changes, pause old one
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [idx]);
+
+  const current = images[idx];
+  const isVideo = current?.mime_type?.startsWith('video/') ||
+    /\.(mp4|mov|avi|webm|mkv)$/i.test(current?.url || '');
 
   return createPortal(
     <div
@@ -46,6 +61,22 @@ function Lightbox({ images, startIndex, onClose }) {
         fontSize: 12, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.12em',
       }}>{idx + 1} / {images.length}</div>
 
+      {/* Mute toggle — only shown for videos */}
+      {isVideo && (
+        <button
+          onClick={e => { e.stopPropagation(); setMuted(m => !m); }}
+          style={{
+            position: 'absolute', top: 20, left: 24,
+            background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+            color: '#fff', width: 40, height: 40, borderRadius: '50%',
+            fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+          title={muted ? 'Unmute' : 'Mute'}
+        >
+          {muted ? '🔇' : '🔊'}
+        </button>
+      )}
+
       {/* Prev */}
       {idx > 0 && (
         <button onClick={e => { e.stopPropagation(); setIdx(i => i - 1); }} style={{
@@ -56,7 +87,7 @@ function Lightbox({ images, startIndex, onClose }) {
         }}>‹</button>
       )}
 
-      {/* Image — constrained container prevents overflow */}
+      {/* Media — image or video, same container */}
       <div
         onClick={e => e.stopPropagation()}
         style={{
@@ -64,15 +95,28 @@ function Lightbox({ images, startIndex, onClose }) {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
-        <img
-          src={mediaUrl(images[idx]?.url)}
-          style={{
-            maxWidth: '88vw', maxHeight: '80vh',
-            width: 'auto', height: 'auto',
-            objectFit: 'contain', display: 'block', borderRadius: 8,
-          }}
-          alt=""
-        />
+        {isVideo ? (
+          <video
+            ref={videoRef}
+            key={current?.url}
+            src={mediaUrl(current?.url)}
+            autoPlay loop muted={muted} playsInline
+            style={{
+              maxWidth: '88vw', maxHeight: '80vh',
+              borderRadius: 8, display: 'block', outline: 'none',
+            }}
+          />
+        ) : (
+          <img
+            src={mediaUrl(current?.url)}
+            style={{
+              maxWidth: '88vw', maxHeight: '80vh',
+              width: 'auto', height: 'auto',
+              objectFit: 'contain', display: 'block', borderRadius: 8,
+            }}
+            alt=""
+          />
+        )}
       </div>
 
       {/* Next */}
@@ -90,21 +134,40 @@ function Lightbox({ images, startIndex, onClose }) {
         position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)',
         display: 'flex', gap: 8, maxWidth: '90vw', overflowX: 'auto', padding: '4px 0',
       }}>
-        {images.map((img, i) => (
-          <img
-            key={i}
-            src={mediaUrl(img.url)}
-            onClick={e => { e.stopPropagation(); setIdx(i); }}
-            style={{
-              width: 52, height: 40, objectFit: 'cover', borderRadius: 5, cursor: 'pointer',
-              flexShrink: 0,
-              border: i === idx ? '2px solid var(--gold)' : '2px solid transparent',
-              opacity: i === idx ? 1 : 0.5,
-              transition: 'all 0.15s',
-            }}
-            alt=""
-          />
-        ))}
+        {images.map((img, i) => {
+          const isVid = img?.mime_type?.startsWith('video/') ||
+            /\.(mp4|mov|avi|webm|mkv)$/i.test(img?.url || '');
+          return isVid ? (
+            <div
+              key={i}
+              onClick={e => { e.stopPropagation(); setIdx(i); }}
+              style={{
+                width: 52, height: 40, borderRadius: 5, cursor: 'pointer', flexShrink: 0,
+                border: i === idx ? '2px solid var(--gold)' : '2px solid transparent',
+                opacity: i === idx ? 1 : 0.5,
+                background: 'rgba(255,255,255,0.1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s',
+              }}
+            >
+              <span style={{ fontSize: 14, color: '#fff' }}>▶</span>
+            </div>
+          ) : (
+            <img
+              key={i}
+              src={mediaUrl(img.url)}
+              onClick={e => { e.stopPropagation(); setIdx(i); }}
+              style={{
+                width: 52, height: 40, objectFit: 'cover', borderRadius: 5, cursor: 'pointer',
+                flexShrink: 0,
+                border: i === idx ? '2px solid var(--gold)' : '2px solid transparent',
+                opacity: i === idx ? 1 : 0.5,
+                transition: 'all 0.15s',
+              }}
+              alt=""
+            />
+          );
+        })}
       </div>
     </div>,
     document.body
@@ -793,6 +856,7 @@ export default function StudioProfile() {
         .profile-fade-4 { animation-delay: 0.28s; }
         @keyframes lbIn{from{opacity:0}to{opacity:1}}
         .inquiry-modal .field label { text-transform: none; letter-spacing: 0; font-size: 13px; }
+        div:hover > .bts-play-hint { opacity: 0; }
         @media (max-width: 900px) {
           .studio-layout { grid-template-columns: 1fr !important; }
           .studio-sidebar { position: static !important; }
@@ -972,15 +1036,64 @@ export default function StudioProfile() {
             <div className="profile-fade" style={{ marginBottom: 44 }}>
               <Section title="Inside Our Studio">
                 <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8 }}>
-                  {s.bts_images.slice(0, 8).map((img, i) => (
-                    <img key={i} src={mediaUrl(img.url)} alt="" loading="lazy"
-                      onClick={() => { setBtsStartIndex(i); setBtsLightboxOpen(true); }}
-                      style={{ width: 140, height: 100, objectFit: 'cover', borderRadius: 8, flexShrink: 0, cursor: 'pointer', transition: 'transform 0.2s' }}
-                      onMouseEnter={e => e.target.style.transform = 'scale(1.03)'}
-                      onMouseLeave={e => e.target.style.transform = 'scale(1)'}
-                      onError={e => { e.target.style.display = 'none'; }}
-                    />
-                  ))}
+                  {s.bts_images.slice(0, 8).map((img, i) => {
+                    const isVideo = img.mime_type?.startsWith('video/') ||
+                      /\.(mp4|mov|avi|webm|mkv)$/i.test(img.url || '');
+                    const tileStyle = {
+                      width: 140, height: 100, borderRadius: 8, flexShrink: 0,
+                      cursor: 'pointer', overflow: 'hidden', position: 'relative',
+                      background: 'var(--surface2)',
+                    };
+                    return (
+                      <div key={i} style={tileStyle}
+                        onClick={() => { setBtsStartIndex(i); setBtsLightboxOpen(true); }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.transform = 'scale(1.03)';
+                          const v = e.currentTarget.querySelector('video');
+                          if (v) v.play().catch(() => {});
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.transform = 'scale(1)';
+                          const v = e.currentTarget.querySelector('video');
+                          if (v) { v.pause(); v.currentTime = 0; }
+                        }}
+                      >
+                        {isVideo ? (
+                          <>
+                            <video
+                              src={mediaUrl(img.url)}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                              muted playsInline preload="metadata"
+                              loop
+                              onError={mediaOnError(img.url)}
+                            />
+                            {/* Play hint — fades on hover via CSS */}
+                            <div className="bts-play-hint" style={{
+                              position: 'absolute', inset: 0,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              background: 'rgba(0,0,0,0.18)',
+                              transition: 'opacity 0.2s',
+                              pointerEvents: 'none',
+                            }}>
+                              <div style={{
+                                width: 26, height: 26, borderRadius: '50%',
+                                background: 'rgba(255,255,255,0.8)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              }}>
+                                <span style={{ fontSize: 10, marginLeft: 2, color: '#1A1612' }}>▶</span>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <img
+                            src={mediaUrl(img.url)} alt="" loading="lazy"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                            onError={mediaOnError(img.url)}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </Section>
             </div>
