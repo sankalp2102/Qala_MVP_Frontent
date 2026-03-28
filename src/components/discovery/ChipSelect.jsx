@@ -1,7 +1,7 @@
 export default function ChipSelect({ options, selected, onToggle, multi = true, columns }) {
   return (
     <div style={{
-      display: 'flex', flexWrap: 'wrap', gap: 10,
+      display: 'flex', flexWrap: 'wrap', gap: 12,
       ...(columns ? { display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)` } : {}),
     }}>
       {options.map(opt => {
@@ -14,12 +14,12 @@ export default function ChipSelect({ options, selected, onToggle, multi = true, 
             key={val}
             onClick={() => onToggle(val)}
             style={{
-              padding: icon ? '12px 16px' : '9px 18px',
+              padding: icon ? '14px 20px' : '12px 22px',
               border: `1px solid ${isSelected ? '#C46E49' : 'var(--border2)'}`,
-              borderRadius: 8,
+              borderRadius: 100,
               background: isSelected ? 'rgba(196,110,73,0.10)' : 'transparent',
               color: isSelected ? '#C46E49' : 'var(--text2)',
-              fontSize: 13, fontWeight: isSelected ? 600 : 400,
+              fontSize: 15, fontWeight: isSelected ? 600 : 400,
               cursor: 'pointer', transition: 'all 0.15s',
               display: 'flex', alignItems: 'center', gap: 8,
               fontFamily: 'var(--font-body)',
