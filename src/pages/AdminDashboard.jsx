@@ -6,6 +6,7 @@ import { Spinner } from '../components/Spinner';
 import { useToast } from '../hooks/useToast';
 import { Toast } from '../components/Toast';
 import PasswordInput from '../components/PasswordInput';
+import { mediaUrl } from '../utils/mediaUrl';
 
 const sLabel = { submitted:'Submitted', in_progress:'In Progress', not_started:'Not Started', flagged:'Flagged', approved:'Approved' };
 const sBadge = s => ({ submitted:'badge-green', in_progress:'badge-orange', not_started:'badge-gray', flagged:'badge-red', approved:'badge-teal' }[s]||'badge-gray');
@@ -63,14 +64,12 @@ function buildStudioRow(profile, onboarding) {
     .filter(([k, v]) => v === true && !['id','is_flagged','flag_reason','flag_resolved'].includes(k))
     .map(([k]) => k.replace(/_/g, ' ')).join('; ');
 
-  const mBase     = 'https://api.qala.studio';
-  const mUrl      = f => f ? (f.startsWith('http') ? f : mBase + f) : '';
   const studioMed = (sd.media_files || []);
-  const heroUrl   = mUrl(studioMed.find(m => m.media_type === 'hero')?.file || '');
-  const workUrls  = studioMed.filter(m => m.media_type === 'work_dump').map(m => mUrl(m.file)).join(' | ');
-  const brandImgs = (onboarding?.brand_experiences || []).filter(b => b.image).map(b => `${b.brand_name}: ${mUrl(b.image)}`).join(' | ');
-  const craftImgs = (onboarding?.crafts || []).filter(c => c.image).map(c => `${c.craft_name}: ${mUrl(c.image)}`).join(' | ');
-  const btsUrls   = (pc.bts_media || []).map(m => mUrl(m.file)).join(' | ');
+  const heroUrl   = mediaUrl(studioMed.find(m => m.media_type === 'hero')?.file || '');
+  const workUrls  = studioMed.filter(m => m.media_type === 'work_dump').map(m => mediaUrl(m.file)).join(' | ');
+  const brandImgs = (onboarding?.brand_experiences || []).filter(b => b.image).map(b => `${b.brand_name}: ${mediaUrl(b.image)}`).join(' | ');
+  const craftImgs = (onboarding?.crafts || []).filter(c => c.image).map(c => `${c.craft_name}: ${mediaUrl(c.image)}`).join(' | ');
+  const btsUrls   = (pc.bts_media || []).map(m => mediaUrl(m.file)).join(' | ');
 
   return {
     'Profile ID':               profile.profile_id || profile.id || '',
@@ -514,7 +513,7 @@ function ProfileReview() {
               {brandList.map(b => (
                 <div key={b.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 12px', background:'var(--surface2)', borderRadius:7, gap:12 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                    {b.image && <img src={b.image.startsWith('http') ? b.image : `https://api.qala.studio${b.image}`} alt={b.brand_name} style={{ width:36, height:36, objectFit:'cover', borderRadius:5, border:'1px solid var(--border)' }} onError={e => { e.target.style.display='none'; }} />}
+                    {b.image && <img src={mediaUrl(b.image)} alt={b.brand_name} style={{ width:36, height:36, objectFit:'cover', borderRadius:5, border:'1px solid var(--border)' }} onError={e => { e.target.style.display='none'; }} />}
                     <span style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>{b.brand_name}</span>
                   </div>
                   {b.scope && <span style={{ fontSize:12, color:'var(--text3)' }}>{b.scope}</span>}
@@ -564,8 +563,8 @@ function ProfileReview() {
         {title && <div style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>{title}</div>}
         <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
           {files.map((f, i) => {
-            const url  = f.file ? (f.file.startsWith('http') ? f.file : `https://api.qala.studio${f.file}`) : null;
-            const url2 = f.image ? (f.image.startsWith('http') ? f.image : `https://api.qala.studio${f.image}`) : null;
+            const url  = f.file  ? mediaUrl(f.file)  : null;
+            const url2 = f.image ? mediaUrl(f.image) : null;
             const src  = url || url2;
             const isVideo = (f.mime_type || '').startsWith('video/');
             if (!src) return null;
@@ -1392,7 +1391,7 @@ function StudioInquiries() {
                   {inq.attachment_url && (
                     <div style={{ marginBottom: 12 }}>
                       <a
-                        href={`https://api.qala.studio/media/${inq.attachment_url}`}
+                        href={mediaUrl(`/media/${inq.attachment_url}`)}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{

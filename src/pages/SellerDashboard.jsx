@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { onboardingAPI } from '../api/client';
 import { DashLayout } from '../components/DashLayout';
 import { Spinner } from '../components/Spinner';
+import { mediaUrl } from '../utils/mediaUrl';
 import SectionA from './seller/SectionA';
 import SectionB from './seller/SectionB';
 import SectionC from './seller/SectionC';
@@ -231,7 +232,7 @@ function SellerInquiries({ profileId }) {
                 {inq.attachment_url && (
                   <div style={{ marginBottom: 14 }}>
                     <a
-                      href={`https://api.qala.studio/media/${inq.attachment_url}`}
+                      href={mediaUrl(`/media/${inq.attachment_url}`)}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{
@@ -302,7 +303,7 @@ export default function SellerDashboard() {
 
   const status = snapshot?.status;
   const navItems = [
-    { to:'/dashboard',             icon:'', label:'Overview'                                                                                       },
+    { to:'/dashboard',             icon:'', label:'Overview',     end: true                                                                              },
     { to:'/dashboard/studio',      icon:'', label:'A — Studio',     badge: status?.section_a_status === 'flagged' ? { type:'red', text:'!' } : null },
     { to:'/dashboard/products',    icon:'', label:'B — Products',   badge: status?.section_b_status === 'flagged' ? { type:'red', text:'!' } : null },
     { to:'/dashboard/crafts',      icon:'', label:'C — Crafts',     badge: status?.section_c_status === 'flagged' ? { type:'red', text:'!' } : null },

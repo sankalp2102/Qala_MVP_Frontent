@@ -4,31 +4,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { discoveryAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import qalaLogo from '../assets/qala-logo.png';
-
-const MEDIA_BASE = 'https://api.qala.studio';
-/**
- * Normalise any media URL to always point at api.qala.studio.
- * Handles three cases:
- * 1. null / undefined → null
- * 2. Already correct absolute URL (contains api.qala.studio) → pass through
- * 3. Relative path (/media/...) → prepend MEDIA_BASE
- * 4. Wrong-host absolute URL (http://django:8000/... or http://localhost/...)
- * → strip the wrong host and prepend MEDIA_BASE
- */
-function mediaUrl(url) {
-  if (!url) return null;
-  if (url.includes('api.qala.studio')) return url;
-  // Extract just the path portion for any other absolute URL
-  if (url.startsWith('http')) {
-    try {
-      const { pathname } = new URL(url);
-      return MEDIA_BASE + pathname;
-    } catch {
-      return url;
-    }
-  }
-  return MEDIA_BASE + url;
-}
+import { mediaUrl, mediaOnError } from '../utils/mediaUrl';
 
 // ─── Lightbox ────────────────────────────────────────────────────────────────
 function Lightbox({ images, startIndex, onClose }) {
@@ -810,16 +786,13 @@ export default function StudioProfile() {
       <style>{`
         @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
         @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-        @keyframes lbIn{from{opacity:0}to{opacity:1}}
-        
         .profile-fade { animation: fadeUp 0.5s ease both; }
         .profile-fade-1 { animation-delay: 0.05s; }
         .profile-fade-2 { animation-delay: 0.12s; }
         .profile-fade-3 { animation-delay: 0.2s; }
         .profile-fade-4 { animation-delay: 0.28s; }
-        
+        @keyframes lbIn{from{opacity:0}to{opacity:1}}
         .inquiry-modal .field label { text-transform: none; letter-spacing: 0; font-size: 13px; }
-        
         @media (max-width: 900px) {
           .studio-layout { grid-template-columns: 1fr !important; }
           .studio-sidebar { position: static !important; }

@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import RecommendationCard from '../components/discovery/RecommendationCard';
 import AuthGateModal from '../components/AuthGateModal';
 import qalaLogo from '../assets/qala-logo.png';
+import { mediaUrl as mUrl, mediaOnError } from '../utils/mediaUrl';
 
 // ─── Calendar icon ──────────────────────────────────────────────────────────
 const CalendarIcon = () => (
@@ -290,14 +291,6 @@ function AestheticCard({ rec, onContact }) {
   const displayImgs  = selectedImgs.length > 0 ? selectedImgs : (rec.hero_images || []).slice(0, 1);
   const matchCount   = (rec.selected_image_ids || []).length;
 
-  const MEDIA_BASE = 'https://api.qala.studio';
-  const mUrl = url => {
-    if (!url) return null;
-    if (url.includes('api.qala.studio')) return url;
-    if (url.startsWith('http')) { try { return MEDIA_BASE + new URL(url).pathname; } catch { return url; } }
-    return MEDIA_BASE + url;
-  };
-
   // Warm gradient fallback when no images
   const gradients = [
     'linear-gradient(135deg, #C4956A 0%, #8A7560 100%)',
@@ -339,7 +332,7 @@ function AestheticCard({ rec, onContact }) {
                 transform: hovered ? 'scale(1.04)' : 'scale(1)',
                 transition: 'transform 0.4s ease',
               }}
-              onError={e => { e.target.style.display = 'none'; }}
+              onError={mediaOnError(img.url)}
             />
           </div>
         )) : (

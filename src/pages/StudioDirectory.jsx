@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { discoveryAPI } from '../api/client';
+import { mediaUrl, mediaOnError } from '../utils/mediaUrl';
 
 // ─── Craft-specific CSS pattern backgrounds ────────────────────────────────
 const PATTERNS = {
@@ -82,11 +83,9 @@ function StudioCard({ studio, onClick }) {
   const crafts    = [studio.primary_craft, ...(studio.secondary_crafts || [])].filter(Boolean);
   const materials = (studio.fabrics || []).slice(0, 3).map(f => f.fabric_name || f).filter(Boolean);
 
-  const BASE = 'https://api.qala.studio';
-  const rawUrl = studio.hero_image_url || '';
-  const imageUrl = rawUrl
-    ? (rawUrl.startsWith('http') ? rawUrl : BASE + rawUrl)
-    : null;
+  const rawUrl  = studio.hero_image_url || '';
+  const imageUrl = rawUrl ? mediaUrl(rawUrl) : null;
+  const imageFallback = rawUrl ? `https://api.qala.studio${rawUrl.startsWith('/') ? '' : '/'}${rawUrl.replace(/^https?:\/\/[^/]+/, '')}` : null;
 
   return (
     <div
@@ -114,7 +113,13 @@ function StudioCard({ studio, onClick }) {
             src={imageUrl}
             alt={studio.studio_name}
             loading='lazy'
-            onError={() => setImgError(true)}
+            onError={e => {
+              if (imageFallback && e.target.src !== imageFallback) {
+                e.target.src = imageFallback;
+              } else {
+                setImgError(true);
+              }
+            }}
             style={{
               width: '100%', height: '100%', objectFit: 'cover', display: 'block',
               transition: 'transform 0.4s ease',
