@@ -31,7 +31,7 @@ const CRAFTS = [
 const PROCESS_STAGES = [
   { value: 'I have a vision',             label: 'I have a vision',             desc: 'Moodboard / inspiration' },
   { value: 'I have designs or sketches',  label: 'I have designs or sketches',  desc: 'Ready to develop further' },
-  { value: 'I have samples already made', label: 'I have samples already made', desc: 'Looking for a production partner' },
+  { value: 'I have samples already made', label: 'I have samples', desc: 'Looking for a production partner' },
   { value: "I'm still exploring ideas",   label: "I'm still exploring ideas",   desc: 'No fixed direction yet' },
 ];
 

@@ -235,8 +235,8 @@ export default function Landing() {
             Craft Marketplace · India
           </div>
 
-          <h1 style={{ ...S.headline, ...transBase, transitionDelay: '0.1s' }}>
-            Connect with India's Finest <span style={{ color: 'var(--gold)' }}>Craft Studios</span>
+          <h1 style={{ ...S.headline, ...transBase, transitionDelay: '0.1s', maxWidth: 900 }}>
+            The <span style={{ color: 'var(--gold)' }}>Custom Manufacturing</span> Platform for Brands & Retailers
           </h1>
 
           <p style={{
@@ -245,11 +245,38 @@ export default function Landing() {
             transitionDelay: '0.2s',
             textTransform: 'none',
             letterSpacing: '0.01em',
-            maxWidth: 860,
-            lineHeight: 1.6,
+            maxWidth: 720,
+            lineHeight: 1.7,
+            fontSize: 'clamp(14px, 1.6vw, 18px)',
+            marginBottom: 20,
           }}>
-            Qala matches fashion brands with designer-led production houses across India: embroidery, block print, handloom, natural dye and more. We manage everything from sourcing to delivery.
+            From vision to finished product; manufacture with India's finest production houses. Embroidery, Handloom, Block printing, Natural dyes & more.
           </p>
+
+          {/* Three pillars */}
+          <div style={{
+            ...transBase,
+            transitionDelay: '0.25s',
+            display: 'flex', alignItems: 'center', gap: 12,
+            marginBottom: 44,
+          }}>
+            {[
+              'Small batches',
+              'Luxury grade',
+              'Fully managed',
+            ].reduce((acc, pill, i) => {
+              if (i > 0) acc.push(
+                <span key={`d${i}`} style={{ color: 'var(--border2)', fontSize: 14, lineHeight: 1 }}>·</span>
+              );
+              acc.push(
+                <span key={pill} style={{
+                  fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 600,
+                  color: 'var(--text3)', letterSpacing: '0.14em', textTransform: 'uppercase',
+                }}>{pill}</span>
+              );
+              return acc;
+            }, [])}
+          </div>
 
           <div style={{ ...S.ctaWrap, ...transBase, transitionDelay: '0.3s' }}>
             <button

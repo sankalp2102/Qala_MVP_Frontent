@@ -146,9 +146,11 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 600, color: 'var(--text)', marginBottom: 2, lineHeight: 1.2 }}>
             {rec.studio_name || 'Studio'}
           </h3>
-          <div style={{ fontSize: 12, color: 'var(--text3)' }}>
-            {[rec.location, rec.years_in_operation ? `Est. ${Math.round(new Date().getFullYear() - rec.years_in_operation)}` : null].filter(Boolean).join(' · ')}
-          </div>
+            {rec.location && (
+              <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+                {rec.location}
+              </div>
+            )}
         </div>
 
         {/* Blurb / tagline */}

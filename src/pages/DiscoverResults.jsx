@@ -289,7 +289,6 @@ function AestheticCard({ rec, onContact }) {
 
   const selectedImgs = (rec.hero_images || []).filter(img => img.is_selected);
   const displayImgs  = selectedImgs.length > 0 ? selectedImgs : (rec.hero_images || []).slice(0, 1);
-  const matchCount   = (rec.selected_image_ids || []).length;
 
   // Warm gradient fallback when no images
   const gradients = [
@@ -342,19 +341,22 @@ function AestheticCard({ rec, onContact }) {
 
       {/* Bottom info panel */}
       <div style={{ padding: '16px 20px' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
+        <div style={{ marginBottom: rec.short_description ? 6 : 0 }}>
           <span style={{
             fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 400,
             color: 'var(--text)', lineHeight: 1.2,
           }}>
             {rec.studio_name || 'Studio'}
           </span>
-          {matchCount > 0 && (
-            <span style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--text4)' }}>
-              {matchCount} image{matchCount !== 1 ? 's' : ''} selected
-            </span>
-          )}
         </div>
+        {rec.short_description && (
+          <div style={{
+            fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--text3)',
+            fontStyle: 'italic', lineHeight: 1.5, marginBottom: 6,
+          }}>
+            "{rec.short_description}"
+          </div>
+        )}
         {rec.location && (
           <div style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--text4)' }}>
             {rec.location}
@@ -599,7 +601,7 @@ export default function DiscoverResults() {
               Help Me Decide
             </div>
             <p style={{ fontSize: 13, color: 'var(--text3)', textAlign: 'center', marginBottom: 20, lineHeight: 1.6 }}>
-              Share your details and our team will reach out with hand-picked options.
+              Share your contact details and preferred dates, and our team will be in touch to walk you through the options best aligned with your project.
             </p>
             <InquiryForm
               name={inquiryName} setName={setInquiryName}
@@ -751,7 +753,7 @@ export default function DiscoverResults() {
                         Your requirement is specific, and that's great.
                       </h3>
                       <p style={{ fontSize: 14, color: 'var(--text3)', lineHeight: 1.7, maxWidth: 460, margin: '0 auto' }}>
-                        This specific combination isn't in our online directory yet, but our network extends far beyond what you see here. Share your details and we'll personally connect you with studios from our broader network.
+                        This specific combination isn't in our online directory yet, but our network extends far beyond what you see here. Share your details and we'll personally find studios from our broader network for your requirements.
                       </p>
                     </div>
                     <InquiryForm
@@ -914,7 +916,7 @@ export default function DiscoverResults() {
               Schedule a call with our sourcing team.
             </h3>
             <p style={{ fontSize: 14, color: 'var(--text3)', lineHeight: 1.7, marginBottom: 28 }}>
-              We'll walk through your project together and help you find the studio that's the right fit for your vision.
+              Share your contact details and preferred dates, and our team will be in touch to walk you through the options best aligned with your project.
             </p>
 
             {!inquiryOpen && !inquiryDone && (
