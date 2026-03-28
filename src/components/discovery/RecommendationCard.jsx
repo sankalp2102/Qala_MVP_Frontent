@@ -36,7 +36,10 @@ function buildWhyLines(rec, buyerSummary, isBonus) {
   // Product line — from match_reasoning if available
   const productMatch = rec.match_reasoning?.product_match;
   if (productMatch && typeof productMatch === 'string') {
-    lines.push(productMatch);
+    const transformed = productMatch
+      .replace(/^Strong match for /i, 'Can make ')
+      .replace(/^Partial match for your product types$/i, 'Can make some of your product types');
+    lines.push(transformed);
   }
 
   // Fabric line

@@ -80,7 +80,7 @@ function StudioCard({ studio, onClick }) {
   const [imgError, setImgError] = useState(false);
 
   const crafts    = [studio.primary_craft, ...(studio.secondary_crafts || [])].filter(Boolean);
-  const materials = (studio.fabrics || []).slice(0, 3);
+  const materials = (studio.fabrics || []).slice(0, 3).map(f => f.fabric_name || f).filter(Boolean);
 
   const BASE = 'https://api.qala.studio';
   const rawUrl = studio.hero_image_url || '';
@@ -245,6 +245,40 @@ function Chip({ label, active, onClick }) {
 
 
 // ─── Pinned filter order ─────────────────────────────────────────────────────
+const FABRIC_CATEGORY_LABELS = {
+  cotton:      'Cotton Based',
+  silk:        'Silk Based',
+  linen:       'Linen Based',
+  wool:        'Wool Based',
+  regenerated: 'Regenerated Fabrics',
+  handcrafted: 'Handloom Fabrics',
+  other:       'Other Fabrics',
+};
+
+const PRODUCT_TYPE_LABELS = {
+  dresses:                  'Dresses',
+  tops:                     'Tops',
+  shirts:                   'Shirts',
+  t_shirts:                 'T-Shirts',
+  tunics_kurtas:            'Tunics / Kurtas',
+  coord_sets:               'Coord Sets',
+  jumpsuits:                'Jumpsuits',
+  skirts:                   'Skirts',
+  shorts:                   'Shorts',
+  trousers_pants:           'Trousers / Pants',
+  denim:                    'Denim',
+  blazers:                  'Blazers',
+  coats_jackets:            'Coats / Jackets',
+  capes:                    'Capes',
+  waistcoats_vests:         'Waistcoats / Vests',
+  kaftans:                  'Kaftans',
+  resortwear_sets:          'Resortwear Sets',
+  loungewear_sleepwear:     'Loungewear / Sleepwear',
+  activewear:               'Activewear',
+  kidswear:                 'Kidswear',
+  accessories_scarves_stoles: 'Accessories / Scarves / Stoles',
+};
+
 const PINNED_CRAFTS        = ['Hand Block Printing', 'Embroidery', 'Tie Dye'];
 const PINNED_FABRICS       = ['Cotton Based', 'Silk Based', 'Wool Based'];
 const PINNED_PRODUCT_TYPES = ['Dresses', 'Trousers / Pants', 'Tops'];
@@ -441,8 +475,14 @@ export default function StudioDirectory() {
           studios.forEach(s => {
             if (s.primary_craft) crafts.add(s.primary_craft);
             (s.secondary_crafts || []).forEach(c => crafts.add(c));
-            (s.fabrics || []).forEach(f => fabrics.add(f));
-            (s.product_types || []).forEach(p => products.add(p.replace(/_/g, ' ')));
+            (s.fabrics || []).forEach(f => {
+              const label = FABRIC_CATEGORY_LABELS[f.category] || f.category;
+              if (label) fabrics.add(label);
+            });
+            (s.product_types || []).forEach(p => {
+              const label = PRODUCT_TYPE_LABELS[p] || p.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+              if (label) products.add(label);
+            });
           });
         });
         setOptions({
@@ -471,13 +511,17 @@ export default function StudioDirectory() {
         );
       const fabricMatch = filters.fabric.length === 0 ||
         filters.fabric.some(ff =>
-          (s.fabrics || []).some(f => f.toLowerCase().includes(ff.toLowerCase()))
+          (s.fabrics || []).some(f => {
+            const label = FABRIC_CATEGORY_LABELS[f.category] || f.category;
+            return label.toLowerCase() === ff.toLowerCase();
+          })
         );
       const productMatch = filters.productType.length === 0 ||
         filters.productType.some(fp =>
-          (s.product_types || []).some(p =>
-            p.replace(/_/g, ' ').toLowerCase().includes(fp.toLowerCase())
-          )
+          (s.product_types || []).some(p => {
+            const label = PRODUCT_TYPE_LABELS[p] || p.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            return label.toLowerCase() === fp.toLowerCase();
+          })
         );
       return craftMatch && fabricMatch && productMatch;
     });
