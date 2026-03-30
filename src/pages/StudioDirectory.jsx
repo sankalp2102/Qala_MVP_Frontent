@@ -235,8 +235,8 @@ function Chip({ label, active, onClick }) {
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 5,
         padding: '6px 14px', borderRadius: 100,
-        border: `1.5px solid ${active ? '#1A1612' : hovered ? 'var(--gold)' : 'rgba(26,22,18,0.1)'}`,
-        background: active ? '#1A1612' : 'transparent',
+        border: `1.5px solid ${active ? '#1A1612' : hovered ? 'var(--gold)' : 'rgba(26,22,18,0.22)'}`,
+        background: active ? '#1A1612' : hovered ? 'rgba(196,110,73,0.06)' : 'rgba(255,255,255,0.7)',
         color: active ? '#F5F0E8' : hovered ? 'var(--gold)' : 'var(--text2)',
         fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: active ? 500 : 400,
         cursor: 'pointer', whiteSpace: 'nowrap',
@@ -429,12 +429,11 @@ function FilterBar({ options, filters, setFilter, clearAll, totalVisible, hasAny
           whiteSpace: 'nowrap', fontWeight: 300, paddingLeft: 20,
           flexShrink: 0, alignSelf: 'center',
         }}>
-          Showing <strong style={{ color: 'var(--text)', fontWeight: 500 }}>{totalVisible}</strong> studios
           {hasAnyFilter && (
             <button
               onClick={clearAll}
               style={{
-                marginLeft: 12, fontSize: 11, color: 'var(--gold)',
+                fontSize: 11, color: 'var(--gold)',
                 background: 'none', border: 'none', cursor: 'pointer',
                 fontFamily: 'var(--font-body)', padding: 0, textDecoration: 'underline',
               }}

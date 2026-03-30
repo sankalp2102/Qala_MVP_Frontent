@@ -302,8 +302,8 @@ function BrandCard({ brand }) {
     <div style={{
       position: 'relative',
       flexShrink: 0,
-      width: 260,
-      height: 300,
+      width: 200,
+      height: 260,
       borderRadius: 14,
       overflow: 'hidden',
       border: '1px solid var(--border2)',
@@ -321,36 +321,35 @@ function BrandCard({ brand }) {
             position: 'absolute', inset: 0,
             width: '100%', height: '100%',
             objectFit: 'cover',
-            opacity: 0.75,
+            opacity: 0.92,
             transition: 'opacity 0.3s',
           }}
         />
       ) : (
-        /* No-image fallback — warm surface with large initial */
         <div style={{
           position: 'absolute', inset: 0,
           background: 'linear-gradient(145deg, var(--surface3) 0%, var(--surface4) 100%)',
         }} />
       )}
 
-      {/* Bottom gradient overlay */}
+      {/* Bottom gradient overlay — lighter so image shows through */}
       <div style={{
         position: 'absolute', inset: 0,
         background: showImage
-          ? 'linear-gradient(to top, rgba(15,8,4,0.92) 0%, rgba(15,8,4,0.4) 50%, transparent 100%)'
-          : 'linear-gradient(to top, rgba(26,14,8,0.85) 0%, rgba(26,14,8,0.2) 60%, transparent 100%)',
+          ? 'linear-gradient(to top, rgba(15,8,4,0.82) 0%, rgba(15,8,4,0.2) 45%, transparent 100%)'
+          : 'linear-gradient(to top, rgba(26,14,8,0.75) 0%, rgba(26,14,8,0.1) 60%, transparent 100%)',
       }} />
 
-      {/* Large decorative initial — bottom-left */}
+      {/* Subtle decorative initial */}
       <div style={{
         position: 'absolute',
-        bottom: -12,
-        left: 12,
+        bottom: -8,
+        left: 10,
         fontFamily: 'var(--font-display)',
-        fontSize: 120,
+        fontSize: 80,
         fontWeight: 700,
         lineHeight: 1,
-        color: showImage ? 'rgba(255,255,255,0.08)' : 'rgba(184,92,56,0.12)',
+        color: showImage ? 'rgba(255,255,255,0.07)' : 'rgba(184,92,56,0.1)',
         pointerEvents: 'none',
         userSelect: 'none',
         letterSpacing: '-0.04em',
@@ -362,17 +361,17 @@ function BrandCard({ brand }) {
       <div style={{
         position: 'absolute',
         bottom: 0, left: 0, right: 0,
-        padding: '0 18px 18px',
+        padding: '0 16px 16px',
       }}>
         {/* Brand name */}
         <div style={{
           fontFamily: 'var(--font-display)',
-          fontSize: 22,
+          fontSize: 18,
           fontWeight: 600,
           fontStyle: 'italic',
           color: showImage ? '#F5F0E8' : 'var(--text)',
           lineHeight: 1.2,
-          marginBottom: 6,
+          marginBottom: 4,
         }}>
           {brand.brand_name}
         </div>
@@ -397,7 +396,7 @@ function BrandCard({ brand }) {
       <div style={{
         position: 'absolute',
         top: 0, left: 0,
-        width: 3, height: 44,
+        width: 3, height: 36,
         background: 'var(--gold)',
         borderRadius: '0 0 3px 0',
       }} />

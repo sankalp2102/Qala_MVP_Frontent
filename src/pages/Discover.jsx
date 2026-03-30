@@ -550,7 +550,7 @@ function StepBody({ step, answers, set }) {
               onClick={() => !noCraftsMode && toggleFlexible()}
               style={{ fontSize: 15, fontWeight: 600, color: flexibleActive ? '#C46E49' : 'var(--text2)', transition: 'color 0.15s' }}
             >
-              I'm flexible — open to suggestions
+              I'm flexible
             </span>
           </label>
 
