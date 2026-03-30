@@ -282,6 +282,7 @@ function ProfileReview() {
   const [downloading, setDownloading] = useState(false);
   const [verifyConfirm, setVerifyConfirm] = useState(false);
   const [toggling,    setToggling]    = useState(false);
+  const [publishOverrides, setPublishOverrides] = useState({}); // "model:id" → bool
   const { toasts, success, error } = useToast();
   const { pid: urlPid } = useParams();
 
@@ -302,7 +303,10 @@ function ProfileReview() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlPid]);
 
-  const selectProfile = p => { setSelected(p); loadOnboarding(p); setShowFlag(false); setVerifyConfirm(false); };
+  const selectProfile = p => {
+    setSelected(p); loadOnboarding(p); setShowFlag(false); setVerifyConfirm(false);
+    setPublishOverrides({});
+  };
 
   const toggleVerified = async () => {
     if (!selected) return;
@@ -326,8 +330,26 @@ function ProfileReview() {
     }
   };
 
+  const togglePublish = async (model, objectId) => {
+    const key = `${model}:${objectId}`;
+    const profileId = selected?.profile_id || selected?.id;
+    if (!profileId) return;
+    const current = publishOverrides[key] !== false; // default true = published
+    setPublishOverrides(o => ({ ...o, [key]: !current })); // optimistic
+    try {
+      const res = await adminAPI.togglePublish(profileId, { model, object_id: objectId });
+      setPublishOverrides(o => ({ ...o, [key]: res.data.is_published }));
+      success(res.data.is_published ? 'Item visible to buyers.' : 'Item hidden from buyers.');
+    } catch(e) {
+      setPublishOverrides(o => ({ ...o, [key]: current })); // revert
+      error(e.response?.data?.detail || 'Toggle failed. Try again.');
+    }
+  };
+
+  const itemPublished = (model, objectId) =>
+    publishOverrides[`${model}:${objectId}`] !== false;
+
   const submitFlag = async () => {
-    if (!flagForm.reason) { error('Reason is required'); return; }
     setFlagging(true);
     try {
       await adminAPI.flagField(selected.profile_id||selected.id, flagForm);
@@ -466,7 +488,7 @@ function ProfileReview() {
   };
 
   // ── ProductsBlock — Section B ──
-  const ProductsBlock = ({ productTypes, fabrics, brands, awards }) => {
+  const ProductsBlock = ({ productTypes, fabrics, brands, awards, togglePublish, itemPublished }) => {
     const pt = productTypes || {};
     const productList = Object.entries(pt)
       .filter(([k, v]) => v === true && !['id','is_flagged','flag_reason','flag_resolved'].includes(k))
@@ -502,7 +524,24 @@ function ProfileReview() {
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>Fabrics</div>
             <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-              {fabricList.map(f => <Chip key={f} label={f} color="teal" />)}
+              {(fabrics || []).filter(f => f.works_with).map(f => {
+                const pub = !togglePublish || itemPublished('fabric_answer', f.id);
+                return (
+                  <span key={f.id} style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:11, padding:'3px 10px', borderRadius:6,
+                    background: pub ? 'var(--teal-dim)' : 'var(--surface)', color: pub ? 'var(--teal)' : 'var(--text4)',
+                    opacity: pub ? 1 : 0.6, border: pub ? 'none' : '1px dashed var(--border)',
+                  }}>
+                    {f.fabric_name}
+                    {!pub && <span style={{ fontSize:9, fontWeight:700, color:'var(--red)' }}>HIDDEN</span>}
+                    {togglePublish && (
+                      <button onClick={() => togglePublish('fabric_answer', f.id)} title={pub ? 'Hide' : 'Show'}
+                        style={{ background:'none', border:'none', cursor:'pointer', fontSize:11, padding:0, lineHeight:1, color: pub ? 'var(--text3)' : 'var(--red)' }}>
+                        {pub ? '👁' : '🚫'}
+                      </button>
+                    )}
+                  </span>
+                );
+              })}
             </div>
           </div>
         )}
@@ -510,15 +549,28 @@ function ProfileReview() {
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>Brands Worked With</div>
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-              {brandList.map(b => (
-                <div key={b.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 12px', background:'var(--surface2)', borderRadius:7, gap:12 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                    {b.image && <img src={mediaUrl(b.image)} alt={b.brand_name} style={{ width:36, height:36, objectFit:'cover', borderRadius:5, border:'1px solid var(--border)' }} onError={e => { e.target.style.display='none'; }} />}
-                    <span style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>{b.brand_name}</span>
+              {brandList.map(b => {
+                const pub = !togglePublish || itemPublished('brand_experience', b.id);
+                return (
+                  <div key={b.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 12px', background:'var(--surface2)', borderRadius:7, gap:12, opacity: pub ? 1 : 0.55, border: pub ? '1px solid transparent' : '1px dashed var(--red)' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                      {b.image && <img src={mediaUrl(b.image)} alt={b.brand_name} style={{ width:36, height:36, objectFit:'cover', borderRadius:5, border:'1px solid var(--border)' }} onError={e => { e.target.style.display='none'; }} />}
+                      <span style={{ fontWeight:600, fontSize:13, color: pub ? 'var(--text)' : 'var(--text3)' }}>{b.brand_name}</span>
+                      {!pub && <span style={{ fontSize:9, fontWeight:700, color:'var(--red)', letterSpacing:'0.04em' }}>HIDDEN</span>}
+                    </div>
+                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      {b.scope && <span style={{ fontSize:12, color:'var(--text3)' }}>{b.scope}</span>}
+                      {togglePublish && (
+                        <button onClick={() => togglePublish('brand_experience', b.id)} title={pub ? 'Hide from buyers' : 'Show to buyers'}
+                          style={{ background:'none', border:'none', cursor:'pointer', fontSize:14, padding:'2px 4px', color: pub ? 'var(--text3)' : 'var(--red)', opacity:0.7, transition:'opacity 0.15s' }}
+                          onMouseEnter={e => e.currentTarget.style.opacity='1'} onMouseLeave={e => e.currentTarget.style.opacity='0.7'}>
+                          {pub ? '👁' : '🚫'}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  {b.scope && <span style={{ fontSize:12, color:'var(--text3)' }}>{b.scope}</span>}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -526,7 +578,24 @@ function ProfileReview() {
           <div>
             <div style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>Awards</div>
             <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-              {awardList.map(a => <Chip key={a.id} label={a.award_name} color="gold" />)}
+              {awardList.map(a => {
+                const pub = !togglePublish || itemPublished('award_mention', a.id);
+                return (
+                  <span key={a.id} style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:11, padding:'3px 10px', borderRadius:6,
+                    background: pub ? 'var(--gold-dim)' : 'var(--surface)', color: pub ? 'var(--gold)' : 'var(--text4)',
+                    opacity: pub ? 1 : 0.6, border: pub ? 'none' : '1px dashed var(--border)',
+                  }}>
+                    {a.award_name}
+                    {!pub && <span style={{ fontSize:9, fontWeight:700, color:'var(--red)' }}>HIDDEN</span>}
+                    {togglePublish && (
+                      <button onClick={() => togglePublish('award_mention', a.id)} title={pub ? 'Hide' : 'Show'}
+                        style={{ background:'none', border:'none', cursor:'pointer', fontSize:11, padding:0, lineHeight:1, color: pub ? 'var(--text3)' : 'var(--red)' }}>
+                        {pub ? '👁' : '🚫'}
+                      </button>
+                    )}
+                  </span>
+                );
+              })}
             </div>
           </div>
         )}
@@ -535,7 +604,7 @@ function ProfileReview() {
   };
 
   // ── MediaViewer ──
-  const MediaViewer = ({ files, title, mediaType, profileId, onDeleted }) => {
+  const MediaViewer = ({ files, title, mediaType, profileId, onDeleted, togglePublish, itemPublished }) => {
     const [lightbox, setLightbox] = useState(null);
     const [deleting, setDeleting] = useState(null);
     if (!files?.length) return null;
@@ -567,9 +636,11 @@ function ProfileReview() {
             const url2 = f.image ? mediaUrl(f.image) : null;
             const src  = url || url2;
             const isVideo = (f.mime_type || '').startsWith('video/');
+            const mediaModel = mediaType === 'bts' ? 'bts_media' : 'studio_media';
+            const published  = !togglePublish || !f.id || itemPublished(mediaModel, f.id);
             if (!src) return null;
             return (
-              <div key={f.id || i} style={{ position:'relative', width:88, height:88, borderRadius:8, overflow:'hidden', background:'var(--surface3)', border:'1px solid var(--border)', flexShrink:0 }}>
+              <div key={f.id || i} style={{ position:'relative', width:88, height:88, borderRadius:8, overflow:'hidden', background:'var(--surface3)', border:`1px solid ${published ? 'var(--border)' : 'var(--red)'}`, flexShrink:0, opacity: published ? 1 : 0.55 }}>
                 <div onClick={() => setLightbox({ src, isVideo })} style={{ cursor:'pointer', width:'100%', height:'100%' }}>
                   {isVideo
                     ? <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:4 }}>
@@ -580,6 +651,24 @@ function ProfileReview() {
                   }
                 </div>
                 {f.media_type && <span style={{ position:'absolute', bottom:3, left:3, fontSize:8, fontWeight:700, background:'rgba(0,0,0,0.6)', color:'#fff', padding:'1px 5px', borderRadius:3, textTransform:'uppercase' }}>{f.media_type}</span>}
+                {!published && <span style={{ position:'absolute', bottom:3, right:3, fontSize:7, fontWeight:700, background:'var(--red)', color:'#fff', padding:'1px 4px', borderRadius:3, letterSpacing:'0.04em' }}>HIDDEN</span>}
+                {/* Eye toggle */}
+                {togglePublish && f.id && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); togglePublish(mediaModel, f.id); }}
+                    title={published ? 'Hide from buyers' : 'Show to buyers'}
+                    style={{
+                      position:'absolute', top:3, right: profileId ? 27 : 3, width:20, height:20, borderRadius:'50%',
+                      background: published ? 'rgba(0,0,0,0.6)' : 'rgba(201,64,64,0.85)', border:'none', color:'#fff',
+                      fontSize:10, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+                      opacity:0.8, transition:'opacity 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '0.8'}
+                  >
+                    {published ? '👁' : '🚫'}
+                  </button>
+                )}
                 {/* Delete button */}
                 {profileId && (
                   <button
@@ -629,7 +718,7 @@ function ProfileReview() {
   };
 
   // ── CraftBlock ──
-  const CraftBlock = ({ crafts, profileId, onSaved }) => {
+  const CraftBlock = ({ crafts, profileId, onSaved, togglePublish, itemPublished }) => {
     const [editingId, setEditingId] = useState(null);
     const [form,      setForm]      = useState({});
     const [saving,    setSaving]    = useState(false);
@@ -667,21 +756,35 @@ function ProfileReview() {
         <div style={{ fontFamily:'var(--font-display)', fontSize:17, fontWeight:600, color:'var(--gold)', marginBottom:12 }}>
           Section C — Crafts ({crafts.length})
         </div>
-        {crafts.map(c => (
-          <div key={c.id} style={{ padding:'14px 16px', background:'var(--surface2)', borderRadius:'var(--radius)', marginBottom:10, border:'1px solid var(--border)', borderLeft:`3px solid ${c.is_primary?'var(--gold)':'var(--border)'}` }}>
+        {crafts.map(c => {
+          const pub = !togglePublish || itemPublished('craft', c.id);
+          return (
+          <div key={c.id} style={{ padding:'14px 16px', background:'var(--surface2)', borderRadius:'var(--radius)', marginBottom:10, border:`1px solid ${pub ? 'var(--border)' : 'var(--red)'}`, borderLeft:`3px solid ${c.is_primary?'var(--gold)':'var(--border)'}`, opacity: pub ? 1 : 0.6 }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: editingId===c.id ? 14 : 0 }}>
               <div style={{ display:'flex', gap:10, alignItems:'center' }}>
                 <span style={{ fontWeight:600, fontSize:14, color:'var(--text)' }}>{c.craft_name}</span>
                 {c.is_primary && <span className="badge badge-gold" style={{ fontSize:10 }}>Primary</span>}
                 {c.innovation_level && <span className="badge badge-gray" style={{ fontSize:10 }}>{c.innovation_level} innovation</span>}
                 {c.sampling_time_weeks && <span style={{ fontSize:12, color:'var(--text3)' }}>{c.sampling_time_weeks}wk</span>}
+                {!pub && <span style={{ fontSize:9, fontWeight:700, color:'var(--red)', letterSpacing:'0.04em', textTransform:'uppercase' }}>Hidden</span>}
               </div>
-              <button
-                className="btn btn-ghost btn-sm"
-                style={{ fontSize:11, color: editingId===c.id ? 'var(--text3)' : 'var(--teal)', borderColor: editingId===c.id ? 'var(--border)' : 'var(--teal)' }}
-                onClick={() => editingId===c.id ? setEditingId(null) : startEdit(c)}>
-                {editingId===c.id ? 'Cancel' : 'Edit'}
-              </button>
+              <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                {togglePublish && (
+                  <button
+                    onClick={() => togglePublish('craft', c.id)}
+                    title={pub ? 'Hide from buyers' : 'Show to buyers'}
+                    className="btn btn-ghost btn-sm"
+                    style={{ fontSize:13, padding:'3px 8px', color: pub ? 'var(--text3)' : 'var(--red)', borderColor: pub ? 'var(--border)' : 'var(--red)' }}>
+                    {pub ? '👁' : '🚫'}
+                  </button>
+                )}
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ fontSize:11, color: editingId===c.id ? 'var(--text3)' : 'var(--teal)', borderColor: editingId===c.id ? 'var(--border)' : 'var(--teal)' }}
+                  onClick={() => editingId===c.id ? setEditingId(null) : startEdit(c)}>
+                  {editingId===c.id ? 'Cancel' : 'Edit'}
+                </button>
+              </div>
             </div>
             {editingId !== c.id && c.specialization && (
               <div style={{ fontSize:12, color:'var(--text3)', marginTop:6 }}>{c.specialization}</div>
@@ -715,7 +818,8 @@ function ProfileReview() {
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </>
     );
   };
@@ -928,7 +1032,7 @@ function ProfileReview() {
           <div className="card fade-up">
 
             <Block title="Section A — Studio Details" data={onboarding.studio_details} model="studio_details" profileId={pid} onSaved={() => loadOnboarding(selected)} />
-            <MediaViewer files={onboarding.studio_details?.media_files} title="Studio Media (Hero / Work Samples)" mediaType="studio" profileId={pid} onDeleted={() => loadOnboarding(selected)} />
+            <MediaViewer files={onboarding.studio_details?.media_files} title="Studio Media (Hero / Work Samples)" mediaType="studio" profileId={pid} onDeleted={() => loadOnboarding(selected)} togglePublish={togglePublish} itemPublished={itemPublished} />
 
             <hr style={{ border:'none', borderTop:'1px solid var(--border)', margin:'4px 0 20px' }} />
             <ProductsBlock
@@ -936,9 +1040,11 @@ function ProfileReview() {
               fabrics={onboarding.fabric_answers}
               brands={onboarding.brand_experiences}
               awards={onboarding.awards}
+              togglePublish={togglePublish}
+              itemPublished={itemPublished}
             />
 
-            <CraftBlock crafts={onboarding.crafts} profileId={pid} onSaved={() => loadOnboarding(selected)} />
+            <CraftBlock crafts={onboarding.crafts} profileId={pid} onSaved={() => loadOnboarding(selected)} togglePublish={togglePublish} itemPublished={itemPublished} />
 
             <hr style={{ border:'none', borderTop:'1px solid var(--border)', margin:'4px 0 20px' }} />
             <Block title="Section D — Collaboration" data={onboarding.collab_design} model="collab_design" profileId={pid} onSaved={() => loadOnboarding(selected)} />
@@ -948,7 +1054,7 @@ function ProfileReview() {
 
             <hr style={{ border:'none', borderTop:'1px solid var(--border)', margin:'4px 0 20px' }} />
             <Block title="Section F — Process Readiness" data={onboarding.process_readiness} model="process_readiness" profileId={pid} onSaved={() => loadOnboarding(selected)} />
-            <MediaViewer files={onboarding.process_readiness?.bts_media} title="BTS / Process Media" mediaType="bts" profileId={pid} onDeleted={() => loadOnboarding(selected)} />
+            <MediaViewer files={onboarding.process_readiness?.bts_media} title="BTS / Process Media" mediaType="bts" profileId={pid} onDeleted={() => loadOnboarding(selected)} togglePublish={togglePublish} itemPublished={itemPublished} />
 
           </div>
         )
