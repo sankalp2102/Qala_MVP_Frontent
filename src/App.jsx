@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Spinner } from './components/Spinner';
 import Landing from './pages/Landing';
@@ -9,6 +10,14 @@ import Discover from './pages/Discover';
 import DiscoverResults from './pages/DiscoverResults';
 import StudioProfile from './pages/StudioProfile';
 import StudioDirectory from './pages/StudioDirectory';
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
 
 function Guard({ role, children }) {
   const { user, loading } = useAuth();
@@ -40,6 +49,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <ScrollToTop />
         <AppRoutes />
       </AuthProvider>
     </BrowserRouter>
