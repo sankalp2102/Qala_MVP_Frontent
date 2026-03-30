@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react';
 import { discoveryAPI } from '../../api/client';
 
+function isVideoMime(mime) {
+  return mime && mime.startsWith('video/');
+}
+
+function isVideoUrl(url) {
+  return url && /\.(mp4|mov|avi|webm|mkv)$/i.test(url);
+}
+
 export default function ImageGrid({ selected, onToggle }) {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,6 +62,7 @@ export default function ImageGrid({ selected, onToggle }) {
       }}>
         {images.map(img => {
           const isSelected = selected.includes(img.id);
+          const isVideo = isVideoMime(img.mime_type) || isVideoUrl(img.image_url);
           return (
             <button
               key={img.id}
@@ -66,18 +75,31 @@ export default function ImageGrid({ selected, onToggle }) {
                 transform: isSelected ? 'scale(0.97)' : 'scale(1)',
               }}
             >
-              <img
-                src={img.image_url}
-                alt={img.caption || img.studio_name}
-                loading="lazy"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-              />
-              {/* Hover overlay */}
+              {isVideo ? (
+                <video
+                  src={img.image_url}
+                  muted playsInline preload="metadata"
+                  loop
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  onMouseEnter={e => e.target.play().catch(() => {})}
+                  onMouseLeave={e => { e.target.pause(); e.target.currentTime = 0; }}
+                />
+              ) : (
+                <img
+                  src={img.image_url}
+                  alt={img.caption || img.studio_name}
+                  loading="lazy"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+              )}
+
+              {/* Hover / selected overlay */}
               <div style={{
                 position: 'absolute', inset: 0,
                 background: isSelected ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0)',
                 transition: 'background 0.15s',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
+                pointerEvents: 'none',
               }}>
                 {isSelected && (
                   <div style={{
@@ -88,6 +110,18 @@ export default function ImageGrid({ selected, onToggle }) {
                 )}
               </div>
 
+              {/* Small video indicator */}
+              {isVideo && !isSelected && (
+                <div style={{
+                  position: 'absolute', bottom: 6, right: 6,
+                  width: 20, height: 20, borderRadius: '50%',
+                  background: 'rgba(0,0,0,0.5)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  pointerEvents: 'none',
+                }}>
+                  <span style={{ fontSize: 8, color: '#fff', marginLeft: 1 }}>▶</span>
+                </div>
+              )}
             </button>
           );
         })}

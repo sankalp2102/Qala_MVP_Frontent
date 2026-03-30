@@ -121,15 +121,23 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
         {isBonus ? 'Visual Match' : rank.label}
       </div>
 
-      {/* Hero image */}
+      {/* Hero image/video */}
       <div style={{ height: 220, background: 'var(--surface2)', flexShrink: 0, overflow: 'hidden' }}>
         {hero ? (
-          <img
-            src={mediaUrl(hero.url)}
-            alt={rec.studio_name}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            onError={mediaOnError(hero.url)}
-          />
+          (hero.mime_type?.startsWith('video/') || /\.(mp4|mov|avi|webm|mkv)$/i.test(hero.url || '')) ? (
+            <video
+              src={mediaUrl(hero.url)}
+              muted playsInline autoPlay loop
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          ) : (
+            <img
+              src={mediaUrl(hero.url)}
+              alt={rec.studio_name}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              onError={mediaOnError(hero.url)}
+            />
+          )
         ) : (
           <div style={{
             width: '100%', height: '100%',

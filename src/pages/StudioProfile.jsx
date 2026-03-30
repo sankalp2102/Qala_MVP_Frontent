@@ -186,40 +186,69 @@ function Gallery({ images }) {
     <>
       {lb !== null && <Lightbox images={images} startIndex={lb} onClose={() => setLb(null)} />}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: 'repeat(2, 220px)', gap: 4, borderRadius: 12, overflow: 'hidden' }}>
-        {/* Main big image */}
+        {/* Main big image/video */}
         <div
           style={{ gridRow: '1 / 3', cursor: 'pointer', overflow: 'hidden', position: 'relative' }}
           onClick={() => setLb(0)}
         >
-          <img src={mediaUrl(first[0]?.url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.4s ease' }}
-            onMouseEnter={e => e.target.style.transform = 'scale(1.04)'}
-            onMouseLeave={e => e.target.style.transform = 'scale(1)'}
-          />
-        </div>
-        {/* Grid of 4 thumbnails */}
-        {rest.map((img, i) => (
-          <div key={i}
-            style={{ cursor: 'pointer', overflow: 'hidden', position: 'relative' }}
-            onClick={() => setLb(i + 1)}
-          >
-            <img src={mediaUrl(img.url)} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.4s ease' }}
-              onMouseEnter={e => e.target.style.transform = 'scale(1.06)'}
+          {first[0]?.mime_type?.startsWith('video/') || /\.(mp4|mov|avi|webm|mkv)$/i.test(first[0]?.url || '') ? (
+            <>
+              <video src={mediaUrl(first[0]?.url)} muted playsInline preload="metadata" loop
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                onMouseEnter={e => e.target.play().catch(() => {})}
+                onMouseLeave={e => { e.target.pause(); e.target.currentTime = 0; }}
+              />
+              <div style={{ position: 'absolute', top: 10, right: 10, width: 24, height: 24, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <span style={{ fontSize: 9, color: '#fff', marginLeft: 1 }}>▶</span>
+              </div>
+            </>
+          ) : (
+            <img src={mediaUrl(first[0]?.url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.4s ease' }}
+              onMouseEnter={e => e.target.style.transform = 'scale(1.04)'}
               onMouseLeave={e => e.target.style.transform = 'scale(1)'}
             />
-            {/* "View all" overlay on last */}
-            {i === 3 && images.length > 5 && (
-              <div style={{
-                position: 'absolute', inset: 0,
-                background: 'rgba(15,10,8,0.65)', backdropFilter: 'blur(2px)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexDirection: 'column', gap: 4,
-              }}>
-                <span style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>+{images.length - 5}</span>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.1em' }}>VIEW ALL</span>
-              </div>
-            )}
-          </div>
-        ))}
+          )}
+        </div>
+        {/* Grid of 4 thumbnails */}
+        {rest.map((img, i) => {
+          const isVid = img?.mime_type?.startsWith('video/') || /\.(mp4|mov|avi|webm|mkv)$/i.test(img?.url || '');
+          return (
+            <div key={i}
+              style={{ cursor: 'pointer', overflow: 'hidden', position: 'relative' }}
+              onClick={() => setLb(i + 1)}
+            >
+              {isVid ? (
+                <>
+                  <video src={mediaUrl(img.url)} muted playsInline preload="metadata" loop
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    onMouseEnter={e => e.target.play().catch(() => {})}
+                    onMouseLeave={e => { e.target.pause(); e.target.currentTime = 0; }}
+                  />
+                  <div style={{ position: 'absolute', top: 6, right: 6, width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                    <span style={{ fontSize: 8, color: '#fff', marginLeft: 1 }}>▶</span>
+                  </div>
+                </>
+              ) : (
+                <img src={mediaUrl(img.url)} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.4s ease' }}
+                  onMouseEnter={e => e.target.style.transform = 'scale(1.06)'}
+                  onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+                />
+              )}
+              {/* "View all" overlay on last */}
+              {i === 3 && images.length > 5 && (
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'rgba(15,10,8,0.65)', backdropFilter: 'blur(2px)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexDirection: 'column', gap: 4,
+                }}>
+                  <span style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>+{images.length - 5}</span>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.1em' }}>VIEW ALL</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </>
   );
