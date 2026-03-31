@@ -1012,7 +1012,7 @@ export default function StudioProfile() {
           {/* Section 3: Top Strengths — "What We're Known For" */}
           {s.usps?.length > 0 && (
             <div className="profile-fade profile-fade-2" style={{ marginBottom: 44 }}>
-              <Section title="What We're Known For">
+              <Section title="What They're Known For">
                 <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '8px 0', background: 'var(--surface)' }}>
                   {s.usps.slice(0, 4).map((usp, i) => (
                     <div key={i} style={{
@@ -1067,7 +1067,7 @@ export default function StudioProfile() {
           {/* Section 6A: Past Buyers */}
           {s.brands?.length > 0 && (
             <div className="profile-fade" style={{ marginBottom: 44 }}>
-              <Section title="Brands We've Worked With">
+              <Section title="Brands They have Worked With">
                 <BrandStrip brands={s.brands} />
               </Section>
             </div>
@@ -1100,7 +1100,7 @@ export default function StudioProfile() {
           {/* BTS images */}
           {hasBts && (
             <div className="profile-fade" style={{ marginBottom: 44 }}>
-              <Section title="Inside Our Studio">
+              <Section title="Inside the Studio">
                 <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8 }}>
                   {s.bts_images.slice(0, 8).map((img, i) => {
                     const isVideo = img.mime_type?.startsWith('video/') ||
