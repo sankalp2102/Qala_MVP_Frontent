@@ -161,6 +161,8 @@ export const adminAPI = {
   flagField:     (pid,d) => api.post(`/api/admin/seller-profiles/${pid}/flag/`, d),
   toggleVerified: pid   => api.post(`/api/admin/seller-profiles/${pid}/toggle-verified/`),
   togglePublish:  (pid, d) => api.post(`/api/admin/seller-profiles/${pid}/toggle-publish/`, d),
+  deleteStudioMedia: (pid, mediaId) => api.delete(`/api/admin/seller-profiles/${pid}/studio-media/${mediaId}/`),
+  deleteBTSMedia:    (pid, mediaId) => api.delete(`/api/admin/seller-profiles/${pid}/bts-media/${mediaId}/`),
   editSection:   (pid, section, d) => api.patch(`/api/admin/seller-profiles/${pid}/edit/${section}/`, d),
   // Discovery
   getDiscoveryBuyers:       () => api.get('/api/admin/discovery/buyers/'),

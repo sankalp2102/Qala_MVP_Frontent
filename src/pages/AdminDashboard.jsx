@@ -614,9 +614,9 @@ function ProfileReview() {
       setDeleting(fileId);
       try {
         if (mediaType === 'bts') {
-          await onboardingAPI.delBTS(profileId, fileId);
+          await adminAPI.deleteBTSMedia(profileId, fileId);
         } else {
-          await onboardingAPI.delStudioMedia(profileId, fileId);
+          await adminAPI.deleteStudioMedia(profileId, fileId);
         }
         success('File deleted');
         if (onDeleted) onDeleted();
