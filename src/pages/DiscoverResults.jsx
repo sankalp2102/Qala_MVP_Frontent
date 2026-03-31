@@ -498,6 +498,14 @@ export default function DiscoverResults() {
         .carousel-arrow:hover:not(:disabled) { background: rgba(26,22,18,0.06) !important; border-color: var(--border3) !important; }
         .carousel-scroll::-webkit-scrollbar { display: none; }
         .pencil-btn:hover { color: #C46E49 !important; }
+        .help-fab { display: none; }
+        @media (max-width: 600px) {
+          .help-btn-header { display: none !important; }
+          .help-fab { display: flex !important; }
+          .results-modal-wrap { align-items: flex-end !important; padding: 0 !important; }
+          .results-modal-inner { border-radius: 16px 16px 0 0 !important; max-height: 85dvh; overflow-y: auto; }
+          .inquiry-bottom-wrap { padding: 16px !important; }
+        }
       `}</style>
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
@@ -578,7 +586,7 @@ export default function DiscoverResults() {
               Show All Studios →
             </button>
           ) : (
-            <button className="help-btn" onClick={() => setHeaderInquiryOpen(true)} style={{
+            <button className="help-btn help-btn-header" onClick={() => setHeaderInquiryOpen(true)} style={{
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '9px 20px', borderRadius: 8, background: '#1A1612', color: '#F5F0E8',
               border: 'none', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-body)',
@@ -594,6 +602,7 @@ export default function DiscoverResults() {
       {/* ── Help Me Decide modal ───────────────────────────────────────── */}
       {headerInquiryOpen && !inquiryDone && (
         <div
+          className="results-modal-wrap"
           onClick={() => setHeaderInquiryOpen(false)}
           style={{
             position: 'fixed', inset: 0, zIndex: 100,
@@ -602,7 +611,7 @@ export default function DiscoverResults() {
             animation: 'fadeUp 0.2s ease both',
           }}
         >
-          <div onClick={e => e.stopPropagation()} style={{
+          <div className="results-modal-inner" onClick={e => e.stopPropagation()} style={{
             width: '100%', maxWidth: 520, background: 'var(--surface)', borderRadius: 16,
             border: '1px solid var(--border)', padding: '32px 28px 8px',
             boxShadow: '0 24px 80px rgba(0,0,0,0.2)',
@@ -963,7 +972,7 @@ export default function DiscoverResults() {
         )}
 
         {/* ── Bottom inquiry section (hidden when zero-match + no suggestions — form is inline above) */}
-        <div style={{ borderTop: '1px solid var(--border)', padding: 'clamp(32px, 4vw, 48px) clamp(24px, 4vw, 60px) 64px', flexShrink: 0, display: (data?.zero_match && recs.length === 0 && (data?.zero_match_suggestions || []).length === 0) ? 'none' : 'block' }}>
+        <div className="inquiry-bottom-wrap" style={{ borderTop: '1px solid var(--border)', padding: 'clamp(32px, 4vw, 48px) clamp(24px, 4vw, 60px) 64px', flexShrink: 0, display: (data?.zero_match && recs.length === 0 && (data?.zero_match_suggestions || []).length === 0) ? 'none' : 'block' }}>
           <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
             <div style={{ fontSize: 10, color: 'var(--text4)', letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>
               Want to talk it through?
@@ -1019,6 +1028,26 @@ export default function DiscoverResults() {
           </div>
         </div>
       </div>
+
+      {/* Floating Help Me Decide FAB — mobile only */}
+      {!inquiryDone && (
+        <button
+          className="help-btn help-fab"
+          onClick={() => setHeaderInquiryOpen(true)}
+          style={{
+            position: 'fixed', bottom: 24, right: 20, zIndex: 90,
+            alignItems: 'center', gap: 8,
+            padding: '13px 20px', borderRadius: 50,
+            background: '#1A1612', color: '#F5F0E8',
+            border: 'none', fontSize: 13, fontWeight: 500,
+            fontFamily: 'var(--font-body)', cursor: 'pointer',
+            boxShadow: '0 8px 32px rgba(26,22,18,0.25)',
+            transition: 'background 0.2s',
+          }}
+        >
+          <CalendarIcon /> Help Me Decide
+        </button>
+      )}
 
       {/* Auth gate modal */}
       {authGate && (

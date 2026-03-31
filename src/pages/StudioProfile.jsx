@@ -504,7 +504,7 @@ function InquiryForm({ studio, onClose, onSuccess }) {
   };
 
   return (
-    <div style={{
+    <div className="inquiry-modal-wrap" style={{
       position: 'fixed', inset: 0, zIndex: 8000,
       background: 'rgba(26,14,8,0.6)', backdropFilter: 'blur(8px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -536,7 +536,7 @@ function InquiryForm({ studio, onClose, onSuccess }) {
 
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           {/* Name + Email */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div className="inquiry-name-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <div className="field">
               <label>Your Name *</label>
               <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Alex Rivera" required />
@@ -671,7 +671,34 @@ function CraftCarousel({ crafts }) {
   const imageUrl = mediaUrl(c.image_url);
 
   return (
-    <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'var(--surface)' }}>
+    <>
+      {/* Mobile pill tabs — hidden on desktop via CSS */}
+      {crafts.length > 1 && (
+        <div className="craft-tab-pills">
+          {crafts.map((craft, i) => (
+            <button
+              key={i}
+              onClick={() => setActive(i)}
+              style={{
+                flexShrink: 0,
+                padding: '6px 14px', borderRadius: 100,
+                border: `1.5px solid ${active === i ? '#C46E49' : 'var(--border)'}`,
+                background: active === i ? 'rgba(196,110,73,0.08)' : 'transparent',
+                color: active === i ? '#C46E49' : 'var(--text3)',
+                fontFamily: 'var(--font-body)', fontSize: 12,
+                fontWeight: active === i ? 600 : 400,
+                cursor: 'pointer', whiteSpace: 'nowrap',
+                transition: 'all 0.15s',
+              }}
+            >
+              {craft.craft_name}
+              {craft.is_primary && <span style={{ marginLeft: 4, fontSize: 10, opacity: 0.7 }}>★</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="craft-carousel-wrap" style={{ display: 'flex', gap: 0, border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'var(--surface)' }}>
 
       {/* LEFT — large image + details */}
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -748,7 +775,7 @@ function CraftCarousel({ crafts }) {
 
       {/* RIGHT — vertical craft list */}
       {crafts.length > 1 && (
-        <div style={{
+        <div className="craft-sidebar" style={{
           width: 180, flexShrink: 0,
           borderLeft: '1px solid var(--border)',
           display: 'flex', flexDirection: 'column',
@@ -781,6 +808,7 @@ function CraftCarousel({ crafts }) {
         </div>
       )}
     </div>
+    </>
   );
 }
 
@@ -888,6 +916,16 @@ export default function StudioProfile() {
         @media (max-width: 900px) {
           .studio-layout { grid-template-columns: 1fr !important; }
           .studio-sidebar { position: static !important; }
+        }
+        .craft-tab-pills { display: none; }
+        @media (max-width: 640px) {
+          .craft-carousel-wrap { flex-direction: column !important; }
+          .craft-sidebar { display: none !important; }
+          .craft-tab-pills { display: flex !important; overflow-x: auto; gap: 8px; padding-bottom: 2px; scrollbar-width: none; margin-bottom: 12px; flex-wrap: nowrap; }
+          .craft-tab-pills::-webkit-scrollbar { display: none; }
+          .inquiry-modal { border-radius: 20px 20px 0 0 !important; padding: 20px 16px 28px !important; max-height: 85dvh; overflow-y: auto; }
+          .inquiry-name-grid { grid-template-columns: 1fr !important; }
+          .inquiry-modal-wrap { align-items: flex-end !important; padding: 0 !important; }
         }
       `}</style>
 

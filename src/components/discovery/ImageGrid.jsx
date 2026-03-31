@@ -55,17 +55,26 @@ export default function ImageGrid({ selected, onToggle }) {
           <span>Pick images that match your aesthetic direction</span>
         </div>
       )}
-      <div style={{
+      <div className="img-grid" style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
         gap: 10,
       }}>
+        <style>{`
+          @media (max-width: 600px) {
+            .img-grid { display: block !important; columns: 2; column-gap: 10px; }
+            .img-grid-item { break-inside: avoid; margin-bottom: 10px; }
+            .img-grid-item button { aspect-ratio: unset !important; }
+            .img-grid-item button img,
+            .img-grid-item button video { height: auto !important; object-fit: unset !important; }
+          }
+        `}</style>
         {images.map(img => {
           const isSelected = selected.includes(img.id);
           const isVideo = isVideoMime(img.mime_type) || isVideoUrl(img.image_url);
           return (
+            <div key={img.id} className="img-grid-item">
             <button
-              key={img.id}
               onClick={() => onToggle(img.id)}
               style={{
                 position: 'relative', aspectRatio: '3/4', overflow: 'hidden',
@@ -123,6 +132,7 @@ export default function ImageGrid({ selected, onToggle }) {
                 </div>
               )}
             </button>
+            </div>
           );
         })}
       </div>

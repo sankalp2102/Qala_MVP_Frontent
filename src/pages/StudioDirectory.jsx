@@ -379,6 +379,9 @@ function FilterGroup({ label, options, pinned = [], activeValues, isAll, onAll, 
 
 // ─── Full filter bar ────────────────────────────────────────────────────────
 function FilterBar({ options, filters, setFilter, clearAll, totalVisible, hasAnyFilter }) {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const activeCount = filters.craft.length + filters.fabric.length + filters.productType.length;
+
   return (
     <>
       <style>{`
@@ -387,7 +390,9 @@ function FilterBar({ options, filters, setFilter, clearAll, totalVisible, hasAny
           to   { opacity: 1; transform: none; }
         }
       `}</style>
-      <nav style={{
+
+      {/* Desktop nav — hidden on mobile via CSS */}
+      <nav className="filter-bar-nav" style={{
         background: 'var(--bg)', borderBottom: '1px solid var(--border)',
         padding: '0 48px', position: 'sticky', top: 0, zIndex: 100,
         display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0,
@@ -443,6 +448,105 @@ function FilterBar({ options, filters, setFilter, clearAll, totalVisible, hasAny
           )}
         </div>
       </nav>
+
+      {/* Mobile filter bar — hidden on desktop via CSS */}
+      <div className="filter-mobile-bar" style={{
+        background: 'var(--bg)', borderBottom: '1px solid var(--border)',
+        padding: '10px 16px', position: 'sticky', top: 0, zIndex: 100,
+        alignItems: 'center', gap: 10,
+      }}>
+        <button
+          onClick={() => setDrawerOpen(true)}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '8px 16px', borderRadius: 100,
+            border: `1.5px solid ${activeCount > 0 ? '#1A1612' : 'rgba(26,22,18,0.22)'}`,
+            background: activeCount > 0 ? '#1A1612' : 'rgba(255,255,255,0.7)',
+            color: activeCount > 0 ? '#F5F0E8' : 'var(--text2)',
+            fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500,
+            cursor: 'pointer',
+          }}
+        >
+          ⊞ Filters{activeCount > 0 ? ` (${activeCount})` : ''}
+        </button>
+        {hasAnyFilter && (
+          <button onClick={clearAll} style={{
+            fontSize: 12, color: 'var(--gold)', background: 'none',
+            border: 'none', cursor: 'pointer',
+            fontFamily: 'var(--font-body)', padding: 0, textDecoration: 'underline',
+          }}>
+            Clear
+          </button>
+        )}
+      </div>
+
+      {/* Mobile filter drawer */}
+      {drawerOpen && (
+        <div
+          onClick={() => setDrawerOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            background: 'rgba(15,10,8,0.45)', backdropFilter: 'blur(4px)',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0,
+              background: 'var(--bg)', borderRadius: '20px 20px 0 0',
+              maxHeight: '80dvh', overflowY: 'auto',
+              animation: 'slideUp 0.25s cubic-bezier(0.4,0,0.2,1) both',
+              boxShadow: '0 -8px 40px rgba(0,0,0,0.15)',
+            }}
+          >
+            {/* Drawer header */}
+            <div style={{
+              position: 'sticky', top: 0, background: 'var(--bg)',
+              padding: '16px 20px 14px',
+              borderBottom: '1px solid var(--border)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)' }} />
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 500, color: 'var(--text)', marginTop: 8 }}>Filters</span>
+              <button onClick={() => setDrawerOpen(false)} style={{ background: 'none', border: 'none', fontSize: 20, color: 'var(--text3)', cursor: 'pointer', marginTop: 4 }}>✕</button>
+            </div>
+
+            {/* Filter groups */}
+            <div style={{ padding: '20px 20px 0' }}>
+              {[
+                { label: 'Craft',        key: 'craft',       opts: options.crafts },
+                { label: 'Fabric',       key: 'fabric',      opts: options.fabrics },
+                { label: 'Product type', key: 'productType', opts: options.productTypes },
+              ].map(({ label, key, opts }) => (
+                <div key={key} style={{ marginBottom: 24 }}>
+                  <div style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text3)', fontWeight: 600, marginBottom: 10 }}>{label}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    <Chip label="All" active={filters[key].length === 0} onClick={() => setFilter(key, '')} />
+                    {opts.map(opt => (
+                      <Chip key={opt} label={opt} active={filters[key].includes(opt)} onClick={() => setFilter(key, opt)} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Apply button */}
+            <div style={{ padding: '4px 20px 32px' }}>
+              <button
+                onClick={() => setDrawerOpen(false)}
+                style={{
+                  width: '100%', padding: '13px', borderRadius: 10,
+                  background: '#1A1612', color: '#F5F0E8', border: 'none',
+                  fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {activeCount > 0 ? `Show results · ${activeCount} filter${activeCount > 1 ? 's' : ''} active` : 'Show all studios'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -567,15 +671,22 @@ export default function StudioDirectory() {
           0%, 100% { opacity: 1 }
           50%       { opacity: 0.5 }
         }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(100%); }
+          to   { opacity: 1; transform: none; }
+        }
         @media (max-width: 767px) {
           .dir-grid { grid-template-columns: 1fr !important; }
           .dir-filter-zone { flex-direction: column; padding: 16px !important; }
           .dir-filter-group { border-right: none !important; border-bottom: 1px solid var(--border); padding-right: 0 !important; margin-right: 0 !important; padding-bottom: 14px; width: 100%; }
+          .filter-bar-nav { display: none !important; }
+          .filter-mobile-bar { display: flex !important; }
         }
         @media (min-width: 768px) and (max-width: 1023px) {
           .dir-grid { grid-template-columns: repeat(2, 1fr) !important; }
           .dir-filter-zone { padding: 0 24px !important; }
         }
+        .filter-mobile-bar { display: none; }
       `}</style>
 
       {/* ── HEADER ──────────────────────────────────────────────────────── */}

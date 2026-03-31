@@ -85,7 +85,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
   const blurb = rec.short_description || null;
 
   return (
-    <div style={{
+    <div className="rec-card" style={{
       background: 'var(--surface)',
       border: '1px solid var(--border)',
       borderRadius: 16,
@@ -99,6 +99,12 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border3)'; }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
     >
+      <style>{`
+        @media (max-width: 600px) {
+          .rec-card { height: auto !important; }
+          .rec-card-body { padding: 16px !important; }
+        }
+      `}</style>
       {/* position badge */}
       <div style={{
         position: 'absolute', top: 14, left: 14, zIndex: 2,
@@ -147,7 +153,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
       </div>
 
       {/* Card body */}
-      <div style={{ padding: '24px 28px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div className="rec-card-body" style={{ padding: '24px 28px', flex: 1, display: 'flex', flexDirection: 'column' }}>
 
         {/* Studio name + location + years */}
         <div style={{ marginBottom: 6 }}>

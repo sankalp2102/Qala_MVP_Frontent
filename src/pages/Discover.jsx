@@ -217,10 +217,19 @@ export default function Discover() {
         .option-card.sel div { color: #C46E49 !important; }
         .nav-btn:hover { background: rgba(196,110,73,0.06) !important; }
         .continue-btn:not(:disabled):hover { background: #C46E49 !important; }
+        @media (max-width: 600px) {
+          .discover-topbar { padding: 10px 16px !important; }
+          .qala-logo       { height: 18px !important; width: auto !important; }
+          .discover-dots   { gap: 4px !important; }
+          .discover-dot    { transform: scale(0.8); }
+          .discover-q      { font-size: 28px !important; }
+          .discover-scroll { padding: 20px 16px 24px !important; }
+          .discover-botnav { position: sticky; bottom: 0; z-index: 10; backdrop-filter: blur(8px); padding: 10px 16px !important; }
+        }
       `}</style>
 
       {/* ── Top bar ── */}
-      <div style={{
+      <div className="discover-topbar" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '16px 32px', borderBottom: '1px solid var(--border)',
         background: '#F8F5F1', zIndex: 20, flexShrink: 0,
@@ -236,9 +245,9 @@ export default function Discover() {
         </div>
 
         {/* Progress dots */}
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <div className="discover-dots" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           {Array.from({ length: TOTAL_STEPS }, (_, i) => (
-            <div key={i} style={{
+            <div key={i} className="discover-dot" style={{
               width:  i + 1 === step ? 20 : i + 1 < step ? 8 : 6,
               height: i + 1 === step ? 8  : i + 1 < step ? 8 : 6,
               borderRadius: i + 1 === step ? 4 : '50%',
@@ -256,7 +265,7 @@ export default function Discover() {
 
         {/* Scrollable question area */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
-          <div style={{
+          <div className="discover-scroll" style={{
             maxWidth: 860, margin: '0 auto',
             padding: 'clamp(32px, 5vw, 64px) clamp(20px, 4vw, 40px) 100px',
           }}>
@@ -273,7 +282,7 @@ export default function Discover() {
               </div>
 
               {/* Question heading */}
-              <h2 style={{
+              <h2 className="discover-q" style={{
                 fontFamily: 'var(--font-display)',
                 fontSize: 'clamp(44px, 5.5vw, 68px)',
                 fontWeight: 400, color: 'var(--text)', marginBottom: 10,
@@ -330,7 +339,7 @@ export default function Discover() {
         </div>
 
         {/* ── Bottom nav ── */}
-        <div style={{
+        <div className="discover-botnav" style={{
           flexShrink: 0, padding: '16px clamp(20px, 4vw, 40px)',
           borderTop: '1px solid var(--border)',
           background: 'rgba(248,245,241,0.97)',
