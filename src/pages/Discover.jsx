@@ -201,7 +201,7 @@ export default function Discover() {
 
   // ── layout ───────────────────────────────────────────────────────────────────
   return (
-    <div style={{ height: '100vh', background: '#F8F5F1', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="discover-root" style={{ height: '100vh', background: '#F8F5F1', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <style>{`
         @keyframes slideInFwd  { from{opacity:0;transform:translateX(40px)}  to{opacity:1;transform:none} }
         @keyframes slideInBack { from{opacity:0;transform:translateX(-40px)} to{opacity:1;transform:none} }
@@ -217,13 +217,16 @@ export default function Discover() {
         .nav-btn:hover { background: rgba(196,110,73,0.06) !important; }
         .continue-btn:not(:disabled):hover { background: #C46E49 !important; }
         @media (max-width: 600px) {
-          .discover-topbar { padding: 10px 16px !important; }
+          .discover-topbar { padding: 10px 16px !important; position: sticky !important; top: 0 !important; z-index: 20 !important; }
           .qala-logo       { height: 18px !important; width: auto !important; }
           .discover-dots   { gap: 4px !important; }
           .discover-dot    { transform: scale(0.8); }
           .discover-q      { font-size: 28px !important; }
           .discover-scroll { padding: 20px 16px 24px !important; }
-          .discover-botnav { position: sticky; bottom: 0; z-index: 10; backdrop-filter: blur(8px); padding: 10px 16px !important; }
+          .discover-botnav { position: sticky !important; bottom: 0 !important; z-index: 10 !important; backdrop-filter: blur(8px); padding: 10px 16px !important; }
+          .discover-root   { height: auto !important; overflow: visible !important; }
+          .discover-inner  { overflow: visible !important; flex: unset !important; }
+          .discover-scroll-area { overflow-y: visible !important; flex: unset !important; }
         }
       `}</style>
 
@@ -260,10 +263,10 @@ export default function Discover() {
       </div>
 
       {/* ── Full-width content ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="discover-inner" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {/* Scrollable question area */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div className="discover-scroll-area" style={{ flex: 1, overflowY: 'auto' }}>
           <div className="discover-scroll" style={{
             maxWidth: 860, margin: '0 auto',
             padding: 'clamp(32px, 5vw, 64px) clamp(20px, 4vw, 40px) 100px',

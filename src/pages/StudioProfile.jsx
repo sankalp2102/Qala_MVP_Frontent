@@ -692,7 +692,6 @@ function CraftCarousel({ crafts }) {
               }}
             >
               {craft.craft_name}
-              {craft.is_primary && <span style={{ marginLeft: 4, fontSize: 10, opacity: 0.7 }}>★</span>}
             </button>
           ))}
         </div>

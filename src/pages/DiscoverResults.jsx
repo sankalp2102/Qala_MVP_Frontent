@@ -203,7 +203,7 @@ function DatePicker({ selectedDates, setSelectedDates }) {
 function InquiryForm({ name, setName, email, setEmail, selectedDates, setSelectedDates, message, setMessage, error, submitting, onSubmit, onCancel }) {
   return (
     <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeUp 0.3s ease both', textAlign: 'left' }}>
-      <div style={{ display: 'flex', gap: 12 }}>
+      <div className="inquiry-name-grid" style={{ display: 'flex', gap: 12 }}>
         <div className="field" style={{ flex: 1 }}>
           <label>First name</label>
           <input type="text" placeholder="Your name" value={name} onChange={e => setName(e.target.value)} required />
@@ -505,11 +505,17 @@ export default function DiscoverResults() {
           .results-modal-wrap { align-items: flex-end !important; padding: 0 !important; }
           .results-modal-inner { border-radius: 16px 16px 0 0 !important; max-height: 85dvh; overflow-y: auto; }
           .inquiry-bottom-wrap { padding: 16px !important; }
+          .results-header { grid-template-columns: auto 1fr !important; }
+          .results-header-center { justify-content: flex-end !important; text-align: right; }
+          .inquiry-name-grid { flex-direction: column !important; }
+          .rec-carousel-wrap { height: auto !important; }
+          .rec-carousel-scroll { overflow-x: auto; overflow-y: visible !important; height: auto !important; align-items: flex-start !important; padding-bottom: 32px !important; }
+          .rec-card-item { min-width: clamp(300px, 88vw, 480px) !important; max-width: clamp(300px, 88vw, 480px) !important; flex: 0 0 clamp(300px, 88vw, 480px) !important; }
         }
       `}</style>
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div style={{
+      <div className="results-header" style={{
         display: 'grid',
         gridTemplateColumns: '1fr auto 1fr',
         alignItems: 'center',
@@ -533,7 +539,7 @@ export default function DiscoverResults() {
         </div>
 
         {/* Center — search pill + pencil */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, justifyContent: 'center' }}>
+        <div className="results-header-center" style={{ display: 'flex', alignItems: 'center', gap: 7, justifyContent: 'center' }}>
           {summary.display ? (
             <>
               <span style={{
@@ -806,7 +812,7 @@ export default function DiscoverResults() {
 
         {/* ── Carousel ────────────────────────────────────────────────── */}
         {recs.length > 0 && (
-          <div className="fade-in" style={{
+          <div className="rec-carousel-wrap fade-in" style={{
             height: 'calc(100vh - 140px)',
             position: 'relative',
             display: 'flex',
@@ -828,7 +834,7 @@ export default function DiscoverResults() {
             {/* Cards scroll container */}
             <div
               ref={carouselRef}
-              className="carousel-scroll"
+              className="carousel-scroll rec-carousel-scroll"
               style={{
                 display: 'flex',
                 gap: 'clamp(40px, 14vw, 200px)',
@@ -843,7 +849,7 @@ export default function DiscoverResults() {
               }}
             >
               {recs.map((rec, i) => (
-                <div key={rec.studio_id || i} style={{
+                <div key={rec.studio_id || i} className="rec-card-item" style={{
                   minWidth: 'clamp(320px, 64vw, 920px)',
                   maxWidth: 'clamp(320px, 64vw, 920px)',
                   flex: '0 0 clamp(320px, 64vw, 920px)',
