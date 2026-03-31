@@ -69,7 +69,7 @@ export default function ImageGrid({ selected, onToggle }) {
             .img-grid-item button video { height: auto !important; object-fit: unset !important; }
           }
         `}</style>
-        {images.map(img => {
+        {images.filter(img => !isVideoMime(img.mime_type) && !isVideoUrl(img.image_url)).map(img => {
           const isSelected = selected.includes(img.id);
           const isVideo = isVideoMime(img.mime_type) || isVideoUrl(img.image_url);
           return (

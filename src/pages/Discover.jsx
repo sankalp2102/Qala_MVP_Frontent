@@ -68,7 +68,6 @@ const STEPS = [
   },
   {
     q:    "What would you like to make?",
-    sub:  "Select all that apply — you can choose more than one.",
     hint: "Different products need different skills and materials. Being specific here helps us find the best studio match.",
   },
   {
@@ -417,11 +416,9 @@ function StepBody({ step, answers, set }) {
       ? answers.crafts.filter(v => v !== val)
       : [...answers.crafts, val];
     set('crafts', next);
-    if (next.length > 0) {
+    if (next.length > 0 || answers.craft_is_flexible) {
       set('craft_interest', 'yes');
       set('craft_not_sure', false);
-    } else if (answers.craft_is_flexible) {
-      set('craft_interest', 'yes');
     } else {
       set('craft_interest', null);
     }
@@ -513,7 +510,6 @@ function StepBody({ step, answers, set }) {
         const next = !flexibleActive;
         set('craft_is_flexible', next);
         if (next) {
-          set('crafts', []);
           set('craft_interest', 'yes');
           set('craft_not_sure', false);
         } else {
