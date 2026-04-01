@@ -112,7 +112,7 @@ function StudioCard({ studio, onClick }) {
           <img
             src={imageUrl}
             alt={studio.studio_name}
-            loading='lazy'
+            loading='eager'
             onError={e => {
               if (imageFallback && e.target.src !== imageFallback) {
                 e.target.src = imageFallback;

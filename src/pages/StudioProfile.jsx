@@ -229,7 +229,7 @@ function Gallery({ images }) {
                   </div>
                 </>
               ) : (
-                <img src={mediaUrl(img.url)} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.4s ease' }}
+                <img src={mediaUrl(img.url)} alt="" loading="eager" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.4s ease' }}
                   onMouseEnter={e => e.target.style.transform = 'scale(1.06)'}
                   onMouseLeave={e => e.target.style.transform = 'scale(1)'}
                 />
@@ -709,7 +709,7 @@ function CraftCarousel({ crafts }) {
               key={imageUrl}
               src={imageUrl}
               alt={c.craft_name}
-              loading="lazy"
+              loading="eager"
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'opacity 0.3s ease' }}
             />
           ) : (
@@ -1151,8 +1151,7 @@ export default function StudioProfile() {
                           </>
                         ) : (
                           <img
-                            src={mediaUrl(img.url)} alt="" loading="lazy"
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                            src={mediaUrl(img.url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                             onError={mediaOnError(img.url)}
                           />
                         )}
@@ -1179,7 +1178,6 @@ export default function StudioProfile() {
                       <img
                         src={mediaUrl(s.coordinator.image_url)}
                         alt={s.coordinator.name}
-                        loading="lazy"
                         style={{
                           width: 88, height: 88, borderRadius: '50%',
                           objectFit: 'cover', display: 'block',
