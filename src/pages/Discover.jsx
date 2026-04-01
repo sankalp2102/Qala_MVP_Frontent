@@ -100,18 +100,34 @@ export default function Discover() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState('');
 
-  // Option 8 — prefetch images immediately on mount so ImageGrid gets data instantly
+  // Option 8 — use sessionStorage cache if Landing preloaded, else fetch
   const [prefetchedImages,  setPrefetchedImages]  = useState(null);
   const [prefetchLoading,   setPrefetchLoading]   = useState(true);
 
   useEffect(() => {
+    const CACHE_KEY = 'qala_img_cache_v1';
+
+    // Try sessionStorage first — Landing may have already fetched + shuffled
+    try {
+      const cached = sessionStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const imgs = JSON.parse(cached);
+        setPrefetchedImages(imgs);
+        setPrefetchLoading(false);
+        return; // images already in browser cache — skip API call entirely
+      }
+    } catch {}
+
+    // No cache — fetch, shuffle, store for next time
     discoveryAPI.getImages()
       .then(r => {
-        const imgs = (r.data.images || []).filter(
+        const all = (r.data.images || []).filter(
           img => !(img.mime_type?.startsWith('video/') ||
                    /\.(mp4|mov|avi|webm|mkv)$/i.test(img.image_url || ''))
         );
-        setPrefetchedImages(imgs);
+        const shuffled = [...all].sort(() => Math.random() - 0.5);
+        try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(shuffled)); } catch {}
+        setPrefetchedImages(shuffled);
       })
       .catch(() => setPrefetchedImages([]))
       .finally(() => setPrefetchLoading(false));

@@ -68,6 +68,33 @@ export default function Landing() {
     const tok = discoveryAPI.getStoredSession();
     if (tok) setHasSession(true);
     setTimeout(() => setVisible(true), 80);
+
+    // Silently preload Q1 images in background so they're cached before user gets there
+    const CACHE_KEY = 'qala_img_cache_v1';
+    try {
+      const existing = sessionStorage.getItem(CACHE_KEY);
+      if (existing) return; // already cached this session — skip
+    } catch {}
+
+    discoveryAPI.getImages()
+      .then(r => {
+        const all = (r.data.images || []).filter(
+          img => !(img.mime_type?.startsWith('video/') ||
+                   /\.(mp4|mov|avi|webm|mkv)$/i.test(img.image_url || ''))
+        );
+        // Shuffle once per session for random feel
+        const shuffled = [...all].sort(() => Math.random() - 0.5);
+        try {
+          sessionStorage.setItem(CACHE_KEY, JSON.stringify(shuffled));
+        } catch {}
+        // Preload first 20 images silently into browser cache
+        shuffled.slice(0, 20).forEach(img => {
+          if (!img.image_url) return;
+          const image = new window.Image();
+          image.src = img.image_url;
+        });
+      })
+      .catch(() => {});
   }, [user]);
 
   const S = {
