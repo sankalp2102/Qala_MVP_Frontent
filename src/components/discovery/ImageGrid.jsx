@@ -1,33 +1,173 @@
-import { useState, useEffect } from 'react';
-import { discoveryAPI } from '../../api/client';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
-function isVideoMime(mime) {
-  return mime && mime.startsWith('video/');
+const PAGE_SIZE    = 20;   // images per batch
+const EAGER_COUNT  = 20;   // all first batch loaded with high priority
+
+// Silently preload images into browser cache using Image() object
+// so they appear instantly when user scrolls to them
+function preloadImages(images) {
+  images.forEach(img => {
+    if (!img.image_url) return;
+    const image = new window.Image();
+    image.src = img.image_url;
+  });
 }
 
-function isVideoUrl(url) {
-  return url && /\.(mp4|mov|avi|webm|mkv)$/i.test(url);
+// ── Skeleton card (Option 5) ─────────────────────────────────────────────────
+function SkeletonCard() {
+  return (
+    <div style={{
+      aspectRatio: '3/4',
+      borderRadius: 10,
+      overflow: 'hidden',
+      background: 'linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%)',
+      backgroundSize: '200% 100%',
+      animation: 'imgGridShimmer 1.4s infinite',
+    }} />
+  );
 }
 
-export default function ImageGrid({ selected, onToggle }) {
-  const [images, setImages] = useState([]);
-  const [loading, setLoading] = useState(true);
+// ── Single image card (Options 4, 6, 7, 9) ──────────────────────────────────
+function ImageCard({ img, index, isSelected, onToggle, batchOffset }) {
+  const [loaded, setLoaded] = useState(false);
+  const globalIndex = batchOffset + index;
+  const isEager     = globalIndex < EAGER_COUNT;
 
-  useEffect(() => {
-    discoveryAPI.getImages()
-      .then(r => setImages(r.data.images || []))
-      .catch(() => setImages([]))
-      .finally(() => setLoading(false));
-  }, []);
+  // Stagger delay only for first batch first 12 (Option 7)
+  const staggerDelay = batchOffset === 0 && index < EAGER_COUNT
+    ? `${index * 50}ms`
+    : '0ms';
 
-  if (loading) return (
-    <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text3)', fontSize: 13 }}>
-      <span className="spinner" style={{ width: 24, height: 24 }} />
-      <div style={{ marginTop: 12 }}>Loading studio images…</div>
+  return (
+    <div className="img-grid-item">
+      <button
+        onClick={() => onToggle(img.id)}
+        style={{
+          position: 'relative', aspectRatio: '3/4', overflow: 'hidden',
+          borderRadius: 10,
+          border: `2px solid ${isSelected ? 'rgba(255,255,255,0.8)' : 'transparent'}`,
+          cursor: 'pointer', padding: 0, background: 'var(--surface2)',
+          transition: 'border-color 0.15s, transform 0.15s',
+          transform: isSelected ? 'scale(0.97)' : 'scale(1)',
+          display: 'block', width: '100%',
+        }}
+      >
+        {/* Skeleton visible until image fully loaded (Options 5 + 9) */}
+        {!loaded && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%)',
+            backgroundSize: '200% 100%',
+            animation: 'imgGridShimmer 1.4s infinite',
+            borderRadius: 8,
+          }} />
+        )}
+
+        {/* Image hidden until fully loaded then fades in sharp (Options 6 + 9) */}
+        <img
+          src={img.image_url}
+          alt={img.caption || img.studio_name}
+          loading={isEager ? 'eager' : 'lazy'}
+          fetchpriority={isEager ? 'high' : 'auto'}
+          onLoad={() => setLoaded(true)}
+          style={{
+            width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+            opacity: loaded ? 1 : 0,
+            transition: loaded ? `opacity 0.4s ease ${staggerDelay}` : 'none',
+          }}
+        />
+
+        {/* Selected overlay */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: isSelected ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0)',
+          transition: 'background 0.15s',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          pointerEvents: 'none',
+        }}>
+          {isSelected && (
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%',
+              background: '#fff', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontSize: 14,
+            }}>✓</div>
+          )}
+        </div>
+      </button>
     </div>
   );
+}
 
-  if (!images.length) return (
+// ── Main ImageGrid ────────────────────────────────────────────────────────────
+export default function ImageGrid({ selected, onToggle, prefetchedImages, prefetchLoading }) {
+  const [page,    setPage]    = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const sentinelRef           = useRef(null);
+
+  const allImages     = prefetchedImages || [];
+  const loading       = prefetchLoading !== undefined ? prefetchLoading : false;
+  const visibleImages = allImages.slice(0, page * PAGE_SIZE);
+
+  useEffect(() => {
+    setHasMore(visibleImages.length < allImages.length);
+  }, [visibleImages.length, allImages.length]);
+
+  // Silently preload the NEXT batch into browser cache
+  // so when user scrolls they appear instantly without skeleton wait
+  useEffect(() => {
+    if (!allImages.length) return;
+    const nextStart = page * PAGE_SIZE;
+    const nextBatch = allImages.slice(nextStart, nextStart + PAGE_SIZE);
+    if (nextBatch.length > 0) {
+      // Small delay so current batch renders first
+      const timer = setTimeout(() => preloadImages(nextBatch), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [page, allImages]);
+
+  // Infinite scroll — IntersectionObserver (Option 2)
+  const loadMore = useCallback(() => {
+    if (hasMore) setPage(p => p + 1);
+  }, [hasMore]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      entries => { if (entries[0].isIntersecting) loadMore(); },
+      { rootMargin: '600px' }  // trigger 600px before sentinel is visible
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loadMore]);
+
+  // Skeleton grid while loading (Option 5)
+  if (loading) return (
+    <>
+      <style>{`
+        @keyframes imgGridShimmer {
+          0%   { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        @media (max-width: 600px) {
+          .img-grid { display: block !important; columns: 2; column-gap: 10px; }
+          .img-grid-item { break-inside: avoid; margin-bottom: 10px; }
+          .img-grid-item button { aspect-ratio: unset !important; }
+        }
+      `}</style>
+      <div className="img-grid" style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+        gap: 10,
+      }}>
+        {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+          <div key={i} className="img-grid-item"><SkeletonCard /></div>
+        ))}
+      </div>
+    </>
+  );
+
+  if (!allImages.length) return (
     <div style={{
       textAlign: 'center', padding: '60px 0',
       color: 'var(--text3)', fontSize: 13,
@@ -40,7 +180,19 @@ export default function ImageGrid({ selected, onToggle }) {
   );
 
   return (
-    <div>
+    <>
+      <style>{`
+        @keyframes imgGridShimmer {
+          0%   { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        @media (max-width: 600px) {
+          .img-grid { display: block !important; columns: 2; column-gap: 10px; }
+          .img-grid-item { break-inside: avoid; margin-bottom: 10px; }
+          .img-grid-item button { aspect-ratio: unset !important; }
+        }
+      `}</style>
+
       {selected.length > 0 && (
         <div style={{
           marginBottom: 16, fontSize: 12, color: 'var(--text3)',
@@ -55,87 +207,31 @@ export default function ImageGrid({ selected, onToggle }) {
           <span>Pick images that match your aesthetic direction</span>
         </div>
       )}
+
       <div className="img-grid" style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
         gap: 10,
       }}>
-        <style>{`
-          @media (max-width: 600px) {
-            .img-grid { display: block !important; columns: 2; column-gap: 10px; }
-            .img-grid-item { break-inside: avoid; margin-bottom: 10px; }
-            .img-grid-item button { aspect-ratio: unset !important; }
-            .img-grid-item button img,
-            .img-grid-item button video { height: auto !important; object-fit: unset !important; }
-          }
-        `}</style>
-        {images.filter(img => !isVideoMime(img.mime_type) && !isVideoUrl(img.image_url)).map(img => {
-          const isSelected = selected.includes(img.id);
-          const isVideo = isVideoMime(img.mime_type) || isVideoUrl(img.image_url);
-          return (
-            <div key={img.id} className="img-grid-item">
-            <button
-              onClick={() => onToggle(img.id)}
-              style={{
-                position: 'relative', aspectRatio: '3/4', overflow: 'hidden',
-                borderRadius: 10, border: `2px solid ${isSelected ? 'rgba(255,255,255,0.8)' : 'transparent'}`,
-                cursor: 'pointer', padding: 0, background: 'var(--surface2)',
-                transition: 'border-color 0.15s, transform 0.15s',
-                transform: isSelected ? 'scale(0.97)' : 'scale(1)',
-              }}
-            >
-              {isVideo ? (
-                <video
-                  src={img.image_url}
-                  muted playsInline preload="metadata"
-                  loop
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                  onMouseEnter={e => e.target.play().catch(() => {})}
-                  onMouseLeave={e => { e.target.pause(); e.target.currentTime = 0; }}
-                />
-              ) : (
-                <img
-                  src={img.image_url}
-                  alt={img.caption || img.studio_name}
-                  loading="lazy"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                />
-              )}
+        {visibleImages.map((img, index) => (
+          <ImageCard
+            key={img.id}
+            img={img}
+            index={index % PAGE_SIZE}
+            batchOffset={Math.floor(index / PAGE_SIZE) * PAGE_SIZE}
+            isSelected={selected.includes(img.id)}
+            onToggle={onToggle}
+          />
+        ))}
 
-              {/* Hover / selected overlay */}
-              <div style={{
-                position: 'absolute', inset: 0,
-                background: isSelected ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0)',
-                transition: 'background 0.15s',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                pointerEvents: 'none',
-              }}>
-                {isSelected && (
-                  <div style={{
-                    width: 28, height: 28, borderRadius: '50%',
-                    background: '#fff', display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', fontSize: 14,
-                  }}>✓</div>
-                )}
-              </div>
-
-              {/* Small video indicator */}
-              {isVideo && !isSelected && (
-                <div style={{
-                  position: 'absolute', bottom: 6, right: 6,
-                  width: 20, height: 20, borderRadius: '50%',
-                  background: 'rgba(0,0,0,0.5)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  pointerEvents: 'none',
-                }}>
-                  <span style={{ fontSize: 8, color: '#fff', marginLeft: 1 }}>▶</span>
-                </div>
-              )}
-            </button>
-            </div>
-          );
-        })}
+        {/* Skeleton placeholders at bottom while more loading */}
+        {hasMore && Array.from({ length: 4 }).map((_, i) => (
+          <div key={`sk-${i}`} className="img-grid-item"><SkeletonCard /></div>
+        ))}
       </div>
-    </div>
+
+      {/* Sentinel triggers next batch on scroll (Option 2) */}
+      <div ref={sentinelRef} style={{ height: 1 }} />
+    </>
   );
 }

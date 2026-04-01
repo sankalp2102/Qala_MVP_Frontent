@@ -100,6 +100,23 @@ export default function Discover() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState('');
 
+  // Option 8 — prefetch images immediately on mount so ImageGrid gets data instantly
+  const [prefetchedImages,  setPrefetchedImages]  = useState(null);
+  const [prefetchLoading,   setPrefetchLoading]   = useState(true);
+
+  useEffect(() => {
+    discoveryAPI.getImages()
+      .then(r => {
+        const imgs = (r.data.images || []).filter(
+          img => !(img.mime_type?.startsWith('video/') ||
+                   /\.(mp4|mov|avi|webm|mkv)$/i.test(img.image_url || ''))
+        );
+        setPrefetchedImages(imgs);
+      })
+      .catch(() => setPrefetchedImages([]))
+      .finally(() => setPrefetchLoading(false));
+  }, []);
+
   const [answers, setAnswers] = useState({
     visual_selection_ids: [],
     product_types:        [],
@@ -324,7 +341,7 @@ export default function Discover() {
                 </div>
               )}
 
-              <StepBody step={step} answers={answers} set={set} />
+              <StepBody step={step} answers={answers} set={set} prefetchedImages={prefetchedImages} prefetchLoading={prefetchLoading} />
 
               {error && (
                 <div style={{
@@ -407,7 +424,7 @@ export default function Discover() {
 }
 
 // ── individual step renderers ─────────────────────────────────────────────────
-function StepBody({ step, answers, set }) {
+function StepBody({ step, answers, set, prefetchedImages, prefetchLoading }) {
   const toggle = (key, val) =>
     set(key, answers[key].includes(val)
       ? answers[key].filter(v => v !== val)
@@ -435,6 +452,8 @@ function StepBody({ step, answers, set }) {
           <ImageGrid
             selected={answers.visual_selection_ids}
             onToggle={id => toggle('visual_selection_ids', id)}
+            prefetchedImages={prefetchedImages}
+            prefetchLoading={prefetchLoading}
           />
         </div>
       );
