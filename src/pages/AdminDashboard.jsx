@@ -287,8 +287,19 @@ function ProfileReview() {
   const { pid: urlPid } = useParams();
 
   const loadOnboarding = p => {
+    const pid = p.profile_id || p.id;
     setOnboarding(null);
-    adminAPI.getOnboarding(p.profile_id||p.id).then(r=>setOnboarding(r.data)).catch(()=>{});
+    setPublishOverrides({});
+    // Load onboarding data and visibility overrides in parallel
+    Promise.all([
+      adminAPI.getOnboarding(pid),
+      adminAPI.getVisibilityOverrides(pid),
+    ]).then(([onboardingRes, overridesRes]) => {
+      setOnboarding(onboardingRes.data);
+      setPublishOverrides(overridesRes.data || {});
+    }).catch(() => {
+      adminAPI.getOnboarding(pid).then(r => setOnboarding(r.data)).catch(() => {});
+    });
   };
 
   useEffect(() => {
@@ -305,7 +316,6 @@ function ProfileReview() {
 
   const selectProfile = p => {
     setSelected(p); loadOnboarding(p); setShowFlag(false); setVerifyConfirm(false);
-    setPublishOverrides({});
   };
 
   const toggleVerified = async () => {
@@ -483,6 +493,79 @@ function ProfileReview() {
         ) : (
           Object.entries(data).map(([k,v]) => <DataRow key={k} k={k} v={v} />)
         )}
+      </div>
+    );
+  };
+
+  // ── USPBlock — Section A.6 Studio Strengths ──
+  const USPBlock = ({ usps }) => {
+    if (!usps?.length) return null;
+    return (
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontFamily:'var(--font-display)', fontSize:15, fontWeight:600, color:'var(--text2)', marginBottom:10, textTransform:'uppercase', letterSpacing:'0.06em', fontSize:11 }}>
+          Studio Strengths (USPs)
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+          {usps.map((u, i) => (
+            <div key={u.id || i} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'8px 12px', background:'var(--surface2)', borderRadius:7, border:'1px solid var(--border)' }}>
+              <span style={{ fontSize:11, fontWeight:700, color:'var(--gold)', minWidth:18 }}>{i + 1}.</span>
+              <span style={{ fontSize:13, color:'var(--text2)', lineHeight:1.5 }}>{u.strength}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // ── BuyerRequirementsBlock — Section D.4 Pre-Call Questions ──
+  const BuyerRequirementsBlock = ({ requirements }) => {
+    if (!requirements?.length) return null;
+    return (
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontFamily:'var(--font-display)', fontSize:11, fontWeight:600, color:'var(--text2)', marginBottom:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>
+          Pre-Call Questions for Buyers
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+          {requirements.map((r, i) => (
+            <div key={r.id || i} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'8px 12px', background:'var(--surface2)', borderRadius:7, border:'1px solid var(--border)' }}>
+              <span style={{ fontSize:11, fontWeight:700, color:'var(--teal)', minWidth:18 }}>Q{i + 1}</span>
+              <span style={{ fontSize:13, color:'var(--text2)', lineHeight:1.5 }}>{r.question}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // ── BuyerCoordinatorBlock — Section D.5 Buyer Coordinator ──
+  const BuyerCoordinatorBlock = ({ coordinator }) => {
+    if (!coordinator) return null;
+    const imgSrc = coordinator.image ? mediaUrl(coordinator.image) : null;
+    return (
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontFamily:'var(--font-display)', fontSize:11, fontWeight:600, color:'var(--text2)', marginBottom:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>
+          Buyer Coordinator
+        </div>
+        <div style={{ display:'flex', alignItems:'flex-start', gap:14, padding:'12px 14px', background:'var(--surface2)', borderRadius:8, border:'1px solid var(--border)' }}>
+          {imgSrc && (
+            <img
+              src={imgSrc}
+              alt={coordinator.name}
+              style={{ width:52, height:52, borderRadius:'50%', objectFit:'cover', flexShrink:0, border:'1px solid var(--border)' }}
+              onError={e => { e.target.style.display='none'; }}
+            />
+          )}
+          {!imgSrc && (
+            <div style={{ width:52, height:52, borderRadius:'50%', background:'var(--surface3)', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, color:'var(--text4)' }}>
+              👤
+            </div>
+          )}
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontWeight:600, fontSize:14, color:'var(--text)', marginBottom:2 }}>{coordinator.name}</div>
+            {coordinator.position && <div style={{ fontSize:12, color:'var(--gold)', marginBottom:6 }}>{coordinator.position}</div>}
+            {coordinator.writeup && <div style={{ fontSize:12, color:'var(--text3)', lineHeight:1.6 }}>{coordinator.writeup}</div>}
+          </div>
+        </div>
       </div>
     );
   };
@@ -1032,6 +1115,7 @@ function ProfileReview() {
           <div className="card fade-up">
 
             <Block title="Section A — Studio Details" data={onboarding.studio_details} model="studio_details" profileId={pid} onSaved={() => loadOnboarding(selected)} />
+            <USPBlock usps={onboarding.studio_details?.usps} />
             <MediaViewer files={onboarding.studio_details?.media_files} title="Studio Media (Hero / Work Samples)" mediaType="studio" profileId={pid} onDeleted={() => loadOnboarding(selected)} togglePublish={togglePublish} itemPublished={itemPublished} />
 
             <hr style={{ border:'none', borderTop:'1px solid var(--border)', margin:'4px 0 20px' }} />
@@ -1048,6 +1132,8 @@ function ProfileReview() {
 
             <hr style={{ border:'none', borderTop:'1px solid var(--border)', margin:'4px 0 20px' }} />
             <Block title="Section D — Collaboration" data={onboarding.collab_design} model="collab_design" profileId={pid} onSaved={() => loadOnboarding(selected)} />
+            <BuyerRequirementsBlock requirements={onboarding.collab_design?.buyer_requirements} />
+            <BuyerCoordinatorBlock coordinator={onboarding.collab_design?.buyer_coordinator} />
 
             <hr style={{ border:'none', borderTop:'1px solid var(--border)', margin:'4px 0 20px' }} />
             <Block title="Section E — Production Scale" data={onboarding.production_scale} model="production_scale" profileId={pid} onSaved={() => loadOnboarding(selected)} />
