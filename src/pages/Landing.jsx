@@ -72,30 +72,68 @@ export default function Landing() {
     if (tok) setHasSession(true);
     setTimeout(() => setVisible(true), 80);
 
-    // Silently preload Q1 images in background so they're cached before user gets there
-    const CACHE_KEY = 'qala_img_cache_v1';
+    // ── Image preload ──────────────────────────────────────────────────────
+    // Strategy: fetch all image URLs, save to sessionStorage, then run a
+    // waterfall preload with CONCURRENCY parallel slots. Each slot loads one
+    // image at a time; when it finishes it immediately picks up the next URL.
+    // This keeps the network busy continuously and ensures images are in
+    // browser HTTP cache before the user reaches Q1.
+    //
+    // window.__qala_preload_progress tracks how many are done so ImageGrid
+    // can tell which images are already cached vs still loading.
+    const CACHE_KEY   = 'qala_img_cache_v1';
+    const CONCURRENCY = 5;  // parallel download slots
+
+    const runWaterfall = (urls, startIndex) => {
+      // If another waterfall is already running from a previous call, stop
+      if (window.__qala_preload_active && startIndex === 0) return;
+      window.__qala_preload_active = true;
+      window.__qala_preload_total  = urls.length;
+      if (!window.__qala_preload_done) window.__qala_preload_done = 0;
+
+      let nextIndex = startIndex;
+
+      const loadOne = () => {
+        if (nextIndex >= urls.length) return;
+        const url   = urls[nextIndex];
+        nextIndex  += 1;
+        const img   = new window.Image();
+        img.onload  = () => { window.__qala_preload_done += 1; loadOne(); };
+        img.onerror = () => { window.__qala_preload_done += 1; loadOne(); };
+        img.src     = url;
+      };
+
+      // Spin up CONCURRENCY parallel slots
+      const slots = Math.min(CONCURRENCY, urls.length - startIndex);
+      for (let i = 0; i < slots; i++) loadOne();
+    };
+
+    // Check if sessionStorage already has the image list
     try {
       const existing = sessionStorage.getItem(CACHE_KEY);
-      if (existing) return; // already cached this session — skip
+      if (existing) {
+        const imgs = JSON.parse(existing);
+        const urls = imgs.map(img => img.image_url).filter(Boolean);
+        const done = window.__qala_preload_done || 0;
+        // Resume waterfall from wherever it left off (handles the 2–3 sec case)
+        if (done < urls.length) runWaterfall(urls, done);
+        return;
+      }
     } catch {}
 
+    // No cache yet — fetch, shuffle, store, then start waterfall
     discoveryAPI.getImages()
       .then(r => {
         const all = (r.data.images || []).filter(
           img => !(img.mime_type?.startsWith('video/') ||
                    /\.(mp4|mov|avi|webm|mkv)$/i.test(img.image_url || ''))
         );
-        // Shuffle once per session for random feel
         const shuffled = [...all].sort(() => Math.random() - 0.5);
-        try {
-          sessionStorage.setItem(CACHE_KEY, JSON.stringify(shuffled));
-        } catch {}
-        // Preload first 20 images silently into browser cache
-        shuffled.slice(0, 20).forEach(img => {
-          if (!img.image_url) return;
-          const image = new window.Image();
-          image.src = img.image_url;
-        });
+        try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(shuffled)); } catch {}
+
+        const urls = shuffled.map(img => img.image_url).filter(Boolean);
+        window.__qala_preload_done = 0;
+        runWaterfall(urls, 0);
       })
       .catch(() => {});
   }, [user]);

@@ -1,25 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-const PAGE_SIZE    = 20;   // images per batch
-const EAGER_COUNT  = 20;   // all first batch loaded with high priority
+const BATCH_SIZE   = 20;  // images added to DOM per batch
+const REVEAL_AT    = 15;  // add next batch when this many in current batch have loaded
+const SCROLL_AHEAD = 400; // px before sentinel — fallback for fast scrollers
 
-// Silently preload images into browser cache using Image() object
-// so they appear instantly when user scrolls to them
-function preloadImages(images) {
-  images.forEach(img => {
-    if (!img.image_url) return;
-    const image = new window.Image();
-    image.src = img.image_url;
-  });
-}
-
-// ── Skeleton card (Option 5) ─────────────────────────────────────────────────
+// ── Skeleton card ─────────────────────────────────────────────────────────────
 function SkeletonCard() {
   return (
     <div style={{
-      aspectRatio: '3/4',
-      borderRadius: 10,
-      overflow: 'hidden',
+      aspectRatio: '3/4', borderRadius: 10, overflow: 'hidden',
       background: 'linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%)',
       backgroundSize: '200% 100%',
       animation: 'imgGridShimmer 1.4s infinite',
@@ -27,16 +16,18 @@ function SkeletonCard() {
   );
 }
 
-// ── Single image card (Options 4, 6, 7, 9) ──────────────────────────────────
-function ImageCard({ img, index, isSelected, onToggle, batchOffset }) {
+// ── Single image card ─────────────────────────────────────────────────────────
+// onLoad is passed in so the parent can count loaded images per batch
+function ImageCard({ img, index, isSelected, onToggle, onLoad, isFirstBatch }) {
   const [loaded, setLoaded] = useState(false);
-  const globalIndex = batchOffset + index;
-  const isEager     = globalIndex < EAGER_COUNT;
 
-  // Stagger delay only for first batch first 12 (Option 7)
-  const staggerDelay = batchOffset === 0 && index < EAGER_COUNT
-    ? `${index * 50}ms`
-    : '0ms';
+  const handleLoad = () => {
+    setLoaded(true);
+    onLoad();
+  };
+
+  // Stagger only for first batch — gives intentional "filling in" feel
+  const staggerDelay = isFirstBatch ? `${(index % BATCH_SIZE) * 40}ms` : '0ms';
 
   return (
     <div className="img-grid-item">
@@ -52,7 +43,7 @@ function ImageCard({ img, index, isSelected, onToggle, batchOffset }) {
           display: 'block', width: '100%',
         }}
       >
-        {/* Skeleton visible until image fully loaded (Options 5 + 9) */}
+        {/* Shimmer skeleton until loaded */}
         {!loaded && (
           <div style={{
             position: 'absolute', inset: 0,
@@ -63,21 +54,20 @@ function ImageCard({ img, index, isSelected, onToggle, batchOffset }) {
           }} />
         )}
 
-        {/* Image hidden until fully loaded then fades in sharp (Options 6 + 9) */}
         <img
           src={img.image_url}
           alt={img.caption || img.studio_name}
-          loading={isEager ? 'eager' : 'lazy'}
-          fetchpriority={isEager ? 'high' : 'auto'}
-          onLoad={() => setLoaded(true)}
+          loading="eager"
+          fetchpriority={isFirstBatch ? 'high' : 'auto'}
+          onLoad={handleLoad}
           style={{
             width: '100%', height: '100%', objectFit: 'cover', display: 'block',
             opacity: loaded ? 1 : 0,
-            transition: loaded ? `opacity 0.4s ease ${staggerDelay}` : 'none',
+            transition: loaded ? `opacity 0.3s ease ${staggerDelay}` : 'none',
           }}
         />
 
-        {/* Selected overlay */}
+        {/* Selection overlay */}
         <div style={{
           position: 'absolute', inset: 0,
           background: isSelected ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0)',
@@ -100,48 +90,60 @@ function ImageCard({ img, index, isSelected, onToggle, batchOffset }) {
 
 // ── Main ImageGrid ────────────────────────────────────────────────────────────
 export default function ImageGrid({ selected, onToggle, prefetchedImages, prefetchLoading }) {
-  const [page,    setPage]    = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const sentinelRef           = useRef(null);
+  const allImages = prefetchedImages || [];
+  const loading   = prefetchLoading !== undefined ? prefetchLoading : false;
 
-  const allImages     = prefetchedImages || [];
-  const loading       = prefetchLoading !== undefined ? prefetchLoading : false;
-  const visibleImages = allImages.slice(0, page * PAGE_SIZE);
+  // visibleCount = how many images are currently in the DOM
+  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
+  // loadedInBatch = how many images in the CURRENT batch have fired onLoad
+  const loadedInBatchRef = useRef(0);
+  // which batch we're currently filling (0-indexed)
+  const currentBatchRef  = useRef(0);
+  const sentinelRef      = useRef(null);
 
+  // Reset counters when image list changes (profile switch, new fetch)
   useEffect(() => {
-    setHasMore(visibleImages.length < allImages.length);
-  }, [visibleImages.length, allImages.length]);
+    setVisibleCount(BATCH_SIZE);
+    loadedInBatchRef.current = 0;
+    currentBatchRef.current  = 0;
+  }, [allImages]);
 
-  // Silently preload the NEXT batch into browser cache
-  // so when user scrolls they appear instantly without skeleton wait
-  useEffect(() => {
-    if (!allImages.length) return;
-    const nextStart = page * PAGE_SIZE;
-    const nextBatch = allImages.slice(nextStart, nextStart + PAGE_SIZE);
-    if (nextBatch.length > 0) {
-      // Small delay so current batch renders first
-      const timer = setTimeout(() => preloadImages(nextBatch), 800);
-      return () => clearTimeout(timer);
+  const revealNextBatch = useCallback(() => {
+    setVisibleCount(v => {
+      const next = v + BATCH_SIZE;
+      return next > allImages.length ? allImages.length : next;
+    });
+    loadedInBatchRef.current = 0;
+    currentBatchRef.current += 1;
+  }, [allImages.length]);
+
+  // Called by each ImageCard when its image fires onLoad
+  const handleImageLoad = useCallback((batchIndex) => {
+    // Only count loads for the current batch to avoid stale increments
+    if (batchIndex !== currentBatchRef.current) return;
+    loadedInBatchRef.current += 1;
+    // When REVEAL_AT images in the batch have loaded → add next batch to DOM
+    if (
+      loadedInBatchRef.current >= REVEAL_AT &&
+      visibleCount < allImages.length
+    ) {
+      revealNextBatch();
     }
-  }, [page, allImages]);
+  }, [visibleCount, allImages.length, revealNextBatch]);
 
-  // Infinite scroll — IntersectionObserver (Option 2)
-  const loadMore = useCallback(() => {
-    if (hasMore) setPage(p => p + 1);
-  }, [hasMore]);
-
+  // Fallback: IntersectionObserver for fast scrollers who outrun the load-trigger
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel) return;
+    if (!sentinel || visibleCount >= allImages.length) return;
     const observer = new IntersectionObserver(
-      entries => { if (entries[0].isIntersecting) loadMore(); },
-      { rootMargin: '600px' }  // trigger 600px before sentinel is visible
+      entries => { if (entries[0].isIntersecting) revealNextBatch(); },
+      { rootMargin: `${SCROLL_AHEAD}px` }
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [loadMore]);
+  }, [visibleCount, allImages.length, revealNextBatch]);
 
-  // Skeleton grid while loading (Option 5)
+  // ── Loading state ──────────────────────────────────────────────────────────
   if (loading) return (
     <>
       <style>{`
@@ -160,7 +162,7 @@ export default function ImageGrid({ selected, onToggle, prefetchedImages, prefet
         gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
         gap: 10,
       }}>
-        {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+        {Array.from({ length: BATCH_SIZE }).map((_, i) => (
           <div key={i} className="img-grid-item"><SkeletonCard /></div>
         ))}
       </div>
@@ -178,6 +180,9 @@ export default function ImageGrid({ selected, onToggle, prefetchedImages, prefet
       <div style={{ marginTop: 6, fontSize: 12, opacity: 0.6 }}>You can continue without selecting images.</div>
     </div>
   );
+
+  const visibleImages = allImages.slice(0, visibleCount);
+  const hasMore       = visibleCount < allImages.length;
 
   return (
     <>
@@ -213,25 +218,29 @@ export default function ImageGrid({ selected, onToggle, prefetchedImages, prefet
         gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
         gap: 10,
       }}>
-        {visibleImages.map((img, index) => (
-          <ImageCard
-            key={img.id}
-            img={img}
-            index={index % PAGE_SIZE}
-            batchOffset={Math.floor(index / PAGE_SIZE) * PAGE_SIZE}
-            isSelected={selected.includes(img.id)}
-            onToggle={onToggle}
-          />
-        ))}
+        {visibleImages.map((img, index) => {
+          const batchIndex = Math.floor(index / BATCH_SIZE);
+          return (
+            <ImageCard
+              key={img.id}
+              img={img}
+              index={index}
+              isSelected={selected.includes(img.id)}
+              onToggle={onToggle}
+              onLoad={() => handleImageLoad(batchIndex)}
+              isFirstBatch={batchIndex === 0}
+            />
+          );
+        })}
 
-        {/* Skeleton placeholders at bottom while more loading */}
+        {/* A few skeleton cards at the bottom while next batch is pending */}
         {hasMore && Array.from({ length: 4 }).map((_, i) => (
           <div key={`sk-${i}`} className="img-grid-item"><SkeletonCard /></div>
         ))}
       </div>
 
-      {/* Sentinel triggers next batch on scroll (Option 2) */}
-      <div ref={sentinelRef} style={{ height: 1 }} />
+      {/* Sentinel — fallback trigger for fast scrollers */}
+      {hasMore && <div ref={sentinelRef} style={{ height: 1 }} />}
     </>
   );
 }
