@@ -835,6 +835,7 @@ export default function DiscoverResults() {
             <div
               ref={carouselRef}
               className="carousel-scroll rec-carousel-scroll"
+              data-scroll-reset
               style={{
                 display: 'flex',
                 gap: 'clamp(40px, 14vw, 200px)',

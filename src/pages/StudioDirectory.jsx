@@ -514,20 +514,27 @@ function FilterBar({ options, filters, setFilter, clearAll, totalVisible, hasAny
             {/* Filter groups */}
             <div style={{ padding: '20px 20px 0' }}>
               {[
-                { label: 'Craft',        key: 'craft',       opts: options.crafts },
-                { label: 'Fabric',       key: 'fabric',      opts: options.fabrics },
-                { label: 'Product type', key: 'productType', opts: options.productTypes },
-              ].map(({ label, key, opts }) => (
-                <div key={key} style={{ marginBottom: 24 }}>
-                  <div style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text3)', fontWeight: 600, marginBottom: 10 }}>{label}</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    <Chip label="All" active={filters[key].length === 0} onClick={() => setFilter(key, '')} />
-                    {opts.map(opt => (
-                      <Chip key={opt} label={opt} active={filters[key].includes(opt)} onClick={() => setFilter(key, opt)} />
-                    ))}
+                { label: 'Craft',        key: 'craft',       opts: options.crafts,       pinned: PINNED_CRAFTS },
+                { label: 'Fabric',       key: 'fabric',      opts: options.fabrics,      pinned: PINNED_FABRICS },
+                { label: 'Product type', key: 'productType', opts: options.productTypes, pinned: PINNED_PRODUCT_TYPES },
+              ].map(({ label, key, opts, pinned }) => {
+                const lc = s => s.toLowerCase();
+                const ordered = [
+                  ...pinned.filter(p => opts.some(o => lc(o) === lc(p))).map(p => opts.find(o => lc(o) === lc(p))),
+                  ...opts.filter(o => !pinned.some(p => lc(p) === lc(o))),
+                ];
+                return (
+                  <div key={key} style={{ marginBottom: 24 }}>
+                    <div style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text3)', fontWeight: 600, marginBottom: 10 }}>{label}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      <Chip label="All" active={filters[key].length === 0} onClick={() => setFilter(key, '')} />
+                      {ordered.map(opt => (
+                        <Chip key={opt} label={opt} active={filters[key].includes(opt)} onClick={() => setFilter(key, opt)} />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Apply button */}
@@ -584,7 +591,8 @@ export default function StudioDirectory() {
             if (s.primary_craft) crafts.add(s.primary_craft);
             (s.secondary_crafts || []).forEach(c => crafts.add(c));
             (s.fabrics || []).forEach(f => {
-              const label = FABRIC_CATEGORY_LABELS[f.category] || f.category;
+              const category = typeof f === 'string' ? f : f.category;
+              const label = FABRIC_CATEGORY_LABELS[category] || category;
               if (label) fabrics.add(label);
             });
             (s.product_types || []).forEach(p => {
@@ -620,8 +628,9 @@ export default function StudioDirectory() {
       const fabricMatch = filters.fabric.length === 0 ||
         filters.fabric.some(ff =>
           (s.fabrics || []).some(f => {
-            const label = FABRIC_CATEGORY_LABELS[f.category] || f.category;
-            return label.toLowerCase() === ff.toLowerCase();
+            const category = typeof f === 'string' ? f : f.category;
+            const label = FABRIC_CATEGORY_LABELS[category] || category;
+            return label && label.toLowerCase() === ff.toLowerCase();
           })
         );
       const productMatch = filters.productType.length === 0 ||

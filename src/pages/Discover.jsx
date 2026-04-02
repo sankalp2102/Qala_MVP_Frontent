@@ -254,7 +254,7 @@ export default function Discover() {
           .qala-logo       { height: 18px !important; width: auto !important; }
           .discover-dots   { gap: 4px !important; }
           .discover-dot    { transform: scale(0.8); }
-          .discover-q      { font-size: 28px !important; }
+          .discover-q      { font-size: 26px !important; }
           .discover-scroll { padding: 20px 16px 24px !important; }
           .discover-botnav { position: sticky !important; bottom: 0 !important; z-index: 10 !important; backdrop-filter: blur(8px); padding: 10px 16px !important; }
           .discover-root   { height: auto !important; overflow: visible !important; }
@@ -299,7 +299,7 @@ export default function Discover() {
       <div className="discover-inner" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {/* Scrollable question area */}
-        <div className="discover-scroll-area" style={{ flex: 1, overflowY: 'auto' }}>
+        <div className="discover-scroll-area" data-scroll-reset style={{ flex: 1, overflowY: 'auto' }}>
           <div className="discover-scroll" style={{
             maxWidth: 860, margin: '0 auto',
             padding: 'clamp(32px, 5vw, 64px) clamp(20px, 4vw, 40px) 100px',
@@ -319,7 +319,7 @@ export default function Discover() {
               {/* Question heading */}
               <h2 className="discover-q" style={{
                 fontFamily: 'var(--font-display)',
-                fontSize: 'clamp(44px, 5.5vw, 68px)',
+                fontSize: 'clamp(38px, 4.5vw, 60px)',
                 fontWeight: 400, color: 'var(--text)', marginBottom: 10,
                 lineHeight: 1.1, letterSpacing: '-0.01em',
               }}>
@@ -327,7 +327,7 @@ export default function Discover() {
               </h2>
 
               {STEPS[step - 1].sub && (
-                <p style={{ fontSize: 15, color: 'var(--text3)', lineHeight: 1.65, marginBottom: 8 }}>
+                <p style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.65, marginBottom: 8 }}>
                   {STEPS[step - 1].sub}
                 </p>
               )}
@@ -342,14 +342,14 @@ export default function Discover() {
                   borderRadius: '0 6px 6px 0',
                 }}>
                   <p style={{
-                    margin: 0, fontSize: 14, color: 'var(--text3)',
+                    margin: 0, fontSize: 12, color: 'var(--text3)',
                     lineHeight: 1.65, whiteSpace: 'pre-line',
                   }}>
                     {STEPS[step - 1].hint}
                   </p>
                   {step === 6 && answers.timeline && (
                     <p className="inline-step-reveal" style={{
-                      margin: '8px 0 0', fontSize: 14, color: 'var(--text3)', lineHeight: 1.65,
+                      margin: '8px 0 0', fontSize: 12, color: 'var(--text3)', lineHeight: 1.65,
                     }}>
                       With small-batch work, slight variations from piece to piece are normal — it's part of what makes each one special.
                     </p>
@@ -388,8 +388,8 @@ export default function Discover() {
             style={{
               background: 'none', border: '1px solid var(--border)',
               color: step === 1 ? 'var(--text4)' : 'var(--text2)',
-              padding: '13px 28px', borderRadius: 10,
-              fontSize: 15, cursor: step === 1 ? 'default' : 'pointer',
+              padding: '11px 24px', borderRadius: 10,
+              fontSize: 13, cursor: step === 1 ? 'default' : 'pointer',
               fontFamily: 'var(--font-body)', transition: 'all 0.2s',
             }}
           >
@@ -404,8 +404,8 @@ export default function Discover() {
               style={{
                 background: canProceed() ? '#1A1612' : 'var(--border)',
                 color: canProceed() ? '#F5F0E8' : 'var(--text3)',
-                border: 'none', padding: '13px 36px', borderRadius: 10,
-                fontSize: 15, fontWeight: 700,
+                border: 'none', padding: '11px 30px', borderRadius: 10,
+                fontSize: 13, fontWeight: 700,
                 cursor: canProceed() ? 'pointer' : 'not-allowed',
                 fontFamily: 'var(--font-body)', transition: 'all 0.2s',
                 letterSpacing: '0.03em',
@@ -421,8 +421,8 @@ export default function Discover() {
               style={{
                 background: submitting || !canProceed() ? 'var(--border)' : '#1A1612',
                 color: submitting || !canProceed() ? 'var(--text3)' : '#F5F0E8',
-                border: 'none', padding: '13px 36px', borderRadius: 10,
-                fontSize: 15, fontWeight: 700,
+                border: 'none', padding: '11px 30px', borderRadius: 10,
+                fontSize: 13, fontWeight: 700,
                 cursor: submitting || !canProceed() ? 'not-allowed' : 'pointer',
                 fontFamily: 'var(--font-body)', transition: 'all 0.2s',
                 display: 'flex', alignItems: 'center', gap: 8,
@@ -512,7 +512,7 @@ function StepBody({ step, answers, set, prefetchedImages, prefetchLoading }) {
               </div>
               <span
                 onClick={() => set('fabric_is_flexible', !answers.fabric_is_flexible)}
-                style={{ fontSize: 15, fontWeight: 600, color: answers.fabric_is_flexible ? '#C46E49' : 'var(--text2)', transition: 'color 0.15s' }}
+                style={{ fontSize: 13, fontWeight: 600, color: answers.fabric_is_flexible ? '#C46E49' : 'var(--text2)', transition: 'color 0.15s' }}
               >
                 I'm flexible
               </span>
@@ -525,7 +525,7 @@ function StepBody({ step, answers, set, prefetchedImages, prefetchLoading }) {
                 border: `1.5px solid ${answers.fabric_not_sure ? '#C46E49' : notSureDisabled3 ? 'var(--border)' : '#B0A89A'}`,
                 background: answers.fabric_not_sure ? 'rgba(196,110,73,0.10)' : 'transparent',
                 color: notSureDisabled3 ? 'var(--text4)' : answers.fabric_not_sure ? '#C46E49' : 'var(--text2)',
-                fontSize: 15, fontWeight: 600,
+                fontSize: 13, fontWeight: 600,
                 cursor: notSureDisabled3 ? 'not-allowed' : 'pointer',
                 fontFamily: 'var(--font-body)', transition: 'all 0.15s',
                 opacity: notSureDisabled3 ? 0.4 : 1,
@@ -591,7 +591,7 @@ function StepBody({ step, answers, set, prefetchedImages, prefetchLoading }) {
             </div>
             <span
               onClick={() => !noCraftsMode && toggleFlexible()}
-              style={{ fontSize: 15, fontWeight: 600, color: flexibleActive ? '#C46E49' : 'var(--text2)', transition: 'color 0.15s' }}
+              style={{ fontSize: 13, fontWeight: 600, color: flexibleActive ? '#C46E49' : 'var(--text2)', transition: 'color 0.15s' }}
             >
               I'm flexible
             </span>
@@ -627,7 +627,7 @@ function StepBody({ step, answers, set, prefetchedImages, prefetchLoading }) {
                   fontFamily: 'var(--font-body)', transition: 'all 0.15s',
                 }}
               >
-                <div style={{ fontSize: 15, fontWeight: 400, color: 'var(--text)' }}>{opt.label}</div>
+                <div style={{ fontSize: 13, fontWeight: 400, color: 'var(--text)' }}>{opt.label}</div>
               </button>
             ))}
           </div>
@@ -652,7 +652,7 @@ function StepBody({ step, answers, set, prefetchedImages, prefetchLoading }) {
               }}
             >
               <div>
-                <div style={{ fontSize: 15, fontWeight: 400, color: 'var(--text)', marginBottom: 4 }}>{s.label}</div>
+                <div style={{ fontSize: 13, fontWeight: 400, color: 'var(--text)', marginBottom: 4 }}>{s.label}</div>
                 <div style={{ fontSize: 13, color: 'var(--text3)' }}>{s.desc}</div>
               </div>
               <div style={{

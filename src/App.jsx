@@ -14,7 +14,15 @@ import StudioDirectory from './pages/StudioDirectory';
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
+    // Reset window scroll
     window.scrollTo(0, 0);
+    // Reset document root (covers some browser edge cases)
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    // Reset any inner scrollable containers left over from previous page
+    document.querySelectorAll('[data-scroll-reset]').forEach(el => {
+      el.scrollTop = 0;
+    });
   }, [pathname]);
   return null;
 }
