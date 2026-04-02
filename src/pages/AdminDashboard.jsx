@@ -498,74 +498,236 @@ function ProfileReview() {
   };
 
   // ── USPBlock — Section A.6 Studio Strengths ──
-  const USPBlock = ({ usps }) => {
-    if (!usps?.length) return null;
+  const USPBlock = ({ usps, profileId, onSaved }) => {
+    const [editing, setEditing] = useState(false);
+    const [items,   setItems]   = useState([]);
+    const [saving,  setSaving]  = useState(false);
+
+    const startEdit = () => {
+      setItems((usps || []).map(u => ({ strength: u.strength })));
+      setEditing(true);
+    };
+    const cancel = () => setEditing(false);
+    const setItem = (i, val) => setItems(prev => prev.map((it, idx) => idx === i ? { strength: val } : it));
+    const addItem = () => { if (items.length < 5) setItems(prev => [...prev, { strength: '' }]); };
+    const removeItem = i => setItems(prev => prev.filter((_, idx) => idx !== i));
+    const save = async () => {
+      setSaving(true);
+      try {
+        await adminAPI.editSection(profileId, 'usps', items.filter(it => it.strength.trim()).map((it, i) => ({ order: i + 1, strength: it.strength.trim() })));
+        success('USPs saved!');
+        setEditing(false);
+        onSaved();
+      } catch(e) { error(e.response?.data?.error || 'Save failed'); }
+      finally { setSaving(false); }
+    };
+
+    if (!usps?.length && !editing) return (
+      <div style={{ marginBottom:24 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+          <div style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Studio Strengths (USPs)</div>
+          <button className="btn btn-ghost btn-sm" style={{ fontSize:11, color:'var(--teal)', borderColor:'var(--teal)' }} onClick={startEdit}>+ Add</button>
+        </div>
+        <div style={{ fontSize:12, color:'var(--text4)', fontStyle:'italic' }}>No USPs added yet.</div>
+      </div>
+    );
+
     return (
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ fontFamily:'var(--font-display)', fontSize:15, fontWeight:600, color:'var(--text2)', marginBottom:10, textTransform:'uppercase', letterSpacing:'0.06em', fontSize:11 }}>
-          Studio Strengths (USPs)
+      <div style={{ marginBottom:24 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+          <div style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Studio Strengths (USPs)</div>
+          {!editing && <button className="btn btn-ghost btn-sm" style={{ fontSize:11, color:'var(--teal)', borderColor:'var(--teal)' }} onClick={startEdit}>Edit</button>}
         </div>
-        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-          {usps.map((u, i) => (
-            <div key={u.id || i} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'8px 12px', background:'var(--surface2)', borderRadius:7, border:'1px solid var(--border)' }}>
-              <span style={{ fontSize:11, fontWeight:700, color:'var(--gold)', minWidth:18 }}>{i + 1}.</span>
-              <span style={{ fontSize:13, color:'var(--text2)', lineHeight:1.5 }}>{u.strength}</span>
+
+        {editing ? (
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {items.map((it, i) => (
+              <div key={i} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <span style={{ fontSize:11, fontWeight:700, color:'var(--gold)', minWidth:20 }}>{i + 1}.</span>
+                <input
+                  value={it.strength}
+                  onChange={e => setItem(i, e.target.value)}
+                  placeholder={`Strength ${i + 1}`}
+                  style={{ flex:1, fontSize:13, padding:'7px 10px', borderRadius:6, border:'1px solid var(--border)', background:'var(--surface)', fontFamily:'var(--font-body)', color:'var(--text)' }}
+                />
+                <button onClick={() => removeItem(i)} style={{ background:'none', border:'none', color:'var(--text4)', fontSize:16, cursor:'pointer', padding:'0 4px', lineHeight:1 }}>×</button>
+              </div>
+            ))}
+            {items.length < 5 && (
+              <button onClick={addItem} style={{ alignSelf:'flex-start', fontSize:12, color:'var(--teal)', background:'none', border:'1px dashed var(--teal)', borderRadius:6, padding:'5px 12px', cursor:'pointer', fontFamily:'var(--font-body)' }}>+ Add Strength</button>
+            )}
+            <div style={{ display:'flex', gap:8, marginTop:4 }}>
+              <button className="btn btn-ghost btn-sm" style={{ fontSize:11, color:'var(--teal)', borderColor:'var(--teal)' }} onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+              <button className="btn btn-ghost btn-sm" style={{ fontSize:11 }} onClick={cancel}>Cancel</button>
             </div>
-          ))}
-        </div>
+          </div>
+        ) : (
+          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+            {usps.map((u, i) => (
+              <div key={u.id || i} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'8px 12px', background:'var(--surface2)', borderRadius:7, border:'1px solid var(--border)' }}>
+                <span style={{ fontSize:11, fontWeight:700, color:'var(--gold)', minWidth:18 }}>{i + 1}.</span>
+                <span style={{ fontSize:13, color:'var(--text2)', lineHeight:1.5 }}>{u.strength}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
 
   // ── BuyerRequirementsBlock — Section D.4 Pre-Call Questions ──
-  const BuyerRequirementsBlock = ({ requirements }) => {
-    if (!requirements?.length) return null;
+  const BuyerRequirementsBlock = ({ requirements, profileId, onSaved }) => {
+    const [editing, setEditing] = useState(false);
+    const [items,   setItems]   = useState([]);
+    const [saving,  setSaving]  = useState(false);
+
+    const startEdit = () => {
+      setItems((requirements || []).map(r => ({ question: r.question })));
+      setEditing(true);
+    };
+    const cancel = () => setEditing(false);
+    const setItem = (i, val) => setItems(prev => prev.map((it, idx) => idx === i ? { question: val } : it));
+    const addItem = () => { if (items.length < 5) setItems(prev => [...prev, { question: '' }]); };
+    const removeItem = i => setItems(prev => prev.filter((_, idx) => idx !== i));
+    const save = async () => {
+      setSaving(true);
+      try {
+        await adminAPI.editSection(profileId, 'buyer-requirements', items.filter(it => it.question.trim()).map((it, i) => ({ order: i + 1, question: it.question.trim() })));
+        success('Pre-call questions saved!');
+        setEditing(false);
+        onSaved();
+      } catch(e) { error(e.response?.data?.error || 'Save failed'); }
+      finally { setSaving(false); }
+    };
+
+    if (!requirements?.length && !editing) return (
+      <div style={{ marginBottom:24 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+          <div style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Pre-Call Questions for Buyers</div>
+          <button className="btn btn-ghost btn-sm" style={{ fontSize:11, color:'var(--teal)', borderColor:'var(--teal)' }} onClick={startEdit}>+ Add</button>
+        </div>
+        <div style={{ fontSize:12, color:'var(--text4)', fontStyle:'italic' }}>No pre-call questions added yet.</div>
+      </div>
+    );
+
     return (
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ fontFamily:'var(--font-display)', fontSize:11, fontWeight:600, color:'var(--text2)', marginBottom:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>
-          Pre-Call Questions for Buyers
+      <div style={{ marginBottom:24 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+          <div style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Pre-Call Questions for Buyers</div>
+          {!editing && <button className="btn btn-ghost btn-sm" style={{ fontSize:11, color:'var(--teal)', borderColor:'var(--teal)' }} onClick={startEdit}>Edit</button>}
         </div>
-        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-          {requirements.map((r, i) => (
-            <div key={r.id || i} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'8px 12px', background:'var(--surface2)', borderRadius:7, border:'1px solid var(--border)' }}>
-              <span style={{ fontSize:11, fontWeight:700, color:'var(--teal)', minWidth:18 }}>Q{i + 1}</span>
-              <span style={{ fontSize:13, color:'var(--text2)', lineHeight:1.5 }}>{r.question}</span>
+
+        {editing ? (
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {items.map((it, i) => (
+              <div key={i} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <span style={{ fontSize:11, fontWeight:700, color:'var(--teal)', minWidth:26 }}>Q{i + 1}</span>
+                <input
+                  value={it.question}
+                  onChange={e => setItem(i, e.target.value)}
+                  placeholder={`Question ${i + 1}`}
+                  style={{ flex:1, fontSize:13, padding:'7px 10px', borderRadius:6, border:'1px solid var(--border)', background:'var(--surface)', fontFamily:'var(--font-body)', color:'var(--text)' }}
+                />
+                <button onClick={() => removeItem(i)} style={{ background:'none', border:'none', color:'var(--text4)', fontSize:16, cursor:'pointer', padding:'0 4px', lineHeight:1 }}>×</button>
+              </div>
+            ))}
+            {items.length < 5 && (
+              <button onClick={addItem} style={{ alignSelf:'flex-start', fontSize:12, color:'var(--teal)', background:'none', border:'1px dashed var(--teal)', borderRadius:6, padding:'5px 12px', cursor:'pointer', fontFamily:'var(--font-body)' }}>+ Add Question</button>
+            )}
+            <div style={{ display:'flex', gap:8, marginTop:4 }}>
+              <button className="btn btn-ghost btn-sm" style={{ fontSize:11, color:'var(--teal)', borderColor:'var(--teal)' }} onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+              <button className="btn btn-ghost btn-sm" style={{ fontSize:11 }} onClick={cancel}>Cancel</button>
             </div>
-          ))}
-        </div>
+          </div>
+        ) : (
+          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+            {requirements.map((r, i) => (
+              <div key={r.id || i} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'8px 12px', background:'var(--surface2)', borderRadius:7, border:'1px solid var(--border)' }}>
+                <span style={{ fontSize:11, fontWeight:700, color:'var(--teal)', minWidth:18 }}>Q{i + 1}</span>
+                <span style={{ fontSize:13, color:'var(--text2)', lineHeight:1.5 }}>{r.question}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
 
   // ── BuyerCoordinatorBlock — Section D.5 Buyer Coordinator ──
-  const BuyerCoordinatorBlock = ({ coordinator }) => {
-    if (!coordinator) return null;
-    const imgSrc = coordinator.image ? mediaUrl(coordinator.image) : null;
+  const BuyerCoordinatorBlock = ({ coordinator, profileId, onSaved }) => {
+    const [editing, setEditing] = useState(false);
+    const [form,    setForm]    = useState({});
+    const [saving,  setSaving]  = useState(false);
+
+    const startEdit = () => {
+      setForm({ name: coordinator?.name || '', position: coordinator?.position || '', writeup: coordinator?.writeup || '' });
+      setEditing(true);
+    };
+    const cancel = () => setEditing(false);
+    const save = async () => {
+      setSaving(true);
+      try {
+        await adminAPI.editSection(profileId, 'buyer-coordinator', form);
+        success('Buyer coordinator saved!');
+        setEditing(false);
+        onSaved();
+      } catch(e) { error(e.response?.data?.error || 'Save failed'); }
+      finally { setSaving(false); }
+    };
+
+    const imgSrc = coordinator?.image ? mediaUrl(coordinator.image) : null;
+
+    if (!coordinator && !editing) return (
+      <div style={{ marginBottom:24 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+          <div style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Buyer Coordinator</div>
+          <button className="btn btn-ghost btn-sm" style={{ fontSize:11, color:'var(--teal)', borderColor:'var(--teal)' }} onClick={startEdit}>+ Add</button>
+        </div>
+        <div style={{ fontSize:12, color:'var(--text4)', fontStyle:'italic' }}>No coordinator added yet.</div>
+      </div>
+    );
+
     return (
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ fontFamily:'var(--font-display)', fontSize:11, fontWeight:600, color:'var(--text2)', marginBottom:10, textTransform:'uppercase', letterSpacing:'0.06em' }}>
-          Buyer Coordinator
+      <div style={{ marginBottom:24 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+          <div style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.06em' }}>Buyer Coordinator</div>
+          {!editing && <button className="btn btn-ghost btn-sm" style={{ fontSize:11, color:'var(--teal)', borderColor:'var(--teal)' }} onClick={startEdit}>Edit</button>}
         </div>
-        <div style={{ display:'flex', alignItems:'flex-start', gap:14, padding:'12px 14px', background:'var(--surface2)', borderRadius:8, border:'1px solid var(--border)' }}>
-          {imgSrc && (
-            <img
-              src={imgSrc}
-              alt={coordinator.name}
-              style={{ width:52, height:52, borderRadius:'50%', objectFit:'cover', flexShrink:0, border:'1px solid var(--border)' }}
-              onError={e => { e.target.style.display='none'; }}
-            />
-          )}
-          {!imgSrc && (
-            <div style={{ width:52, height:52, borderRadius:'50%', background:'var(--surface3)', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, color:'var(--text4)' }}>
-              👤
+
+        {editing ? (
+          <div style={{ display:'flex', flexDirection:'column', gap:10, padding:'12px 14px', background:'var(--surface2)', borderRadius:8, border:'1px solid var(--border)' }}>
+            <div className="field" style={{ margin:0 }}>
+              <label style={{ fontSize:11 }}>Name</label>
+              <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Coordinator name" />
             </div>
-          )}
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontWeight:600, fontSize:14, color:'var(--text)', marginBottom:2 }}>{coordinator.name}</div>
-            {coordinator.position && <div style={{ fontSize:12, color:'var(--gold)', marginBottom:6 }}>{coordinator.position}</div>}
-            {coordinator.writeup && <div style={{ fontSize:12, color:'var(--text3)', lineHeight:1.6 }}>{coordinator.writeup}</div>}
+            <div className="field" style={{ margin:0 }}>
+              <label style={{ fontSize:11 }}>Position</label>
+              <input value={form.position} onChange={e => setForm(f => ({ ...f, position: e.target.value }))} placeholder="e.g. Design Liaison" />
+            </div>
+            <div className="field" style={{ margin:0 }}>
+              <label style={{ fontSize:11 }}>Writeup</label>
+              <textarea value={form.writeup} onChange={e => setForm(f => ({ ...f, writeup: e.target.value }))} placeholder="Short bio or description…" rows={3} style={{ resize:'vertical', fontSize:13, padding:'8px 10px', borderRadius:6, border:'1px solid var(--border)', background:'var(--surface)', fontFamily:'var(--font-body)', color:'var(--text)', width:'100%' }} />
+            </div>
+            {imgSrc && <div style={{ fontSize:11, color:'var(--text4)' }}>Photo is set by the studio — not editable here.</div>}
+            <div style={{ display:'flex', gap:8, marginTop:2 }}>
+              <button className="btn btn-ghost btn-sm" style={{ fontSize:11, color:'var(--teal)', borderColor:'var(--teal)' }} onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+              <button className="btn btn-ghost btn-sm" style={{ fontSize:11 }} onClick={cancel}>Cancel</button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div style={{ display:'flex', alignItems:'flex-start', gap:14, padding:'12px 14px', background:'var(--surface2)', borderRadius:8, border:'1px solid var(--border)' }}>
+            {imgSrc ? (
+              <img src={imgSrc} alt={coordinator.name} style={{ width:52, height:52, borderRadius:'50%', objectFit:'cover', flexShrink:0, border:'1px solid var(--border)' }} onError={e => { e.target.style.display='none'; }} />
+            ) : (
+              <div style={{ width:52, height:52, borderRadius:'50%', background:'var(--surface3)', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, color:'var(--text4)' }}>👤</div>
+            )}
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontWeight:600, fontSize:14, color:'var(--text)', marginBottom:2 }}>{coordinator.name}</div>
+              {coordinator.position && <div style={{ fontSize:12, color:'var(--gold)', marginBottom:6 }}>{coordinator.position}</div>}
+              {coordinator.writeup  && <div style={{ fontSize:12, color:'var(--text3)', lineHeight:1.6 }}>{coordinator.writeup}</div>}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -1115,7 +1277,7 @@ function ProfileReview() {
           <div className="card fade-up">
 
             <Block title="Section A — Studio Details" data={onboarding.studio_details} model="studio_details" profileId={pid} onSaved={() => loadOnboarding(selected)} />
-            <USPBlock usps={onboarding.studio_details?.usps} />
+            <USPBlock usps={onboarding.studio_details?.usps} profileId={pid} onSaved={() => loadOnboarding(selected)} />
             <MediaViewer files={onboarding.studio_details?.media_files} title="Studio Media (Hero / Work Samples)" mediaType="studio" profileId={pid} onDeleted={() => loadOnboarding(selected)} togglePublish={togglePublish} itemPublished={itemPublished} />
 
             <hr style={{ border:'none', borderTop:'1px solid var(--border)', margin:'4px 0 20px' }} />
@@ -1132,8 +1294,8 @@ function ProfileReview() {
 
             <hr style={{ border:'none', borderTop:'1px solid var(--border)', margin:'4px 0 20px' }} />
             <Block title="Section D — Collaboration" data={onboarding.collab_design} model="collab_design" profileId={pid} onSaved={() => loadOnboarding(selected)} />
-            <BuyerRequirementsBlock requirements={onboarding.collab_design?.buyer_requirements} />
-            <BuyerCoordinatorBlock coordinator={onboarding.collab_design?.buyer_coordinator} />
+            <BuyerRequirementsBlock requirements={onboarding.collab_design?.buyer_requirements} profileId={pid} onSaved={() => loadOnboarding(selected)} />
+            <BuyerCoordinatorBlock coordinator={onboarding.collab_design?.buyer_coordinator} profileId={pid} onSaved={() => loadOnboarding(selected)} />
 
             <hr style={{ border:'none', borderTop:'1px solid var(--border)', margin:'4px 0 20px' }} />
             <Block title="Section E — Production Scale" data={onboarding.production_scale} model="production_scale" profileId={pid} onSaved={() => loadOnboarding(selected)} />
