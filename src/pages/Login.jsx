@@ -21,12 +21,14 @@ export default function Login() {
     try {
       if (tab === 'signin') {
         const user = await login(email, pass);
-        nav(user.role === 'admin' ? '/admin' : '/dashboard');
+        if (user.role === 'admin') nav('/admin');
+        else if (user.role === 'seller') nav('/dashboard');
+        else nav('/buyer');
       } else {
         const r = await authAPI.signup(email, pass);
         if (r.data.status === 'OK') {
           await login(email, pass);
-          nav('/dashboard');
+          nav('/buyer');
         } else {
           setErr(r.data.formFields?.[0]?.error || 'Signup failed');
         }

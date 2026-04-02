@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { discoveryAPI } from '../api/client';
 import qalaLogo from '../assets/qala-logo.png';
+import UserAvatar from '../components/UserAvatar';
 
 // Animated weave background using canvas
 function WeaveCanvas() {
@@ -64,7 +65,9 @@ export default function Landing() {
   const [visible, setVisible]       = useState(false);
 
   useEffect(() => {
-    if (user) { nav(user.role === 'admin' ? '/admin' : '/dashboard'); return; }
+    if (user?.role === 'admin')  { nav('/admin');     return; }
+    if (user?.role === 'seller') { nav('/dashboard'); return; }
+    // customers stay on landing — they see the avatar
     const tok = discoveryAPI.getStoredSession();
     if (tok) setHasSession(true);
     setTimeout(() => setVisible(true), 80);
@@ -234,13 +237,7 @@ export default function Landing() {
         <div style={S.logo}>
           <img src={qalaLogo} alt="Qala" className="qala-logo" />
         </div>
-        <button
-          className="login-link"
-          style={S.loginLink}
-          onClick={() => nav('/login')}
-        >
-          Sign In / Sign Up
-        </button>
+        <UserAvatar loginStyle={S.loginLink} />
       </div>
 
       {/* Hero */}

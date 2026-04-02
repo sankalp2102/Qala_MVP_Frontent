@@ -1,5 +1,14 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { authAPI } from '../api/client';
+import { authAPI, discoveryAPI } from '../api/client';
+
+const SESSION_KEY = 'qala_session_token';
+
+// After a customer logs in, silently link any in-progress anonymous session
+async function _tryLinkSession() {
+  const token = localStorage.getItem(SESSION_KEY);
+  if (!token) return;
+  try { await discoveryAPI.linkSession(token); } catch { /* non-fatal */ }
+}
 
 const Ctx = createContext(null);
 export const useAuth = () => useContext(Ctx);
@@ -31,6 +40,10 @@ export function AuthProvider({ children }) {
     // Token is captured by client.js interceptor on the signin response
     const me = await authAPI.me();
     setUser(me.data);
+    // If customer, silently link any anonymous discovery session
+    if (me.data?.role === 'customer') {
+      _tryLinkSession();
+    }
     return me.data;
   };
 

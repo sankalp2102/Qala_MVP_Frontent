@@ -6,6 +6,7 @@ import Landing from './pages/Landing';
 import Login from './pages/Login';
 import SellerDashboard from './pages/SellerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import BuyerDashboard from './pages/BuyerDashboard';
 import Discover from './pages/Discover';
 import DiscoverResults from './pages/DiscoverResults';
 import StudioProfile from './pages/StudioProfile';
@@ -14,12 +15,9 @@ import StudioDirectory from './pages/StudioDirectory';
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
-    // Reset window scroll
     window.scrollTo(0, 0);
-    // Reset document root (covers some browser edge cases)
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
-    // Reset any inner scrollable containers left over from previous page
     document.querySelectorAll('[data-scroll-reset]').forEach(el => {
       el.scrollTop = 0;
     });
@@ -27,11 +25,18 @@ function ScrollToTop() {
   return null;
 }
 
+function roleHome(role) {
+  if (role === 'admin')    return '/admin';
+  if (role === 'seller')   return '/dashboard';
+  if (role === 'customer') return '/buyer';
+  return '/';
+}
+
 function Guard({ role, children }) {
   const { user, loading } = useAuth();
   if (loading) return <Spinner full />;
   if (!user) return <Navigate to="/login" replace />;
-  if (role && user.role !== role) return <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} replace />;
+  if (role && user.role !== role) return <Navigate to={roleHome(user.role)} replace />;
   return children;
 }
 
@@ -41,11 +46,12 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/"                 element={<Landing />} />
-      <Route path="/login"            element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} /> : <Login />} />
+      <Route path="/login"            element={user ? <Navigate to={roleHome(user.role)} /> : <Login />} />
       <Route path="/discover"         element={<Discover />} />
       <Route path="/discover/results" element={<DiscoverResults />} />
       <Route path="/directory"        element={<StudioDirectory />} />
       <Route path="/studio/:id"       element={<StudioProfile />} />
+      <Route path="/buyer/*"          element={<Guard role="customer"><BuyerDashboard /></Guard>} />
       <Route path="/dashboard/*"      element={<Guard role="seller"><SellerDashboard /></Guard>} />
       <Route path="/admin/*"          element={<Guard role="admin"><AdminDashboard /></Guard>} />
       <Route path="*"                 element={<Navigate to="/" />} />

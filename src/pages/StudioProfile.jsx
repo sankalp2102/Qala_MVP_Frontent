@@ -5,6 +5,7 @@ import { discoveryAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import qalaLogo from '../assets/qala-logo.png';
 import { mediaUrl, mediaOnError } from '../utils/mediaUrl';
+import UserAvatar from '../components/UserAvatar';
 
 // ─── Lightbox ────────────────────────────────────────────────────────────────
 function Lightbox({ images, startIndex, onClose }) {
@@ -950,9 +951,13 @@ export default function StudioProfile() {
             </span>
           )}
         </div>
-        <Link to="/">
-          <img src={qalaLogo} alt="Qala" className="qala-logo" />
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <Link to="/">
+            <img src={qalaLogo} alt="Qala" className="qala-logo" />
+          </Link>
+          {/* Avatar — only visible when logged in */}
+          <UserAvatar hideWhenLoggedOut />
+        </div>
       </div>
 
       {/* ── Hero ── */}

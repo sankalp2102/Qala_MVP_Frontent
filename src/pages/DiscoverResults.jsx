@@ -6,6 +6,7 @@ import RecommendationCard from '../components/discovery/RecommendationCard';
 import AuthGateModal from '../components/AuthGateModal';
 import qalaLogo from '../assets/qala-logo.png';
 import { mediaUrl as mUrl, mediaOnError } from '../utils/mediaUrl';
+import UserAvatar from '../components/UserAvatar';
 
 // ─── Calendar icon ──────────────────────────────────────────────────────────
 const CalendarIcon = () => (
@@ -576,8 +577,8 @@ export default function DiscoverResults() {
           )}
         </div>
 
-        {/* Right — contextual button */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        {/* Right — contextual button + avatar (logged-in only) */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12 }}>
           {data?.zero_match && recs.length === 0 && suggs.length === 0 ? (
             <button onClick={() => nav('/directory')} style={{
               display: 'flex', alignItems: 'center', gap: 8,
@@ -602,6 +603,7 @@ export default function DiscoverResults() {
               <CalendarIcon /> Help Me Decide
             </button>
           )}
+          <UserAvatar hideWhenLoggedOut />
         </div>
       </div>
 

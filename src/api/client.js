@@ -172,6 +172,13 @@ export const adminAPI = {
   getAdminStudioInquiries:  () => api.get('/api/admin/discovery/studio-inquiries/'),
 };
 
+// ─── BUYER API ─────────────────────────────────────────────────────────────────
+export const buyerAPI = {
+  getSessions: () => api.get('/api/buyer/sessions/'),
+  getProfile:  () => api.get('/api/me/customer/'),
+  updateProfile: d => api.patch('/api/me/customer/', d),
+};
+
 // ─── DISCOVERY API ─────────────────────────────────────────────────────────────
 const SESSION_KEY = 'qala_session_token';
 

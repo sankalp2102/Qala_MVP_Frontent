@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { discoveryAPI } from '../api/client';
 import { mediaUrl, mediaOnError } from '../utils/mediaUrl';
-
+import UserAvatar from '../components/UserAvatar';
 // ─── Craft-specific CSS pattern backgrounds ────────────────────────────────
 const PATTERNS = {
   'pattern-block': {
@@ -447,6 +447,8 @@ function FilterBar({ options, filters, setFilter, clearAll, totalVisible, hasAny
             </button>
           )}
         </div>
+        {/* Avatar — only visible when logged in */}
+        <UserAvatar hideWhenLoggedOut />
       </nav>
 
       {/* Mobile filter bar — hidden on desktop via CSS */}
@@ -454,30 +456,35 @@ function FilterBar({ options, filters, setFilter, clearAll, totalVisible, hasAny
         background: 'var(--bg)', borderBottom: '1px solid var(--border)',
         padding: '10px 16px', position: 'sticky', top: 0, zIndex: 100,
         alignItems: 'center', gap: 10,
+        display: 'flex', justifyContent: 'space-between',
       }}>
-        <button
-          onClick={() => setDrawerOpen(true)}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            padding: '8px 16px', borderRadius: 100,
-            border: `1.5px solid ${activeCount > 0 ? '#1A1612' : 'rgba(26,22,18,0.22)'}`,
-            background: activeCount > 0 ? '#1A1612' : 'rgba(255,255,255,0.7)',
-            color: activeCount > 0 ? '#F5F0E8' : 'var(--text2)',
-            fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500,
-            cursor: 'pointer',
-          }}
-        >
-          ⊞ Filters{activeCount > 0 ? ` (${activeCount})` : ''}
-        </button>
-        {hasAnyFilter && (
-          <button onClick={clearAll} style={{
-            fontSize: 12, color: 'var(--gold)', background: 'none',
-            border: 'none', cursor: 'pointer',
-            fontFamily: 'var(--font-body)', padding: 0, textDecoration: 'underline',
-          }}>
-            Clear
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            onClick={() => setDrawerOpen(true)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '8px 16px', borderRadius: 100,
+              border: `1.5px solid ${activeCount > 0 ? '#1A1612' : 'rgba(26,22,18,0.22)'}`,
+              background: activeCount > 0 ? '#1A1612' : 'rgba(255,255,255,0.7)',
+              color: activeCount > 0 ? '#F5F0E8' : 'var(--text2)',
+              fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            ⊞ Filters{activeCount > 0 ? ` (${activeCount})` : ''}
           </button>
-        )}
+          {hasAnyFilter && (
+            <button onClick={clearAll} style={{
+              fontSize: 12, color: 'var(--gold)', background: 'none',
+              border: 'none', cursor: 'pointer',
+              fontFamily: 'var(--font-body)', padding: 0, textDecoration: 'underline',
+            }}>
+              Clear
+            </button>
+          )}
+        </div>
+        {/* Avatar — only visible when logged in */}
+        <UserAvatar hideWhenLoggedOut />
       </div>
 
       {/* Mobile filter drawer */}

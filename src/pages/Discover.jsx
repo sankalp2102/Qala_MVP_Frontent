@@ -4,6 +4,7 @@ import { discoveryAPI } from '../api/client';
 import ChipSelect from '../components/discovery/ChipSelect';
 import ImageGrid from '../components/discovery/ImageGrid';
 import qalaLogo from '../assets/qala-logo.png';
+import UserAvatar from '../components/UserAvatar';
 
 
 // ── data ──────────────────────────────────────────────────────────────────────
@@ -293,6 +294,9 @@ export default function Discover() {
             }} />
           ))}
         </div>
+
+        {/* Avatar — only visible when logged in */}
+        <UserAvatar hideWhenLoggedOut />
       </div>
 
       {/* ── Full-width content ── */}
