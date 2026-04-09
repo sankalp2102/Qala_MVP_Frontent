@@ -95,6 +95,7 @@ const STEPS = [
 
 export default function Discover() {
   const nav = useNavigate();
+  const scrollAreaRef               = useRef(null);
   const [step, setStep]             = useState(1);
   const [dir,  setDir]              = useState(1);
   const [anim, setAnim]             = useState(false);
@@ -190,6 +191,7 @@ export default function Discover() {
     setTimeout(() => {
       setStep(next);
       setAnim(false);
+      if (scrollAreaRef.current) scrollAreaRef.current.scrollTop = 0;
     }, 220);
   };
 
@@ -303,7 +305,7 @@ export default function Discover() {
       <div className="discover-inner" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {/* Scrollable question area */}
-        <div className="discover-scroll-area" data-scroll-reset style={{ flex: 1, overflowY: 'auto' }}>
+        <div className="discover-scroll-area" data-scroll-reset ref={scrollAreaRef} style={{ flex: 1, overflowY: 'auto' }}>
           <div className="discover-scroll" style={{
             maxWidth: 860, margin: '0 auto',
             padding: 'clamp(32px, 5vw, 64px) clamp(20px, 4vw, 40px) 100px',

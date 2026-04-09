@@ -325,6 +325,7 @@ function AestheticCard({ rec, onContact }) {
           <img
             src={mUrl(heroImg.url)}
             alt=""
+            fetchpriority="high"
             style={{
               width: '100%', height: '100%', objectFit: 'cover', display: 'block',
               transform: hovered ? 'scale(1.04)' : 'scale(1)',

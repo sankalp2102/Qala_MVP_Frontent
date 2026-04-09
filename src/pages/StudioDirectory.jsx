@@ -456,7 +456,7 @@ function FilterBar({ options, filters, setFilter, clearAll, totalVisible, hasAny
         background: 'var(--bg)', borderBottom: '1px solid var(--border)',
         padding: '10px 16px', position: 'sticky', top: 0, zIndex: 100,
         alignItems: 'center', gap: 10,
-        display: 'flex', justifyContent: 'space-between',
+        justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button

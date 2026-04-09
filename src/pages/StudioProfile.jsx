@@ -963,7 +963,7 @@ export default function StudioProfile() {
       {/* ── Hero ── */}
       <div ref={heroRef} style={{ position: 'relative', height: 480, overflow: 'hidden', background: 'var(--surface2)' }}>
         {heroUrl ? (
-          <img src={mediaUrl(heroUrl)} alt={s.studio_name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          <img src={mediaUrl(heroUrl)} alt={s.studio_name} fetchpriority="high" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.15, fontSize: 72 }}>🏛</div>
         )}

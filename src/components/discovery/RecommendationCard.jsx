@@ -140,6 +140,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
             <img
               src={mediaUrl(hero.url)}
               alt={rec.studio_name}
+              fetchpriority="high"
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               onError={mediaOnError(hero.url)}
             />
