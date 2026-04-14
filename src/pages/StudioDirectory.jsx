@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { discoveryAPI } from '../api/client';
 import { mediaUrl, mediaOnError } from '../utils/mediaUrl';
 import UserAvatar from '../components/UserAvatar';
+import qalaLogo from '../assets/qala-logo.png';
 // ─── Craft-specific CSS pattern backgrounds ────────────────────────────────
 const PATTERNS = {
   'pattern-block': {
@@ -707,7 +708,7 @@ export default function StudioDirectory() {
 
       {/* ── HEADER ──────────────────────────────────────────────────────── */}
       <div style={{
-        background: '#1A1612', padding: '64px 48px 48px',
+        background: '#1A1612', padding: '24px 48px 48px',
         position: 'relative', overflow: 'hidden',
       }}>
         {/* Decorative circles */}
@@ -721,6 +722,21 @@ export default function StudioDirectory() {
           width: 200, height: 200, borderRadius: '50%',
           background: 'rgba(201,168,76,0.08)', pointerEvents: 'none',
         }} />
+
+        {/* Logo + Avatar row */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          position: 'relative', zIndex: 1, marginBottom: 32,
+        }}>
+          <img src={qalaLogo} alt="Qala" className="qala-logo" onClick={() => nav('/')} style={{ filter: 'brightness(0) invert(1)', opacity: 0.9, cursor: 'pointer' }} />
+          <UserAvatar loginStyle={{
+            fontSize: 12, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.08em',
+            textTransform: 'uppercase', fontWeight: 500,
+            border: '1px solid rgba(255,255,255,0.2)', borderRadius: 6,
+            padding: '6px 14px', background: 'none',
+            cursor: 'pointer', fontFamily: 'var(--font-body)',
+          }} />
+        </div>
 
         {/* Breadcrumb */}
         <div style={{

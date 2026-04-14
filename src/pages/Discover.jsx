@@ -5,6 +5,7 @@ import ChipSelect from '../components/discovery/ChipSelect';
 import ImageGrid from '../components/discovery/ImageGrid';
 import qalaLogo from '../assets/qala-logo.png';
 import UserAvatar from '../components/UserAvatar';
+import QalaLoadingScreen from '../components/discovery/QalaLoadingScreen';
 
 
 // ── data ──────────────────────────────────────────────────────────────────────
@@ -212,9 +213,16 @@ export default function Discover() {
     return true;
   };
 
+  const [showLoading, setShowLoading] = useState(false);
+  const [dataReady,   setDataReady]   = useState(false);
+  const navDataRef        = useRef(null); // holds recommendations data for results page
+  const sessionTokenRef   = useRef(null); // holds session token for loading screen form save
+
   const handleSubmit = async () => {
     setSubmitting(true);
     setError('');
+    setShowLoading(true); // show loading screen immediately
+
     try {
       const existingToken = discoveryAPI.getStoredSession();
       const payload = {
@@ -224,19 +232,55 @@ export default function Discover() {
       };
       if (existingToken) payload.session_token = existingToken;
 
+      // Step 1 — submit readiness check
       const r = await discoveryAPI.submitReadinessCheck(payload);
-      discoveryAPI.saveSession(r.data.session_token);
-      nav('/discover/results');
+      const sessionToken = r.data.session_token;
+      discoveryAPI.saveSession(sessionToken);
+      sessionTokenRef.current = sessionToken;
+
+      // Step 2 — fetch recommendations immediately
+      const recRes = await discoveryAPI.getRecommendations(sessionToken);
+      const recData = recRes.data;
+
+      // Step 3 — preload hero images while user watches loading screen
+      const heroUrls = (recData.recommendations || [])
+        .map(rec => {
+          const hero = (rec.hero_images || []).find(i => i.media_type === 'hero') || rec.hero_images?.[0];
+          return hero?.url;
+        })
+        .filter(Boolean);
+      heroUrls.forEach(url => { const img = new window.Image(); img.src = url; });
+
+      // Store data for results page — no second API call needed
+      navDataRef.current = recData;
+
+      // Signal loading screen that data is ready
+      setDataReady(true);
+
     } catch (e) {
       setError(e.response?.data?.message || 'Something went wrong. Please try again.');
       setSubmitting(false);
+      setShowLoading(false);
     }
+  };
+
+  const handleLoadingDone = (redirect) => {
+    if (redirect) { nav(redirect); return; }
+    nav('/discover/results', { state: { data: navDataRef.current } });
   };
 
   const set = (key, val) => setAnswers(prev => ({ ...prev, [key]: val }));
 
   // ── layout ───────────────────────────────────────────────────────────────────
   return (
+    <>
+      {showLoading && (
+        <QalaLoadingScreen
+          dataReady={dataReady}
+          onDone={handleLoadingDone}
+          sessionToken={sessionTokenRef.current}
+        />
+      )}
     <div className="discover-root" style={{ height: '100vh', background: '#F8F5F1', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <style>{`
         @keyframes slideInFwd  { from{opacity:0;transform:translateX(40px)}  to{opacity:1;transform:none} }
@@ -442,6 +486,7 @@ export default function Discover() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 

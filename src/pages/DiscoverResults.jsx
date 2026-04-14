@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { discoveryAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import RecommendationCard from '../components/discovery/RecommendationCard';
@@ -369,6 +369,7 @@ function AestheticCard({ rec, onContact }) {
 // ─── Main page ──────────────────────────────────────────────────────────────
 export default function DiscoverResults() {
   const nav = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -391,6 +392,13 @@ export default function DiscoverResults() {
   const [inquiryError, setInquiryError] = useState('');
 
   const load = async () => {
+    // If data was passed from Discover loading screen — use it directly, skip API call
+    if (location.state?.data) {
+      setData(location.state.data);
+      setLoading(false);
+      return;
+    }
+    // Fallback — direct navigation or page refresh
     const tok = discoveryAPI.getStoredSession();
     if (!tok) { nav('/discover'); return; }
     try {
