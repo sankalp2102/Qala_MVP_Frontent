@@ -395,7 +395,7 @@ function FilterBar({ options, filters, setFilter, clearAll, totalVisible, hasAny
       {/* Desktop nav — hidden on mobile via CSS */}
       <nav className="filter-bar-nav" style={{
         background: 'var(--bg)', borderBottom: '1px solid var(--border)',
-        padding: '0 48px', position: 'sticky', top: 0, zIndex: 100,
+        padding: '0 48px', position: 'sticky', top: 58, zIndex: 100,
         display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0,
       }}>
         <FilterGroup
@@ -455,7 +455,7 @@ function FilterBar({ options, filters, setFilter, clearAll, totalVisible, hasAny
       {/* Mobile filter bar — hidden on desktop via CSS */}
       <div className="filter-mobile-bar" style={{
         background: 'var(--bg)', borderBottom: '1px solid var(--border)',
-        padding: '10px 16px', position: 'sticky', top: 0, zIndex: 100,
+        padding: '10px 16px', position: 'sticky', top: 58, zIndex: 100,
         alignItems: 'center', gap: 10,
         justifyContent: 'space-between',
       }}>
@@ -706,9 +706,23 @@ export default function StudioDirectory() {
         .filter-mobile-bar { display: none; }
       `}</style>
 
+      {/* ── LOGO BAR — sticky, always visible ───────────────────────────── */}
+      <div style={{
+        background: '#1A1612', borderBottom: '1px solid rgba(245,240,232,0.08)',
+        padding: '0 48px', height: 58, position: 'sticky', top: 0, zIndex: 101,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        flexShrink: 0,
+      }}>
+        <img src={qalaLogo} alt="Qala" className="qala-logo"
+          onClick={() => nav('/')}
+          style={{ filter: 'brightness(0) invert(1)', opacity: 0.9, cursor: 'pointer' }}
+        />
+        <UserAvatar hideWhenLoggedOut />
+      </div>
+
       {/* ── HEADER ──────────────────────────────────────────────────────── */}
       <div style={{
-        background: '#1A1612', padding: '24px 48px 48px',
+        background: '#1A1612', padding: '32px 48px 48px',
         position: 'relative', overflow: 'hidden',
       }}>
         {/* Decorative circles */}
@@ -722,21 +736,6 @@ export default function StudioDirectory() {
           width: 200, height: 200, borderRadius: '50%',
           background: 'rgba(201,168,76,0.08)', pointerEvents: 'none',
         }} />
-
-        {/* Logo + Avatar row */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          position: 'relative', zIndex: 1, marginBottom: 32,
-        }}>
-          <img src={qalaLogo} alt="Qala" className="qala-logo" onClick={() => nav('/')} style={{ filter: 'brightness(0) invert(1)', opacity: 0.9, cursor: 'pointer' }} />
-          <UserAvatar loginStyle={{
-            fontSize: 12, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.08em',
-            textTransform: 'uppercase', fontWeight: 500,
-            border: '1px solid rgba(255,255,255,0.2)', borderRadius: 6,
-            padding: '6px 14px', background: 'none',
-            cursor: 'pointer', fontFamily: 'var(--font-body)',
-          }} />
-        </div>
 
         {/* Breadcrumb */}
         <div style={{
