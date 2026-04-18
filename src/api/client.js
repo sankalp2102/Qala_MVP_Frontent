@@ -246,3 +246,35 @@ export const discoveryAPI = {
     return axios.get(`${BASE}/api/studios/directory/`, { params });
   },
 };
+
+// ─── CHAT API (V2 discovery) ──────────────────────────────────────────────────
+// Add this block at the very bottom of src/api/client.js
+// Nothing above it changes.
+
+export const chatAPI = {
+  // Start a new chat session (anonymous with access key, or logged-in user)
+  start: (accessKey = null) =>
+    axios.post(`${BASE}/api/discovery/chat/start/`,
+      accessKey ? { access_key: accessKey } : {},
+      { headers: { 'Content-Type': 'application/json' } }
+    ),
+
+  // Send a user message. image is plain base64 string (no data: prefix).
+  // selectedImageIds is an array of StudioMedia integer IDs.
+  sendMessage: (sessionId, message, image = null, selectedImageIds = null) =>
+    axios.post(`${BASE}/api/discovery/chat/message/`,
+      {
+        session_id: sessionId,
+        message,
+        ...(image             && { image }),
+        ...(selectedImageIds  && { selected_image_ids: selectedImageIds }),
+      },
+      { headers: { 'Content-Type': 'application/json' } }
+    ),
+
+  // Resume a session (page refresh)
+  getSession: (sessionId) =>
+    axios.get(`${BASE}/api/discovery/chat/session/`, {
+      params: { session_id: sessionId },
+    }),
+};

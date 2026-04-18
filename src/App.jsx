@@ -7,7 +7,7 @@ import Login from './pages/Login';
 import SellerDashboard from './pages/SellerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import BuyerDashboard from './pages/BuyerDashboard';
-import Discover from './pages/Discover';
+import DiscoverV2 from './pages/DiscoverV2';      // ← V2 chat interface
 import DiscoverResults from './pages/DiscoverResults';
 import StudioProfile from './pages/StudioProfile';
 import StudioDirectory from './pages/StudioDirectory';
@@ -47,8 +47,8 @@ function AppRoutes() {
     <Routes>
       <Route path="/"                 element={<Landing />} />
       <Route path="/login"            element={user ? <Navigate to={roleHome(user.role)} /> : <Login />} />
-      <Route path="/discover"         element={<Discover />} />
-      <Route path="/discover/results" element={<DiscoverResults />} />
+      <Route path="/discover"         element={<DiscoverV2 />} />        {/* V2 chat */}
+      <Route path="/discover/results" element={<DiscoverResults />} />   {/* V1 results — unchanged */}
       <Route path="/directory"        element={<StudioDirectory />} />
       <Route path="/studio/:id"       element={<StudioProfile />} />
       <Route path="/buyer/*"          element={<Guard role="customer"><BuyerDashboard /></Guard>} />
