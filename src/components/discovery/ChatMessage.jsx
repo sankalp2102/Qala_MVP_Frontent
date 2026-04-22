@@ -1,17 +1,23 @@
 // src/components/discovery/ChatMessage.jsx
 // Renders a single message bubble — AI (left) or user (right).
-// AI messages may contain inline images (InlineImageGrid) and a BriefCard.
+//
+// FIX: Image selection is now fully controlled.
+//   - selectedIds prop comes from DiscoverV2 (single source of truth)
+//   - onConfirm prop triggers message send from DiscoverV2
+//   Both are passed straight through to InlineImageGrid.
 
 import InlineImageGrid from './InlineImageGrid';
 import BriefCard from './BriefCard';
 
 export default function ChatMessage({
-  role,             // 'assistant' | 'user'
-  content,          // string
-  showImages,       // array of {id, url, studio_name} — only on AI messages
-  sessionToken,     // set when matching is complete
-  extracted,        // extracted fields for BriefCard
-  onImageSelect,    // callback(selectedIds)
+  role,
+  content,
+  showImages,       // [{id, url, studio_name}] — AI messages only
+  sessionToken,     // set when matching complete
+  extracted,        // for BriefCard
+  selectedIds,      // controlled selection state from DiscoverV2
+  onSelect,         // onSelect(ids) — user taps an image
+  onConfirm,        // onConfirm() — user clicks "These look great"
   attachedImage,    // base64 preview for user messages with image
 }) {
   const isAI   = role === 'assistant';
@@ -50,7 +56,7 @@ export default function ChatMessage({
       }}>
         {/* Attached image preview (user messages) */}
         {isUser && attachedImage && (
-          <div style={{ marginBottom: 8 }}>
+          <div style={{ marginBottom: content ? 8 : 0 }}>
             <img
               src={`data:image/jpeg;base64,${attachedImage}`}
               alt="Reference"
@@ -67,16 +73,18 @@ export default function ChatMessage({
           <span style={{ whiteSpace: 'pre-wrap' }}>{content}</span>
         )}
 
-        {/* Inline image grid (AI only, when images are returned) */}
+        {/* Inline image grid — controlled by parent */}
         {isAI && showImages?.length > 0 && (
           <InlineImageGrid
             images={showImages}
-            onSelect={onImageSelect}
+            selectedIds={selectedIds}
+            onSelect={onSelect}
+            onConfirm={onConfirm}
           />
         )}
       </div>
 
-      {/* Brief card below the bubble (AI only, when matching completes) */}
+      {/* Brief card — shown below bubble when matching completes */}
       {isAI && sessionToken && extracted && (
         <BriefCard
           extracted={extracted}

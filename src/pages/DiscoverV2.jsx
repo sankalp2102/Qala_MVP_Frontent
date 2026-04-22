@@ -117,7 +117,7 @@ export default function DiscoverV2() {
   // ── Send a message ─────────────────────────────────────────────────────
   async function sendMessage(text) {
     const trimmed = (text || input).trim();
-    if (!trimmed && !pendingImage) return;
+    if (!trimmed && !pendingImage && !pendingImageIds.length) return;
     if (!sessionId || sending) return;
 
     // Append user message locally immediately
@@ -190,6 +190,12 @@ export default function DiscoverV2() {
 
   function handleImageIdsSelected(ids) {
     setPendingImageIds(ids);
+  }
+
+  function handleConfirmImages() {
+    // User clicked "These look great" — send a message with selections attached
+    // sendMessage reads pendingImageIds from state automatically
+    sendMessage('These look great');
   }
 
   // ── Render: access key gate ────────────────────────────────────────────
@@ -349,7 +355,9 @@ export default function DiscoverV2() {
             showImages={msg.showImages}
             sessionToken={msg.sessionToken}
             extracted={msg.extracted || extracted}
-            onImageSelect={handleImageIdsSelected}
+            selectedIds={pendingImageIds}
+            onSelect={handleImageIdsSelected}
+            onConfirm={handleConfirmImages}
             attachedImage={msg.attachedImage}
           />
         ))}
