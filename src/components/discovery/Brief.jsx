@@ -4,7 +4,7 @@
 // Multi-piece briefs: tabs (Overview + one per piece).
 // Adapted from the Qala artifact — CTAs wire into real backend endpoints.
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { discoveryAPI, chatAPI } from '../../api/client';
 
 const RUST = '#C4563A';
@@ -73,7 +73,7 @@ function FieldRows({ fields }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMatchComplete }) {
+export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMatchComplete, highlightFindStudios }) {
   const [tab, setTab] = useState(0);
 
   const { overview, pieces } = parseBrief(rawText);
@@ -98,6 +98,16 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
   const [matching, setMatching]       = useState(false);
   const [matchError, setMatchError]   = useState('');
   const [loadingStep, setLoadingStep] = useState(0);
+  const [pulse, setPulse]             = useState(false);
+
+  // Parent can trigger a pulse by setting highlightFindStudios=true
+  useEffect(() => {
+    if (highlightFindStudios) {
+      setPulse(true);
+      const t = setTimeout(() => setPulse(false), 2000);
+      return () => clearTimeout(t);
+    }
+  }, [highlightFindStudios]);
 
   const LOADING_MESSAGES = [
     'Scanning studios…',
@@ -314,11 +324,14 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
             fontSize: 13, fontWeight: 500,
             cursor: matching ? 'not-allowed' : 'pointer',
             fontFamily: 'var(--font-body)',
-            transition: 'opacity 0.15s',
+            transition: 'opacity 0.15s, box-shadow 0.15s',
+            boxShadow: pulse ? '0 0 0 4px rgba(196,86,58,0.35), 0 0 0 8px rgba(196,86,58,0.15)' : 'none',
+            animation: pulse ? 'briefPulse 0.5s ease-in-out 3' : 'none',
           }}
           onMouseEnter={e => { if (!matching) e.currentTarget.style.opacity = '0.88'; }}
           onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
         >
+          <style>{`@keyframes briefPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.03)} }`}</style>
           Find Studios →
         </button>
         <button

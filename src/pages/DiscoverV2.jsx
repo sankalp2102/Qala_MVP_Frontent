@@ -31,7 +31,7 @@ function parseChips(text) {
 }
 
 export default function DiscoverV2() {
-  const { user }  = useAuth();
+  const { user, loginWithAccessKey } = useAuth();
   const navigate  = useNavigate();
   const bottomRef = useRef(null);
   const taRef     = useRef(null);
@@ -51,6 +51,7 @@ export default function DiscoverV2() {
   const [showPanel, setShowPanel]       = useState(false);
   const [chips, setChips]               = useState([]);
   const [splitView, setSplitView]       = useState(false);
+  const [highlightBrief, setHighlightBrief] = useState(false);
 
   // ── Scroll on new messages ────────────────────────────────────────────────
   useEffect(() => {
@@ -102,6 +103,13 @@ export default function DiscoverV2() {
       const id   = data.session?.session_id;
       setSessionId(id);
       sessionStorage.setItem(CHAT_SESSION_KEY, id);
+
+      // If the backend issued a signed token for this key owner, log them in
+      // directly — no SuperTokens flow needed.
+      if (data.access_token && data.user) {
+        loginWithAccessKey(data.access_token, data.user);
+      }
+
       const openingMsg = { role: 'assistant', content: data.message };
       setMessages([openingMsg]);
       setChips(data.quick_replies || parseChips(data.message));
@@ -118,6 +126,19 @@ export default function DiscoverV2() {
     const trimmed = (text || input).trim();
     if (!trimmed && !pendingImage) return;
     if (!sessionId || sending) return;
+
+    // Intercept brief-confirmation chips — don't send to Claude,
+    // just pulse the Find Studios button to guide the user.
+    const confirmPhrases = [
+      'this looks right', 'this sounds right', 'looks right',
+      'sounds right', 'looks good', 'that looks right',
+    ];
+    if (confirmPhrases.includes(trimmed.toLowerCase())) {
+      setHighlightBrief(true);
+      setTimeout(() => setHighlightBrief(false), 2500);
+      setChips([]);
+      return;
+    }
 
     const imgCopy  = pendingImage;
 
@@ -188,10 +209,39 @@ export default function DiscoverV2() {
     sendMessage(text || "I'd like to change something in the brief");
   }
 
-  function handleMatchComplete(token) {
+  async function handleMatchComplete(token) {
     setSessionToken(token);
     setPhase('matched');
     setSplitView(true);
+
+    // Fetch top 3 recs and add a summary message to the chat
+    try {
+      const res  = await discoveryAPI.getRecommendations(token);
+      const recs = (res.data?.recommendations || []).filter(r => !r.is_bonus_visual).slice(0, 3);
+      if (recs.length > 0) {
+        const lines = recs.map((r, i) => {
+          const why = r.match_reasoning?.product_match
+            ? r.match_reasoning.product_match.replace(/^Strong match for /i, 'Can make ')
+            : (r.what_best_at?.[0] || '');
+          const crafts  = (r.primary_crafts  || []).slice(0, 2).join(', ');
+          const fabrics = (r.primary_fabrics || []).slice(0, 2).join(', ');
+          const detail  = [why, crafts, fabrics].filter(Boolean).join(' · ');
+          return `**${i + 1}. ${r.studio_name}**${r.location ? ' — ' + r.location : ''}\n${detail}`;
+        });
+        const summaryMsg = {
+          role: 'assistant',
+          content:
+            'Here are your top matches — you can explore the full profiles on the right:\n\n' +
+            lines.join('\n\n') +
+            '\n\nWould you like help deciding between them, or are you happy to browse?',
+          hasBrief: false,
+        };
+        setMessages(prev => [...prev, summaryMsg]);
+        setChips(['Help me decide', 'I\'ll browse myself']);
+      }
+    } catch {
+      // Non-fatal — studios panel still shows on the right
+    }
   }
 
   // ── ACCESS KEY GATE ───────────────────────────────────────────────────────
@@ -206,12 +256,14 @@ export default function DiscoverV2() {
           background: 'var(--surface)',
           border: '1px solid var(--border)',
           borderRadius: 16, padding: '40px 36px',
-          width: '100%', maxWidth: 400,
+          width: '100%', maxWidth: 420,
           boxShadow: 'var(--shadow-lg)',
         }}>
+          {/* Logo */}
           <div style={{ marginBottom: 28, textAlign: 'center' }}>
             <img src={qalaLogo} alt="Qala" style={{ height: 22, width: 'auto' }} />
           </div>
+
           <h1 style={{
             fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 500,
             color: 'var(--text)', marginBottom: 8, textAlign: 'center',
@@ -220,17 +272,19 @@ export default function DiscoverV2() {
           </h1>
           <p style={{
             fontSize: 13, color: 'var(--text3)', lineHeight: 1.6,
-            textAlign: 'center', marginBottom: 24,
+            textAlign: 'center', marginBottom: 28,
           }}>
             Tell us what you want to make and we'll match you with the right craft studio.
           </p>
+
+          {/* Key input */}
           <div style={{ marginBottom: 14 }}>
             <input
               type="text"
               value={accessKey}
               onChange={e => { setAccessKey(e.target.value); setKeyError(''); }}
-              onKeyDown={e => e.key === 'Enter' && startSession(accessKey)}
-              placeholder="Enter your access key"
+              onKeyDown={e => e.key === 'Enter' && accessKey.trim() && startSession(accessKey)}
+              placeholder="Enter your access key  —  QALA-XXXX-XXXX"
               autoFocus
               style={{
                 width: '100%', padding: '11px 14px',
@@ -238,16 +292,17 @@ export default function DiscoverV2() {
                 borderRadius: 8, background: 'var(--surface)',
                 fontSize: 14, color: 'var(--text)',
                 fontFamily: 'var(--font-body)', outline: 'none',
-                boxSizing: 'border-box',
-                transition: 'border-color 0.18s',
+                boxSizing: 'border-box', transition: 'border-color 0.18s',
+                letterSpacing: '0.04em',
               }}
-              onFocus={e => { e.currentTarget.style.borderColor = 'var(--gold)'; }}
-              onBlur={e => { e.currentTarget.style.borderColor = keyError ? 'var(--red)' : 'var(--border)'; }}
+              onFocus={e  => { e.currentTarget.style.borderColor = 'var(--gold)'; }}
+              onBlur={e   => { e.currentTarget.style.borderColor = keyError ? 'var(--red)' : 'var(--border)'; }}
             />
             {keyError && (
               <p style={{ fontSize: 12, color: 'var(--red)', marginTop: 5 }}>{keyError}</p>
             )}
           </div>
+
           <button
             onClick={() => startSession(accessKey)}
             disabled={!accessKey.trim() || starting}
@@ -264,9 +319,38 @@ export default function DiscoverV2() {
             onMouseEnter={e => { if (!starting && accessKey.trim()) e.currentTarget.style.background = '#C46E49'; }}
             onMouseLeave={e => { e.currentTarget.style.background = '#1A1612'; }}
           >
-            {starting ? 'Starting…' : 'Start →'}
+            {starting ? 'Starting…' : 'Continue →'}
           </button>
-          <p style={{ fontSize: 11, color: 'var(--text4)', textAlign: 'center', marginTop: 14 }}>
+
+          {/* Divider */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            margin: '20px 0',
+          }}>
+            <div style={{ flex: 1, height: '0.5px', background: 'var(--border)' }} />
+            <span style={{ fontSize: 11, color: 'var(--text4)' }}>or</span>
+            <div style={{ flex: 1, height: '0.5px', background: 'var(--border)' }} />
+          </div>
+
+          {/* Login path */}
+          <button
+            onClick={() => navigate('/login?redirect=/discover')}
+            style={{
+              width: '100%', padding: '12px',
+              borderRadius: 8,
+              border: '1px solid var(--border)',
+              background: 'transparent', color: 'var(--text)',
+              fontSize: 14, fontWeight: 500,
+              cursor: 'pointer', fontFamily: 'var(--font-body)',
+              transition: 'background 0.18s, border-color 0.18s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface2)'; e.currentTarget.style.borderColor = 'var(--border2)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+          >
+            Log in to your account
+          </button>
+
+          <p style={{ fontSize: 11, color: 'var(--text4)', textAlign: 'center', marginTop: 18 }}>
             Don't have a key?{' '}
             <a href="mailto:hello@qala.studio" style={{ color: 'var(--text3)' }}>Contact us</a>
           </p>
@@ -404,6 +488,7 @@ export default function DiscoverV2() {
                 onMatchComplete={handleMatchComplete}
                 attachedImage={msg.attachedImage}
                 attachedMime={msg.attachedMime}
+                highlightBrief={msg.hasBrief ? highlightBrief : false}
               />
             ))}
 

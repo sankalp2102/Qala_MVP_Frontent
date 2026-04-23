@@ -62,6 +62,7 @@ export default function ChatMessage({
   attachedImage,
   attachedMime,
   onMatchComplete,
+  highlightBrief,
 }) {
   const isAI   = role === 'assistant';
   const isUser = role === 'user';
@@ -113,6 +114,7 @@ export default function ChatMessage({
           sessionId={sessionId}
           onAdjust={onAdjust}
           onMatchComplete={onMatchComplete}
+          highlightFindStudios={highlightBrief}
         />
       )}
     </div>

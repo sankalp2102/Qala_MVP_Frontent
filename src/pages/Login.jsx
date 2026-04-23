@@ -21,7 +21,9 @@ export default function Login() {
     try {
       if (tab === 'signin') {
         const user = await login(email, pass);
-        if (user.role === 'admin') nav('/admin');
+        const redirect = new URLSearchParams(location.search).get('redirect');
+        if (redirect) nav(redirect);
+        else if (user.role === 'admin') nav('/admin');
         else if (user.role === 'seller') nav('/dashboard');
         else nav('/buyer');
       } else {

@@ -47,11 +47,29 @@ export function AuthProvider({ children }) {
     return me.data;
   };
 
+  // Log in via a Django-signed access-key token (no SuperTokens session).
+  // Called by DiscoverV2 after a valid access key is accepted by the backend.
+  const loginWithAccessKey = (token, userData) => {
+    localStorage.setItem('qala_token', token);
+    // Store token type so the interceptor sends the right Authorization header
+    localStorage.setItem('qala_token_type', 'access_key');
+    setUser(userData);
+  };
+
   const logout = async () => {
-    try { await authAPI.signout(); } catch {}
+    const tokenType = localStorage.getItem('qala_token_type');
+    // Only call SuperTokens signout if this was a SuperTokens session
+    if (tokenType !== 'access_key') {
+      try { await authAPI.signout(); } catch {}
+    }
     localStorage.removeItem('qala_token');
+    localStorage.removeItem('qala_token_type');
     setUser(null);
   };
 
-  return <Ctx.Provider value={{ user, setUser, login, logout, loading }}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={{ user, setUser, login, loginWithAccessKey, logout, loading }}>
+      {children}
+    </Ctx.Provider>
+  );
 }

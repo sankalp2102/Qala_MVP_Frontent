@@ -11,10 +11,17 @@ function onRefreshDone(newToken) {
   refreshQueue = [];
 }
 
-// ── Request interceptor: attach Bearer token + rid header ──
+// ── Request interceptor: attach auth token + rid header ──
+// SuperTokens sessions  → Authorization: Bearer <token>
+// Access-key sessions   → Authorization: AccessKey <token>
 api.interceptors.request.use(cfg => {
-  const token = localStorage.getItem('qala_token');
-  if (token) cfg.headers.authorization = `Bearer ${token}`;
+  const token     = localStorage.getItem('qala_token');
+  const tokenType = localStorage.getItem('qala_token_type');
+  if (token) {
+    cfg.headers.authorization = tokenType === 'access_key'
+      ? `AccessKey ${token}`
+      : `Bearer ${token}`;
+  }
   cfg.headers['rid'] = cfg.headers['rid'] || 'session';
   return cfg;
 });
