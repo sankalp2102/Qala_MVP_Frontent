@@ -1,94 +1,118 @@
 // src/components/discovery/ChatMessage.jsx
-// Renders a single message bubble — AI (left) or user (right).
-//
-// FIX: Image selection is now fully controlled.
-//   - selectedIds prop comes from DiscoverV2 (single source of truth)
-//   - onConfirm prop triggers message send from DiscoverV2
-//   Both are passed straight through to InlineImageGrid.
+// Single message bubble matching artifact UI exactly:
+//   - No role labels above bubbles
+//   - Both sides: subtle background + 0.5px border
+//   - User bubble: right-aligned, slightly darker bg
+//   - AI bubble: left-aligned, lighter bg
+//   - Image attached: shows inline INSIDE the bubble, above the text
+//   - Brief card renders below AI bubble when has_brief is true
+//   - No studio image dumps — pure conversation UI
 
-import InlineImageGrid from './InlineImageGrid';
-import BriefCard from './BriefCard';
+import Brief from './Brief';
+
+// ── Text renderer — supports **bold** markdown ────────────────────────────────
+function renderText(text, isUser) {
+  if (!text) return null;
+  // Strip [CHIPS: ...] from rendered text — chips are shown separately
+  const clean = text.replace(/\[CHIPS:[^\]]*\]/g, '').trim();
+  if (!clean) return null;
+
+  return clean.split('\n').filter(l => l.trim()).map((line, i) => {
+    const parts = line.split(/\*\*([^*]+)\*\*/g);
+    return (
+      <p key={i} style={{
+        margin: i === 0 ? 0 : '5px 0 0',
+        fontSize: 14,
+        lineHeight: 1.65,
+        color: isUser ? '#F5F0E8' : 'var(--text)',
+        fontFamily: 'var(--font-body)',
+      }}>
+        {parts.map((p, j) =>
+          j % 2 === 1
+            ? <strong key={j} style={{ fontWeight: 500 }}>{p}</strong>
+            : p
+        )}
+      </p>
+    );
+  });
+}
+
+// ── Strip BRIEF_START...BRIEF_END from the visible text ───────────────────────
+function stripBrief(text) {
+  if (!text) return text;
+  return text.replace(/BRIEF_START[\s\S]*?BRIEF_END/g, '').trim();
+}
+
+// ── Extract raw brief text ────────────────────────────────────────────────────
+function extractBrief(text) {
+  if (!text) return null;
+  const m = text.match(/BRIEF_START([\s\S]*?)BRIEF_END/);
+  return m ? m[1].trim() : null;
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function ChatMessage({
   role,
   content,
-  showImages,       // [{id, url, studio_name}] — AI messages only
-  sessionToken,     // set when matching complete
-  extracted,        // for BriefCard
-  selectedIds,      // controlled selection state from DiscoverV2
-  onSelect,         // onSelect(ids) — user taps an image
-  onConfirm,        // onConfirm() — user clicks "These look great"
-  attachedImage,    // base64 preview for user messages with image
+  hasBrief,
+  sessionToken,
+  sessionId,
+  onAdjust,
+  attachedImage,
+  attachedMime,
+  onMatchComplete,
 }) {
   const isAI   = role === 'assistant';
   const isUser = role === 'user';
+
+  const briefRaw   = hasBrief ? extractBrief(content) : null;
+  const visibleText = hasBrief ? stripBrief(content) : content;
 
   return (
     <div style={{
       display: 'flex',
       flexDirection: 'column',
       alignItems: isAI ? 'flex-start' : 'flex-end',
-      gap: 4,
+      marginBottom: 14,
     }}>
-      {/* Role label */}
-      <div style={{
-        fontSize: 10, fontWeight: 600, letterSpacing: '0.08em',
-        textTransform: 'uppercase',
-        color: isAI ? 'var(--text3)' : 'var(--text4)',
-        paddingLeft: isAI ? 4 : 0,
-        paddingRight: isAI ? 0 : 4,
-      }}>
-        {isAI ? 'Qala' : 'You'}
-      </div>
+      {/* Image attached — shown above text inside bubble for user messages */}
+      {isUser && attachedImage && (
+        <img
+          src={`data:${attachedMime || 'image/jpeg'};base64,${attachedImage}`}
+          alt="Reference"
+          style={{
+            maxWidth: 180,
+            borderRadius: 10,
+            marginBottom: 6,
+            border: '0.5px solid var(--border)',
+            display: 'block',
+          }}
+        />
+      )}
 
       {/* Bubble */}
-      <div style={{
-        maxWidth: '82%',
-        padding: '12px 16px',
-        borderRadius: isAI ? '4px 16px 16px 16px' : '16px 4px 16px 16px',
-        background: isAI ? 'var(--surface)' : '#1A1612',
-        color: isAI ? 'var(--text)' : '#F5F0E8',
-        border: isAI ? '1px solid var(--border)' : 'none',
-        fontSize: 14,
-        lineHeight: 1.6,
-        fontFamily: 'var(--font-body)',
-        boxShadow: 'var(--shadow)',
-      }}>
-        {/* Attached image preview (user messages) */}
-        {isUser && attachedImage && (
-          <div style={{ marginBottom: content ? 8 : 0 }}>
-            <img
-              src={`data:image/jpeg;base64,${attachedImage}`}
-              alt="Reference"
-              style={{
-                maxWidth: '100%', maxHeight: 160,
-                borderRadius: 8, display: 'block',
-              }}
-            />
-          </div>
-        )}
+      {visibleText && (
+        <div style={{
+          maxWidth: '84%',
+          padding: '9px 13px',
+          borderRadius: isAI ? '3px 14px 14px 14px' : '14px 14px 3px 14px',
+          background: isUser ? '#1A1612' : 'var(--surface2)',
+          border: '0.5px solid var(--border)',
+          boxSizing: 'border-box',
+        }}>
+          {renderText(visibleText, isUser)}
+        </div>
+      )}
 
-        {/* Message text */}
-        {content && (
-          <span style={{ whiteSpace: 'pre-wrap' }}>{content}</span>
-        )}
-
-        {/* Inline image grid — controlled by parent */}
-        {isAI && showImages?.length > 0 && (
-          <InlineImageGrid
-            images={showImages}
-            selectedIds={selectedIds}
-            onSelect={onSelect}
-            onConfirm={onConfirm}
-          />
-        )}
-      </div>
-
-      {/* Brief card — shown below bubble when matching completes */}
-      {isAI && sessionToken && extracted && (
-        <BriefCard
-          extracted={extracted}
+      {/* Brief card — below AI bubble */}
+      {isAI && briefRaw && (
+        <Brief
+          rawText={briefRaw}
           sessionToken={sessionToken}
+          sessionId={sessionId}
+          onAdjust={onAdjust}
+          onMatchComplete={onMatchComplete}
         />
       )}
     </div>

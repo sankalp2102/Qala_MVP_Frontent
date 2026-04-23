@@ -247,9 +247,9 @@ export const discoveryAPI = {
   },
 };
 
-// ─── CHAT API (V2 discovery) ──────────────────────────────────────────────────
-// Add this block at the very bottom of src/api/client.js
-// Nothing above it changes.
+// ── ADD THIS to src/api/client.js ─────────────────────────────────────────────
+// Paste the entire chatAPI block below at the bottom of client.js,
+// replacing the existing chatAPI export if one exists.
 
 export const chatAPI = {
   // Start a new chat session (anonymous with access key, or logged-in user)
@@ -259,8 +259,9 @@ export const chatAPI = {
       { headers: { 'Content-Type': 'application/json' } }
     ),
 
-  // Send a user message. image is plain base64 string (no data: prefix).
-  // selectedImageIds is an array of StudioMedia integer IDs.
+  // Send a user message
+  // image: plain base64 string (no data: prefix)
+  // selectedImageIds: array of StudioMedia integer IDs
   sendMessage: (sessionId, message, image = null, selectedImageIds = null) =>
     axios.post(`${BASE}/api/discovery/chat/message/`,
       {
@@ -277,4 +278,13 @@ export const chatAPI = {
     axios.get(`${BASE}/api/discovery/chat/session/`, {
       params: { session_id: sessionId },
     }),
+
+  // Trigger studio matching after user confirms the brief.
+  // Uses session.extracted (built up from conversation) to run the matching engine.
+  // Returns { session_token, matched, studios_count }
+  match: (sessionId) =>
+    axios.post(`${BASE}/api/discovery/chat/match/`,
+      { session_id: sessionId },
+      { headers: { 'Content-Type': 'application/json' } }
+    ),
 };
