@@ -17,11 +17,19 @@ function renderText(text, isUser) {
   const clean = text.replace(/\[CHIPS:[^\]]*\]/g, '').trim();
   if (!clean) return null;
 
-  return clean.split('\n').filter(l => l.trim()).map((line, i) => {
+  return clean.split('\n').map((line, i) => {
+    // Render --- as a visual divider
+    if (line.trim() === '---' || line.trim() === '———') {
+      return <hr key={i} style={{ border: 'none', borderTop: '0.5px solid var(--border)', margin: '6px 0' }} />;
+    }
+    // Empty lines become small spacers
+    if (!line.trim()) {
+      return <div key={i} style={{ height: 4 }} />;
+    }
     const parts = line.split(/\*\*([^*]+)\*\*/g);
     return (
       <p key={i} style={{
-        margin: i === 0 ? 0 : '5px 0 0',
+        margin: 0,
         fontSize: 14,
         lineHeight: 1.65,
         color: isUser ? '#F5F0E8' : 'var(--text)',
@@ -29,7 +37,7 @@ function renderText(text, isUser) {
       }}>
         {parts.map((p, j) =>
           j % 2 === 1
-            ? <strong key={j} style={{ fontWeight: 500 }}>{p}</strong>
+            ? <strong key={j} style={{ fontWeight: 600 }}>{p}</strong>
             : p
         )}
       </p>

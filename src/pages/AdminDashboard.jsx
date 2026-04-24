@@ -2468,6 +2468,208 @@ function AccessKeys() {
 }
 
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CONTACTS PAGE
+// ─────────────────────────────────────────────────────────────────────────────
+function Contacts() {
+  const { error } = useToast();
+  const [contacts, setContacts] = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [copied, setCopied]     = useState({});
+  const [search, setSearch]     = useState('');
+
+  useEffect(() => {
+    adminAPI.listContacts()
+      .then(r => setContacts(r.data.contacts || []))
+      .catch(() => error('Failed to load contacts'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  function copyEmail(email, id) {
+    navigator.clipboard.writeText(email).then(() => {
+      setCopied(p => ({ ...p, [id]: true }));
+      setTimeout(() => setCopied(p => ({ ...p, [id]: false })), 2000);
+    });
+  }
+
+  function exportCSV() {
+    const headers = ['Name', 'Email', 'Phone', 'Brand', 'Country', 'Stage', 'Key', 'Date'];
+    const rows = filtered.map(c => [
+      c.contact_name || '',
+      c.contact_email || '',
+      c.contact_phone || '',
+      c.contact_brand || '',
+      c.contact_country || '',
+      c.stage || '',
+      c.key_code || '',
+      new Date(c.created_at).toLocaleDateString(),
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+    a.download = `qala-contacts-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  }
+
+  const filtered = contacts.filter(c => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      (c.contact_name  || '').toLowerCase().includes(q) ||
+      (c.contact_email || '').toLowerCase().includes(q) ||
+      (c.contact_brand || '').toLowerCase().includes(q) ||
+      (c.contact_country || '').toLowerCase().includes(q)
+    );
+  });
+
+  return (
+    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '32px 24px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
+            Contacts
+          </h2>
+          <p style={{ fontSize: 13, color: 'var(--text3)' }}>
+            Buyers who filled in their details before finding studios.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search name, email, brand…"
+            style={{
+              padding: '8px 12px', borderRadius: 8,
+              border: '1px solid var(--border)', background: 'var(--surface2)',
+              fontSize: 13, color: 'var(--text)', fontFamily: 'var(--font-body)',
+              outline: 'none', width: 220,
+            }}
+          />
+          <button
+            onClick={exportCSV}
+            disabled={filtered.length === 0}
+            style={{
+              padding: '8px 16px', borderRadius: 8,
+              border: '1px solid var(--border)', background: 'var(--surface2)',
+              fontSize: 13, color: 'var(--text)', cursor: filtered.length === 0 ? 'not-allowed' : 'pointer',
+              fontFamily: 'var(--font-body)', opacity: filtered.length === 0 ? 0.4 : 1,
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => { if (filtered.length) e.currentTarget.style.background = 'var(--surface3)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface2)'; }}
+          >
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+        {[
+          { label: 'Total contacts', value: contacts.length },
+          { label: 'Reached matching', value: contacts.filter(c => c.stage === 'matched').length },
+          { label: 'Showing today', value: filtered.length },
+        ].map(s => (
+          <div key={s.label} style={{
+            flex: 1, padding: '12px 16px',
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            borderRadius: 10,
+          }}>
+            <div style={{ fontSize: 22, fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-display)' }}>
+              {s.value}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Table */}
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><Spinner /></div>
+      ) : filtered.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text3)', fontSize: 14 }}>
+          {contacts.length === 0 ? 'No contacts yet.' : 'No results for that search.'}
+        </div>
+      ) : (
+        <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+          {/* Header row */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '160px 200px 120px 150px 90px 80px 100px 36px',
+            padding: '10px 16px', background: 'var(--surface2)',
+            borderBottom: '1px solid var(--border)',
+            fontSize: 11, fontWeight: 600, color: 'var(--text3)',
+            letterSpacing: '0.06em', textTransform: 'uppercase',
+          }}>
+            <span>Name</span>
+            <span>Email</span>
+            <span>Phone</span>
+            <span>Brand</span>
+            <span>Country</span>
+            <span>Stage</span>
+            <span>Date</span>
+            <span></span>
+          </div>
+          {filtered.map((ct, i) => {
+            const date = new Date(ct.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+            return (
+              <div key={ct.session_id} style={{
+                display: 'grid',
+                gridTemplateColumns: '160px 200px 120px 150px 90px 80px 100px 36px',
+                padding: '11px 16px', alignItems: 'center',
+                background: 'var(--surface)',
+                borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none',
+              }}>
+                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {ct.contact_name || '—'}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {ct.contact_email}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {ct.contact_phone || '—'}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {ct.contact_brand || '—'}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+                  {ct.contact_country || '—'}
+                </span>
+                <span style={{
+                  fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10,
+                  background: ct.stage === 'matched' ? 'rgba(90,210,120,0.1)' : 'var(--surface3)',
+                  color: ct.stage === 'matched' ? '#3a9e5a' : 'var(--text3)',
+                  textTransform: 'capitalize', display: 'inline-block', whiteSpace: 'nowrap',
+                }}>
+                  {ct.stage}
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--text4)' }}>{date}</span>
+                <button
+                  onClick={() => copyEmail(ct.contact_email, ct.session_id)}
+                  title="Copy email"
+                  style={{
+                    width: 28, height: 28, borderRadius: 6,
+                    border: '1px solid var(--border)', background: 'var(--surface2)',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: copied[ct.session_id] ? '#3a9e5a' : 'var(--text3)',
+                    fontSize: 11, fontFamily: 'var(--font-body)',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {copied[ct.session_id] ? '✓' : '⧉'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
   const navItems = [
     { to: '/admin',                              icon: '', label: 'Overview',         end: true },
     { to: '/admin/review',                       icon: '', label: 'Review Profile'              },
@@ -2477,6 +2679,7 @@ function AccessKeys() {
     { to: '/admin/discovery/studio-inquiries',   icon: '', label: 'Studio Inquiries'            },
     { to: '/admin/studio-descriptions',          icon: '', label: 'Studio Descriptions'         },
     { to: '/admin/access-keys',                  icon: '', label: 'Access Keys'                  },
+    { to: '/admin/contacts',                     icon: '', label: 'Contacts'                     },
   ];
   return (
     <DashLayout nav={navItems}>
@@ -2491,6 +2694,7 @@ function AccessKeys() {
         <Route path="discovery/:buyerId"             element={<DiscoveryBuyerDetail />}   />
         <Route path="studio-descriptions"             element={<StudioDescriptions />}     />
         <Route path="access-keys"                     element={<AccessKeys />}             />
+        <Route path="contacts"                         element={<Contacts />}              />
       </Routes>
     </DashLayout>
   );

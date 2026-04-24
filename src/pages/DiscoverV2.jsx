@@ -65,6 +65,7 @@ export default function DiscoverV2() {
   const [showPanel, setShowPanel]       = useState(false);
   const [chips, setChips]               = useState([]);
   const [splitView, setSplitView]       = useState(false);
+  const [chatOpen, setChatOpen]         = useState(false); // mobile chat drawer
   const [highlightBrief, setHighlightBrief] = useState(false);
   const [keyUsedEmail, setKeyUsedEmail]       = useState(null); // set when anon key accepted
 
@@ -164,7 +165,12 @@ export default function DiscoverV2() {
       const data = res.data;
       setSessionId(id);
       setMessages((data.messages || []).map(m => ({
-        role: m.role, content: m.content,
+        role:     m.role,
+        content:  m.content,
+        // Restore hasBrief by detecting BRIEF_START in the stored content
+        hasBrief: typeof m.content === 'string' &&
+                  m.content.includes('BRIEF_START') &&
+                  m.content.includes('BRIEF_END'),
       })));
       setExtracted(data.extracted || {});
       if (data.session_token) {
@@ -310,11 +316,24 @@ export default function DiscoverV2() {
     setPhase('matched');
     setSplitView(true);
 
-    // Fetch top 3 recs and add a summary message to the chat
+    // Small delay so the split-view animation completes before chat updates
+    await new Promise(r => setTimeout(r, 500));
+
     try {
       const res  = await discoveryAPI.getRecommendations(token);
       const recs = (res.data?.recommendations || []).filter(r => !r.is_bonus_visual).slice(0, 3);
+
       if (recs.length > 0) {
+        // Preload hero images in background (non-blocking)
+        recs.forEach(r => {
+          const url = r.hero_images?.[0]?.url;
+          if (url) {
+            const img = new Image();
+            img.src = url.startsWith('http') ? url
+              : `${import.meta.env.VITE_API_URL || 'https://api.qala.studio'}${url}`;
+          }
+        });
+
         const lines = recs.map((r, i) => {
           const why = r.match_reasoning?.product_match
             ? r.match_reasoning.product_match.replace(/^Strong match for /i, 'Can make ')
@@ -322,18 +341,21 @@ export default function DiscoverV2() {
           const crafts  = (r.primary_crafts  || []).slice(0, 2).join(', ');
           const fabrics = (r.primary_fabrics || []).slice(0, 2).join(', ');
           const detail  = [why, crafts, fabrics].filter(Boolean).join(' · ');
-          return `**${i + 1}. ${r.studio_name}**${r.location ? ' — ' + r.location : ''}\n${detail}`;
+          const loc = r.location ? ` — ${r.location}` : '';
+          return `**${i + 1}. ${r.studio_name}${loc}**\n${detail}`;
         });
+
         const summaryMsg = {
           role: 'assistant',
           content:
-            'Here are your top matches — you can explore the full profiles on the right:\n\n' +
-            lines.join('\n\n') +
-            '\n\nWould you like help deciding between them, or are you happy to browse?',
+            'Here are your top 3 matches — browse full profiles on the right:' +
+            '\n\n———' +
+            lines.map(l => '\n\n' + l).join('\n\n———') +
+            '\n\n———\n\nWould you like help deciding between them, or are you happy to browse?',
           hasBrief: false,
         };
         setMessages(prev => [...prev, summaryMsg]);
-        setChips(['Help me decide', 'I\'ll browse myself']);
+        setChips(['Help me decide', "I'll browse myself"]);
       }
     } catch {
       // Non-fatal — studios panel still shows on the right
@@ -531,8 +553,9 @@ export default function DiscoverV2() {
         textarea::-webkit-scrollbar { display: none; }
         @media (max-width: 767px) {
           .split-root { flex-direction: column !important; }
-          .chat-col   { width: 100% !important; flex: none !important; height: 55vh !important; }
-          .studios-col { width: 100% !important; flex: none !important; height: 45vh !important; border-left: none !important; border-top: 0.5px solid var(--border) !important; }
+          /* On mobile in split view: studios take full screen, chat is a drawer */
+          .chat-col-mobile-hidden { display: none !important; }
+          .studios-col { width: 100% !important; flex: 1 !important; border-left: none !important; }
         }
       `}</style>
 
@@ -754,7 +777,7 @@ export default function DiscoverV2() {
         </div>
       </div>
 
-      {/* ── Studios column — only shown in split view ── */}
+      {/* ── Studios column — desktop: 60% right column, mobile: full screen ── */}
       {splitView && sessionToken && (
         <div
           className="studios-col"
@@ -779,6 +802,141 @@ export default function DiscoverV2() {
             inline
           />
         </div>
+      )}
+
+      {/* ── Mobile: floating chat bubble + bottom drawer ── */}
+      {splitView && sessionToken && (
+        <>
+          {/* Floating chat bubble — bottom right */}
+          <button
+            onClick={() => setChatOpen(o => !o)}
+            className="mobile-chat-fab"
+            style={{
+              display: 'none', // shown via media query below
+              position: 'fixed', bottom: 20, right: 20,
+              width: 52, height: 52, borderRadius: '50%',
+              background: '#1A1612', border: 'none',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+              cursor: 'pointer', zIndex: 300,
+              alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5F0E8" strokeWidth="1.8" strokeLinecap="round">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+            </svg>
+            <style>{`
+              @media (max-width: 767px) {
+                .mobile-chat-fab { display: flex !important; }
+                .chat-col { display: none !important; }
+              }
+            `}</style>
+          </button>
+
+          {/* Bottom drawer — slides up from bottom on mobile */}
+          {chatOpen && (
+            <>
+              <div
+                onClick={() => setChatOpen(false)}
+                style={{
+                  display: 'none',
+                  position: 'fixed', inset: 0,
+                  background: 'rgba(0,0,0,0.4)', zIndex: 301,
+                }}
+                className="mobile-drawer-backdrop"
+              />
+              <div
+                className="mobile-chat-drawer"
+                style={{
+                  display: 'none',
+                  position: 'fixed', bottom: 0, left: 0, right: 0,
+                  height: '72vh',
+                  background: 'var(--bg)',
+                  borderRadius: '16px 16px 0 0',
+                  zIndex: 302,
+                  flexDirection: 'column',
+                  overflow: 'hidden',
+                  animation: 'drawerUp 0.28s cubic-bezier(0.4,0,0.2,1)',
+                  boxShadow: '0 -8px 40px rgba(0,0,0,0.2)',
+                }}
+              >
+                <style>{`
+                  @keyframes drawerUp {
+                    from { transform: translateY(100%); }
+                    to   { transform: translateY(0); }
+                  }
+                  @media (max-width: 767px) {
+                    .mobile-drawer-backdrop { display: block !important; }
+                    .mobile-chat-drawer     { display: flex !important; }
+                  }
+                `}</style>
+
+                {/* Drawer handle */}
+                <div style={{ padding: '10px 0 4px', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border2)' }} />
+                </div>
+
+                {/* Reuse the chat column content inline */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 80px' }}>
+                  <div style={{ maxWidth: 600, margin: '0 auto', padding: '8px 16px' }}>
+                    {messages.map((msg, i) => (
+                      <ChatMessage
+                        key={i}
+                        role={msg.role}
+                        content={msg.content}
+                        hasBrief={msg.hasBrief}
+                        sessionToken={sessionToken}
+                        sessionId={sessionId}
+                        onAdjust={handleAdjust}
+                        onMatchComplete={handleMatchComplete}
+                        attachedImages={msg.attachedImages}
+                        highlightBrief={msg.hasBrief ? highlightBrief : false}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Input bar inside drawer */}
+                <div style={{
+                  padding: '8px 12px 16px',
+                  borderTop: '0.5px solid var(--border)',
+                  display: 'flex', gap: 8, alignItems: 'flex-end',
+                  background: 'var(--surface)', flexShrink: 0,
+                }}>
+                  <textarea
+                    value={input}
+                    onChange={e => { setInput(e.target.value); e.target.style.height='auto'; e.target.style.height=Math.min(e.target.scrollHeight,80)+'px'; }}
+                    onKeyDown={handleKey}
+                    placeholder="Ask something…"
+                    rows={1}
+                    disabled={sending}
+                    style={{
+                      flex: 1, resize: 'none', padding: '8px 12px',
+                      borderRadius: 8, border: '0.5px solid var(--border2)',
+                      background: 'var(--surface2)', fontSize: 14,
+                      color: 'var(--text)', fontFamily: 'var(--font-body)',
+                      maxHeight: 80, outline: 'none',
+                    }}
+                  />
+                  <button
+                    onClick={() => sendMessage()}
+                    disabled={sending || !input.trim()}
+                    style={{
+                      padding: '8px 14px', borderRadius: 8,
+                      border: '0.5px solid var(--border2)',
+                      background: 'var(--surface2)', fontSize: 13,
+                      color: 'var(--text)', cursor: sending || !input.trim() ? 'not-allowed' : 'pointer',
+                      opacity: sending || !input.trim() ? 0.35 : 1,
+                      fontFamily: 'var(--font-body)', flexShrink: 0,
+                    }}
+                  >
+                    Send
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </>
       )}
 
       {/* Legacy overlay panel (kept for any other showPanel triggers) */}

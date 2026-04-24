@@ -200,6 +200,8 @@ export const adminAPI = {
   listAccessKeys:    ()  => api.get('/api/admin/chat/access-keys/'),
   generateAccessKeys: d  => api.post('/api/admin/chat/access-keys/', d),
   updateAccessKey:   (id, d) => api.patch(`/api/admin/chat/access-keys/${id}/`, d),
+  // Contacts
+  listContacts: () => api.get('/api/admin/chat/contacts/'),
 };
 
 // ─── BUYER API ─────────────────────────────────────────────────────────────────
@@ -316,6 +318,12 @@ export const chatAPI = {
   match: (sessionId) =>
     axios.post(`${BASE}/api/discovery/chat/match/`,
       { session_id: sessionId },
+      { headers: { 'Content-Type': 'application/json' } }
+    ),
+
+  saveContact: (sessionId, data) =>
+    axios.post(`${BASE}/api/discovery/chat/contact/`,
+      { session_id: sessionId, ...data },
       { headers: { 'Content-Type': 'application/json' } }
     ),
 };

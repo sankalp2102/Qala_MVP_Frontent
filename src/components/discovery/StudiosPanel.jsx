@@ -2,12 +2,89 @@
 // Used in two modes:
 //   inline=false (default): slides in from right as a fixed overlay panel
 //   inline=true: renders as a normal flex column (used in 40:60 split layout)
+//
+// Changes vs previous version:
+//   - Removed "Show All Results" button from both modes (no longer links to /discover/results)
+//   - Added mandatory DirectoryCard at the end of the inline studio list
+//   - DirectoryCard also appears as the last snap item on mobile scroll feed
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { discoveryAPI } from '../../api/client';
 import RecommendationCard from './RecommendationCard';
 import { Spinner } from '../Spinner';
+
+// ── Directory CTA card ────────────────────────────────────────────────────────
+// Identical style to the DirectoryCTACard on the DiscoverResults page.
+// Always rendered last in the studio list. Navigates to /directory.
+
+function DirectoryCard({ navigate }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        borderColor: hovered ? 'var(--border3)' : 'var(--border)',
+        borderRadius: 16,
+        overflow: 'hidden',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        textAlign: 'center',
+        padding: '48px 28px',
+        transition: 'border-color 0.2s',
+        // Mobile snap
+        scrollSnapAlign: 'start',
+      }}
+    >
+      <div style={{
+        fontSize: 10, color: 'var(--text4)',
+        letterSpacing: '0.14em', textTransform: 'uppercase',
+        fontWeight: 600, marginBottom: 10,
+      }}>
+        Want to explore more?
+      </div>
+
+      <h3 style={{
+        fontFamily: 'var(--font-display)',
+        fontSize: 'clamp(20px, 2.5vw, 28px)',
+        fontWeight: 300, color: 'var(--text)',
+        lineHeight: 1.2, marginBottom: 10,
+        letterSpacing: '-0.01em',
+      }}>
+        Browse the full{' '}
+        <em style={{ fontStyle: 'italic', color: 'var(--gold)' }}>Studio Directory</em>
+      </h3>
+
+      <p style={{
+        fontSize: 13, color: 'var(--text3)',
+        lineHeight: 1.7, maxWidth: 280, marginBottom: 24,
+      }}>
+        Explore every studio on Qala — filter by craft, fabric, and product type at your own pace.
+      </p>
+
+      <button
+        onClick={() => navigate('/directory')}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          padding: '12px 28px', borderRadius: 8,
+          background: '#1A1612', color: '#F5F0E8',
+          border: 'none', fontSize: 13, fontWeight: 500,
+          fontFamily: 'var(--font-body)', letterSpacing: '0.04em',
+          cursor: 'pointer', transition: 'background 0.18s ease',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = '#C46E49'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = '#1A1612'; }}
+      >
+        Browse all studios →
+      </button>
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inline = false }) {
   const [recs, setRecs]       = useState([]);
@@ -34,12 +111,7 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
     navigate(`/studio/${rec.seller_profile_id}`);
   }
 
-  function handleViewAll() {
-    discoveryAPI.saveSession(sessionToken);
-    navigate('/discover/results');
-  }
-
-  // ── Inline mode — plain column, no fixed overlay ─────────────────────────
+  // ── Inline mode ───────────────────────────────────────────────────────────
   if (inline) {
     return (
       <div style={{
@@ -70,7 +142,6 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
               </div>
             )}
           </div>
-          {/* Close / collapse back to full chat */}
           {onClose && (
             <button
               onClick={onClose}
@@ -94,7 +165,7 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
         </div>
 
         {/* Scrollable cards */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 14px 90px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '14px 14px 24px' }}>
           {loading && <Spinner full />}
 
           {error && (
@@ -116,47 +187,41 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
             </div>
           )}
 
-          {!loading && recs.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {recs.slice(0, 5).map((rec, i) => (
-                <RecommendationCard
-                  key={rec.id || i}
-                  rec={rec}
-                  position={i + 1}
-                  isBonus={rec.is_bonus_visual}
-                  onContact={handleContact}
-                  buyerSummary={buyerSummary}
-                />
-              ))}
-            </div>
+          {!loading && (
+            <>
+              <style>{`
+                @media (max-width: 767px) {
+                  .studios-feed {
+                    scroll-snap-type: y mandatory;
+                    overflow-y: scroll;
+                    height: 100vh;
+                    gap: 0 !important;
+                  }
+                  .studios-feed > * {
+                    scroll-snap-align: start;
+                    min-height: 85vh;
+                    border-bottom: 1px solid var(--border);
+                  }
+                }
+              `}</style>
+              <div className="studios-feed" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {/* Matched studio cards */}
+                {recs.slice(0, 5).map((rec, i) => (
+                  <RecommendationCard
+                    key={rec.id || i}
+                    rec={rec}
+                    position={i + 1}
+                    isBonus={rec.is_bonus_visual}
+                    onContact={handleContact}
+                    buyerSummary={buyerSummary}
+                  />
+                ))}
+                {/* Mandatory directory card — always last */}
+                <DirectoryCard navigate={navigate} />
+              </div>
+            </>
           )}
         </div>
-
-        {/* Footer CTA */}
-        {!loading && recs.length > 0 && (
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0,
-            padding: '12px 14px',
-            background: 'linear-gradient(transparent, var(--bg) 30%)',
-          }}>
-            <button
-              onClick={handleViewAll}
-              style={{
-                width: '100%', padding: '13px',
-                borderRadius: 10, background: '#1A1612',
-                color: '#F5F0E8', border: 'none',
-                fontSize: 13, fontWeight: 600,
-                letterSpacing: '0.06em', textTransform: 'uppercase',
-                cursor: 'pointer', fontFamily: 'var(--font-body)',
-                transition: 'background 0.18s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#C46E49'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#1A1612'; }}
-            >
-              Show All Results →
-            </button>
-          </div>
-        )}
       </div>
     );
   }
@@ -234,7 +299,7 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
         </div>
 
         {/* Content */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 80px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 24px' }}>
           {loading && <Spinner full />}
 
           {error && (
@@ -256,7 +321,7 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
             </div>
           )}
 
-          {!loading && recs.length > 0 && (
+          {!loading && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {recs.map((rec, i) => (
                 <RecommendationCard
@@ -268,35 +333,11 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
                   buyerSummary={buyerSummary}
                 />
               ))}
+              {/* Mandatory directory card */}
+              <DirectoryCard navigate={navigate} />
             </div>
           )}
         </div>
-
-        {/* Footer CTA */}
-        {!loading && recs.length > 0 && (
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0,
-            padding: '16px',
-            background: 'linear-gradient(transparent, var(--bg) 30%)',
-          }}>
-            <button
-              onClick={handleViewAll}
-              style={{
-                width: '100%', padding: '14px',
-                borderRadius: 10, background: '#1A1612',
-                color: '#F5F0E8', border: 'none',
-                fontSize: 13, fontWeight: 600,
-                letterSpacing: '0.06em', textTransform: 'uppercase',
-                cursor: 'pointer', fontFamily: 'var(--font-body)',
-                transition: 'background 0.18s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#C46E49'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#1A1612'; }}
-            >
-              View Full Results →
-            </button>
-          </div>
-        )}
       </div>
     </>
   );
