@@ -31,11 +31,11 @@ const LANDING_FIRST_MIME = 'qala_landing_first_mime';
 const ACCENT = '#7A8C6E';
 
 const GARMENTS = [
-  { key: 'g1', src: g1, hideInPhase2: false, style: { top: '4vh',    left: '4vw',  width: 'clamp(140px,18vw,240px)', transform: 'rotate(-6deg)' } },
-  { key: 'g2', src: g2, hideInPhase2: true,  style: { top: '3vh',    left: '50%',  width: 'clamp(80px,9vw,130px)',   transform: 'translateX(-50%) rotate(4deg)' } },
-  { key: 'g3', src: g3, hideInPhase2: false, style: { top: '3vh',    right: '3vw', width: 'clamp(130px,16vw,210px)', transform: 'rotate(3deg)' } },
-  { key: 'g4', src: g4, hideInPhase2: false, style: { bottom: '4vh', left: '2vw',  width: 'clamp(120px,15vw,200px)', transform: 'rotate(5deg)' } },
-  { key: 'g5', src: g5, hideInPhase2: false, style: { bottom: '3vh', right: '2vw', width: 'clamp(110px,13vw,180px)', transform: 'rotate(-4deg)' } },
+  { key: 'g1', src: g1, hideInPhase2: false, style: { top: '3vh',    left: '2vw',  width: 'clamp(180px,22vw,300px)', transform: 'rotate(-6deg)' } },
+  { key: 'g2', src: g2, hideInPhase2: true,  style: { top: '2vh',    left: '50%',  width: 'clamp(100px,11vw,160px)', transform: 'translateX(-50%) rotate(4deg)' } },
+  { key: 'g3', src: g3, hideInPhase2: false, style: { top: '2vh',    right: '2vw', width: 'clamp(170px,20vw,270px)', transform: 'rotate(3deg)' } },
+  { key: 'g4', src: g4, hideInPhase2: false, style: { bottom: '3vh', left: '1vw',  width: 'clamp(160px,19vw,260px)', transform: 'rotate(5deg)' } },
+  { key: 'g5', src: g5, hideInPhase2: false, style: { bottom: '2vh', right: '1vw', width: 'clamp(150px,17vw,240px)', transform: 'rotate(-4deg)' } },
 ];
 
 export default function Landing() {
@@ -181,9 +181,10 @@ export default function Landing() {
       {/* Centre card */}
       <div style={{
         position: 'relative', zIndex: 1,
-        width: '100%', maxWidth: 440,
+        width: '100%', maxWidth: phase === 'message' ? 720 : 440,
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         padding: '0 20px',
+        transition: 'max-width 0.3s ease',
         ...fadeIn,
       }}>
 
@@ -197,7 +198,7 @@ export default function Landing() {
               textAlign: 'center', lineHeight: 1.22,
               marginBottom: 28, letterSpacing: '-0.01em',
             }}>
-              The Custom Manufacturing<br />Platform for Brands &amp; Retailers
+              The Custom Manufacturing Platform<br />for Brands &amp; Retailers
             </h1>
 
             <div style={{
@@ -275,9 +276,10 @@ export default function Landing() {
           <>
             <h1 style={{
               fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(24px,4vw,36px)',
+              fontSize: 'clamp(18px,2.6vw,28px)',
               fontWeight: 400, color: '#1A1612',
               textAlign: 'center', lineHeight: 1.22,
+              whiteSpace: 'nowrap',
               marginBottom: 12, letterSpacing: '-0.01em',
             }}>
               Tell Us What You&rsquo;re Looking For
@@ -286,7 +288,7 @@ export default function Landing() {
             <p style={{
               fontSize: 13.5, color: 'rgba(26,22,18,0.52)',
               textAlign: 'center', lineHeight: 1.68,
-              marginBottom: 26, maxWidth: 400,
+              marginBottom: 26, maxWidth: 560,
             }}>
               Share your ideas with us. We&rsquo;ll help you shape them into a clear brief and introduce
               you to the craft studios best suited to bring your vision to life.
@@ -301,7 +303,7 @@ export default function Landing() {
               boxShadow: '0 2px 20px rgba(26,22,18,0.05)',
             }}>
               {/* Rust accent line */}
-              <div style={{ width:28, height:3, background:'#C4563A', borderRadius:2, marginBottom:12 }} />
+              <div style={{ width:28, height:3, background:'#7A8C6E', borderRadius:2, marginBottom:12 }} />
 
               {pendingImg && (
                 <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>

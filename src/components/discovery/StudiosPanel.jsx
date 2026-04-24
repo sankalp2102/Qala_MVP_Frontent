@@ -75,7 +75,7 @@ function DirectoryCard({ navigate }) {
           fontFamily: 'var(--font-body)', letterSpacing: '0.04em',
           cursor: 'pointer', transition: 'background 0.18s ease',
         }}
-        onMouseEnter={e => { e.currentTarget.style.background = '#C46E49'; }}
+        onMouseEnter={e => { e.currentTarget.style.background = '#8FA083'; }}
         onMouseLeave={e => { e.currentTarget.style.background = '#1A1612'; }}
       >
         Browse all studios →

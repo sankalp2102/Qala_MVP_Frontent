@@ -473,7 +473,7 @@ export default function DiscoverV2() {
               opacity: !accessKey.trim() || starting ? 0.5 : 1,
               transition: 'background 0.18s, opacity 0.18s',
             }}
-            onMouseEnter={e => { if (!starting && accessKey.trim()) e.currentTarget.style.background = '#C46E49'; }}
+            onMouseEnter={e => { if (!starting && accessKey.trim()) e.currentTarget.style.background = '#8FA083'; }}
             onMouseLeave={e => { e.currentTarget.style.background = '#1A1612'; }}
           >
             {starting ? 'Starting…' : 'Continue →'}
@@ -597,9 +597,9 @@ export default function DiscoverV2() {
               style={{
                 padding: '7px 14px',
                 borderRadius: 8,
-                border: '0.5px solid #C4563A',
+                border: '0.5px solid #7A8C6E',
                 background: 'rgba(196,86,58,0.07)',
-                color: '#C4563A',
+                color: '#7A8C6E',
                 fontSize: 12, fontWeight: 500,
                 cursor: 'pointer',
                 fontFamily: 'var(--font-body)',

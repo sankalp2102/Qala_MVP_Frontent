@@ -341,9 +341,9 @@ function FilterGroup({ label, options, pinned = [], activeValues, isAll, onAll, 
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 4,
               padding: '5px 12px', borderRadius: 100, border: '1.5px solid',
-              borderColor: expanded || hasHiddenActive ? '#C46E49' : 'rgba(26,22,18,0.15)',
-              background: expanded ? 'rgba(196,110,73,0.08)' : 'transparent',
-              color: expanded || hasHiddenActive ? '#C46E49' : 'var(--text3)',
+              borderColor: expanded || hasHiddenActive ? '#8FA083' : 'rgba(26,22,18,0.15)',
+              background: expanded ? 'rgba(122,140,110,0.08)' : 'transparent',
+              color: expanded || hasHiddenActive ? '#8FA083' : 'var(--text3)',
               fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 500,
               cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.18s',
             }}
@@ -769,7 +769,7 @@ export default function StudioDirectory() {
           lineHeight: 1.1, position: 'relative', zIndex: 1, maxWidth: 560,
           marginBottom: 20,
         }}>
-          Craft Studios <em style={{ fontStyle: 'italic', color: '#E8997A' }}>— Directory</em>
+          Craft Studios <em style={{ fontStyle: 'italic', color: '#A3B898' }}>— Directory</em>
         </h1>
 
         {/* Studio count */}

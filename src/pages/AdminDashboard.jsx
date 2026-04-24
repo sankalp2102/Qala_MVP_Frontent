@@ -197,7 +197,7 @@ function Overview() {
             style={{
               display:'flex', alignItems:'center', gap:8,
               padding:'10px 20px', borderRadius:8, fontSize:13, fontWeight:600,
-              background: downloading ? 'var(--border)' : '#C46E49',
+              background: downloading ? 'var(--border)' : '#8FA083',
               color: downloading ? 'var(--text3)' : '#fff',
               border:'none', cursor: downloading ? 'not-allowed' : 'pointer',
               fontFamily:'var(--font-body)', transition:'all 0.2s', flexShrink:0,
@@ -1144,8 +1144,8 @@ function ProfileReview() {
                     disabled={downloading}
                     style={{
                       padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:600,
-                      background:'transparent', color:'#C46E49',
-                      border:'1px solid #C46E49', cursor:'pointer',
+                      background:'transparent', color:'#8FA083',
+                      border:'1px solid #8FA083', cursor:'pointer',
                       fontFamily:'var(--font-body)', transition:'all 0.2s',
                     }}
                   >
@@ -2012,7 +2012,7 @@ function StudioDescriptions() {
                       fontFamily: 'var(--font-body)', transition: 'background 0.18s',
                       display: 'flex', alignItems: 'center', gap: 6,
                     }}
-                    onMouseEnter={e => { if (!isSaving) e.currentTarget.style.background = '#C46E49'; }}
+                    onMouseEnter={e => { if (!isSaving) e.currentTarget.style.background = '#8FA083'; }}
                     onMouseLeave={e => { if (!isSaving) e.currentTarget.style.background = '#1A1612'; }}
                   >
                     {isSaving ? 'Saving…' : 'Save'}
@@ -2139,7 +2139,7 @@ function AccessKeys() {
             fontFamily: 'var(--font-body)', whiteSpace: 'nowrap',
             transition: 'background 0.15s',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = '#C4563A'; }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#7A8C6E'; }}
           onMouseLeave={e => { e.currentTarget.style.background = '#1A1612'; }}
         >
           + Generate Keys

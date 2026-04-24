@@ -262,7 +262,7 @@ function Tag({ children, gold }) {
       display: 'inline-block',
       padding: '4px 12px', borderRadius: 20,
       background: gold ? 'var(--gold-dim)' : 'var(--surface2)',
-      border: `1px solid ${gold ? 'rgba(196,110,73,0.3)' : 'var(--border)'}`,
+      border: `1px solid ${gold ? 'rgba(122,140,110,0.3)' : 'var(--border)'}`,
       color: gold ? 'var(--gold)' : 'var(--text2)',
       fontSize: 12, fontWeight: gold ? 600 : 400,
     }}>{children}</span>
@@ -379,7 +379,7 @@ function BrandCard({ brand }) {
         fontSize: 80,
         fontWeight: 700,
         lineHeight: 1,
-        color: showImage ? 'rgba(255,255,255,0.07)' : 'rgba(184,92,56,0.1)',
+        color: showImage ? 'rgba(255,255,255,0.07)' : 'rgba(122,140,110,0.1)',
         pointerEvents: 'none',
         userSelect: 'none',
         letterSpacing: '-0.04em',
@@ -683,9 +683,9 @@ function CraftCarousel({ crafts }) {
               style={{
                 flexShrink: 0,
                 padding: '6px 14px', borderRadius: 100,
-                border: `1.5px solid ${active === i ? '#C46E49' : 'var(--border)'}`,
-                background: active === i ? 'rgba(196,110,73,0.08)' : 'transparent',
-                color: active === i ? '#C46E49' : 'var(--text3)',
+                border: `1.5px solid ${active === i ? '#8FA083' : 'var(--border)'}`,
+                background: active === i ? 'rgba(122,140,110,0.08)' : 'transparent',
+                color: active === i ? '#8FA083' : 'var(--text3)',
                 fontFamily: 'var(--font-body)', fontSize: 12,
                 fontWeight: active === i ? 600 : 400,
                 cursor: 'pointer', whiteSpace: 'nowrap',
@@ -1228,8 +1228,8 @@ export default function StudioProfile() {
         {/* ── RIGHT COLUMN — Sticky sidebar ── */}
         <div className="studio-sidebar" style={{ position: 'sticky', top: 80, display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
 
-          {/* Contact card */}
-          <div style={{
+          {/* Contact card — hidden for now */}
+          {false && <div style={{
             background: 'var(--surface)', border: '1px solid var(--border)',
             borderRadius: 16, padding: '28px 24px',
             boxShadow: 'var(--shadow-gold)',
@@ -1282,7 +1282,7 @@ export default function StudioProfile() {
                 </button>
               </>
             )}
-          </div>
+          </div>}
 
           {/* Studio quick facts */}
           <div style={{

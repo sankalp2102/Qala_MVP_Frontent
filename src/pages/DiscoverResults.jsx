@@ -174,7 +174,7 @@ function DatePicker({ selectedDates, setSelectedDates }) {
                   onClick={() => !isPast && handleDayClick(day)}
                   style={{
                     width: '100%', aspectRatio: '1', borderRadius: 6, border: 'none',
-                    background: isSelected ? '#C46E49' : 'transparent',
+                    background: isSelected ? '#8FA083' : 'transparent',
                     color: isPast ? 'var(--text4)' : isSelected ? '#fff' : 'var(--text)',
                     cursor: isPast ? 'default' : 'pointer',
                     fontSize: 13, fontFamily: 'var(--font-body)',
@@ -232,7 +232,7 @@ function InquiryForm({ name, setName, email, setEmail, selectedDates, setSelecte
           fontFamily: 'var(--font-body)', transition: 'background 0.18s ease',
           display: 'flex', alignItems: 'center', gap: 8,
         }}
-          onMouseEnter={e => { if (!submitting) e.target.style.background = '#C46E49'; }}
+          onMouseEnter={e => { if (!submitting) e.target.style.background = '#8FA083'; }}
           onMouseLeave={e => { if (!submitting) e.target.style.background = '#1A1612'; }}
         >
           {submitting && <span className="spinner" style={{ width: 14, height: 14, borderColor: 'var(--surface4)', borderTopColor: '#555' }} />}
@@ -277,7 +277,7 @@ function DirectoryCTACard({ onNavigate }) {
         background: '#1A1612', color: '#F5F0E8', border: 'none', fontSize: 13, fontWeight: 500,
         fontFamily: 'var(--font-body)', letterSpacing: '0.04em', cursor: 'pointer', transition: 'background 0.18s ease',
       }}
-        onMouseEnter={e => e.currentTarget.style.background = '#C46E49'}
+        onMouseEnter={e => e.currentTarget.style.background = '#8FA083'}
         onMouseLeave={e => e.currentTarget.style.background = '#1A1612'}
       >Browse all studios →</button>
     </div>
@@ -504,10 +504,10 @@ export default function DiscoverResults() {
         @keyframes spin   { to { transform: rotate(360deg) } }
         .fade-in { animation: fadeUp 0.5s ease both; }
         .sugg-chip:hover { border-color: rgba(196,110,73,0.5) !important; background: rgba(196,110,73,0.05) !important; }
-        .help-btn:hover { background: #C46E49 !important; }
+        .help-btn:hover { background: #8FA083 !important; }
         .carousel-arrow:hover:not(:disabled) { background: rgba(26,22,18,0.06) !important; border-color: var(--border3) !important; }
         .carousel-scroll::-webkit-scrollbar { display: none; }
-        .pencil-btn:hover { color: #C46E49 !important; }
+        .pencil-btn:hover { color: #8FA083 !important; }
         .help-fab { display: none; }
         @media (max-width: 600px) {
           .help-btn-header { display: none !important; }
@@ -596,7 +596,7 @@ export default function DiscoverResults() {
               letterSpacing: '0.03em', cursor: 'pointer', transition: 'background 0.2s',
               whiteSpace: 'nowrap',
             }}
-              onMouseEnter={e => e.currentTarget.style.background = '#C46E49'}
+              onMouseEnter={e => e.currentTarget.style.background = '#8FA083'}
               onMouseLeave={e => e.currentTarget.style.background = '#1A1612'}
             >
               Show All Studios →
@@ -704,7 +704,7 @@ export default function DiscoverResults() {
                       textDecoration: 'underline', textUnderlineOffset: 3,
                       fontFamily: 'var(--font-body)', transition: 'color 0.2s',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.color = '#B85C38'}
+                    onMouseEnter={e => e.currentTarget.style.color = '#7A8C6E'}
                     onMouseLeave={e => e.currentTarget.style.color = 'var(--text3)'}
                   >
                     Browse all studios →
@@ -720,7 +720,7 @@ export default function DiscoverResults() {
                       disabled={applying === s.change_type}
                       style={{
                         width: '100%', padding: '24px', borderRadius: 12,
-                        border: '2px solid #E8997A', background: 'var(--surface)',
+                        border: '2px solid #A3B898', background: 'var(--surface)',
                         cursor: applying === s.change_type ? 'default' : 'pointer',
                         textAlign: 'left', fontFamily: 'var(--font-body)',
                         transition: 'all 0.3s ease', position: 'relative',
@@ -728,13 +728,13 @@ export default function DiscoverResults() {
                       }}
                       onMouseEnter={e => {
                         if (applying !== s.change_type) {
-                          e.currentTarget.style.borderColor = '#B85C38';
+                          e.currentTarget.style.borderColor = '#7A8C6E';
                           e.currentTarget.style.transform = 'translateX(8px)';
                           e.currentTarget.style.boxShadow = '-8px 8px 24px rgba(184,92,56,0.15)';
                         }
                       }}
                       onMouseLeave={e => {
-                        e.currentTarget.style.borderColor = '#E8997A';
+                        e.currentTarget.style.borderColor = '#A3B898';
                         e.currentTarget.style.transform = 'none';
                         e.currentTarget.style.boxShadow = 'none';
                       }}
@@ -742,14 +742,14 @@ export default function DiscoverResults() {
                       {/* Top row: badge + arrow */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                         <span style={{
-                          background: 'rgba(184,92,56,0.1)', color: '#B85C38',
+                          background: 'rgba(122,140,110,0.1)', color: '#7A8C6E',
                           padding: '4px 10px', borderRadius: 100,
                           fontSize: 11, fontWeight: 500, textTransform: 'uppercase',
                           letterSpacing: '0.08em',
                         }}>
                           {i === 0 ? 'Best Match' : 'Option'}
                         </span>
-                        <span style={{ color: '#B85C38', fontSize: 20 }}>
+                        <span style={{ color: '#7A8C6E', fontSize: 20 }}>
                           {applying === s.change_type
                             ? <span className="spinner" style={{ width: 14, height: 14 }} />
                             : '→'
@@ -1009,7 +1009,7 @@ export default function DiscoverResults() {
                 border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 500,
                 cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'background 0.2s', letterSpacing: '0.03em',
               }}
-                onMouseEnter={e => e.currentTarget.style.background = '#C46E49'}
+                onMouseEnter={e => e.currentTarget.style.background = '#8FA083'}
                 onMouseLeave={e => e.currentTarget.style.background = '#1A1612'}
               ><CalendarIcon /> Send a custom requirement →</button>
             )}

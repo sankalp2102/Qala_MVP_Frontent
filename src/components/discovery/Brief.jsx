@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { discoveryAPI, chatAPI } from '../../api/client';
 
-const RUST = '#C4563A';
+const SAGE = '#7A8C6E';
 
 function parseFields(text) {
   return text
@@ -203,8 +203,8 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
           {tabs.map((t, i) => (
             <button key={i} onClick={() => setTab(i)} style={{
               padding: '10px 15px', fontSize: 12, whiteSpace: 'nowrap',
-              border: 'none', borderBottom: `2px solid ${tab === i ? RUST : 'transparent'}`,
-              background: 'none', color: tab === i ? RUST : 'var(--text3)',
+              border: 'none', borderBottom: `2px solid ${tab === i ? SAGE : 'transparent'}`,
+              background: 'none', color: tab === i ? SAGE : 'var(--text3)',
               cursor: 'pointer', fontFamily: 'var(--font-body)',
               fontWeight: tab === i ? 500 : 400, transition: 'color 0.15s',
             }}>
@@ -232,7 +232,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
           `}</style>
           <div style={{
             width: 36, height: 36,
-            border: '2px solid rgba(255,255,255,0.1)', borderTopColor: RUST,
+            border: '2px solid rgba(255,255,255,0.1)', borderTopColor: SAGE,
             borderRadius: '50%', animation: 'briefSpin 0.9s linear infinite',
           }} />
           <p style={{
@@ -246,7 +246,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
             {LOADING_MESSAGES.map((_, i) => (
               <div key={i} style={{
                 width: 5, height: 5, borderRadius: '50%',
-                background: i === loadingStep ? RUST : 'rgba(255,255,255,0.15)',
+                background: i === loadingStep ? SAGE : 'rgba(255,255,255,0.15)',
                 transition: 'background 0.3s',
               }} />
             ))}
@@ -274,7 +274,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
           disabled={matching}
           style={{
             flex: 1, padding: '11px', borderRadius: 8, border: 'none',
-            background: RUST, color: '#fff', fontSize: 13, fontWeight: 500,
+            background: SAGE, color: '#fff', fontSize: 13, fontWeight: 500,
             cursor: matching ? 'not-allowed' : 'pointer',
             fontFamily: 'var(--font-body)',
             transition: 'opacity 0.15s, box-shadow 0.15s',
@@ -351,7 +351,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
                   fontSize: 11, fontWeight: 600, color: 'var(--text3)',
                   display: 'block', marginBottom: 4, letterSpacing: '0.04em',
                 }}>
-                  {label}{required && <span style={{ color: RUST, marginLeft: 2 }}>*</span>}
+                  {label}{required && <span style={{ color: SAGE, marginLeft: 2 }}>*</span>}
                 </label>
                 <input
                   type={key === 'email' ? 'email' : key === 'phone' ? 'tel' : 'text'}
@@ -366,7 +366,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
                     fontFamily: 'var(--font-body)', outline: 'none',
                     transition: 'border-color 0.15s',
                   }}
-                  onFocus={e  => { e.target.style.borderColor = RUST; }}
+                  onFocus={e  => { e.target.style.borderColor = SAGE; }}
                   onBlur={e   => { e.target.style.borderColor = contactErr[key] ? '#C94040' : 'var(--border)'; }}
                 />
                 {contactErr[key] && (
@@ -395,7 +395,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
                 disabled={savingContact}
                 style={{
                   flex: 2, padding: '10px', borderRadius: 8,
-                  border: 'none', background: RUST, color: '#fff',
+                  border: 'none', background: SAGE, color: '#fff',
                   fontSize: 13, fontWeight: 500,
                   cursor: savingContact ? 'not-allowed' : 'pointer',
                   fontFamily: 'var(--font-body)',
