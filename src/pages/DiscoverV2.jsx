@@ -19,9 +19,13 @@ import { chatAPI } from '../api/client';
 import ChatMessage from '../components/discovery/ChatMessage';
 import ImageUpload from '../components/discovery/ImageUpload';
 import StudiosPanel from '../components/discovery/StudiosPanel';
-import qalaLogo from '../assets/qala-logo.png';
+import qalaLogo   from '../assets/qala-logo.png';
+import UserAvatar from '../components/UserAvatar';
 
-const CHAT_SESSION_KEY = 'qala_chat_session_id';
+const CHAT_SESSION_KEY   = 'qala_chat_session_id';
+const LANDING_FIRST_MSG  = 'qala_landing_first_msg';
+const LANDING_FIRST_IMG  = 'qala_landing_first_img';
+const LANDING_FIRST_MIME = 'qala_landing_first_mime';
 
 // ── Chip parser — reads [CHIPS: A | B | C] from Claude text ─────────────────
 function parseChips(text) {
@@ -31,19 +35,29 @@ function parseChips(text) {
 }
 
 export default function DiscoverV2() {
-  const { user, loginWithAccessKey } = useAuth();
+  const { user, loginWithAccessKey, loading: authLoading } = useAuth();
   const navigate  = useNavigate();
   const bottomRef = useRef(null);
   const taRef     = useRef(null);
 
   // ── State ─────────────────────────────────────────────────────────────────
-  const [phase, setPhase]               = useState('gate');
+  // Determine initial phase synchronously — never flash the gate for users
+  // who are already authenticated or coming from the landing page.
+  const hasLandingMsg = !!(sessionStorage.getItem(LANDING_FIRST_MSG) || sessionStorage.getItem(LANDING_FIRST_IMG));
+  const hasLandingSession = !!sessionStorage.getItem(CHAT_SESSION_KEY);
+  function _initPhase() {
+    if (hasLandingMsg)                       return 'loading';
+    if (hasLandingSession)                   return 'loading';
+    if (localStorage.getItem('qala_token'))  return 'loading';
+    return 'gate';
+  }
+  const [phase, setPhase] = useState(_initPhase);
   const [accessKey, setAccessKey]       = useState('');
   const [keyError, setKeyError]         = useState('');
   const [sessionId, setSessionId]       = useState(null);
   const [messages, setMessages]         = useState([]);
   const [input, setInput]               = useState('');
-  const [pendingImage, setPendingImage] = useState(null);   // {data: base64, mime}
+  const [pendingImages, setPendingImages] = useState([]);   // [{data: base64, mime, name}]
   const [sending, setSending]           = useState(false);
   const [starting, setStarting]         = useState(false);
   const [sessionToken, setSessionToken] = useState(null);
@@ -52,20 +66,93 @@ export default function DiscoverV2() {
   const [chips, setChips]               = useState([]);
   const [splitView, setSplitView]       = useState(false);
   const [highlightBrief, setHighlightBrief] = useState(false);
+  const [keyUsedEmail, setKeyUsedEmail]       = useState(null); // set when anon key accepted
 
   // ── Scroll on new messages ────────────────────────────────────────────────
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, sending]);
 
-  // ── Auto-start for logged-in users ────────────────────────────────────────
+  // ── Auth resolved — decide what to do ──────────────────────────────────────
+  // Runs once when AuthContext finishes loading (authLoading flips false).
+  // Uses a ref to ensure it only acts once, preventing double-fire from
+  // user state updates (e.g. loginWithAccessKey enriching the profile).
+  const authHandledRef = useRef(false);
   useEffect(() => {
-    if (user) startSession(null);
-  }, [user]);
+    if (authLoading) return;                  // still loading — wait
+    if (authHandledRef.current) return;       // already handled — don't re-run
+    if (hasLandingMsg || hasLandingSession) return; // landing flow handles it
+
+    authHandledRef.current = true;
+
+    if (user) {
+      sessionStorage.removeItem(CHAT_SESSION_KEY); // clear stale session
+      startSession(null);
+    } else {
+      setPhase('gate');
+    }
+  }, [authLoading, user]);
+
+  // ── Consume first message pre-loaded from Landing page ───────────────────
+  // Landing.jsx saves the session_id + first message to sessionStorage before
+  // navigating here. On mount we pick it up, skip the gate, and send it so
+  // the chat opens already mid-conversation.
+  useEffect(() => {
+    const firstMsg  = sessionStorage.getItem(LANDING_FIRST_MSG);
+    const firstImg  = sessionStorage.getItem(LANDING_FIRST_IMG);
+    const firstMime = sessionStorage.getItem(LANDING_FIRST_MIME);
+    const savedId   = sessionStorage.getItem(CHAT_SESSION_KEY);
+
+    if (!firstMsg && !firstImg) return;  // nothing pre-loaded
+
+    // Clear from storage immediately so it doesn't re-fire on refresh
+    sessionStorage.removeItem(LANDING_FIRST_MSG);
+    sessionStorage.removeItem(LANDING_FIRST_IMG);
+    sessionStorage.removeItem(LANDING_FIRST_MIME);
+
+    if (!savedId) return;
+
+    // Session was already started by Landing — resume it then send first message
+    (async () => {
+      try {
+        const res  = await chatAPI.getSession(savedId);
+        const data = res.data;
+        setSessionId(savedId);
+        const openingMsg = { role: 'assistant', content: data.messages?.[0]?.content || '' };
+        setMessages(openingMsg.content ? [openingMsg] : []);
+        setPhase('chat');
+        // Now send the first message with optional image
+        if (firstMsg || firstImg) {
+          const imgData = firstImg  || null;
+          const imgMime = firstMime || 'image/jpeg';
+          const userMsg = {
+            role: 'user', content: firstMsg || '',
+            attachedImage: imgData, attachedMime: imgMime,
+          };
+          setMessages(prev => [...prev, userMsg]);
+          setSending(true);
+          try {
+            const r    = await chatAPI.sendMessage(savedId, firstMsg || '', imgData);
+            const d    = r.data;
+            const aiMsg = { role: 'assistant', content: d.message, hasBrief: d.has_brief || false };
+            setMessages(prev => [...prev, aiMsg]);
+            setChips(parseChips(d.message) || d.quick_replies || []);
+          } finally {
+            setSending(false);
+          }
+        }
+      } catch {
+        // Fall back to normal gate if anything goes wrong
+        setPhase('gate');
+      }
+    })();
+  }, []);
 
   // ── Resume session from sessionStorage ───────────────────────────────────
+  // Skip if Landing pre-loaded a first message — that effect handles it.
   useEffect(() => {
     if (user) return;
+    if (hasLandingMsg) return;
     const saved = sessionStorage.getItem(CHAT_SESSION_KEY);
     if (saved) resumeSession(saved);
   }, []);
@@ -104,18 +191,24 @@ export default function DiscoverV2() {
       setSessionId(id);
       sessionStorage.setItem(CHAT_SESSION_KEY, id);
 
-      // If the backend issued a signed token for this key owner, log them in
-      // directly — no SuperTokens flow needed.
-      if (data.access_token && data.user) {
-        loginWithAccessKey(data.access_token, data.user);
-      }
+      // Keys are anonymous — no login. Just open the chat.
+      if (key) setKeyUsedEmail(key.trim());
 
       const openingMsg = { role: 'assistant', content: data.message };
       setMessages([openingMsg]);
       setChips(data.quick_replies || parseChips(data.message));
       setPhase('chat');
     } catch (err) {
-      setKeyError(err.response?.data?.error || 'Invalid access key.');
+      if (user) {
+        // Logged-in user — never show the gate. Show an inline error instead.
+        // The phase stays 'loading' briefly then we try again or stay.
+        console.error('startSession failed for logged-in user:', err);
+        // Show a minimal error state rather than the key gate
+        setPhase('error');
+      } else {
+        setKeyError(err.response?.data?.error || 'Invalid access key.');
+        setPhase('gate');
+      }
     } finally {
       setStarting(false);
     }
@@ -124,7 +217,7 @@ export default function DiscoverV2() {
   // ── Send message ──────────────────────────────────────────────────────────
   async function sendMessage(text) {
     const trimmed = (text || input).trim();
-    if (!trimmed && !pendingImage) return;
+    if (!trimmed && !pendingImages.length) return;
     if (!sessionId || sending) return;
 
     // Intercept brief-confirmation chips — don't send to Claude,
@@ -140,19 +233,18 @@ export default function DiscoverV2() {
       return;
     }
 
-    const imgCopy  = pendingImage;
+    const imgsCopy = pendingImages.slice();
 
     // Append user message to local state immediately
     const userMsg = {
       role:          'user',
       content:       trimmed,
-      attachedImage: imgCopy?.data || null,
-      attachedMime:  imgCopy?.mime || 'image/jpeg',
+      attachedImages: imgsCopy,
     };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setChips([]);
-    setPendingImage(null);
+    setPendingImages([]);
 
     // Resize textarea
     if (taRef.current) {
@@ -162,7 +254,8 @@ export default function DiscoverV2() {
     setSending(true);
     try {
       const res  = await chatAPI.sendMessage(
-        sessionId, trimmed, imgCopy?.data || null
+        sessionId, trimmed,
+        imgsCopy.length ? imgsCopy : null
       );
       const data = res.data;
 
@@ -201,8 +294,11 @@ export default function DiscoverV2() {
     }
   }
 
-  function handleImageSelected(base64, _name, mime) {
-    setPendingImage({ data: base64, mime: mime || 'image/jpeg' });
+  function handleImageSelected(base64, name, mime) {
+    setPendingImages(prev => [
+      ...prev,
+      { data: base64, mime: mime || 'image/jpeg', name: name || 'image' },
+    ]);
   }
 
   function handleAdjust(text) {
@@ -245,6 +341,45 @@ export default function DiscoverV2() {
   }
 
   // ── ACCESS KEY GATE ───────────────────────────────────────────────────────
+  // Show minimal spinner while auth resolves or session starts
+  if (phase === 'loading') return (
+    <div style={{
+      minHeight: '100vh', background: 'var(--bg)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <div style={{
+        width: 18, height: 18,
+        border: '2px solid var(--border)',
+        borderTopColor: 'var(--text3)',
+        borderRadius: '50%',
+        animation: 'spin 0.8s linear infinite',
+      }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+
+  if (phase === 'error') return (
+    <div style={{
+      minHeight: '100vh', background: 'var(--bg)',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: 16,
+    }}>
+      <p style={{ fontSize: 14, color: 'var(--text2)', fontFamily: 'var(--font-body)' }}>
+        Something went wrong starting your session.
+      </p>
+      <button
+        onClick={() => { authHandledRef.current = false; setPhase('loading'); startSession(null); }}
+        style={{
+          padding: '9px 20px', borderRadius: 8, border: '1px solid var(--border)',
+          background: 'none', cursor: 'pointer', fontSize: 13,
+          fontFamily: 'var(--font-body)', color: 'var(--text)',
+        }}
+      >
+        Try again
+      </button>
+    </div>
+  );
+
   if (phase === 'gate') {
     return (
       <div style={{
@@ -421,26 +556,16 @@ export default function DiscoverV2() {
           flexShrink: 0,
           background: 'var(--surface)',
         }}>
-          <div style={{
-            width: 30, height: 30, borderRadius: '50%',
-            background: 'var(--surface2)',
-            border: '0.5px solid var(--border)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M7 1.5C4.5 1.5 2.5 3.2 2.5 5.5c0 2.8 2.8 5.2 4.5 6.2 1.7-1 4.5-3.4 4.5-6.2C11.5 3.2 9.5 1.5 7 1.5z"
-                stroke="var(--text3)" strokeWidth="1.1" fill="none"/>
-            </svg>
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>
-              Qala Studio
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: -1 }}>
-              production consultant
-            </div>
-          </div>
+          {/* Qala logo */}
+          <img
+            src={qalaLogo}
+            alt="Qala"
+            style={{ height: 18, width: 'auto', flexShrink: 0, opacity: 0.9 }}
+          />
+
+          <div style={{ flex: 1 }} />
+
+          <UserAvatar hideWhenLoggedOut />
 
           {/* View Studios button — shown when matched but split panel is closed */}
           {sessionToken && !splitView && (
@@ -532,30 +657,39 @@ export default function DiscoverV2() {
         )}
 
         {/* ── Pending image preview ── */}
-        {pendingImage && (
+        {pendingImages.length > 0 && (
           <div style={{
             padding: '0 18px 8px',
-            display: 'flex', alignItems: 'center', gap: 8,
+            display: 'flex', flexWrap: 'wrap', gap: 8,
             flexShrink: 0,
           }}>
-            <img
-              src={`data:${pendingImage.mime};base64,${pendingImage.data}`}
-              alt=""
-              style={{
-                height: 44, borderRadius: 6,
-                border: '0.5px solid var(--border)',
-              }}
-            />
-            <button
-              onClick={() => setPendingImage(null)}
-              style={{
-                fontSize: 12, color: 'var(--text3)',
-                background: 'none', border: 'none',
-                cursor: 'pointer', padding: 0,
-              }}
-            >
-              remove
-            </button>
+            {pendingImages.map((img, i) => (
+              <div key={i} style={{ position: 'relative' }}>
+                <img
+                  src={`data:${img.mime};base64,${img.data}`}
+                  alt=""
+                  style={{
+                    height: 44, borderRadius: 6,
+                    border: '0.5px solid var(--border)',
+                    display: 'block',
+                  }}
+                />
+                <button
+                  onClick={() => setPendingImages(prev => prev.filter((_, j) => j !== i))}
+                  style={{
+                    position: 'absolute', top: -5, right: -5,
+                    width: 16, height: 16, borderRadius: '50%',
+                    background: '#1A1612', border: 'none',
+                    color: '#fff', fontSize: 9, fontWeight: 700,
+                    cursor: 'pointer', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    lineHeight: 1, padding: 0,
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
@@ -598,17 +732,17 @@ export default function DiscoverV2() {
           />
           <button
             onClick={() => sendMessage()}
-            disabled={sending || (!input.trim() && !pendingImage)}
+            disabled={sending || (!input.trim() && !pendingImages.length)}
             style={{
               padding: '8px 16px',
               borderRadius: 8,
               border: '0.5px solid var(--border2)',
               background: 'var(--surface2)',
               fontSize: 13, color: 'var(--text)',
-              cursor: sending || (!input.trim() && !pendingImage) ? 'not-allowed' : 'pointer',
+              cursor: sending || (!input.trim() && !pendingImages.length) ? 'not-allowed' : 'pointer',
               fontFamily: 'var(--font-body)',
               whiteSpace: 'nowrap',
-              opacity: sending || (!input.trim() && !pendingImage) ? 0.35 : 1,
+              opacity: sending || (!input.trim() && !pendingImages.length) ? 0.35 : 1,
               transition: 'background 0.12s, opacity 0.12s',
               flexShrink: 0,
             }}

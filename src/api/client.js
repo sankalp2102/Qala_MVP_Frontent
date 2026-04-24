@@ -27,11 +27,17 @@ api.interceptors.request.use(cfg => {
 });
 
 // ── Response interceptor: capture rotated access tokens + handle 401 refresh ──
+// Access-key sessions bypass the SuperTokens refresh flow entirely.
+// They never have ST cookies, so a 401 means the signed token expired (30 days)
+// — just clear it and redirect to login. No refresh attempt.
 api.interceptors.response.use(
   res => {
     // SuperTokens rotates the access token on responses — capture it
+    // (only applies to SuperTokens sessions, not access-key sessions)
     const newToken = res.headers['st-access-token'];
-    if (newToken) localStorage.setItem('qala_token', newToken);
+    if (newToken && localStorage.getItem('qala_token_type') !== 'access_key') {
+      localStorage.setItem('qala_token', newToken);
+    }
     return res;
   },
   async err => {
@@ -39,6 +45,17 @@ api.interceptors.response.use(
 
     if (err.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
+
+      // Access-key sessions: never attempt SuperTokens refresh.
+      // A 401 means the signed token expired — clear and redirect.
+      if (localStorage.getItem('qala_token_type') === 'access_key') {
+        localStorage.removeItem('qala_token');
+        localStorage.removeItem('qala_token_type');
+        if (!window.location.pathname.startsWith('/login')) {
+          window.location.href = '/login?reason=session_expired';
+        }
+        return Promise.reject(err);
+      }
 
       // If a refresh is already in-flight, queue this request
       if (isRefreshing) {
@@ -66,14 +83,16 @@ api.interceptors.response.use(
         onRefreshDone(t || null);
         return api.request(originalRequest);
       } catch {
-        // Refresh truly failed — session is dead
+        // Refresh truly failed — session is dead (SuperTokens sessions only).
+        // Never wipe access-key tokens here — they don't use SuperTokens refresh.
         onRefreshDone(null);
-        const wasLoggedIn = !!localStorage.getItem('qala_token');
-        localStorage.removeItem('qala_token');
-        // Only redirect if the user was previously logged in (actual session expiry).
-        // Anonymous users hitting auth endpoints should NOT be redirected.
-        if (wasLoggedIn && !window.location.pathname.startsWith('/login')) {
-          window.location.href = '/login?reason=session_expired';
+        const wasLoggedIn    = !!localStorage.getItem('qala_token');
+        const isAccessKey    = localStorage.getItem('qala_token_type') === 'access_key';
+        if (!isAccessKey) {
+          localStorage.removeItem('qala_token');
+          if (wasLoggedIn && !window.location.pathname.startsWith('/login')) {
+            window.location.href = '/login?reason=session_expired';
+          }
         }
         return Promise.reject(err);
       } finally {
@@ -177,6 +196,10 @@ export const adminAPI = {
   getDiscoveryBuyer:        id => api.get(`/api/admin/discovery/buyers/${id}/`),
   getDiscoveryInquiries:    () => api.get('/api/admin/discovery/inquiries/'),
   getAdminStudioInquiries:  () => api.get('/api/admin/discovery/studio-inquiries/'),
+  // Access Keys
+  listAccessKeys:    ()  => api.get('/api/admin/chat/access-keys/'),
+  generateAccessKeys: d  => api.post('/api/admin/chat/access-keys/', d),
+  updateAccessKey:   (id, d) => api.patch(`/api/admin/chat/access-keys/${id}/`, d),
 };
 
 // ─── BUYER API ─────────────────────────────────────────────────────────────────
@@ -269,12 +292,13 @@ export const chatAPI = {
   // Send a user message
   // image: plain base64 string (no data: prefix)
   // selectedImageIds: array of StudioMedia integer IDs
-  sendMessage: (sessionId, message, image = null, selectedImageIds = null) =>
+  sendMessage: (sessionId, message, images = null, selectedImageIds = null) =>
     axios.post(`${BASE}/api/discovery/chat/message/`,
       {
         session_id: sessionId,
         message,
-        ...(image             && { image }),
+        // images: array of {data: base64, mime: string}
+        ...(images?.length    && { images }),
         ...(selectedImageIds  && { selected_image_ids: selectedImageIds }),
       },
       { headers: { 'Content-Type': 'application/json' } }
