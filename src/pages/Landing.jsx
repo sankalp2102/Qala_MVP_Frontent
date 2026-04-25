@@ -507,7 +507,7 @@ export default function Landing() {
                       fontFamily: 'var(--font-body)', transition: 'background 0.18s',
                     }}
                   >
-                    {accessReqSending ? 'Sending\u2026' : 'Send Request'}
+                    {accessReqSending ? 'Sending…' : 'Send Request'}
                   </button>
                 </div>
               </>

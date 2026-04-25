@@ -15,7 +15,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { chatAPI } from '../api/client';
+import { chatAPI, discoveryAPI } from '../api/client';
 import ChatMessage from '../components/discovery/ChatMessage';
 import ImageUpload from '../components/discovery/ImageUpload';
 import StudiosPanel from '../components/discovery/StudiosPanel';
@@ -316,50 +316,71 @@ export default function DiscoverV2() {
     setPhase('matched');
     setSplitView(true);
 
-    // Small delay so the split-view animation completes before chat updates
-    await new Promise(r => setTimeout(r, 500));
-
-    try {
-      const res  = await discoveryAPI.getRecommendations(token);
-      const recs = (res.data?.recommendations || []).filter(r => !r.is_bonus_visual).slice(0, 3);
-
-      if (recs.length > 0) {
-        // Preload hero images in background (non-blocking)
-        recs.forEach(r => {
-          const url = r.hero_images?.[0]?.url;
-          if (url) {
-            const img = new Image();
-            img.src = url.startsWith('http') ? url
-              : `${import.meta.env.VITE_API_URL || 'https://api.qala.studio'}${url}`;
-          }
-        });
-
-        const lines = recs.map((r, i) => {
-          const why = r.match_reasoning?.product_match
-            ? r.match_reasoning.product_match.replace(/^Strong match for /i, 'Can make ')
-            : (r.what_best_at?.[0] || '');
-          const crafts  = (r.primary_crafts  || []).slice(0, 2).join(', ');
-          const fabrics = (r.primary_fabrics || []).slice(0, 2).join(', ');
-          const detail  = [why, crafts, fabrics].filter(Boolean).join(' · ');
-          const loc = r.location ? ` — ${r.location}` : '';
-          return `**${i + 1}. ${r.studio_name}${loc}**\n${detail}`;
-        });
-
-        const summaryMsg = {
-          role: 'assistant',
-          content:
-            'Here are your top 3 matches — browse full profiles on the right:' +
-            '\n\n———' +
-            lines.map(l => '\n\n' + l).join('\n\n———') +
-            '\n\n———\n\nWould you like help deciding between them, or are you happy to browse?',
-          hasBrief: false,
-        };
-        setMessages(prev => [...prev, summaryMsg]);
-        setChips(['Help me decide', "I'll browse myself"]);
+    // Poll until matching_complete=true (backend returns status:'ok' with data)
+    // Retries up to 6 times with 1s between — handles the race where
+    // ChatMatchView returns the session_token before run_matching has finished
+    // writing all StudioRecommendation rows to the DB.
+    let recs = [];
+    for (let attempt = 0; attempt < 6; attempt++) {
+      await new Promise(r => setTimeout(r, attempt === 0 ? 600 : 1000));
+      try {
+        const res = await discoveryAPI.getRecommendations(token);
+        if (res.data?.status === 'ok' && res.data?.recommendations?.length > 0) {
+          recs = res.data.recommendations
+            .filter(r => !r.is_bonus_visual)
+            .sort((a, b) => (a.rank_position ?? 99) - (b.rank_position ?? 99))
+            .slice(0, 3);
+          break; // got data — stop polling
+        }
+        // status:'pending' or status:'ok' with empty list — keep trying
+      } catch {
+        // network error — keep trying
       }
-    } catch {
-      // Non-fatal — studios panel still shows on the right
     }
+
+    if (recs.length === 0) return; // gave up — panel still shows on right
+
+    // Preload hero images in background
+    recs.forEach(r => {
+      const url = r.hero_images?.[0]?.url;
+      if (url) {
+        const img = new Image();
+        img.src = url.startsWith('http') ? url
+          : `${import.meta.env.VITE_API_URL || 'https://api.qala.studio'}${url}`;
+      }
+    });
+
+    // Build chat summary message
+    const lines = recs.map((r, i) => {
+      const why = r.match_reasoning?.product_match
+        ? r.match_reasoning.product_match.replace(/^Strong match for /i, 'Can make ')
+        : (r.what_best_at?.[0] || '');
+      const crafts  = (r.primary_crafts  || []).slice(0, 2).join(', ');
+      const fabrics = (r.primary_fabrics || []).slice(0, 2).join(', ');
+      const detail  = [why, crafts, fabrics].filter(Boolean).join(' · ');
+      const loc = r.location ? ` — ${r.location}` : '';
+      return `**${i + 1}. ${r.studio_name}${loc}**\n${detail}`;
+    });
+
+    const summaryMsg = {
+      role: 'assistant',
+      content:
+        'Here are your top 3 matches — browse full profiles on the right:' +
+        '\n\n———' +
+        lines.map(l => '\n\n' + l).join('\n\n———') +
+        '\n\n———\n\nWould you like help deciding between them, or are you happy to browse?',
+      hasBrief: false,
+    };
+    setMessages(prev => [...prev, summaryMsg]);
+
+    // Closing message — sent after the studio summary
+    const closingMsg = {
+      role: 'assistant',
+      content: 'I have sent in your request to the Qala team, they will be contacting you in 24-48 hours time. Meanwhile feel free to explore the studios or ask me anything about the collection.',
+      hasBrief: false,
+    };
+    setMessages(prev => [...prev, closingMsg]);
+    setChips(['Help me decide', "I'll browse myself"]);
   }
 
   // ── ACCESS KEY GATE ───────────────────────────────────────────────────────
