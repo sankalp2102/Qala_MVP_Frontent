@@ -2670,6 +2670,220 @@ function Contacts() {
 }
 
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ACCESS REQUESTS PAGE
+// ─────────────────────────────────────────────────────────────────────────────
+function AccessRequests() {
+  const { success, error } = useToast();
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [notes, setNotes]       = useState({});
+  const [copied, setCopied]     = useState({});
+  const [genKey, setGenKey]     = useState({}); // generated key per request id
+
+  const load = () => {
+    setLoading(true);
+    adminAPI.listAccessRequests()
+      .then(r => setRequests(r.data.requests || []))
+      .catch(() => error('Failed to load requests'))
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); }, []);
+
+  async function handleStatus(id, status) {
+    try {
+      await adminAPI.updateAccessRequest(id, { status, notes: notes[id] || '' });
+      success(`Marked as ${status}`);
+      load();
+    } catch { error('Failed to update'); }
+  }
+
+  async function handleSaveNotes(id) {
+    try {
+      await adminAPI.updateAccessRequest(id, { notes: notes[id] || '' });
+      success('Notes saved');
+    } catch { error('Failed to save notes'); }
+  }
+
+  async function handleGenerateKey(req) {
+    try {
+      const res = await adminAPI.generateAccessKeys({
+        count: 1,
+        tokens_allocated: 500000,
+        notes: `Generated for ${req.name} <${req.email}>`,
+      });
+      const key = res.data.keys?.[0]?.key_code;
+      if (key) {
+        setGenKey(p => ({ ...p, [req.id]: key }));
+        navigator.clipboard.writeText(key);
+        success(`Key ${key} copied to clipboard`);
+        // Also mark as approved
+        await adminAPI.updateAccessRequest(req.id, { status: 'approved' });
+        load();
+      }
+    } catch { error('Failed to generate key'); }
+  }
+
+  function copyEmail(email, id) {
+    navigator.clipboard.writeText(email).then(() => {
+      setCopied(p => ({ ...p, [id]: true }));
+      setTimeout(() => setCopied(p => ({ ...p, [id]: false })), 2000);
+    });
+  }
+
+  const statusColor = s => ({
+    pending:  { bg: 'rgba(200,160,60,0.1)',  text: '#a07a20' },
+    approved: { bg: 'rgba(90,210,120,0.1)',  text: '#3a9e5a' },
+    rejected: { bg: 'rgba(232,80,80,0.1)',   text: '#c94040' },
+  }[s] || { bg: 'var(--surface2)', text: 'var(--text3)' });
+
+  const pending  = requests.filter(r => r.status === 'pending').length;
+  const approved = requests.filter(r => r.status === 'approved').length;
+
+  return (
+    <div style={{ maxWidth: 960, margin: '0 auto', padding: '32px 24px' }}>
+      {/* Header */}
+      <div style={{ marginBottom: 28 }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
+          Access Requests
+        </h2>
+        <p style={{ fontSize: 13, color: 'var(--text3)' }}>
+          Brands requesting an access code from the landing page.
+        </p>
+        <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+          <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 12, background: 'rgba(200,160,60,0.1)', color: '#a07a20', fontWeight: 500 }}>
+            {pending} pending
+          </span>
+          <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 12, background: 'rgba(90,210,120,0.1)', color: '#3a9e5a', fontWeight: 500 }}>
+            {approved} approved
+          </span>
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><Spinner /></div>
+      ) : requests.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text3)', fontSize: 14 }}>
+          No requests yet.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {requests.map(r => {
+            const sc   = statusColor(r.status);
+            const date = new Date(r.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+            return (
+              <div key={r.id} style={{
+                background: 'var(--surface)', border: '1px solid var(--border)',
+                borderRadius: 14, padding: '18px 20px',
+              }}>
+                {/* Top row */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{r.name}</span>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 10,
+                        background: sc.bg, color: sc.text, textTransform: 'capitalize',
+                      }}>
+                        {r.status}
+                      </span>
+                      <span style={{ fontSize: 11, color: 'var(--text4)' }}>{date}</span>
+                    </div>
+                    {/* Email */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                      <span style={{ fontSize: 13, color: 'var(--text2)' }}>{r.email}</span>
+                      <button
+                        onClick={() => copyEmail(r.email, r.id)}
+                        style={{ fontSize: 10, padding: '2px 7px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--surface2)', cursor: 'pointer', color: copied[r.id] ? '#3a9e5a' : 'var(--text3)', fontFamily: 'var(--font-body)' }}
+                      >
+                        {copied[r.id] ? '✓' : 'Copy'}
+                      </button>
+                    </div>
+                    {/* Link */}
+                    {r.link && (
+                      <a href={r.link.startsWith('http') ? r.link : `https://${r.link}`}
+                        target="_blank" rel="noopener noreferrer"
+                        style={{ fontSize: 12, color: 'var(--gold)', display: 'block', marginTop: 3 }}>
+                        {r.link}
+                      </a>
+                    )}
+                    {/* Generated key badge */}
+                    {genKey[r.id] && (
+                      <div style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 12px', borderRadius: 8, background: 'rgba(90,210,120,0.08)', border: '1px solid rgba(90,210,120,0.25)' }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700, color: '#3a9e5a', letterSpacing: '0.08em' }}>{genKey[r.id]}</span>
+                        <span style={{ fontSize: 11, color: '#3a9e5a' }}>copied ✓</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action buttons */}
+                  <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {r.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => handleGenerateKey(r)}
+                          style={{ padding: '7px 14px', borderRadius: 7, border: 'none', background: 'var(--gold)', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+                        >
+                          Generate &amp; Approve
+                        </button>
+                        <button
+                          onClick={() => handleStatus(r.id, 'rejected')}
+                          style={{ padding: '7px 12px', borderRadius: 7, border: '1px solid rgba(232,80,80,0.3)', background: 'rgba(232,80,80,0.06)', color: '#c94040', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
+                    {r.status === 'approved' && !genKey[r.id] && (
+                      <button
+                        onClick={() => handleGenerateKey(r)}
+                        style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text2)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+                      >
+                        Generate Key
+                      </button>
+                    )}
+                    {r.status === 'rejected' && (
+                      <button
+                        onClick={() => handleStatus(r.id, 'pending')}
+                        style={{ padding: '7px 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text3)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+                      >
+                        Reconsider
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div style={{ marginTop: 14, display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                  <textarea
+                    value={notes[r.id] ?? r.notes ?? ''}
+                    onChange={e => setNotes(p => ({ ...p, [r.id]: e.target.value }))}
+                    placeholder="Internal notes…"
+                    rows={1}
+                    style={{
+                      flex: 1, padding: '7px 10px', borderRadius: 7, resize: 'vertical',
+                      border: '1px solid var(--border)', background: 'var(--surface2)',
+                      fontSize: 12, color: 'var(--text)', fontFamily: 'var(--font-body)',
+                      outline: 'none', minHeight: 32,
+                    }}
+                  />
+                  <button
+                    onClick={() => handleSaveNotes(r.id)}
+                    style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 12, color: 'var(--text2)', cursor: 'pointer', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap' }}
+                  >
+                    Save notes
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
   const navItems = [
     { to: '/admin',                              icon: '', label: 'Overview',         end: true },
     { to: '/admin/review',                       icon: '', label: 'Review Profile'              },
@@ -2680,6 +2894,7 @@ function Contacts() {
     { to: '/admin/studio-descriptions',          icon: '', label: 'Studio Descriptions'         },
     { to: '/admin/access-keys',                  icon: '', label: 'Access Keys'                  },
     { to: '/admin/contacts',                     icon: '', label: 'Contacts'                     },
+    { to: '/admin/access-requests',              icon: '', label: 'Access Requests'              },
   ];
   return (
     <DashLayout nav={navItems}>
@@ -2695,6 +2910,7 @@ function Contacts() {
         <Route path="studio-descriptions"             element={<StudioDescriptions />}     />
         <Route path="access-keys"                     element={<AccessKeys />}             />
         <Route path="contacts"                         element={<Contacts />}              />
+        <Route path="access-requests"                  element={<AccessRequests />}         />
       </Routes>
     </DashLayout>
   );

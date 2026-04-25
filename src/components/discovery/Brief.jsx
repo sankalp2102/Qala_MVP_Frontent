@@ -333,16 +333,16 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
               fontSize: 17, fontWeight: 600, color: 'var(--text)',
               fontFamily: 'var(--font-display)', margin: '0 0 5px',
             }}>
-              Before we find your studios
+              While we find studios for your vision
             </p>
             <p style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 18, lineHeight: 1.55 }}>
-              Share your details so studios can reach you directly.
+              Please let us know your contact details.
             </p>
 
             {[
               { key: 'name',    label: 'Full Name',       placeholder: 'Your name',        required: true  },
-              { key: 'email',   label: 'Email',           placeholder: 'you@brand.com',     required: true  },
-              { key: 'phone',   label: 'Phone',           placeholder: '+91 98765 43210',   required: false },
+              { key: 'email',   label: 'Email ID',        placeholder: 'you@brand.com',     required: true  },
+              { key: 'phone',   label: 'Phone No',        placeholder: '+91 98765 43210',   required: false },
               { key: 'brand',   label: 'Brand / Company', placeholder: 'Your brand name',   required: false },
               { key: 'country', label: 'Country',         placeholder: 'India, USA, UK…', required: false },
             ].map(({ key, label, placeholder, required }) => (

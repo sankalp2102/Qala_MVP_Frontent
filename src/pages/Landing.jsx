@@ -1,17 +1,4 @@
 // src/pages/Landing.jsx
-// New V2 landing page.
-//
-// Phase 1 (key):     Headline + access key input  — for anonymous users
-// Phase 2 (message): Headline + first message textarea — after key accepted
-//                    or immediately for logged-in customers
-//
-// Garment images: place 5 files in src/assets/
-//   garment-1.jpg  top-left      (blue shirt)
-//   garment-2.jpg  top-centre    (fabric pouch — hidden in phase 2)
-//   garment-3.jpg  top-right     (burgundy coat)
-//   garment-4.jpg  bottom-left   (geometric fabric)
-//   garment-5.jpg  bottom-right  (striped fabric)
-
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate }                  from 'react-router-dom';
 import { useAuth }                      from '../context/AuthContext';
@@ -27,15 +14,14 @@ const CHAT_SESSION_KEY   = 'qala_chat_session_id';
 const LANDING_FIRST_MSG  = 'qala_landing_first_msg';
 const LANDING_FIRST_IMG  = 'qala_landing_first_img';
 const LANDING_FIRST_MIME = 'qala_landing_first_mime';
-
 const ACCENT = '#7A8C6E';
 
 const GARMENTS = [
-  { key: 'g1', src: g1, hideInPhase2: false, style: { top: '3vh',    left: '2vw',  width: 'clamp(180px,22vw,300px)', transform: 'rotate(-6deg)' } },
-  { key: 'g2', src: g2, hideInPhase2: true,  style: { top: '2vh',    left: '50%',  width: 'clamp(100px,11vw,160px)', transform: 'translateX(-50%) rotate(4deg)' } },
-  { key: 'g3', src: g3, hideInPhase2: false, style: { top: '2vh',    right: '2vw', width: 'clamp(170px,20vw,270px)', transform: 'rotate(3deg)' } },
-  { key: 'g4', src: g4, hideInPhase2: false, style: { bottom: '3vh', left: '1vw',  width: 'clamp(160px,19vw,260px)', transform: 'rotate(5deg)' } },
-  { key: 'g5', src: g5, hideInPhase2: false, style: { bottom: '2vh', right: '1vw', width: 'clamp(150px,17vw,240px)', transform: 'rotate(-4deg)' } },
+  { key: 'g1', src: g1, hideInPhase2: false, style: { top: '2vh',    left: '0vw',  width: 'clamp(220px,27vw,370px)', transform: 'rotate(-6deg)' } },
+  { key: 'g2', src: g2, hideInPhase2: true,  style: { top: '1vh',    left: '50%',  width: 'clamp(120px,13vw,190px)', transform: 'translateX(-50%) rotate(4deg)' } },
+  { key: 'g3', src: g3, hideInPhase2: false, style: { top: '1vh',    right: '0vw', width: 'clamp(210px,25vw,340px)', transform: 'rotate(3deg)' } },
+  { key: 'g4', src: g4, hideInPhase2: false, style: { bottom: '2vh', left: '0vw',  width: 'clamp(200px,24vw,330px)', transform: 'rotate(5deg)' } },
+  { key: 'g5', src: g5, hideInPhase2: false, style: { bottom: '1vh', right: '0vw', width: 'clamp(190px,22vw,310px)', transform: 'rotate(-4deg)' } },
 ];
 
 export default function Landing() {
@@ -58,6 +44,13 @@ export default function Landing() {
   const fileRef = useRef(null);
   const taRef   = useRef(null);
 
+  // Request access modal state
+  const [showAccessReq,    setShowAccessReq]    = useState(false);
+  const [accessReqForm,    setAccessReqForm]    = useState({ name: '', email: '', link: '' });
+  const [accessReqErr,     setAccessReqErr]     = useState({});
+  const [accessReqSending, setAccessReqSending] = useState(false);
+  const [accessReqDone,    setAccessReqDone]    = useState(false);
+
   useEffect(() => { setTimeout(() => setVisible(true), 60); }, []);
 
   useEffect(() => {
@@ -69,8 +62,7 @@ export default function Landing() {
 
   async function handleKeySubmit() {
     if (!accessKey.trim() || starting) return;
-    setStarting(true);
-    setKeyError('');
+    setStarting(true); setKeyError('');
     try {
       const res  = await chatAPI.start(accessKey.trim());
       const data = res.data;
@@ -84,9 +76,7 @@ export default function Landing() {
       setKeyError(err.response?.data?.error || 'Invalid access key.');
       setKeyShake(true);
       setTimeout(() => setKeyShake(false), 600);
-    } finally {
-      setStarting(false);
-    }
+    } finally { setStarting(false); }
   }
 
   async function handleMessageSubmit() {
@@ -105,9 +95,7 @@ export default function Landing() {
         sessionStorage.setItem(LANDING_FIRST_MIME, pendingImg.mime);
       }
       navigate('/discover');
-    } catch {
-      setSending(false);
-    }
+    } catch { setSending(false); }
   }
 
   function handleKeyDown(e) {
@@ -126,6 +114,25 @@ export default function Landing() {
     };
     reader.readAsDataURL(file);
     e.target.value = '';
+  }
+
+  async function handleAccessReqSubmit() {
+    const errs = {};
+    if (!accessReqForm.name.trim())  errs.name  = 'Required';
+    if (!accessReqForm.email.trim()) errs.email = 'Required';
+    else if (!/^[^@]+@[^@]+\.[^@]+$/.test(accessReqForm.email)) errs.email = 'Invalid email';
+    if (Object.keys(errs).length) { setAccessReqErr(errs); return; }
+    setAccessReqSending(true);
+    try {
+      await chatAPI.requestAccess({
+        name:  accessReqForm.name.trim(),
+        email: accessReqForm.email.trim(),
+        link:  accessReqForm.link.trim(),
+      });
+      setAccessReqDone(true);
+    } catch {
+      setAccessReqErr({ email: 'Something went wrong. Please try again.' });
+    } finally { setAccessReqSending(false); }
   }
 
   const fadeIn = {
@@ -181,7 +188,7 @@ export default function Landing() {
       {/* Centre card */}
       <div style={{
         position: 'relative', zIndex: 1,
-        width: '100%', maxWidth: phase === 'message' ? 720 : 440,
+        width: '100%', maxWidth: phase === 'message' ? 720 : 520,
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         padding: '0 20px',
         transition: 'max-width 0.3s ease',
@@ -193,12 +200,12 @@ export default function Landing() {
           <>
             <h1 style={{
               fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(28px,4.5vw,40px)',
               fontWeight: 400, color: '#1A1612',
-              textAlign: 'center', lineHeight: 1.22,
+              textAlign: 'center', lineHeight: 1.28,
               marginBottom: 28, letterSpacing: '-0.01em',
             }}>
-              The Custom Manufacturing Platform<br />for Brands &amp; Retailers
+              <span style={{ display: 'block', fontSize: 'clamp(26px,3.8vw,38px)', whiteSpace: 'nowrap' }}>The Custom Manufacturing Platform</span>
+              <span style={{ display: 'block', fontSize: 'clamp(22px,3.2vw,32px)', whiteSpace: 'nowrap', color: 'rgba(26,22,18,0.7)' }}>for Brands &amp; Retailers</span>
             </h1>
 
             <div style={{
@@ -238,36 +245,31 @@ export default function Landing() {
               >
                 {starting
                   ? <div style={{ width:14,height:14,border:'2px solid rgba(255,255,255,0.35)',borderTopColor:'#fff',borderRadius:'50%',animation:'spin 0.7s linear infinite' }} />
-                  : (
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path d="M3 8h10M9 4l4 4-4 4" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  )
+                  : <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 }
               </button>
             </div>
 
             {keyError && (
-              <p style={{ fontSize:12, color:'#C94040', marginTop:8, textAlign:'center' }}>
-                {keyError}
-              </p>
+              <p style={{ fontSize:12, color:'#C94040', marginTop:8, textAlign:'center' }}>{keyError}</p>
             )}
 
-            <a
-              href="mailto:hello@qala.studio"
+            <button
+              onClick={() => { setShowAccessReq(true); setAccessReqDone(false); setAccessReqErr({}); setAccessReqForm({ name:'', email:'', link:'' }); }}
               style={{
                 marginTop: 14, fontSize: 12,
                 color: 'rgba(26,22,18,0.38)',
-                textDecoration: 'none',
+                background: 'none', border: 'none', padding: 0,
                 borderBottom: '1px solid rgba(26,22,18,0.12)',
-                paddingBottom: 1,
+                paddingBottom: 1, cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
                 transition: 'color 0.15s',
               }}
               onMouseEnter={e => { e.target.style.color = 'rgba(26,22,18,0.65)'; }}
               onMouseLeave={e => { e.target.style.color = 'rgba(26,22,18,0.38)'; }}
             >
               Request Access code
-            </a>
+            </button>
           </>
         )}
 
@@ -282,7 +284,7 @@ export default function Landing() {
               whiteSpace: 'nowrap',
               marginBottom: 12, letterSpacing: '-0.01em',
             }}>
-              Tell Us What You&rsquo;re Looking For
+              What Do You Want To Make?
             </h1>
 
             <p style={{
@@ -291,7 +293,7 @@ export default function Landing() {
               marginBottom: 26, maxWidth: 560,
             }}>
               Share your ideas with us. We&rsquo;ll help you shape them into a clear brief and introduce
-              you to the craft studios best suited to bring your vision to life.
+              you to production studios best suited to bring your vision to life.
             </p>
 
             <div style={{
@@ -302,8 +304,7 @@ export default function Landing() {
               boxSizing: 'border-box',
               boxShadow: '0 2px 20px rgba(26,22,18,0.05)',
             }}>
-              {/* Rust accent line */}
-              <div style={{ width:28, height:3, background:'#7A8C6E', borderRadius:2, marginBottom:12 }} />
+              <div style={{ width:28, height:3, background: ACCENT, borderRadius:2, marginBottom:12 }} />
 
               {pendingImg && (
                 <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
@@ -312,10 +313,7 @@ export default function Landing() {
                     alt=""
                     style={{ height:48, borderRadius:6, border:'1px solid rgba(26,22,18,0.1)' }}
                   />
-                  <button
-                    onClick={() => setPendingImg(null)}
-                    style={{ fontSize:11, color:'rgba(26,22,18,0.4)', background:'none', border:'none', cursor:'pointer' }}
-                  >
+                  <button onClick={() => setPendingImg(null)} style={{ fontSize:11, color:'rgba(26,22,18,0.4)', background:'none', border:'none', cursor:'pointer' }}>
                     remove
                   </button>
                 </div>
@@ -330,7 +328,7 @@ export default function Landing() {
                   e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px';
                 }}
                 onKeyDown={handleKeyDown}
-                placeholder="Eg: I'm launching my brand with an 8-piece collection. Mix of linen and cotton, some with block printing. Can you help me build out the specs for each piece?&#10;&#10;Feel free to attach any references if you wish."
+                placeholder={"Eg: I'm launching my brand with an 8-piece collection. Mix of linen and cotton, some with block printing. Can you help me build out the specs for each piece?\n\nFeel free to attach any references if you wish."}
                 rows={4}
                 autoFocus
                 style={{
@@ -378,11 +376,7 @@ export default function Landing() {
                 >
                   {sending
                     ? <div style={{ width:12,height:12,border:'2px solid rgba(255,255,255,0.3)',borderTopColor:'#fff',borderRadius:'50%',animation:'spin 0.7s linear infinite' }} />
-                    : (
-                      <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-                        <path d="M3 8h10M9 4l4 4-4 4" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    )
+                    : <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   }
                 </button>
               </div>
@@ -393,8 +387,134 @@ export default function Landing() {
             </div>
           </>
         )}
-
       </div>
+
+      {/* ── Request Access modal — inside the root div ── */}
+      {showAccessReq && (
+        <>
+          <div
+            onClick={() => setShowAccessReq(false)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 400,
+              background: 'rgba(26,22,18,0.45)',
+              backdropFilter: 'blur(4px)',
+            }}
+          />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%',
+            transform: 'translate(-50%,-50%)',
+            zIndex: 401,
+            background: '#FFFFFF',
+            border: '1px solid rgba(26,22,18,0.1)',
+            borderRadius: 18,
+            padding: '32px 28px 26px',
+            width: 'min(420px, 92vw)',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
+          }}>
+            {accessReqDone ? (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{ fontSize: 36, marginBottom: 14 }}>&#10003;</div>
+                <p style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 20, fontWeight: 500, color: '#1A1612', marginBottom: 8,
+                }}>
+                  Request received
+                </p>
+                <p style={{ fontSize: 13.5, color: 'rgba(26,22,18,0.55)', lineHeight: 1.6 }}>
+                  We'll be in touch shortly.
+                </p>
+                <button
+                  onClick={() => setShowAccessReq(false)}
+                  style={{
+                    marginTop: 22, padding: '10px 28px',
+                    borderRadius: 8, border: '1px solid rgba(26,22,18,0.15)',
+                    background: 'none', fontSize: 13, cursor: 'pointer',
+                    fontFamily: 'var(--font-body)', color: '#1A1612',
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <>
+                <p style={{
+                  margin: '0 0 5px', fontSize: 20, fontWeight: 500,
+                  color: '#1A1612', fontFamily: 'var(--font-display)',
+                }}>
+                  Request Access
+                </p>
+                <p style={{ margin: '0 0 22px', fontSize: 13, color: 'rgba(26,22,18,0.5)', lineHeight: 1.55 }}>
+                  Tell us a bit about yourself and we'll send you an access code.
+                </p>
+
+                {[
+                  { key: 'name',  label: 'Name',                 placeholder: 'Your name',                           required: true  },
+                  { key: 'email', label: 'Email',                placeholder: 'you@yourbrand.com',                   required: true  },
+                  { key: 'link',  label: 'Website / Instagram',  placeholder: 'https://yourbrand.com or @yourbrand', required: false },
+                ].map(({ key, label, placeholder, required }) => (
+                  <div key={key} style={{ marginBottom: 14 }}>
+                    <label style={{
+                      fontSize: 11, fontWeight: 600, color: 'rgba(26,22,18,0.5)',
+                      display: 'block', marginBottom: 5,
+                      letterSpacing: '0.05em', textTransform: 'uppercase',
+                    }}>
+                      {label}{required && <span style={{ color: ACCENT, marginLeft: 2 }}>*</span>}
+                    </label>
+                    <input
+                      type={key === 'email' ? 'email' : 'text'}
+                      value={accessReqForm[key]}
+                      onChange={e => { setAccessReqForm(f => ({ ...f, [key]: e.target.value })); setAccessReqErr(er => ({ ...er, [key]: '' })); }}
+                      placeholder={placeholder}
+                      style={{
+                        width: '100%', padding: '10px 13px', boxSizing: 'border-box',
+                        border: `1px solid ${accessReqErr[key] ? '#C94040' : 'rgba(26,22,18,0.15)'}`,
+                        borderRadius: 9, background: '#F9F9F8',
+                        fontSize: 14, color: '#1A1612',
+                        fontFamily: 'var(--font-body)', outline: 'none',
+                        transition: 'border-color 0.15s',
+                      }}
+                      onFocus={e  => { e.target.style.borderColor = ACCENT; }}
+                      onBlur={e   => { e.target.style.borderColor = accessReqErr[key] ? '#C94040' : 'rgba(26,22,18,0.15)'; }}
+                    />
+                    {accessReqErr[key] && (
+                      <span style={{ fontSize: 11, color: '#C94040', marginTop: 3, display: 'block' }}>
+                        {accessReqErr[key]}
+                      </span>
+                    )}
+                  </div>
+                ))}
+
+                <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                  <button
+                    onClick={() => setShowAccessReq(false)}
+                    style={{
+                      flex: 1, padding: '11px', borderRadius: 8,
+                      border: '1px solid rgba(26,22,18,0.15)', background: 'none',
+                      fontSize: 13, color: 'rgba(26,22,18,0.5)', cursor: 'pointer',
+                      fontFamily: 'var(--font-body)',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAccessReqSubmit}
+                    disabled={accessReqSending}
+                    style={{
+                      flex: 2, padding: '11px', borderRadius: 8, border: 'none',
+                      background: accessReqSending ? 'rgba(122,140,110,0.4)' : ACCENT,
+                      color: '#fff', fontSize: 13, fontWeight: 500,
+                      cursor: accessReqSending ? 'not-allowed' : 'pointer',
+                      fontFamily: 'var(--font-body)', transition: 'background 0.18s',
+                    }}
+                  >
+                    {accessReqSending ? 'Sending\u2026' : 'Send Request'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
