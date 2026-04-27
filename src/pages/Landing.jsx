@@ -17,11 +17,11 @@ const LANDING_FIRST_MIME = 'qala_landing_first_mime';
 const ACCENT = '#7A8C6E';
 
 const GARMENTS = [
-  { key: 'g1', src: g1, hideInPhase2: false, style: { top: '2vh',    left: '0vw',  width: 'clamp(220px,27vw,370px)', transform: 'rotate(-6deg)' } },
-  { key: 'g2', src: g2, hideInPhase2: true,  style: { top: '1vh',    left: '50%',  width: 'clamp(120px,13vw,190px)', transform: 'translateX(-50%) rotate(4deg)' } },
-  { key: 'g3', src: g3, hideInPhase2: false, style: { top: '1vh',    right: '0vw', width: 'clamp(210px,25vw,340px)', transform: 'rotate(3deg)' } },
-  { key: 'g4', src: g4, hideInPhase2: false, style: { bottom: '2vh', left: '0vw',  width: 'clamp(200px,24vw,330px)', transform: 'rotate(5deg)' } },
-  { key: 'g5', src: g5, hideInPhase2: false, style: { bottom: '1vh', right: '0vw', width: 'clamp(190px,22vw,310px)', transform: 'rotate(-4deg)' } },
+  { key: 'g1', src: g1, hideInPhase2: false, style: { top: '2vh',    left: '3vw',  width: 'clamp(220px,27vw,370px)', transform: 'rotate(-6deg)' } },
+  { key: 'g2', src: g2, hideInPhase2: true,  style: { top: '1vh',    left: '50%',  width: 'clamp(80px,9vw,130px)',   transform: 'translateX(-50%) rotate(4deg)' } },
+  { key: 'g3', src: g3, hideInPhase2: false, style: { top: '4vh',    right: '4vw', width: 'clamp(130px,15vw,210px)', transform: 'rotate(3deg)' } },
+  { key: 'g4', src: g4, hideInPhase2: false, style: { bottom: '2vh', left: '5vw',  width: 'clamp(210px,26vw,350px)', transform: 'rotate(5deg)', mixBlendMode: 'multiply' } },
+  { key: 'g5', src: g5, hideInPhase2: false, style: { bottom: '1vh', right: '3vw', width: 'clamp(110px,12vw,165px)', transform: 'rotate(-4deg)', mixBlendMode: 'multiply' } },
 ];
 
 export default function Landing() {
@@ -152,6 +152,7 @@ export default function Landing() {
       fontFamily: 'var(--font-body)',
     }}>
       <style>{`
+        .landing-textarea::placeholder { color: rgba(26,22,18,0.22); }
         @keyframes spin  { to { transform: rotate(360deg); } }
         @keyframes shake {
           0%,100%{ transform:translateX(0) }
@@ -165,7 +166,13 @@ export default function Landing() {
           object-fit:contain; position:absolute; z-index:0;
         }
         @media(max-width:700px){
-          .land-garment{ opacity:0.25!important; width:clamp(70px,18vw,110px)!important; }
+          .land-garment { opacity:0.9 !important; }
+          /* Per-garment mobile overrides — mirrors web layout scaled down */
+          .land-g1 { top:2vh  !important; left:1vw   !important; width:clamp(110px,28vw,160px) !important; }
+          .land-g2 { top:1vh  !important; left:50%   !important; width:clamp(50px,12vw,80px)   !important; }
+          .land-g3 { top:3vh  !important; right:2vw  !important; width:clamp(90px,22vw,130px)  !important; }
+          .land-g4 { bottom:2vh !important; left:4vw !important; width:clamp(110px,27vw,155px) !important; }
+          .land-g5 { bottom:1vh !important; right:3vw !important; width:clamp(80px,19vw,115px) !important; }
         }
       `}</style>
 
@@ -175,7 +182,7 @@ export default function Landing() {
           key={g.key}
           src={g.src}
           alt=""
-          className="land-garment"
+          className={`land-garment land-${g.key}`}
           style={{
             ...g.style,
             opacity: g.hideInPhase2 && phase === 'message' ? 0 : 1,
@@ -331,6 +338,7 @@ export default function Landing() {
                 placeholder={"Eg: I'm launching my brand with an 8-piece collection. Mix of linen and cotton, some with block printing. Can you help me build out the specs for each piece?\n\nFeel free to attach any references if you wish."}
                 rows={4}
                 autoFocus
+                className="landing-textarea"
                 style={{
                   width:'100%', border:'none', background:'transparent',
                   fontSize:13, color:'#1A1612', lineHeight:1.65,

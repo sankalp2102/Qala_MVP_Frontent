@@ -96,28 +96,21 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
   useEffect(() => {
     if (!sessionToken) return;
     setLoading(true);
-    // Bug 2 fix: 800ms delay lets matching engine finish writing
-    // match_reasoning before we fetch, so cards always show Why Recommended.
-    const timer = setTimeout(() => {
-      discoveryAPI.getRecommendations(sessionToken)
-        .then(r => {
-          const all = r.data?.recommendations || [];
-          // Filter bonus matches, sort by rank_position
-          const sorted = all
-            .filter(rec => !rec.is_bonus_visual)
-            .sort((a, b) => (a.rank_position ?? 99) - (b.rank_position ?? 99));
-          setRecs(sorted);
-          // Use buyer_summary from the API — it has correct fabrics/crafts
-          // from BuyerProfile, not the potentially incomplete session.extracted
-          if (r.data?.buyer_summary) setBuyerSummaryAPI(r.data.buyer_summary);
-          setLoading(false);
-        })
-        .catch(() => {
-          setError('Could not load studios.');
-          setLoading(false);
-        });
-    }, 800);
-    return () => clearTimeout(timer);
+    // Images are pre-loaded by Brief.jsx before this panel mounts.
+    discoveryAPI.getRecommendations(sessionToken)
+      .then(r => {
+        const all = r.data?.recommendations || [];
+        const sorted = all
+          .filter(rec => !rec.is_bonus_visual)
+          .sort((a, b) => (a.rank_position ?? 99) - (b.rank_position ?? 99));
+        setRecs(sorted);
+        if (r.data?.buyer_summary) setBuyerSummaryAPI(r.data.buyer_summary);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError('Could not load studios.');
+        setLoading(false);
+      });
   }, [sessionToken]);
 
   function handleContact(rec) {

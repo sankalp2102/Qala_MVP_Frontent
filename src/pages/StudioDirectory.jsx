@@ -287,12 +287,33 @@ const PRODUCT_TYPE_LABELS = {
 
 const PINNED_CRAFTS        = ['Hand Block Printing', 'Embroidery', 'Tie Dye'];
 const PINNED_FABRICS       = ['Cotton Based', 'Silk Based', 'Wool Based'];
+
+const FABRIC_GROUPS = {
+  'Cotton Based': [
+    'Cotton Based', 'Cotton', 'Cotton Mulmul', 'Mulmul', 'Organic Cotton',
+    'Cotton Voile', 'Voile', 'Cotton Dobby', 'Dobby', 'Cotton Linen',
+    'Cotton Poplin', 'Poplin', 'Khadi Cotton', 'Khadi', 'Handloom Cotton',
+    'Cotton Silk', 'Cambric', 'Lawn', 'Muslin', 'Seersucker', 'Slub Cotton',
+  ],
+  'Silk Based': [
+    'Silk Based', 'Silk', 'Raw Silk', 'Dupion Silk', 'Dupion',
+    'Chanderi Silk', 'Chanderi', 'Georgette Silk', 'Georgette',
+    'Crepe Silk', 'Crepe', 'Satin Silk', 'Satin',
+    'Tussar Silk', 'Tussar', 'Banarasi Silk', 'Banarasi',
+    'Katan Silk', 'Mulberry Silk', 'Chiffon Silk', 'Organza Silk', 'Organza',
+  ],
+  'Wool Based': [
+    'Wool Based', 'Wool', 'Merino Wool', 'Merino', 'Pashmina',
+    'Cashmere', 'Lambswool', 'Tweed', 'Felted Wool', 'Boiled Wool',
+    'Angora', 'Alpaca', 'Mohair',
+  ],
+};
 const PINNED_PRODUCT_TYPES = ['Dresses', 'Trousers / Pants', 'Tops'];
 
 // ─── Collapsible filter group ───────────────────────────────────────────────
 const VISIBLE_COUNT = 3;
 
-function FilterGroup({ label, options, pinned = [], activeValues, isAll, onAll, onToggle, isLast }) {
+function FilterGroup({ label, options, pinned = [], activeValues, isAll, onAll, onToggle, isLast, isPinnedActive }) {
   const [expanded, setExpanded] = useState(false);
 
   // Pinned first (case-insensitive match against live options), then rest alphabetically
@@ -329,7 +350,7 @@ function FilterGroup({ label, options, pinned = [], activeValues, isAll, onAll, 
           <Chip
             key={opt}
             label={opt}
-            active={activeValues.includes(opt)}
+            active={isPinnedActive ? isPinnedActive(opt) : activeValues.includes(opt)}
             onClick={() => onToggle(opt)}
           />
         ))}
@@ -417,6 +438,10 @@ function FilterBar({ options, filters, setFilter, clearAll, totalVisible, hasAny
           onAll={() => setFilter('fabric', '')}
           onToggle={v => setFilter('fabric', v)}
           isLast={false}
+          isPinnedActive={label => {
+            const members = FABRIC_GROUPS[label];
+            return members ? members.some(m => filters.fabric.includes(m)) : filters.fabric.includes(label);
+          }}
         />
         <FilterGroup
           label="Product"
@@ -634,13 +659,18 @@ export default function StudioDirectory() {
           (s.secondary_crafts || []).some(c => c.toLowerCase().includes(fc.toLowerCase()))
         );
       const fabricMatch = filters.fabric.length === 0 ||
-        filters.fabric.some(ff =>
-          (s.fabrics || []).some(f => {
-            const category = typeof f === 'string' ? f : f.category;
-            const label = FABRIC_CATEGORY_LABELS[category] || category;
-            return label && label.toLowerCase() === ff.toLowerCase();
-          })
-        );
+        filters.fabric.some(ff => {
+          const groupMembers = FABRIC_GROUPS[ff] || [ff];
+          return (s.fabrics || []).some(f => {
+            const category   = typeof f === 'string' ? f : f.category;
+            const fabricName = typeof f === 'string' ? f : (f.fabric_name || '');
+            const label      = FABRIC_CATEGORY_LABELS[category] || category;
+            return groupMembers.some(m =>
+              (label      && label.toLowerCase()      === m.toLowerCase()) ||
+              (fabricName && fabricName.toLowerCase().includes(m.toLowerCase()))
+            );
+          });
+        });
       const productMatch = filters.productType.length === 0 ||
         filters.productType.some(fp =>
           (s.product_types || []).some(p => {
@@ -655,10 +685,14 @@ export default function StudioDirectory() {
   const setFilter = (key, val) => {
     const next = { ...filters };
     if (!val) {
-      // Clicked "All" — clear that filter
       next[key] = [];
+    } else if (key === 'fabric' && FABRIC_GROUPS[val]) {
+      const members  = FABRIC_GROUPS[val];
+      const isActive = members.some(m => next.fabric.includes(m));
+      next.fabric    = isActive
+        ? next.fabric.filter(v => !members.includes(v))
+        : [...new Set([...next.fabric, ...members])];
     } else {
-      // Toggle the value in/out of the array
       const arr = next[key];
       next[key] = arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val];
     }

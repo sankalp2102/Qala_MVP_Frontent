@@ -833,7 +833,9 @@ export default function StudioProfile() {
   const [studio,  setStudio]  = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState('');
-  const [inquiryOpen, setInquiryOpen] = useState(false);
+  const [inquiryOpen,    setInquiryOpen]    = useState(false);
+  const [showIntroPopup,   setShowIntroPopup]   = useState(false);
+  const [introLoading,     setIntroLoading]     = useState(false);
   const [inquiryDone, setInquiryDone] = useState(false);
   const [btsOpen, setBtsOpen] = useState(false);
   const [btsLightboxOpen, setBtsLightboxOpen] = useState(false);
@@ -1228,60 +1230,105 @@ export default function StudioProfile() {
         {/* ── RIGHT COLUMN — Sticky sidebar ── */}
         <div className="studio-sidebar" style={{ position: 'sticky', top: 80, display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
 
-          {/* Contact card — hidden for now */}
-          {false && <div style={{
+          {/* Intro popup modal */}
+          {showIntroPopup && (
+            <>
+              <div
+                onClick={() => setShowIntroPopup(false)}
+                style={{
+                  position: 'fixed', inset: 0, zIndex: 300,
+                  background: 'rgba(26,22,18,0.45)',
+                  backdropFilter: 'blur(3px)',
+                }}
+              />
+              <div style={{
+                position: 'fixed', top: '50%', left: '50%',
+                transform: 'translate(-50%,-50%)',
+                zIndex: 301,
+                background: 'var(--bg)',
+                border: '1px solid var(--border)',
+                borderRadius: 16,
+                padding: '36px 32px 28px',
+                width: 'min(400px, 92vw)',
+                boxShadow: '0 16px 56px rgba(0,0,0,0.18)',
+                textAlign: 'center',
+              }}>
+                <p style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 18, fontWeight: 500,
+                  color: 'var(--text)', marginBottom: 10,
+                }}>
+                  Introduction Requested
+                </p>
+                <p style={{
+                  fontSize: 13.5, color: 'var(--text3)',
+                  lineHeight: 1.65, marginBottom: 24,
+                }}>
+                  Qala Team will get you introduced to the studio soon.
+                </p>
+                <button
+                  onClick={() => setShowIntroPopup(false)}
+                  style={{
+                    padding: '10px 28px', borderRadius: 8,
+                    border: '1px solid var(--border)',
+                    background: 'none', fontSize: 13,
+                    color: 'var(--text)', cursor: 'pointer',
+                    fontFamily: 'var(--font-body)',
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Contact card */}
+          {<div style={{
             background: 'var(--surface)', border: '1px solid var(--border)',
             borderRadius: 16, padding: '28px 24px',
             boxShadow: 'var(--shadow-gold)',
           }}>
-            {inquiryDone ? (
-              <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }}>✉️</div>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>
-                  Introduction sent!
-                </div>
-                <p style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6 }}>
-                  {s.studio_name} will receive your message and get back to you.
-                </p>
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, color: 'var(--text)', marginBottom: 6 }}>
+                Connect with this studio
               </div>
-            ) : (
-              <>
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-                    Connect with this studio
-                  </div>
-                  <p style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6 }}>
-                    Share your contact details and answer a few studio questions before we introduce you.
-                  </p>
-                </div>
-
-                {/* Pre-call questions preview */}
-                {s.pre_call_questions?.length > 0 && (
-                  <div style={{ marginBottom: 18, padding: '12px 14px', background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--border)' }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>
-                      They'll ask you
-                    </div>
-                    {s.pre_call_questions.slice(0, 2).map((q, i) => (
-                      <div key={i} style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4, display: 'flex', gap: 6 }}>
-                        <span style={{ color: 'var(--gold)', flexShrink: 0 }}>?</span>
-                        {q.question ? q.question.charAt(0).toUpperCase() + q.question.slice(1).toLowerCase() : ''}
-                      </div>
-                    ))}
-                    {s.pre_call_questions.length > 2 && (
-                      <div style={{ fontSize: 11, color: 'var(--text4)', marginTop: 4 }}>+{s.pre_call_questions.length - 2} more questions</div>
-                    )}
-                  </div>
-                )}
-
-                <button
-                  className="btn btn-primary"
-                  onClick={() => setInquiryOpen(true)}
-                  style={{ width: '100%', justifyContent: 'center', padding: '13px', fontSize: 14 }}
-                >
-                  Get Introduced →
-                </button>
-              </>
-            )}
+              <p style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6 }}>
+                Let us know you're interested and we'll handle the introduction.
+              </p>
+            </div>
+            <button
+              disabled={introLoading}
+              onClick={() => {
+                setIntroLoading(true);
+                setTimeout(() => {
+                  setIntroLoading(false);
+                  setShowIntroPopup(true);
+                }, 200 + Math.random() * 300);
+              }}
+              style={{
+                width: '100%', padding: '13px', borderRadius: 8,
+                border: 'none', background: 'var(--gold)', color: '#fff',
+                fontSize: 14, fontWeight: 500,
+                cursor: introLoading ? 'not-allowed' : 'pointer',
+                fontFamily: 'var(--font-body)',
+                opacity: introLoading ? 0.7 : 1,
+                transition: 'opacity 0.15s',
+                display: 'flex', alignItems: 'center',
+                justifyContent: 'center', gap: 8,
+              }}
+            >
+              {introLoading && (
+                <span style={{
+                  width: 13, height: 13, borderRadius: '50%',
+                  border: '2px solid rgba(255,255,255,0.35)',
+                  borderTopColor: '#fff', flexShrink: 0,
+                  animation: 'introSpin 0.7s linear infinite',
+                  display: 'inline-block',
+                }} />
+              )}
+              {introLoading ? 'Sending request…' : 'Get Introduced'}
+            </button>
+            <style>{`@keyframes introSpin { to { transform: rotate(360deg); } }`}</style>
           </div>}
 
           {/* Studio quick facts */}

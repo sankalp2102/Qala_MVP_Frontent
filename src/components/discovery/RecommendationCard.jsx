@@ -70,6 +70,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
   const [activeTab, setActiveTab] = useState('why');
   const rank = RANKING_STYLES[rec.ranking] || RANKING_STYLES.medium;
   const hero = rec.hero_images?.[0];
+  const [imgLoaded, setImgLoaded] = useState(false);
   const whyLines = buildWhyLines(rec, buyerSummary, isBonus);
   const bestAt = (rec.what_best_at || []).filter(Boolean);
 
@@ -128,7 +129,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
       </div>
 
       {/* Hero image/video */}
-      <div style={{ height: 220, background: 'var(--surface2)', flexShrink: 0, overflow: 'hidden' }}>
+      <div style={{ height: 220, background: 'var(--surface2)', flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
         {hero ? (
           (hero.mime_type?.startsWith('video/') || /\.(mp4|mov|avi|webm|mkv)$/i.test(hero.url || '')) ? (
             <video
@@ -137,13 +138,28 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
           ) : (
-            <img
-              src={mediaUrl(hero.url)}
-              alt={rec.studio_name}
-              fetchpriority="high"
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-              onError={mediaOnError(hero.url)}
-            />
+            <>
+              <style>{`@keyframes heroShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+              {!imgLoaded && (
+                <div style={{
+                  position: 'absolute', inset: 0, zIndex: 1,
+                  background: 'linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%)',
+                  backgroundSize: '200% 100%',
+                  animation: 'heroShimmer 1.4s ease-in-out infinite',
+                }} />
+              )}
+              <img
+                src={mediaUrl(hero.url)}
+                alt={rec.studio_name}
+                fetchpriority="high"
+                onLoad={() => setImgLoaded(true)}
+                style={{
+                  width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+                  opacity: imgLoaded ? 1 : 0, transition: 'opacity 0.3s ease',
+                }}
+                onError={mediaOnError(hero.url)}
+              />
+            </>
           )
         ) : (
           <div style={{
