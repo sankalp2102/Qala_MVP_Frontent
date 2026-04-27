@@ -1,400 +1,528 @@
-import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { discoveryAPI } from '../api/client';
+// src/pages/Landing.jsx
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate }                  from 'react-router-dom';
+import { useAuth }                      from '../context/AuthContext';
+import { chatAPI }                      from '../api/client';
 import qalaLogo from '../assets/qala-logo.png';
-import UserAvatar from '../components/UserAvatar';
+import g1 from '../assets/garment-1.jpg';
+import g2 from '../assets/garment-2.jpg';
+import g3 from '../assets/garment-3.jpg';
+import g4 from '../assets/garment-4.jpg';
+import g5 from '../assets/garment-5.jpg';
 
-// Animated weave background using canvas
-function WeaveCanvas() {
-  const ref = useRef();
-  useEffect(() => {
-    const canvas = ref.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let raf;
-    let t = 0;
+const CHAT_SESSION_KEY   = 'qala_chat_session_id';
+const LANDING_FIRST_MSG  = 'qala_landing_first_msg';
+const LANDING_FIRST_IMG  = 'qala_landing_first_img';
+const LANDING_FIRST_MIME = 'qala_landing_first_mime';
+const ACCENT = '#7A8C6E';
 
-    const resize = () => {
-      canvas.width  = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    resize();
-    window.addEventListener('resize', resize);
-
-    const draw = () => {
-      const { width: W, height: H } = canvas;
-      ctx.clearRect(0, 0, W, H);
-
-      const cols = 28;
-      const rows = 18;
-      const cw = W / cols;
-      const ch = H / rows;
-
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const phase = (c + r) * 0.4 + t;
-          const alpha = (Math.sin(phase) * 0.5 + 0.5) * 0.06 + 0.015;
-          const isWarp = (c + r) % 2 === 0;
-          ctx.strokeStyle = `rgba(159,101,71,${alpha})`;
-          ctx.lineWidth = isWarp ? 1 : 0.5;
-          ctx.beginPath();
-          if (isWarp) {
-            ctx.moveTo(c * cw + cw / 2, r * ch);
-            ctx.lineTo(c * cw + cw / 2, (r + 1) * ch);
-          } else {
-            ctx.moveTo(c * cw, r * ch + ch / 2);
-            ctx.lineTo((c + 1) * cw, r * ch + ch / 2);
-          }
-          ctx.stroke();
-        }
-      }
-      t += 0.008;
-      raf = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); };
-  }, []);
-  return <canvas ref={ref} style={{ position:'absolute', inset:0, zIndex:0, pointerEvents:'none' }} />;
-}
+const GARMENTS = [
+  { key: 'g1', src: g1, hideInPhase2: false, style: { top: '2vh',    left: '3vw',  width: 'clamp(220px,27vw,370px)', transform: 'rotate(-6deg)' } },
+  { key: 'g2', src: g2, hideInPhase2: true,  style: { top: '1vh',    left: '50%',  width: 'clamp(80px,9vw,130px)',   transform: 'translateX(-50%) rotate(4deg)' } },
+  { key: 'g3', src: g3, hideInPhase2: false, style: { top: '4vh',    right: '4vw', width: 'clamp(130px,15vw,210px)', transform: 'rotate(3deg)' } },
+  { key: 'g4', src: g4, hideInPhase2: false, style: { bottom: '2vh', left: '5vw',  width: 'clamp(210px,26vw,350px)', transform: 'rotate(5deg)', mixBlendMode: 'multiply' } },
+  { key: 'g5', src: g5, hideInPhase2: false, style: { bottom: '1vh', right: '3vw', width: 'clamp(110px,12vw,165px)', transform: 'rotate(-4deg)', mixBlendMode: 'multiply' } },
+];
 
 export default function Landing() {
-  const nav = useNavigate();
-  const { user } = useAuth();
-  const [hasSession, setHasSession] = useState(false);
-  const [visible, setVisible]       = useState(false);
+  const { user, loginWithAccessKey } = useAuth();
+  const navigate = useNavigate();
+
+  const [phase,      setPhase]      = useState('key');
+  const [visible,    setVisible]    = useState(false);
+  const [transition, setTransition] = useState(false);
+
+  const [accessKey,  setAccessKey]  = useState('');
+  const [keyError,   setKeyError]   = useState('');
+  const [keyShake,   setKeyShake]   = useState(false);
+  const [starting,   setStarting]   = useState(false);
+  const [sessionId,  setSessionId]  = useState(null);
+
+  const [message,    setMessage]    = useState('');
+  const [sending,    setSending]    = useState(false);
+  const [pendingImg, setPendingImg] = useState(null);
+  const fileRef = useRef(null);
+  const taRef   = useRef(null);
+
+  // Request access modal state
+  const [showAccessReq,    setShowAccessReq]    = useState(false);
+  const [accessReqForm,    setAccessReqForm]    = useState({ name: '', email: '', link: '' });
+  const [accessReqErr,     setAccessReqErr]     = useState({});
+  const [accessReqSending, setAccessReqSending] = useState(false);
+  const [accessReqDone,    setAccessReqDone]    = useState(false);
+
+  useEffect(() => { setTimeout(() => setVisible(true), 60); }, []);
 
   useEffect(() => {
-    if (user?.role === 'admin')  { nav('/admin');     return; }
-    if (user?.role === 'seller') { nav('/dashboard'); return; }
-    // customers stay on landing — they see the avatar
-    const tok = discoveryAPI.getStoredSession();
-    if (tok) setHasSession(true);
-    setTimeout(() => setVisible(true), 80);
-
-    // ── Image preload ──────────────────────────────────────────────────────
-    // Strategy: fetch all image URLs, save to sessionStorage, then run a
-    // waterfall preload with CONCURRENCY parallel slots. Each slot loads one
-    // image at a time; when it finishes it immediately picks up the next URL.
-    // This keeps the network busy continuously and ensures images are in
-    // browser HTTP cache before the user reaches Q1.
-    //
-    // window.__qala_preload_progress tracks how many are done so ImageGrid
-    // can tell which images are already cached vs still loading.
-    const CACHE_KEY   = 'qala_img_cache_v1';
-    const CONCURRENCY = 5;  // parallel download slots
-
-    const runWaterfall = (urls, startIndex) => {
-      // If another waterfall is already running from a previous call, stop
-      if (window.__qala_preload_active && startIndex === 0) return;
-      window.__qala_preload_active = true;
-      window.__qala_preload_total  = urls.length;
-      if (!window.__qala_preload_done) window.__qala_preload_done = 0;
-
-      let nextIndex = startIndex;
-
-      const loadOne = () => {
-        if (nextIndex >= urls.length) return;
-        const url   = urls[nextIndex];
-        nextIndex  += 1;
-        const img   = new window.Image();
-        img.onload  = () => { window.__qala_preload_done += 1; loadOne(); };
-        img.onerror = () => { window.__qala_preload_done += 1; loadOne(); };
-        img.src     = url;
-      };
-
-      // Spin up CONCURRENCY parallel slots
-      const slots = Math.min(CONCURRENCY, urls.length - startIndex);
-      for (let i = 0; i < slots; i++) loadOne();
-    };
-
-    // Check if sessionStorage already has the image list
-    try {
-      const existing = sessionStorage.getItem(CACHE_KEY);
-      if (existing) {
-        const imgs = JSON.parse(existing);
-        const urls = imgs.map(img => img.image_url).filter(Boolean);
-        const done = window.__qala_preload_done || 0;
-        // Resume waterfall from wherever it left off (handles the 2–3 sec case)
-        if (done < urls.length) runWaterfall(urls, done);
-        return;
-      }
-    } catch {}
-
-    // No cache yet — fetch, shuffle, store, then start waterfall
-    discoveryAPI.getImages()
-      .then(r => {
-        const all = (r.data.images || []).filter(
-          img => !(img.mime_type?.startsWith('video/') ||
-                   /\.(mp4|mov|avi|webm|mkv)$/i.test(img.image_url || ''))
-        );
-        const shuffled = [...all].sort(() => Math.random() - 0.5);
-        try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(shuffled)); } catch {}
-
-        const urls = shuffled.map(img => img.image_url).filter(Boolean);
-        window.__qala_preload_done = 0;
-        runWaterfall(urls, 0);
-      })
-      .catch(() => {});
+    if (!user) return;
+    if (user.role === 'admin')    { navigate('/admin');     return; }
+    if (user.role === 'seller')   { navigate('/dashboard'); return; }
+    if (user.role === 'customer') { setPhase('message'); }
   }, [user]);
 
-  const S = {
-    page: {
-      minHeight: '100vh', background: '#F8F5F1', overflow: 'hidden',
-      display: 'flex', flexDirection: 'column',
-      position: 'relative',
-    },
-    hero: {
-      flex: 1, position: 'relative', display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      minHeight: '100vh', padding: '80px 24px 60px',
-    },
-    nav: {
-      position: 'absolute', top: 0, left: 0, right: 0,
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '28px 48px', zIndex: 10,
-    },
-    logo: {
-      display: 'flex', alignItems: 'center', gap: 10,
-      fontFamily: 'var(--font-display)', fontSize: 22,
-      fontWeight: 400, color: 'var(--text)', letterSpacing: '0.1em',
-    },
-    logoMark: {
-      width: 32, height: 32, borderRadius: 8,
-      border: '1px solid var(--border)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: 16, fontFamily: 'var(--font-display)', fontWeight: 400,
-    },
-    loginLink: {
-      fontSize: 12, color: 'var(--text3)', letterSpacing: '0.08em',
-      textTransform: 'uppercase', cursor: 'pointer', fontWeight: 500,
-      border: '1px solid var(--border)', borderRadius: 6, padding: '6px 14px',
-      background: 'none', transition: 'color 0.2s, border-color 0.2s',
-    },
-    eyebrow: {
-      display: 'inline-flex', alignItems: 'center', gap: 8,
-      border: '1px solid var(--border)', borderRadius: 20,
-      padding: '5px 14px', fontSize: 11, color: 'var(--text3)',
-      letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500,
-      marginBottom: 32, background: 'rgba(255,255,255,0.6)',
-    },
-    dot: {
-      width: 5, height: 5, borderRadius: '50%',
-      background: 'var(--gold)', opacity: 0.8,
-      animation: 'pulse 2s ease-in-out infinite',
-    },
-    headline: {
-      fontFamily: 'var(--font-display)', fontSize: 'clamp(38px, 5.5vw, 80px)',
-      fontWeight: 400, color: 'var(--text)', lineHeight: 1.08,
-      textAlign: 'center', maxWidth: 820, marginBottom: 20,
-      letterSpacing: '-0.01em',
-    },
-    sub: {
-      fontSize: 'clamp(13px, 1.5vw, 16px)', color: 'var(--text3)',
-      textAlign: 'center', letterSpacing: '0.18em',
-      textTransform: 'uppercase', fontWeight: 400, marginBottom: 52,
-    },
-    ctaWrap: {
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
-    },
-    cta: {
-      padding: '16px 48px', background: '#1A1612', color: '#F5F0E8',
-      border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 500,
-      letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer',
-      transition: 'transform 0.2s, box-shadow 0.2s, background 0.2s',
-      fontFamily: 'var(--font-body)',
-    },
-    resumeChip: {
-      display: 'flex', alignItems: 'center', gap: 8,
-      border: '1px solid var(--border)', borderRadius: 20,
-      padding: '8px 18px', cursor: 'pointer', background: 'rgba(255,255,255,0.6)',
-      fontSize: 12, color: 'var(--text2)', transition: 'border-color 0.2s',
-      fontFamily: 'var(--font-body)',
-    },
-    // Process strip
-    strip: {
-      borderTop: '1px solid var(--border)',
-      padding: '60px 48px 72px',
-      display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
-      gap: 0, position: 'relative', zIndex: 1,
-      background: 'rgba(255,255,255,0.5)',
-    },
-    stepNum: {
-      fontFamily: 'var(--font-display)', fontSize: 48, fontWeight: 400,
-      color: 'rgba(196,110,73,0.12)', lineHeight: 1, marginBottom: 16,
-      letterSpacing: '-0.02em',
-    },
-    stepLabel: {
-      fontSize: 10, fontWeight: 400, color: 'var(--text3)',
-      letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12,
-    },
-    stepTitle: {
-      fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 400,
-      color: 'var(--text)', marginBottom: 10, letterSpacing: '-0.01em',
-    },
-    stepDesc: {
-      fontSize: 13, color: 'var(--text3)', lineHeight: 1.7, maxWidth: 260,
-    },
-    stepDivider: {
-      position: 'absolute', top: '50%', width: 1,
-      height: 80, background: 'var(--border)',
-      transform: 'translateY(-50%)',
-    },
+  async function handleKeySubmit() {
+    if (!accessKey.trim() || starting) return;
+    setStarting(true); setKeyError('');
+    try {
+      const res  = await chatAPI.start(accessKey.trim());
+      const data = res.data;
+      const id   = data.session?.session_id;
+      setSessionId(id);
+      sessionStorage.setItem(CHAT_SESSION_KEY, id);
+      if (data.access_token && data.user) loginWithAccessKey(data.access_token, data.user);
+      setTransition(true);
+      setTimeout(() => { setPhase('message'); setTransition(false); }, 320);
+    } catch (err) {
+      setKeyError(err.response?.data?.error || 'Invalid access key.');
+      setKeyShake(true);
+      setTimeout(() => setKeyShake(false), 600);
+    } finally { setStarting(false); }
+  }
+
+  async function handleMessageSubmit() {
+    if ((!message.trim() && !pendingImg) || sending) return;
+    setSending(true);
+    try {
+      let sid = sessionId;
+      if (!sid) {
+        const res = await chatAPI.start(null);
+        sid = res.data.session?.session_id;
+        sessionStorage.setItem(CHAT_SESSION_KEY, sid);
+      }
+      if (message.trim()) sessionStorage.setItem(LANDING_FIRST_MSG, message.trim());
+      if (pendingImg) {
+        sessionStorage.setItem(LANDING_FIRST_IMG,  pendingImg.data);
+        sessionStorage.setItem(LANDING_FIRST_MIME, pendingImg.mime);
+      }
+      navigate('/discover');
+    } catch { setSending(false); }
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      phase === 'key' ? handleKeySubmit() : handleMessageSubmit();
+    }
+  }
+
+  function handleFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      setPendingImg({ data: ev.target.result.split(',')[1], mime: file.type || 'image/jpeg' });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  }
+
+  async function handleAccessReqSubmit() {
+    const errs = {};
+    if (!accessReqForm.name.trim())  errs.name  = 'Required';
+    if (!accessReqForm.email.trim()) errs.email = 'Required';
+    else if (!/^[^@]+@[^@]+\.[^@]+$/.test(accessReqForm.email)) errs.email = 'Invalid email';
+    if (Object.keys(errs).length) { setAccessReqErr(errs); return; }
+    setAccessReqSending(true);
+    try {
+      await chatAPI.requestAccess({
+        name:  accessReqForm.name.trim(),
+        email: accessReqForm.email.trim(),
+        link:  accessReqForm.link.trim(),
+      });
+      setAccessReqDone(true);
+    } catch {
+      setAccessReqErr({ email: 'Something went wrong. Please try again.' });
+    } finally { setAccessReqSending(false); }
+  }
+
+  const fadeIn = {
+    opacity:    visible && !transition ? 1 : 0,
+    transform:  visible && !transition ? 'translateY(0)' : 'translateY(14px)',
+    transition: 'opacity 0.5s ease, transform 0.5s ease',
   };
 
-  const transBase = {
-    transition: 'opacity 0.7s ease, transform 0.7s ease',
-    opacity: visible ? 1 : 0,
-    transform: visible ? 'none' : 'translateY(24px)',
-  };
-
-  const steps = [
-    { num: '01', label: 'DISCOVER', title: 'Start with your idea.\nWe\'ll take it from there.', desc: 'Tell us what you\'re looking to make, even if it\'s not fully defined. We help you find studios you can trust to bring it to life.' },
-    { num: '02', label: 'CONNECT', title: 'Get matched with studios\nthat understand your vision.', desc: 'We recommend designer-led studios based on your style, craft technique, and batch size — so you don\'t have to figure India out alone.' },
-    { num: '03', label: 'CREATE', title: 'Make your collection\nwithout the usual chaos.', desc: 'Work directly with studios while Qala stays involved — so you can focus on creating, while we keep production on track.' },
-  ];
+  const canSendKey = accessKey.trim() && !starting;
+  const canSendMsg = (message.trim() || pendingImg) && !sending;
 
   return (
-    <div style={S.page}>
+    <div style={{
+      minHeight: '100vh', background: '#FFFFFF',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      position: 'relative', overflow: 'hidden',
+      fontFamily: 'var(--font-body)',
+    }}>
       <style>{`
-        @keyframes pulse { 0%,100%{opacity:0.6} 50%{opacity:1} }
-        @keyframes floatY { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
-        .cta-btn:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 40px rgba(196,110,73,0.3) !important; background: #C46E49 !important; }
-        .cta-btn:active { transform: translateY(0) !important; }
-        .resume-chip:hover { border-color: var(--border2) !important; background: rgba(255,255,255,0.9) !important; }
-        .login-link:hover { color: var(--text) !important; border-color: var(--border2) !important; }
-        @media (max-width: 768px) {
-          .process-strip { grid-template-columns: 1fr !important; padding: 48px 24px !important; gap: 40px !important; }
-          .step-divider { display: none !important; }
-          .nav-wrap { padding: 20px 24px !important; }
+        .landing-textarea::placeholder { color: rgba(26,22,18,0.22); }
+        @keyframes spin  { to { transform: rotate(360deg); } }
+        @keyframes shake {
+          0%,100%{ transform:translateX(0) }
+          20%{ transform:translateX(-7px) }
+          40%{ transform:translateX(7px)  }
+          60%{ transform:translateX(-5px) }
+          80%{ transform:translateX(5px)  }
+        }
+        .land-garment {
+          pointer-events:none; user-select:none;
+          object-fit:contain; position:absolute; z-index:0;
+        }
+        @media(max-width:700px){
+          .land-garment { opacity:0.9 !important; }
+          /* Per-garment mobile overrides — mirrors web layout scaled down */
+          .land-g1 { top:2vh  !important; left:1vw   !important; width:clamp(110px,28vw,160px) !important; }
+          .land-g2 { top:1vh  !important; left:50%   !important; width:clamp(50px,12vw,80px)   !important; }
+          .land-g3 { top:3vh  !important; right:2vw  !important; width:clamp(90px,22vw,130px)  !important; }
+          .land-g4 { bottom:2vh !important; left:4vw !important; width:clamp(110px,27vw,155px) !important; }
+          .land-g5 { bottom:1vh !important; right:3vw !important; width:clamp(80px,19vw,115px) !important; }
         }
       `}</style>
 
-      {/* Nav */}
-      <div style={S.nav} className="nav-wrap">
-        <div style={S.logo}>
-          <img src={qalaLogo} alt="Qala" className="qala-logo" />
-        </div>
-        <UserAvatar loginStyle={S.loginLink} />
+      {/* Garment decorations */}
+      {GARMENTS.map(g => (
+        <img
+          key={g.key}
+          src={g.src}
+          alt=""
+          className={`land-garment land-${g.key}`}
+          style={{
+            ...g.style,
+            opacity: g.hideInPhase2 && phase === 'message' ? 0 : 1,
+            transition: 'opacity 0.4s ease',
+          }}
+          onError={e => { e.currentTarget.style.display = 'none'; }}
+        />
+      ))}
+
+      {/* Centre card */}
+      <div style={{
+        position: 'relative', zIndex: 1,
+        width: '100%', maxWidth: phase === 'message' ? 720 : 520,
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        padding: '0 20px',
+        transition: 'max-width 0.3s ease',
+        ...fadeIn,
+      }}>
+
+        {/* ── PHASE 1 — KEY ── */}
+        {phase === 'key' && (
+          <>
+            <h1 style={{
+              fontFamily: 'var(--font-display)',
+              fontWeight: 400, color: '#1A1612',
+              textAlign: 'center', lineHeight: 1.28,
+              marginBottom: 28, letterSpacing: '-0.01em',
+            }}>
+              <span style={{ display: 'block', fontSize: 'clamp(26px,3.8vw,38px)', whiteSpace: 'nowrap' }}>The Custom Manufacturing Platform</span>
+              <span style={{ display: 'block', fontSize: 'clamp(22px,3.2vw,32px)', whiteSpace: 'nowrap', color: 'rgba(26,22,18,0.7)' }}>for Brands &amp; Retailers</span>
+            </h1>
+
+            <div style={{
+              width: '100%',
+              border: `1.5px solid ${keyError ? '#C94040' : 'rgba(122,140,110,0.5)'}`,
+              borderRadius: 14, background: '#F9F9F8',
+              display: 'flex', alignItems: 'center',
+              padding: '6px 6px 6px 18px', gap: 8,
+              animation: keyShake ? 'shake 0.5s ease' : 'none',
+              transition: 'border-color 0.2s',
+              boxSizing: 'border-box',
+            }}>
+              <input
+                type="text"
+                value={accessKey}
+                onChange={e => { setAccessKey(e.target.value); setKeyError(''); }}
+                onKeyDown={handleKeyDown}
+                placeholder="Enter your access code"
+                autoFocus
+                style={{
+                  flex: 1, border: 'none', background: 'transparent',
+                  fontSize: 14, color: '#1A1612',
+                  fontFamily: 'var(--font-body)', outline: 'none',
+                  padding: '9px 0', letterSpacing: '0.02em',
+                }}
+              />
+              <button
+                onClick={handleKeySubmit}
+                disabled={!canSendKey}
+                style={{
+                  width: 40, height: 40, borderRadius: 10, border: 'none',
+                  background: canSendKey ? ACCENT : 'rgba(122,140,110,0.25)',
+                  cursor: canSendKey ? 'pointer' : 'not-allowed',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0, transition: 'background 0.18s',
+                }}
+              >
+                {starting
+                  ? <div style={{ width:14,height:14,border:'2px solid rgba(255,255,255,0.35)',borderTopColor:'#fff',borderRadius:'50%',animation:'spin 0.7s linear infinite' }} />
+                  : <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                }
+              </button>
+            </div>
+
+            {keyError && (
+              <p style={{ fontSize:12, color:'#C94040', marginTop:8, textAlign:'center' }}>{keyError}</p>
+            )}
+
+            <button
+              onClick={() => { setShowAccessReq(true); setAccessReqDone(false); setAccessReqErr({}); setAccessReqForm({ name:'', email:'', link:'' }); }}
+              style={{
+                marginTop: 14, fontSize: 12,
+                color: 'rgba(26,22,18,0.38)',
+                background: 'none', border: 'none', padding: 0,
+                borderBottom: '1px solid rgba(26,22,18,0.12)',
+                paddingBottom: 1, cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+                transition: 'color 0.15s',
+              }}
+              onMouseEnter={e => { e.target.style.color = 'rgba(26,22,18,0.65)'; }}
+              onMouseLeave={e => { e.target.style.color = 'rgba(26,22,18,0.38)'; }}
+            >
+              Request Access code
+            </button>
+          </>
+        )}
+
+        {/* ── PHASE 2 — FIRST MESSAGE ── */}
+        {phase === 'message' && (
+          <>
+            <h1 style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'clamp(18px,2.6vw,28px)',
+              fontWeight: 400, color: '#1A1612',
+              textAlign: 'center', lineHeight: 1.22,
+              whiteSpace: 'nowrap',
+              marginBottom: 12, letterSpacing: '-0.01em',
+            }}>
+              What Do You Want To Make?
+            </h1>
+
+            <p style={{
+              fontSize: 13.5, color: 'rgba(26,22,18,0.52)',
+              textAlign: 'center', lineHeight: 1.68,
+              marginBottom: 26, maxWidth: 560,
+            }}>
+              Share your ideas with us. We&rsquo;ll help you shape them into a clear brief and introduce
+              you to production studios best suited to bring your vision to life.
+            </p>
+
+            <div style={{
+              width: '100%',
+              border: '1px solid rgba(26,22,18,0.1)',
+              borderRadius: 14, background: '#F9F9F8',
+              padding: '16px 16px 10px',
+              boxSizing: 'border-box',
+              boxShadow: '0 2px 20px rgba(26,22,18,0.05)',
+            }}>
+              <div style={{ width:28, height:3, background: ACCENT, borderRadius:2, marginBottom:12 }} />
+
+              {pendingImg && (
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+                  <img
+                    src={`data:${pendingImg.mime};base64,${pendingImg.data}`}
+                    alt=""
+                    style={{ height:48, borderRadius:6, border:'1px solid rgba(26,22,18,0.1)' }}
+                  />
+                  <button onClick={() => setPendingImg(null)} style={{ fontSize:11, color:'rgba(26,22,18,0.4)', background:'none', border:'none', cursor:'pointer' }}>
+                    remove
+                  </button>
+                </div>
+              )}
+
+              <textarea
+                ref={taRef}
+                value={message}
+                onChange={e => {
+                  setMessage(e.target.value);
+                  e.target.style.height = 'auto';
+                  e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px';
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder={"Eg: I'm launching my brand with an 8-piece collection. Mix of linen and cotton, some with block printing. Can you help me build out the specs for each piece?\n\nFeel free to attach any references if you wish."}
+                rows={4}
+                autoFocus
+                className="landing-textarea"
+                style={{
+                  width:'100%', border:'none', background:'transparent',
+                  fontSize:13, color:'#1A1612', lineHeight:1.65,
+                  fontFamily:'var(--font-body)', resize:'none', outline:'none',
+                  minHeight:80, maxHeight:160, scrollbarWidth:'none',
+                }}
+              />
+
+              <div style={{
+                display:'flex', alignItems:'center', justifyContent:'space-between',
+                marginTop:10, paddingTop:10,
+                borderTop:'1px solid rgba(26,22,18,0.07)',
+              }}>
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  style={{
+                    display:'flex', alignItems:'center', gap:6,
+                    fontSize:12, color:'rgba(26,22,18,0.42)',
+                    background:'none', border:'none', cursor:'pointer',
+                    fontFamily:'var(--font-body)', padding:'4px 0',
+                    transition:'color 0.15s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'rgba(26,22,18,0.75)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'rgba(26,22,18,0.42)'; }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66L9.64 16.34a2 2 0 01-2.83-2.83l8.49-8.48"/>
+                  </svg>
+                  Attach
+                </button>
+                <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleFileChange} />
+
+                <button
+                  onClick={handleMessageSubmit}
+                  disabled={!canSendMsg}
+                  style={{
+                    width:36, height:36, borderRadius:9, border:'none',
+                    background: canSendMsg ? ACCENT : 'rgba(122,140,110,0.22)',
+                    cursor: canSendMsg ? 'pointer' : 'not-allowed',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    flexShrink:0, transition:'background 0.18s',
+                  }}
+                >
+                  {sending
+                    ? <div style={{ width:12,height:12,border:'2px solid rgba(255,255,255,0.3)',borderTopColor:'#fff',borderRadius:'50%',animation:'spin 0.7s linear infinite' }} />
+                    : <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  }
+                </button>
+              </div>
+            </div>
+
+            <div style={{ marginTop:26, opacity:0.3 }}>
+              <img src={qalaLogo} alt="Qala" style={{ height:15, width:'auto' }} />
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Hero */}
-      <section style={S.hero}>
-        <WeaveCanvas />
-
-        {/* Radial glow */}
-        <div style={{
-          position: 'absolute', top: '40%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 600, height: 400,
-          background: 'radial-gradient(ellipse, rgba(196,110,73,0.06) 0%, transparent 70%)',
-          pointerEvents: 'none', zIndex: 0,
-        }} />
-
-        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ ...S.eyebrow, ...transBase, transitionDelay: '0s' }}>
-            <div style={S.dot} />
-            Craft Marketplace · India
-          </div>
-
-          <h1 style={{ ...S.headline, ...transBase, transitionDelay: '0.1s', maxWidth: 900 }}>
-            The <span style={{ color: 'var(--gold)' }}>Custom Manufacturing</span> Platform for Brands & Retailers
-          </h1>
-
-          <p style={{
-            ...S.sub,
-            ...transBase,
-            transitionDelay: '0.2s',
-            textTransform: 'none',
-            letterSpacing: '0.01em',
-            maxWidth: 720,
-            lineHeight: 1.7,
-            fontSize: 'clamp(14px, 1.6vw, 18px)',
-            marginBottom: 20,
-          }}>
-            From vision to finished product; manufacture with India's finest production houses. Embroidery, Handloom, Block printing, Natural dyes & more.
-          </p>
-
-          {/* Three pillars */}
+      {/* ── Request Access modal — inside the root div ── */}
+      {showAccessReq && (
+        <>
+          <div
+            onClick={() => setShowAccessReq(false)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 400,
+              background: 'rgba(26,22,18,0.45)',
+              backdropFilter: 'blur(4px)',
+            }}
+          />
           <div style={{
-            ...transBase,
-            transitionDelay: '0.25s',
-            display: 'flex', alignItems: 'center', gap: 12,
-            marginBottom: 44,
+            position: 'fixed', top: '50%', left: '50%',
+            transform: 'translate(-50%,-50%)',
+            zIndex: 401,
+            background: '#FFFFFF',
+            border: '1px solid rgba(26,22,18,0.1)',
+            borderRadius: 18,
+            padding: '32px 28px 26px',
+            width: 'min(420px, 92vw)',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
           }}>
-            {[
-              'Small batches',
-              'Luxury grade',
-              'Fully managed',
-            ].reduce((acc, pill, i) => {
-              if (i > 0) acc.push(
-                <span key={`d${i}`} style={{ color: 'var(--border2)', fontSize: 14, lineHeight: 1 }}>·</span>
-              );
-              acc.push(
-                <span key={pill} style={{
-                  fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 600,
-                  color: 'var(--text3)', letterSpacing: '0.14em', textTransform: 'uppercase',
-                }}>{pill}</span>
-              );
-              return acc;
-            }, [])}
-          </div>
+            {accessReqDone ? (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{ fontSize: 36, marginBottom: 14 }}>&#10003;</div>
+                <p style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 20, fontWeight: 500, color: '#1A1612', marginBottom: 8,
+                }}>
+                  Request received
+                </p>
+                <p style={{ fontSize: 13.5, color: 'rgba(26,22,18,0.55)', lineHeight: 1.6 }}>
+                  We'll be in touch shortly.
+                </p>
+                <button
+                  onClick={() => setShowAccessReq(false)}
+                  style={{
+                    marginTop: 22, padding: '10px 28px',
+                    borderRadius: 8, border: '1px solid rgba(26,22,18,0.15)',
+                    background: 'none', fontSize: 13, cursor: 'pointer',
+                    fontFamily: 'var(--font-body)', color: '#1A1612',
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <>
+                <p style={{
+                  margin: '0 0 5px', fontSize: 20, fontWeight: 500,
+                  color: '#1A1612', fontFamily: 'var(--font-display)',
+                }}>
+                  Request Access
+                </p>
+                <p style={{ margin: '0 0 22px', fontSize: 13, color: 'rgba(26,22,18,0.5)', lineHeight: 1.55 }}>
+                  Tell us a bit about yourself and we'll send you an access code.
+                </p>
 
-          <div style={{ ...S.ctaWrap, ...transBase, transitionDelay: '0.3s' }}>
-            <button
-              className="cta-btn"
-              style={S.cta}
-              onClick={() => nav('/discover')}
-            >
-              Tell us What you want to Make
-            </button>
+                {[
+                  { key: 'name',  label: 'Name',                 placeholder: 'Your name',                           required: true  },
+                  { key: 'email', label: 'Email',                placeholder: 'you@yourbrand.com',                   required: true  },
+                  { key: 'link',  label: 'Website / Instagram',  placeholder: 'https://yourbrand.com or @yourbrand', required: false },
+                ].map(({ key, label, placeholder, required }) => (
+                  <div key={key} style={{ marginBottom: 14 }}>
+                    <label style={{
+                      fontSize: 11, fontWeight: 600, color: 'rgba(26,22,18,0.5)',
+                      display: 'block', marginBottom: 5,
+                      letterSpacing: '0.05em', textTransform: 'uppercase',
+                    }}>
+                      {label}{required && <span style={{ color: ACCENT, marginLeft: 2 }}>*</span>}
+                    </label>
+                    <input
+                      type={key === 'email' ? 'email' : 'text'}
+                      value={accessReqForm[key]}
+                      onChange={e => { setAccessReqForm(f => ({ ...f, [key]: e.target.value })); setAccessReqErr(er => ({ ...er, [key]: '' })); }}
+                      placeholder={placeholder}
+                      style={{
+                        width: '100%', padding: '10px 13px', boxSizing: 'border-box',
+                        border: `1px solid ${accessReqErr[key] ? '#C94040' : 'rgba(26,22,18,0.15)'}`,
+                        borderRadius: 9, background: '#F9F9F8',
+                        fontSize: 14, color: '#1A1612',
+                        fontFamily: 'var(--font-body)', outline: 'none',
+                        transition: 'border-color 0.15s',
+                      }}
+                      onFocus={e  => { e.target.style.borderColor = ACCENT; }}
+                      onBlur={e   => { e.target.style.borderColor = accessReqErr[key] ? '#C94040' : 'rgba(26,22,18,0.15)'; }}
+                    />
+                    {accessReqErr[key] && (
+                      <span style={{ fontSize: 11, color: '#C94040', marginTop: 3, display: 'block' }}>
+                        {accessReqErr[key]}
+                      </span>
+                    )}
+                  </div>
+                ))}
 
-            {hasSession && (
-              <button
-                className="resume-chip"
-                style={S.resumeChip}
-                onClick={() => nav('/discover/results')}
-              >
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)', flexShrink: 0 }} />
-                Continue where you left off
-              </button>
+                <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                  <button
+                    onClick={() => setShowAccessReq(false)}
+                    style={{
+                      flex: 1, padding: '11px', borderRadius: 8,
+                      border: '1px solid rgba(26,22,18,0.15)', background: 'none',
+                      fontSize: 13, color: 'rgba(26,22,18,0.5)', cursor: 'pointer',
+                      fontFamily: 'var(--font-body)',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAccessReqSubmit}
+                    disabled={accessReqSending}
+                    style={{
+                      flex: 2, padding: '11px', borderRadius: 8, border: 'none',
+                      background: accessReqSending ? 'rgba(122,140,110,0.4)' : ACCENT,
+                      color: '#fff', fontSize: 13, fontWeight: 500,
+                      cursor: accessReqSending ? 'not-allowed' : 'pointer',
+                      fontFamily: 'var(--font-body)', transition: 'background 0.18s',
+                    }}
+                  >
+                    {accessReqSending ? 'Sending…' : 'Send Request'}
+                  </button>
+                </div>
+              </>
             )}
           </div>
-        </div>
-
-        {/* Scroll indicator */}
-        <div style={{
-          position: 'absolute', bottom: 32, left: '50%', transform: 'translateX(-50%)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-          opacity: 0.4, animation: 'floatY 2.5s ease-in-out infinite',
-        }}>
-          <div style={{ width: 1, height: 40, background: 'var(--border2)' }} />
-          <span style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text3)' }}>How It Works</span>
-        </div>
-      </section>
-
-      {/* Process Strip */}
-      <section style={S.strip} className="process-strip">
-        {steps.map((step, i) => (
-          <div key={i} style={{ padding: '0 40px', position: 'relative' }}>
-            {i > 0 && (
-              <div className="step-divider" style={{ ...S.stepDivider, left: 0 }} />
-            )}
-            <div style={S.stepNum}>{step.num}</div>
-            <div style={{
-              ...S.stepLabel,
-              fontSize: 13,
-              fontWeight: 800,
-              color: 'var(--gold)',
-              letterSpacing: '0.18em',
-              marginBottom: 14,
-              fontFamily: 'var(--font-body)',
-            }}>{step.label}</div>
-            <div style={S.stepTitle}>{step.title.split('\n').map((l, j) => <span key={j}>{l}{j === 0 && <br />}</span>)}</div>
-            <p style={S.stepDesc}>{step.desc}</p>
-          </div>
-        ))}
-      </section>
+        </>
+      )}
     </div>
   );
 }

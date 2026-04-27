@@ -11,20 +11,33 @@ function onRefreshDone(newToken) {
   refreshQueue = [];
 }
 
-// ── Request interceptor: attach Bearer token + rid header ──
+// ── Request interceptor: attach auth token + rid header ──
+// SuperTokens sessions  → Authorization: Bearer <token>
+// Access-key sessions   → Authorization: AccessKey <token>
 api.interceptors.request.use(cfg => {
-  const token = localStorage.getItem('qala_token');
-  if (token) cfg.headers.authorization = `Bearer ${token}`;
+  const token     = localStorage.getItem('qala_token');
+  const tokenType = localStorage.getItem('qala_token_type');
+  if (token) {
+    cfg.headers.authorization = tokenType === 'access_key'
+      ? `AccessKey ${token}`
+      : `Bearer ${token}`;
+  }
   cfg.headers['rid'] = cfg.headers['rid'] || 'session';
   return cfg;
 });
 
 // ── Response interceptor: capture rotated access tokens + handle 401 refresh ──
+// Access-key sessions bypass the SuperTokens refresh flow entirely.
+// They never have ST cookies, so a 401 means the signed token expired (30 days)
+// — just clear it and redirect to login. No refresh attempt.
 api.interceptors.response.use(
   res => {
     // SuperTokens rotates the access token on responses — capture it
+    // (only applies to SuperTokens sessions, not access-key sessions)
     const newToken = res.headers['st-access-token'];
-    if (newToken) localStorage.setItem('qala_token', newToken);
+    if (newToken && localStorage.getItem('qala_token_type') !== 'access_key') {
+      localStorage.setItem('qala_token', newToken);
+    }
     return res;
   },
   async err => {
@@ -32,6 +45,17 @@ api.interceptors.response.use(
 
     if (err.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
+
+      // Access-key sessions: never attempt SuperTokens refresh.
+      // A 401 means the signed token expired — clear and redirect.
+      if (localStorage.getItem('qala_token_type') === 'access_key') {
+        localStorage.removeItem('qala_token');
+        localStorage.removeItem('qala_token_type');
+        if (!window.location.pathname.startsWith('/login')) {
+          window.location.href = '/login?reason=session_expired';
+        }
+        return Promise.reject(err);
+      }
 
       // If a refresh is already in-flight, queue this request
       if (isRefreshing) {
@@ -59,14 +83,16 @@ api.interceptors.response.use(
         onRefreshDone(t || null);
         return api.request(originalRequest);
       } catch {
-        // Refresh truly failed — session is dead
+        // Refresh truly failed — session is dead (SuperTokens sessions only).
+        // Never wipe access-key tokens here — they don't use SuperTokens refresh.
         onRefreshDone(null);
-        const wasLoggedIn = !!localStorage.getItem('qala_token');
-        localStorage.removeItem('qala_token');
-        // Only redirect if the user was previously logged in (actual session expiry).
-        // Anonymous users hitting auth endpoints should NOT be redirected.
-        if (wasLoggedIn && !window.location.pathname.startsWith('/login')) {
-          window.location.href = '/login?reason=session_expired';
+        const wasLoggedIn    = !!localStorage.getItem('qala_token');
+        const isAccessKey    = localStorage.getItem('qala_token_type') === 'access_key';
+        if (!isAccessKey) {
+          localStorage.removeItem('qala_token');
+          if (wasLoggedIn && !window.location.pathname.startsWith('/login')) {
+            window.location.href = '/login?reason=session_expired';
+          }
         }
         return Promise.reject(err);
       } finally {
@@ -170,6 +196,15 @@ export const adminAPI = {
   getDiscoveryBuyer:        id => api.get(`/api/admin/discovery/buyers/${id}/`),
   getDiscoveryInquiries:    () => api.get('/api/admin/discovery/inquiries/'),
   getAdminStudioInquiries:  () => api.get('/api/admin/discovery/studio-inquiries/'),
+  // Access Keys
+  listAccessKeys:    ()  => api.get('/api/admin/chat/access-keys/'),
+  generateAccessKeys: d  => api.post('/api/admin/chat/access-keys/', d),
+  updateAccessKey:   (id, d) => api.patch(`/api/admin/chat/access-keys/${id}/`, d),
+  // Contacts
+  listContacts: () => api.get('/api/admin/chat/contacts/'),
+  // Access Requests
+  listAccessRequests:       ()       => api.get('/api/admin/access-requests/'),
+  updateAccessRequest: (id, data)    => api.patch(`/api/admin/access-requests/${id}/`, data),
 };
 
 // ─── BUYER API ─────────────────────────────────────────────────────────────────
@@ -245,4 +280,58 @@ export const discoveryAPI = {
     if (productType) params.product_type = productType;
     return axios.get(`${BASE}/api/studios/directory/`, { params });
   },
+};
+
+// ── ADD THIS to src/api/client.js ─────────────────────────────────────────────
+// Paste the entire chatAPI block below at the bottom of client.js,
+// replacing the existing chatAPI export if one exists.
+
+export const chatAPI = {
+  // Start a new chat session (anonymous with access key, or logged-in user)
+  start: (accessKey = null) =>
+    axios.post(`${BASE}/api/discovery/chat/start/`,
+      accessKey ? { access_key: accessKey } : {},
+      { headers: { 'Content-Type': 'application/json' } }
+    ),
+
+  // Send a user message
+  // image: plain base64 string (no data: prefix)
+  // selectedImageIds: array of StudioMedia integer IDs
+  sendMessage: (sessionId, message, images = null, selectedImageIds = null) =>
+    axios.post(`${BASE}/api/discovery/chat/message/`,
+      {
+        session_id: sessionId,
+        message,
+        // images: array of {data: base64, mime: string}
+        ...(images?.length    && { images }),
+        ...(selectedImageIds  && { selected_image_ids: selectedImageIds }),
+      },
+      { headers: { 'Content-Type': 'application/json' } }
+    ),
+
+  // Resume a session (page refresh)
+  getSession: (sessionId) =>
+    axios.get(`${BASE}/api/discovery/chat/session/`, {
+      params: { session_id: sessionId },
+    }),
+
+  // Trigger studio matching after user confirms the brief.
+  // Uses session.extracted (built up from conversation) to run the matching engine.
+  // Returns { session_token, matched, studios_count }
+  match: (sessionId) =>
+    axios.post(`${BASE}/api/discovery/chat/match/`,
+      { session_id: sessionId },
+      { headers: { 'Content-Type': 'application/json' } }
+    ),
+
+  saveContact: (sessionId, data) =>
+    axios.post(`${BASE}/api/discovery/chat/contact/`,
+      { session_id: sessionId, ...data },
+      { headers: { 'Content-Type': 'application/json' } }
+    ),
+
+  requestAccess: data =>
+    axios.post(`${BASE}/api/discovery/access-request/`, data,
+      { headers: { 'Content-Type': 'application/json' } }
+    ),
 };

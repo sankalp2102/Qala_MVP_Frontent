@@ -26,10 +26,14 @@ export function AuthProvider({ children }) {
       return;
     }
     authAPI.me()
-      .then(r => setUser(r.data))
+      .then(r => { if (r.data) setUser(r.data); })
       .catch(() => {
-        // Refresh also failed (interceptor already tried) — session is truly dead
-        localStorage.removeItem('qala_token');
+        // Only wipe the token if it's a SuperTokens session.
+        // Access-key tokens are long-lived (30 days) and don't refresh —
+        // a failed me() here is a transient error, not session expiry.
+        if (localStorage.getItem('qala_token_type') !== 'access_key') {
+          localStorage.removeItem('qala_token');
+        }
       })
       .finally(() => setLoading(false));
   }, []);
@@ -47,11 +51,34 @@ export function AuthProvider({ children }) {
     return me.data;
   };
 
+  // Log in via a Django-signed access-key token (no SuperTokens session).
+  // Stores token, sets minimal user immediately, fetches full profile in bg.
+  const loginWithAccessKey = (token, userData) => {
+    localStorage.setItem('qala_token', token);
+    localStorage.setItem('qala_token_type', 'access_key');
+    setUser(userData); // set minimal user immediately so header renders
+    // Fetch full profile in background for name, customer_profile etc.
+    // Never delete the token on failure — token is valid, me() might just
+    // be slow or hit a transient error.
+    authAPI.me()
+      .then(r => { if (r?.data) setUser(r.data); })
+      .catch(() => { /* non-fatal — minimal user already shown */ });
+  };
+
   const logout = async () => {
-    try { await authAPI.signout(); } catch {}
+    const tokenType = localStorage.getItem('qala_token_type');
+    // Only call SuperTokens signout if this was a SuperTokens session
+    if (tokenType !== 'access_key') {
+      try { await authAPI.signout(); } catch {}
+    }
     localStorage.removeItem('qala_token');
+    localStorage.removeItem('qala_token_type');
     setUser(null);
   };
 
-  return <Ctx.Provider value={{ user, setUser, login, logout, loading }}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={{ user, setUser, login, loginWithAccessKey, logout, loading }}>
+      {children}
+    </Ctx.Provider>
+  );
 }

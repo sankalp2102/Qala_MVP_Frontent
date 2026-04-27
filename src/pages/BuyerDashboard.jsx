@@ -179,6 +179,99 @@ function ProfileCard({ profile, onSave }) {
   );
 }
 
+// ── AccessKeyCard ─────────────────────────────────────────────────────────────
+
+function AccessKeyCard({ accessKey }) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(accessKey.key_code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  const pct = accessKey.tokens_allocated > 0
+    ? Math.min(100, (accessKey.tokens_used / accessKey.tokens_allocated) * 100)
+    : 0;
+
+  const statusColors = {
+    active:  { bg: 'var(--green-dim)',  text: 'var(--green)',  label: 'Active'  },
+    expired: { bg: 'var(--amber-dim)',  text: 'var(--amber)',  label: 'Expired' },
+    revoked: { bg: 'var(--red-dim)',    text: 'var(--red)',    label: 'Revoked' },
+  };
+  const sc = statusColors[accessKey.status] || statusColors.active;
+
+  return (
+    <div style={{
+      background: 'var(--surface)', border: '1px solid var(--border)',
+      borderRadius: 'var(--radius-lg)', padding: '20px 24px',
+    }}>
+      {/* Header row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+          Access Key
+        </div>
+        <span style={{
+          fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+          padding: '3px 10px', borderRadius: 'var(--radius-xl)',
+          background: sc.bg, color: sc.text, textTransform: 'uppercase',
+        }}>
+          {sc.label}
+        </span>
+      </div>
+
+      {/* Key code row */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        background: 'var(--surface2)', border: '1px solid var(--border)',
+        borderRadius: 8, padding: '10px 14px', marginBottom: 16,
+      }}>
+        <span style={{
+          flex: 1, fontFamily: 'monospace', fontSize: 15,
+          fontWeight: 600, color: 'var(--text)', letterSpacing: '0.1em',
+        }}>
+          {accessKey.key_code}
+        </span>
+        <button
+          onClick={handleCopy}
+          title="Copy key"
+          style={{
+            background: copied ? 'var(--green-dim)' : 'var(--surface3)',
+            border: '1px solid var(--border)',
+            borderRadius: 6, padding: '5px 12px',
+            fontSize: 11, fontWeight: 500,
+            color: copied ? 'var(--green)' : 'var(--text2)',
+            cursor: 'pointer', fontFamily: 'var(--font-body)',
+            transition: 'all 0.15s', whiteSpace: 'nowrap',
+            flexShrink: 0,
+          }}
+        >
+          {copied ? 'Copied ✓' : 'Copy'}
+        </button>
+      </div>
+
+      {/* Token usage bar */}
+      <div style={{ marginBottom: 6 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+          <span style={{ fontSize: 11, color: 'var(--text3)' }}>Token usage</span>
+          <span style={{ fontSize: 11, color: 'var(--text3)' }}>
+            {accessKey.tokens_used.toLocaleString()} / {accessKey.tokens_allocated.toLocaleString()}
+          </span>
+        </div>
+        <div style={{ height: 4, background: 'var(--surface3)', borderRadius: 2, overflow: 'hidden' }}>
+          <div style={{
+            height: '100%', borderRadius: 2,
+            width: `${pct}%`,
+            background: pct > 80 ? 'var(--red)' : pct > 50 ? 'var(--amber)' : 'var(--teal)',
+            transition: 'width 0.6s ease',
+          }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── main ──────────────────────────────────────────────────────────────────────
 
 export default function BuyerDashboard() {
@@ -303,6 +396,11 @@ export default function BuyerDashboard() {
           {/* Right — profile */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <ProfileCard profile={profile} onSave={handleSaveProfile} />
+
+            {/* Access Key */}
+            {profile?.access_key && (
+              <AccessKeyCard accessKey={profile.access_key} />
+            )}
 
             {/* Quick links */}
             <div style={{

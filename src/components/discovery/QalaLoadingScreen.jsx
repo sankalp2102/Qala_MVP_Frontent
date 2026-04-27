@@ -184,12 +184,12 @@ export default function QalaLoadingScreen({ onDone, dataReady, sessionToken }) {
         @keyframes qFormIn   { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
         .q-weft::before {
           content:'';position:absolute;height:4px;width:35px;
-          background:#B85C38;border-radius:2px;
+          background:#7A8C6E;border-radius:2px;
           animation:weaveOver 3s ease-in-out infinite;
         }
         .q-weft::after {
           content:'';position:absolute;height:4px;width:35px;
-          background:#B85C38;border-radius:2px;
+          background:#7A8C6E;border-radius:2px;
           animation:weaveUnder 3s ease-in-out infinite;animation-delay:1.5s;
         }
         .q-weft-0::before{animation-delay:0s}   .q-weft-0::after{animation-delay:1.5s}
@@ -205,22 +205,22 @@ export default function QalaLoadingScreen({ onDone, dataReady, sessionToken }) {
           box-sizing:border-box;
         }
         .q-input::placeholder{color:rgba(26,22,18,0.35);}
-        .q-input:focus{border-color:#B85C38;box-shadow:0 0 0 3px rgba(184,92,56,0.08);}
+        .q-input:focus{border-color:#7A8C6E;box-shadow:0 0 0 3px rgba(122,140,110,0.08);}
         .q-btn {
           width:100%;padding:12px;font-size:14px;font-weight:600;
           font-family:var(--font-body);background:#1A1612;color:#F5F0E8;
           border:none;border-radius:8px;cursor:pointer;
           transition:background 0.2s;letter-spacing:0.02em;
         }
-        .q-btn:hover:not(:disabled){background:#B85C38;}
+        .q-btn:hover:not(:disabled){background:#7A8C6E;}
         .q-btn:disabled{opacity:0.55;cursor:not-allowed;}
         .q-link {
           background:none;border:none;cursor:pointer;
-          color:#B85C38;font-size:13px;font-family:var(--font-body);
+          color:#7A8C6E;font-size:13px;font-family:var(--font-body);
           padding:0;text-decoration:underline;
           transition:color 0.15s;
         }
-        .q-link:hover{color:#a44f2e;}
+        .q-link:hover{color:#6A7A5E;}
         @media(max-width:640px){
           .q-name-row{flex-direction:column!important;}
         }

@@ -197,7 +197,7 @@ function Overview() {
             style={{
               display:'flex', alignItems:'center', gap:8,
               padding:'10px 20px', borderRadius:8, fontSize:13, fontWeight:600,
-              background: downloading ? 'var(--border)' : '#C46E49',
+              background: downloading ? 'var(--border)' : '#8FA083',
               color: downloading ? 'var(--text3)' : '#fff',
               border:'none', cursor: downloading ? 'not-allowed' : 'pointer',
               fontFamily:'var(--font-body)', transition:'all 0.2s', flexShrink:0,
@@ -1144,8 +1144,8 @@ function ProfileReview() {
                     disabled={downloading}
                     style={{
                       padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:600,
-                      background:'transparent', color:'#C46E49',
-                      border:'1px solid #C46E49', cursor:'pointer',
+                      background:'transparent', color:'#8FA083',
+                      border:'1px solid #8FA083', cursor:'pointer',
                       fontFamily:'var(--font-body)', transition:'all 0.2s',
                     }}
                   >
@@ -2012,7 +2012,7 @@ function StudioDescriptions() {
                       fontFamily: 'var(--font-body)', transition: 'background 0.18s',
                       display: 'flex', alignItems: 'center', gap: 6,
                     }}
-                    onMouseEnter={e => { if (!isSaving) e.currentTarget.style.background = '#C46E49'; }}
+                    onMouseEnter={e => { if (!isSaving) e.currentTarget.style.background = '#8FA083'; }}
                     onMouseLeave={e => { if (!isSaving) e.currentTarget.style.background = '#1A1612'; }}
                   >
                     {isSaving ? 'Saving…' : 'Save'}
@@ -2027,6 +2027,863 @@ function StudioDescriptions() {
   );
 }
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACCESS KEYS PAGE
+// ─────────────────────────────────────────────────────────────────────────────
+function AccessKeys() {
+  const { success, error } = useToast();
+  const [keys, setKeys]         = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [newKeys, setNewKeys]   = useState([]);  // just-generated keys to display
+  const [form, setForm]         = useState({ count: 1, tokens_allocated: 500000, notes: '' });
+  const [copied, setCopied]     = useState({});
+  const [expanded, setExpanded] = useState({});
+
+  const load = () => {
+    setLoading(true);
+    adminAPI.listAccessKeys()
+      .then(r => setKeys(r.data.keys || []))
+      .catch(() => error('Failed to load keys'))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  async function handleGenerate() {
+    setGenerating(true);
+    try {
+      const res = await adminAPI.generateAccessKeys({
+        count:            form.count,
+        tokens_allocated: form.tokens_allocated,
+        notes:            form.notes,
+      });
+      const generated = res.data.keys || [];
+      setNewKeys(generated);
+      success(`${generated.length} key${generated.length > 1 ? 's' : ''} generated`);
+      load();
+    } catch (e) {
+      error(e.response?.data?.error || 'Generation failed');
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function handleRevoke(id) {
+    try {
+      await adminAPI.updateAccessKey(id, { status: 'revoked' });
+      success('Key revoked');
+      load();
+    } catch { error('Failed to revoke'); }
+  }
+
+  async function handleActivate(id) {
+    try {
+      await adminAPI.updateAccessKey(id, { status: 'active' });
+      success('Key activated');
+      load();
+    } catch { error('Failed to activate'); }
+  }
+
+  function copyKey(code, id) {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(p => ({ ...p, [id]: true }));
+      setTimeout(() => setCopied(p => ({ ...p, [id]: false })), 2000);
+    });
+  }
+
+  function copyAll() {
+    const text = newKeys.map(k => k.key_code).join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+      success('All keys copied');
+    });
+  }
+
+  const statusColor = s => ({
+    active:  { bg: 'rgba(90,210,120,0.1)',  text: '#3a9e5a' },
+    revoked: { bg: 'rgba(232,80,80,0.1)',   text: '#c94040' },
+    expired: { bg: 'rgba(200,160,60,0.1)',  text: '#a07a20' },
+  }[s] || { bg: 'var(--surface2)', text: 'var(--text3)' });
+
+  const active  = keys.filter(k => k.status === 'active').length;
+  const revoked = keys.filter(k => k.status === 'revoked').length;
+
+  return (
+    <div style={{ maxWidth: 860, margin: '0 auto', padding: '32px 24px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
+        <div>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
+            Access Keys
+          </h2>
+          <p style={{ fontSize: 13, color: 'var(--text3)' }}>
+            Generate keys to share with buyers. Keys gate access to the chat — no account needed.
+          </p>
+          <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+            <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 12, background: 'rgba(90,210,120,0.1)', color: '#3a9e5a', fontWeight: 500 }}>
+              {active} active
+            </span>
+            <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 12, background: 'rgba(232,80,80,0.1)', color: '#c94040', fontWeight: 500 }}>
+              {revoked} revoked
+            </span>
+          </div>
+        </div>
+        <button
+          onClick={() => { setShowModal(true); setNewKeys([]); }}
+          style={{
+            padding: '9px 18px', borderRadius: 8, border: 'none',
+            background: '#1A1612', color: '#F5F0E8',
+            fontSize: 13, fontWeight: 500, cursor: 'pointer',
+            fontFamily: 'var(--font-body)', whiteSpace: 'nowrap',
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#7A8C6E'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = '#1A1612'; }}
+        >
+          + Generate Keys
+        </button>
+      </div>
+
+      {/* Keys table */}
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><Spinner /></div>
+      ) : keys.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text3)', fontSize: 14 }}>
+          No keys yet. Generate some above.
+        </div>
+      ) : (
+        <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+          {/* Table header */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: '200px 1fr 90px 150px 100px 90px',
+            padding: '10px 16px', background: 'var(--surface2)',
+            borderBottom: '1px solid var(--border)',
+            fontSize: 11, fontWeight: 600, color: 'var(--text3)',
+            letterSpacing: '0.06em', textTransform: 'uppercase',
+          }}>
+            <span>Key Code</span>
+            <span>Owner / Label</span>
+            <span>Status</span>
+            <span>Tokens</span>
+            <span>Created</span>
+            <span></span>
+          </div>
+          {keys.map((k, i) => {
+            const sc      = statusColor(k.status);
+            const pct     = k.tokens_allocated > 0 ? Math.round((k.tokens_used / k.tokens_allocated) * 100) : 0;
+            const date    = new Date(k.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+            const isOpen  = expanded[k.id];
+            return (
+              <div key={k.id} style={{ borderBottom: i < keys.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                {/* Main row */}
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '200px 1fr 90px 150px 100px 90px',
+                  padding: '12px 16px', alignItems: 'center',
+                  background: 'var(--surface)',
+                }}>
+                  {/* Key code */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 600, color: 'var(--text)', letterSpacing: '0.08em' }}>
+                      {k.key_code}
+                    </span>
+                    <button
+                      onClick={() => copyKey(k.key_code, k.id)}
+                      style={{
+                        fontSize: 10, padding: '2px 7px', borderRadius: 4,
+                        border: '1px solid var(--border)', background: 'var(--surface2)',
+                        cursor: 'pointer', color: copied[k.id] ? '#3a9e5a' : 'var(--text3)',
+                        fontFamily: 'var(--font-body)', transition: 'all 0.15s', flexShrink: 0,
+                      }}
+                    >
+                      {copied[k.id] ? '✓' : 'Copy'}
+                    </button>
+                  </div>
+
+                  {/* Owner / label */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {k.user ? (
+                      <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)' }}>
+                        {k.user.name || k.user.email}
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 11, color: 'var(--text4)', fontStyle: 'italic' }}>
+                        Anonymous
+                      </span>
+                    )}
+                    {k.notes && (
+                      <span style={{ fontSize: 11, color: 'var(--text4)' }}>{k.notes}</span>
+                    )}
+                  </div>
+
+                  {/* Status */}
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, padding: '3px 10px',
+                    borderRadius: 12, background: sc.bg, color: sc.text,
+                    textTransform: 'capitalize', display: 'inline-block',
+                  }}>
+                    {k.status}
+                  </span>
+
+                  {/* Tokens */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                      <span style={{ fontSize: 10, color: 'var(--text4)' }}>{(k.tokens_used||0).toLocaleString()} used</span>
+                      <span style={{ fontSize: 10, color: 'var(--text4)' }}>{pct}%</span>
+                    </div>
+                    <div style={{ height: 3, background: 'var(--surface3)', borderRadius: 2, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', borderRadius: 2, width: `${pct}%`, background: pct>80?'#c94040':pct>50?'#a07a20':'#3a9e5a' }} />
+                    </div>
+                  </div>
+
+                  {/* Date */}
+                  <span style={{ fontSize: 12, color: 'var(--text3)' }}>{date}</span>
+
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
+                    {k.sessions_count > 0 && (
+                      <button
+                        onClick={() => setExpanded(p => ({ ...p, [k.id]: !p[k.id] }))}
+                        style={{
+                          fontSize: 10, padding: '3px 8px', borderRadius: 4,
+                          border: '1px solid var(--border)', background: isOpen ? 'var(--surface3)' : 'var(--surface2)',
+                          cursor: 'pointer', color: 'var(--text3)', fontFamily: 'var(--font-body)',
+                        }}
+                      >
+                        {k.sessions_count} {k.sessions_count === 1 ? 'session' : 'sessions'} {isOpen ? '▲' : '▼'}
+                      </button>
+                    )}
+                    {k.status === 'active' ? (
+                      <button onClick={() => handleRevoke(k.id)} style={{ fontSize: 11, padding: '4px 9px', borderRadius: 6, border: '1px solid rgba(232,80,80,0.3)', background: 'rgba(232,80,80,0.06)', color: '#c94040', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                        Revoke
+                      </button>
+                    ) : k.status === 'revoked' ? (
+                      <button onClick={() => handleActivate(k.id)} style={{ fontSize: 11, padding: '4px 9px', borderRadius: 6, border: '1px solid rgba(90,210,120,0.3)', background: 'rgba(90,210,120,0.06)', color: '#3a9e5a', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                        Activate
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* Expandable sessions */}
+                {isOpen && k.sessions?.length > 0 && (
+                  <div style={{ background: 'var(--surface2)', borderTop: '1px solid var(--border)', padding: '10px 16px 12px 32px' }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>
+                      Sessions
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {k.sessions.map(s => (
+                        <div key={s.session_id} style={{
+                          display: 'flex', alignItems: 'center', gap: 12,
+                          padding: '7px 12px', borderRadius: 8,
+                          background: 'var(--surface)', border: '0.5px solid var(--border)',
+                          fontSize: 12,
+                        }}>
+                          <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text3)', flexShrink: 0 }}>
+                            {s.session_id.slice(0, 8)}…
+                          </span>
+                          <span style={{
+                            fontSize: 10, padding: '2px 8px', borderRadius: 10,
+                            background: s.stage === 'matched' ? 'rgba(90,210,120,0.1)' : 'var(--surface3)',
+                            color: s.stage === 'matched' ? '#3a9e5a' : 'var(--text3)',
+                            fontWeight: 500, textTransform: 'capitalize', flexShrink: 0,
+                          }}>
+                            {s.stage}
+                          </span>
+                          <span style={{ color: 'var(--text2)', flex: 1 }}>
+                            {s.user_email ? s.user_email : 'Anonymous user'}
+                          </span>
+                          <span style={{ color: 'var(--text4)', flexShrink: 0 }}>
+                            {(s.tokens_used || 0).toLocaleString()} tokens
+                          </span>
+                          <span style={{ color: 'var(--text4)', flexShrink: 0, fontSize: 11 }}>
+                            {new Date(s.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Generate modal */}
+      {showModal && (
+        <>
+          <div
+            onClick={() => setShowModal(false)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, backdropFilter: 'blur(2px)' }}
+          />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%',
+            transform: 'translate(-50%,-50%)',
+            background: 'var(--bg)', border: '1px solid var(--border)',
+            borderRadius: 16, padding: '28px 28px 24px',
+            width: 420, zIndex: 101,
+            boxShadow: '0 12px 48px rgba(0,0,0,0.2)',
+          }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, color: 'var(--text)', marginBottom: 20 }}>
+              Generate Access Keys
+            </h3>
+
+            {/* Form */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 500, display: 'block', marginBottom: 5 }}>
+                  Number of keys (max 50)
+                </label>
+                <input
+                  type="number" min={1} max={50}
+                  value={form.count}
+                  onChange={e => setForm(f => ({ ...f, count: Math.min(50, Math.max(1, parseInt(e.target.value) || 1)) }))}
+                  style={{
+                    width: '100%', padding: '9px 12px', borderRadius: 8,
+                    border: '1px solid var(--border)', background: 'var(--surface2)',
+                    fontSize: 14, color: 'var(--text)', fontFamily: 'var(--font-body)',
+                    outline: 'none', boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 500, display: 'block', marginBottom: 5 }}>
+                  Token budget per key
+                </label>
+                <select
+                  value={form.tokens_allocated}
+                  onChange={e => setForm(f => ({ ...f, tokens_allocated: parseInt(e.target.value) }))}
+                  style={{
+                    width: '100%', padding: '9px 12px', borderRadius: 8,
+                    border: '1px solid var(--border)', background: 'var(--surface2)',
+                    fontSize: 14, color: 'var(--text)', fontFamily: 'var(--font-body)',
+                    outline: 'none', boxSizing: 'border-box', cursor: 'pointer',
+                  }}
+                >
+                  <option value={200000}>200,000 tokens (~4 chats)</option>
+                  <option value={500000}>500,000 tokens (~10 chats)</option>
+                  <option value={1000000}>1,000,000 tokens (~20 chats)</option>
+                  <option value={5000000}>5,000,000 tokens (unlimited)</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 500, display: 'block', marginBottom: 5 }}>
+                  Label / notes (optional)
+                </label>
+                <input
+                  type="text"
+                  value={form.notes}
+                  onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="e.g. Spring 2026 buyers, Lakme buyers..."
+                  style={{
+                    width: '100%', padding: '9px 12px', borderRadius: 8,
+                    border: '1px solid var(--border)', background: 'var(--surface2)',
+                    fontSize: 14, color: 'var(--text)', fontFamily: 'var(--font-body)',
+                    outline: 'none', boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+              <button
+                onClick={() => setShowModal(false)}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: 8,
+                  border: '1px solid var(--border)', background: 'none',
+                  fontSize: 13, color: 'var(--text)', cursor: 'pointer',
+                  fontFamily: 'var(--font-body)',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleGenerate}
+                disabled={generating}
+                style={{
+                  flex: 2, padding: '10px', borderRadius: 8, border: 'none',
+                  background: generating ? 'var(--surface3)' : '#1A1612',
+                  color: generating ? 'var(--text3)' : '#F5F0E8',
+                  fontSize: 13, fontWeight: 500,
+                  cursor: generating ? 'not-allowed' : 'pointer',
+                  fontFamily: 'var(--font-body)', transition: 'background 0.15s',
+                }}
+              >
+                {generating ? 'Generating…' : `Generate ${form.count} Key${form.count > 1 ? 's' : ''}`}
+              </button>
+            </div>
+
+            {/* Newly generated keys */}
+            {newKeys.length > 0 && (
+              <div style={{ marginTop: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>
+                    Generated keys — copy and share these now
+                  </span>
+                  <button
+                    onClick={copyAll}
+                    style={{
+                      fontSize: 11, padding: '3px 10px', borderRadius: 6,
+                      border: '1px solid var(--border)', background: 'var(--surface2)',
+                      cursor: 'pointer', color: 'var(--text2)', fontFamily: 'var(--font-body)',
+                    }}
+                  >
+                    Copy all
+                  </button>
+                </div>
+                <div style={{
+                  background: 'var(--surface2)', border: '1px solid var(--border)',
+                  borderRadius: 8, padding: '12px 14px',
+                  display: 'flex', flexDirection: 'column', gap: 6,
+                  maxHeight: 180, overflowY: 'auto',
+                }}>
+                  {newKeys.map((k, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontFamily: 'monospace', fontSize: 14, fontWeight: 600, color: 'var(--text)', letterSpacing: '0.08em' }}>
+                        {k.key_code}
+                      </span>
+                      <button
+                        onClick={() => copyKey(k.key_code, `new-${i}`)}
+                        style={{
+                          fontSize: 10, padding: '2px 8px', borderRadius: 4,
+                          border: '1px solid var(--border)', background: 'var(--surface)',
+                          cursor: 'pointer', color: copied[`new-${i}`] ? '#3a9e5a' : 'var(--text3)',
+                          fontFamily: 'var(--font-body)',
+                        }}
+                      >
+                        {copied[`new-${i}`] ? 'Copied ✓' : 'Copy'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONTACTS PAGE
+// ─────────────────────────────────────────────────────────────────────────────
+function Contacts() {
+  const { error } = useToast();
+  const [contacts, setContacts] = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [copied, setCopied]     = useState({});
+  const [search, setSearch]     = useState('');
+
+  useEffect(() => {
+    adminAPI.listContacts()
+      .then(r => setContacts(r.data.contacts || []))
+      .catch(() => error('Failed to load contacts'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  function copyEmail(email, id) {
+    navigator.clipboard.writeText(email).then(() => {
+      setCopied(p => ({ ...p, [id]: true }));
+      setTimeout(() => setCopied(p => ({ ...p, [id]: false })), 2000);
+    });
+  }
+
+  function exportCSV() {
+    const headers = ['Name', 'Email', 'Phone', 'Brand', 'Country', 'Stage', 'Key', 'Date'];
+    const rows = filtered.map(c => [
+      c.contact_name || '',
+      c.contact_email || '',
+      c.contact_phone || '',
+      c.contact_brand || '',
+      c.contact_country || '',
+      c.stage || '',
+      c.key_code || '',
+      new Date(c.created_at).toLocaleDateString(),
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+    a.download = `qala-contacts-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  }
+
+  const filtered = contacts.filter(c => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      (c.contact_name  || '').toLowerCase().includes(q) ||
+      (c.contact_email || '').toLowerCase().includes(q) ||
+      (c.contact_brand || '').toLowerCase().includes(q) ||
+      (c.contact_country || '').toLowerCase().includes(q)
+    );
+  });
+
+  return (
+    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '32px 24px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
+            Contacts
+          </h2>
+          <p style={{ fontSize: 13, color: 'var(--text3)' }}>
+            Buyers who filled in their details before finding studios.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search name, email, brand…"
+            style={{
+              padding: '8px 12px', borderRadius: 8,
+              border: '1px solid var(--border)', background: 'var(--surface2)',
+              fontSize: 13, color: 'var(--text)', fontFamily: 'var(--font-body)',
+              outline: 'none', width: 220,
+            }}
+          />
+          <button
+            onClick={exportCSV}
+            disabled={filtered.length === 0}
+            style={{
+              padding: '8px 16px', borderRadius: 8,
+              border: '1px solid var(--border)', background: 'var(--surface2)',
+              fontSize: 13, color: 'var(--text)', cursor: filtered.length === 0 ? 'not-allowed' : 'pointer',
+              fontFamily: 'var(--font-body)', opacity: filtered.length === 0 ? 0.4 : 1,
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => { if (filtered.length) e.currentTarget.style.background = 'var(--surface3)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface2)'; }}
+          >
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+        {[
+          { label: 'Total contacts', value: contacts.length },
+          { label: 'Reached matching', value: contacts.filter(c => c.stage === 'matched').length },
+          { label: 'Showing today', value: filtered.length },
+        ].map(s => (
+          <div key={s.label} style={{
+            flex: 1, padding: '12px 16px',
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            borderRadius: 10,
+          }}>
+            <div style={{ fontSize: 22, fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-display)' }}>
+              {s.value}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Table */}
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><Spinner /></div>
+      ) : filtered.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text3)', fontSize: 14 }}>
+          {contacts.length === 0 ? 'No contacts yet.' : 'No results for that search.'}
+        </div>
+      ) : (
+        <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+          {/* Header row */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '160px 200px 120px 150px 90px 80px 100px 36px',
+            padding: '10px 16px', background: 'var(--surface2)',
+            borderBottom: '1px solid var(--border)',
+            fontSize: 11, fontWeight: 600, color: 'var(--text3)',
+            letterSpacing: '0.06em', textTransform: 'uppercase',
+          }}>
+            <span>Name</span>
+            <span>Email</span>
+            <span>Phone</span>
+            <span>Brand</span>
+            <span>Country</span>
+            <span>Stage</span>
+            <span>Date</span>
+            <span></span>
+          </div>
+          {filtered.map((ct, i) => {
+            const date = new Date(ct.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+            return (
+              <div key={ct.session_id} style={{
+                display: 'grid',
+                gridTemplateColumns: '160px 200px 120px 150px 90px 80px 100px 36px',
+                padding: '11px 16px', alignItems: 'center',
+                background: 'var(--surface)',
+                borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none',
+              }}>
+                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {ct.contact_name || '—'}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {ct.contact_email}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {ct.contact_phone || '—'}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {ct.contact_brand || '—'}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+                  {ct.contact_country || '—'}
+                </span>
+                <span style={{
+                  fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10,
+                  background: ct.stage === 'matched' ? 'rgba(90,210,120,0.1)' : 'var(--surface3)',
+                  color: ct.stage === 'matched' ? '#3a9e5a' : 'var(--text3)',
+                  textTransform: 'capitalize', display: 'inline-block', whiteSpace: 'nowrap',
+                }}>
+                  {ct.stage}
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--text4)' }}>{date}</span>
+                <button
+                  onClick={() => copyEmail(ct.contact_email, ct.session_id)}
+                  title="Copy email"
+                  style={{
+                    width: 28, height: 28, borderRadius: 6,
+                    border: '1px solid var(--border)', background: 'var(--surface2)',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: copied[ct.session_id] ? '#3a9e5a' : 'var(--text3)',
+                    fontSize: 11, fontFamily: 'var(--font-body)',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {copied[ct.session_id] ? '✓' : '⧉'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACCESS REQUESTS PAGE
+// ─────────────────────────────────────────────────────────────────────────────
+function AccessRequests() {
+  const { success, error } = useToast();
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [notes, setNotes]       = useState({});
+  const [copied, setCopied]     = useState({});
+  const [genKey, setGenKey]     = useState({}); // generated key per request id
+
+  const load = () => {
+    setLoading(true);
+    adminAPI.listAccessRequests()
+      .then(r => setRequests(r.data.requests || []))
+      .catch(() => error('Failed to load requests'))
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); }, []);
+
+  async function handleStatus(id, status) {
+    try {
+      await adminAPI.updateAccessRequest(id, { status, notes: notes[id] || '' });
+      success(`Marked as ${status}`);
+      load();
+    } catch { error('Failed to update'); }
+  }
+
+  async function handleSaveNotes(id) {
+    try {
+      await adminAPI.updateAccessRequest(id, { notes: notes[id] || '' });
+      success('Notes saved');
+    } catch { error('Failed to save notes'); }
+  }
+
+  async function handleGenerateKey(req) {
+    try {
+      const res = await adminAPI.generateAccessKeys({
+        count: 1,
+        tokens_allocated: 500000,
+        notes: `Generated for ${req.name} <${req.email}>`,
+      });
+      const key = res.data.keys?.[0]?.key_code;
+      if (key) {
+        setGenKey(p => ({ ...p, [req.id]: key }));
+        navigator.clipboard.writeText(key);
+        success(`Key ${key} copied to clipboard`);
+        // Also mark as approved
+        await adminAPI.updateAccessRequest(req.id, { status: 'approved' });
+        load();
+      }
+    } catch { error('Failed to generate key'); }
+  }
+
+  function copyEmail(email, id) {
+    navigator.clipboard.writeText(email).then(() => {
+      setCopied(p => ({ ...p, [id]: true }));
+      setTimeout(() => setCopied(p => ({ ...p, [id]: false })), 2000);
+    });
+  }
+
+  const statusColor = s => ({
+    pending:  { bg: 'rgba(200,160,60,0.1)',  text: '#a07a20' },
+    approved: { bg: 'rgba(90,210,120,0.1)',  text: '#3a9e5a' },
+    rejected: { bg: 'rgba(232,80,80,0.1)',   text: '#c94040' },
+  }[s] || { bg: 'var(--surface2)', text: 'var(--text3)' });
+
+  const pending  = requests.filter(r => r.status === 'pending').length;
+  const approved = requests.filter(r => r.status === 'approved').length;
+
+  return (
+    <div style={{ maxWidth: 960, margin: '0 auto', padding: '32px 24px' }}>
+      {/* Header */}
+      <div style={{ marginBottom: 28 }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
+          Access Requests
+        </h2>
+        <p style={{ fontSize: 13, color: 'var(--text3)' }}>
+          Brands requesting an access code from the landing page.
+        </p>
+        <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+          <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 12, background: 'rgba(200,160,60,0.1)', color: '#a07a20', fontWeight: 500 }}>
+            {pending} pending
+          </span>
+          <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 12, background: 'rgba(90,210,120,0.1)', color: '#3a9e5a', fontWeight: 500 }}>
+            {approved} approved
+          </span>
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}><Spinner /></div>
+      ) : requests.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text3)', fontSize: 14 }}>
+          No requests yet.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {requests.map(r => {
+            const sc   = statusColor(r.status);
+            const date = new Date(r.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+            return (
+              <div key={r.id} style={{
+                background: 'var(--surface)', border: '1px solid var(--border)',
+                borderRadius: 14, padding: '18px 20px',
+              }}>
+                {/* Top row */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{r.name}</span>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 10,
+                        background: sc.bg, color: sc.text, textTransform: 'capitalize',
+                      }}>
+                        {r.status}
+                      </span>
+                      <span style={{ fontSize: 11, color: 'var(--text4)' }}>{date}</span>
+                    </div>
+                    {/* Email */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                      <span style={{ fontSize: 13, color: 'var(--text2)' }}>{r.email}</span>
+                      <button
+                        onClick={() => copyEmail(r.email, r.id)}
+                        style={{ fontSize: 10, padding: '2px 7px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--surface2)', cursor: 'pointer', color: copied[r.id] ? '#3a9e5a' : 'var(--text3)', fontFamily: 'var(--font-body)' }}
+                      >
+                        {copied[r.id] ? '✓' : 'Copy'}
+                      </button>
+                    </div>
+                    {/* Link */}
+                    {r.link && (
+                      <a href={r.link.startsWith('http') ? r.link : `https://${r.link}`}
+                        target="_blank" rel="noopener noreferrer"
+                        style={{ fontSize: 12, color: 'var(--gold)', display: 'block', marginTop: 3 }}>
+                        {r.link}
+                      </a>
+                    )}
+                    {/* Generated key badge */}
+                    {genKey[r.id] && (
+                      <div style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 12px', borderRadius: 8, background: 'rgba(90,210,120,0.08)', border: '1px solid rgba(90,210,120,0.25)' }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700, color: '#3a9e5a', letterSpacing: '0.08em' }}>{genKey[r.id]}</span>
+                        <span style={{ fontSize: 11, color: '#3a9e5a' }}>copied ✓</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action buttons */}
+                  <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {r.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => handleGenerateKey(r)}
+                          style={{ padding: '7px 14px', borderRadius: 7, border: 'none', background: 'var(--gold)', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+                        >
+                          Generate &amp; Approve
+                        </button>
+                        <button
+                          onClick={() => handleStatus(r.id, 'rejected')}
+                          style={{ padding: '7px 12px', borderRadius: 7, border: '1px solid rgba(232,80,80,0.3)', background: 'rgba(232,80,80,0.06)', color: '#c94040', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
+                    {r.status === 'approved' && !genKey[r.id] && (
+                      <button
+                        onClick={() => handleGenerateKey(r)}
+                        style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text2)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+                      >
+                        Generate Key
+                      </button>
+                    )}
+                    {r.status === 'rejected' && (
+                      <button
+                        onClick={() => handleStatus(r.id, 'pending')}
+                        style={{ padding: '7px 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text3)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+                      >
+                        Reconsider
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div style={{ marginTop: 14, display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                  <textarea
+                    value={notes[r.id] ?? r.notes ?? ''}
+                    onChange={e => setNotes(p => ({ ...p, [r.id]: e.target.value }))}
+                    placeholder="Internal notes…"
+                    rows={1}
+                    style={{
+                      flex: 1, padding: '7px 10px', borderRadius: 7, resize: 'vertical',
+                      border: '1px solid var(--border)', background: 'var(--surface2)',
+                      fontSize: 12, color: 'var(--text)', fontFamily: 'var(--font-body)',
+                      outline: 'none', minHeight: 32,
+                    }}
+                  />
+                  <button
+                    onClick={() => handleSaveNotes(r.id)}
+                    style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 12, color: 'var(--text2)', cursor: 'pointer', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap' }}
+                  >
+                    Save notes
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
   const navItems = [
     { to: '/admin',                              icon: '', label: 'Overview',         end: true },
     { to: '/admin/review',                       icon: '', label: 'Review Profile'              },
@@ -2035,6 +2892,9 @@ function StudioDescriptions() {
     { to: '/admin/discovery/inquiries',          icon: '', label: 'Inquiries'                   },
     { to: '/admin/discovery/studio-inquiries',   icon: '', label: 'Studio Inquiries'            },
     { to: '/admin/studio-descriptions',          icon: '', label: 'Studio Descriptions'         },
+    { to: '/admin/access-keys',                  icon: '', label: 'Access Keys'                  },
+    { to: '/admin/contacts',                     icon: '', label: 'Contacts'                     },
+    { to: '/admin/access-requests',              icon: '', label: 'Access Requests'              },
   ];
   return (
     <DashLayout nav={navItems}>
@@ -2048,6 +2908,9 @@ function StudioDescriptions() {
         <Route path="discovery/studio-inquiries"     element={<StudioInquiries />}        />
         <Route path="discovery/:buyerId"             element={<DiscoveryBuyerDetail />}   />
         <Route path="studio-descriptions"             element={<StudioDescriptions />}     />
+        <Route path="access-keys"                     element={<AccessKeys />}             />
+        <Route path="contacts"                         element={<Contacts />}              />
+        <Route path="access-requests"                  element={<AccessRequests />}         />
       </Routes>
     </DashLayout>
   );

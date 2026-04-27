@@ -70,6 +70,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
   const [activeTab, setActiveTab] = useState('why');
   const rank = RANKING_STYLES[rec.ranking] || RANKING_STYLES.medium;
   const hero = rec.hero_images?.[0];
+  const [imgLoaded, setImgLoaded] = useState(false);
   const whyLines = buildWhyLines(rec, buyerSummary, isBonus);
   const bestAt = (rec.what_best_at || []).filter(Boolean);
 
@@ -128,7 +129,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
       </div>
 
       {/* Hero image/video */}
-      <div style={{ height: 220, background: 'var(--surface2)', flexShrink: 0, overflow: 'hidden' }}>
+      <div style={{ height: 220, background: 'var(--surface2)', flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
         {hero ? (
           (hero.mime_type?.startsWith('video/') || /\.(mp4|mov|avi|webm|mkv)$/i.test(hero.url || '')) ? (
             <video
@@ -137,13 +138,28 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
           ) : (
-            <img
-              src={mediaUrl(hero.url)}
-              alt={rec.studio_name}
-              fetchpriority="high"
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-              onError={mediaOnError(hero.url)}
-            />
+            <>
+              <style>{`@keyframes heroShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+              {!imgLoaded && (
+                <div style={{
+                  position: 'absolute', inset: 0, zIndex: 1,
+                  background: 'linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%)',
+                  backgroundSize: '200% 100%',
+                  animation: 'heroShimmer 1.4s ease-in-out infinite',
+                }} />
+              )}
+              <img
+                src={mediaUrl(hero.url)}
+                alt={rec.studio_name}
+                fetchpriority="high"
+                onLoad={() => setImgLoaded(true)}
+                style={{
+                  width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+                  opacity: imgLoaded ? 1 : 0, transition: 'opacity 0.3s ease',
+                }}
+                onError={mediaOnError(hero.url)}
+              />
+            </>
           )
         ) : (
           <div style={{
@@ -181,8 +197,8 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
             {(rec.primary_crafts || []).slice(0, 3).map(c => (
               <span key={c} style={{
                 padding: '4px 12px', borderRadius: 12,
-                background: 'rgba(196,110,73,0.08)', border: '1px solid rgba(196,110,73,0.2)',
-                fontSize: 11, color: '#B85C38', fontWeight: 500,
+                background: 'rgba(122,140,110,0.08)', border: '1px solid rgba(196,110,73,0.2)',
+                fontSize: 11, color: '#7A8C6E', fontWeight: 500,
               }}>{c}</span>
             ))}
             {(rec.primary_fabrics || []).slice(0, 2).map(f => (
@@ -203,9 +219,9 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
               onClick={() => setActiveTab(t.key)}
               style={{
                 padding: '10px 16px', fontSize: 13, fontWeight: 500,
-                color: activeTab === t.key ? '#B85C38' : 'var(--text3)',
+                color: activeTab === t.key ? '#7A8C6E' : 'var(--text3)',
                 background: 'none', border: 'none', cursor: 'pointer',
-                borderBottom: activeTab === t.key ? '2px solid #B85C38' : '2px solid transparent',
+                borderBottom: activeTab === t.key ? '2px solid #7A8C6E' : '2px solid transparent',
                 fontFamily: 'var(--font-body)', transition: 'color 0.15s, border-color 0.15s',
                 marginBottom: -1,
               }}
@@ -275,7 +291,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
             transition: 'transform 0.2s, box-shadow 0.2s, background 0.2s',
             boxSizing: 'border-box', marginTop: 16,
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = '#C46E49'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 40px rgba(196,110,73,0.3)'; }}
+          onMouseEnter={e => { e.currentTarget.style.background = '#8FA083'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 40px rgba(122,140,110,0.3)'; }}
           onMouseLeave={e => { e.currentTarget.style.background = '#1A1612'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
         >
           View Profile →
