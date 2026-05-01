@@ -57,7 +57,11 @@ export default function DiscoverV2() {
   const [sessionId, setSessionId]       = useState(null);
   const [messages, setMessages]         = useState([]);
   const [input, setInput]               = useState('');
-  const [pendingImages, setPendingImages] = useState([]);   // [{data: base64, mime, name}]
+  const [pendingImages,  setPendingImages]  = useState([]);   // [{data: base64, mime, name}]
+  const [briefImages,    setBriefImages]    = useState([]);   // images from last user msg before brief
+  const [skipContactForm, setSkipContactForm] = useState(
+    () => sessionStorage.getItem('qala_has_contact') === 'true'
+  );
   const [sending, setSending]           = useState(false);
   const [starting, setStarting]         = useState(false);
   const [sessionToken, setSessionToken] = useState(null);
@@ -164,14 +168,21 @@ export default function DiscoverV2() {
       const res  = await chatAPI.getSession(id);
       const data = res.data;
       setSessionId(id);
-      setMessages((data.messages || []).map(m => ({
-        role:     m.role,
-        content:  m.content,
-        // Restore hasBrief by detecting BRIEF_START in the stored content
-        hasBrief: typeof m.content === 'string' &&
-                  m.content.includes('BRIEF_START') &&
-                  m.content.includes('BRIEF_END'),
-      })));
+      const resumed = (data.messages || []).map(m => ({
+        role:           m.role,
+        content:        m.content,
+        // Restore hasBrief by detecting BRIEF_START in stored content
+        hasBrief:       typeof m.content === 'string' &&
+                        m.content.includes('BRIEF_START') &&
+                        m.content.includes('BRIEF_END'),
+        // Restore images stored in DB — survives page refresh
+        attachedImages: m.images || [],
+      }));
+      setMessages(resumed);
+
+      // Restore briefImages from the last user message that had images
+      const lastWithImages = [...resumed].reverse().find(m => m.role === 'user' && m.attachedImages?.length);
+      if (lastWithImages) setBriefImages(lastWithImages.attachedImages);
       setExtracted(data.extracted || {});
       if (data.session_token) {
         setSessionToken(data.session_token);
@@ -200,6 +211,19 @@ export default function DiscoverV2() {
       // Keys are anonymous — no login. Just open the chat.
       if (key) setKeyUsedEmail(key.trim());
 
+      // Mark contact as collected if key already has details
+      if (data.has_contact) {
+        sessionStorage.setItem('qala_has_contact', 'true');
+        setSkipContactForm(true);
+      }
+
+      // Resume previous session if one exists for this key
+      if (data.existing_session_id) {
+        sessionStorage.setItem(CHAT_SESSION_KEY, data.existing_session_id);
+        await resumeSession(data.existing_session_id);
+        return;
+      }
+
       const openingMsg = { role: 'assistant', content: data.message };
       setMessages([openingMsg]);
       setChips(data.quick_replies || parseChips(data.message));
@@ -222,8 +246,10 @@ export default function DiscoverV2() {
 
   // ── Send message ──────────────────────────────────────────────────────────
   async function sendMessage(text) {
-    const trimmed = (text || input).trim();
-    if (!trimmed && !pendingImages.length) return;
+    const rawText = (text || input).trim();
+    if (!rawText && !pendingImages.length) return;
+    // Use 'IMAGE' as default message when only images are sent (no text)
+    const trimmed = rawText || (pendingImages.length ? 'IMAGE' : '');
     if (!sessionId || sending) return;
 
     // Intercept brief-confirmation chips — don't send to Claude,
@@ -244,9 +270,12 @@ export default function DiscoverV2() {
     // Append user message to local state immediately
     const userMsg = {
       role:          'user',
-      content:       trimmed,
+      // Don't show 'IMAGE' placeholder text in the chat bubble
+      content:       trimmed === 'IMAGE' ? '' : trimmed,
       attachedImages: imgsCopy,
     };
+    // Track images for the brief card — kept until a new brief is generated
+    if (imgsCopy.length) setBriefImages(imgsCopy);
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setChips([]);
@@ -268,11 +297,18 @@ export default function DiscoverV2() {
       const aiMsg = {
         role:         'assistant',
         content:      data.message,
-        hasBrief:     data.has_brief || false,
-        sessionToken: data.session_token || null,
+        hasBrief:         data.has_brief || false,
+        sessionToken:     data.session_token || null,
+        // Attach the images from the conversation to the brief card
+        referenceImages:  data.has_brief ? briefImages : [],
       };
       setMessages(prev => [...prev, aiMsg]);
-      setChips(parseChips(data.message) || data.quick_replies || []);
+      // Don't show chips when brief card is present — card has its own CTAs
+      if (!data.has_brief) {
+        setChips(parseChips(data.message) || data.quick_replies || []);
+      } else {
+        setChips([]);
+      }
 
       if (data.extracted) {
         setExtracted(prev => ({ ...prev, ...data.extracted }));
@@ -372,15 +408,7 @@ export default function DiscoverV2() {
       hasBrief: false,
     };
     setMessages(prev => [...prev, summaryMsg]);
-
-    // Closing message — sent after the studio summary
-    const closingMsg = {
-      role: 'assistant',
-      content: 'I have sent in your request to the Qala team, they will be contacting you in 24-48 hours time. Meanwhile feel free to explore the studios or ask me anything about the collection.',
-      hasBrief: false,
-    };
-    setMessages(prev => [...prev, closingMsg]);
-    setChips(['Help me decide', "I'll browse myself"]);
+    setChips(['Tell me more about these studios', 'I want to connect with one', "I don't see what I'm looking for"]);
   }
 
   // ── ACCESS KEY GATE ───────────────────────────────────────────────────────
@@ -657,6 +685,9 @@ export default function DiscoverV2() {
                 onMatchComplete={handleMatchComplete}
                 attachedImage={msg.attachedImage}
                 attachedMime={msg.attachedMime}
+                attachedImages={msg.attachedImages}
+                referenceImages={msg.referenceImages}
+                skipContactForm={skipContactForm}
                 highlightBrief={msg.hasBrief ? highlightBrief : false}
               />
             ))}
@@ -748,7 +779,6 @@ export default function DiscoverV2() {
           <ImageUpload
             onImage={handleImageSelected}
             disabled={sending}
-            iconOnly
           />
           <textarea
             ref={taRef}
@@ -759,7 +789,7 @@ export default function DiscoverV2() {
               e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
             }}
             onKeyDown={handleKey}
-            placeholder="Tell me what you're looking to make..."
+            placeholder="Reply…"
             rows={1}
             disabled={sending}
             style={{

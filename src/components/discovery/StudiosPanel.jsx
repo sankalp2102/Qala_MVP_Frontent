@@ -143,11 +143,7 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
             }}>
               Your Matches
             </div>
-            {recs.length > 0 && (
-              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 1 }}>
-                {recs.length} studio{recs.length !== 1 ? 's' : ''} found
-              </div>
-            )}
+
           </div>
           {onClose && (
             <button
@@ -213,7 +209,7 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
               `}</style>
               <div className="studios-feed" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {/* Matched studio cards */}
-                {recs.slice(0, 5).map((rec, i) => (
+                {recs.slice(0, 3).map((rec, i) => (
                   <RecommendationCard
                     key={rec.id || i}
                     rec={rec}
@@ -280,11 +276,7 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
             }}>
               Your Matches
             </div>
-            {recs.length > 0 && (
-              <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
-                {recs.length} studio{recs.length !== 1 ? 's' : ''} found
-              </div>
-            )}
+
           </div>
           <button
             onClick={onClose}

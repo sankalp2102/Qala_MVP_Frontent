@@ -64,11 +64,14 @@ export default function ChatMessage({
   role,
   content,
   hasBrief,
+  referenceImages,
+  skipContactForm,
   sessionToken,
   sessionId,
   onAdjust,
   attachedImage,
   attachedMime,
+  attachedImages,
   onMatchComplete,
   highlightBrief,
 }) {
@@ -85,23 +88,29 @@ export default function ChatMessage({
       alignItems: isAI ? 'flex-start' : 'flex-end',
       marginBottom: 14,
     }}>
-      {/* Image attached — shown above text inside bubble for user messages */}
-      {isUser && attachedImage && (
+      {/* attachedImages array — new format */}
+      {isUser && attachedImages?.length > 0 && (
+        <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:6 }}>
+          {attachedImages.map((img, i) => (
+            <img key={i}
+              src={`data:${img.mime || 'image/jpeg'};base64,${img.data}`}
+              alt="attachment"
+              style={{ maxHeight:180, maxWidth:'100%', borderRadius:10, border:'0.5px solid var(--border)', display:'block', objectFit:'cover' }}
+            />
+          ))}
+        </div>
+      )}
+      {/* Legacy single image — backward compat */}
+      {isUser && !attachedImages?.length && attachedImage && (
         <img
           src={`data:${attachedMime || 'image/jpeg'};base64,${attachedImage}`}
           alt="Reference"
-          style={{
-            maxWidth: 180,
-            borderRadius: 10,
-            marginBottom: 6,
-            border: '0.5px solid var(--border)',
-            display: 'block',
-          }}
+          style={{ maxWidth:180, borderRadius:10, marginBottom:6, border:'0.5px solid var(--border)', display:'block' }}
         />
       )}
 
-      {/* Bubble */}
-      {visibleText && (
+      {/* Bubble — hidden when hasBrief since card replaces it */}
+      {visibleText && !hasBrief && (
         <div style={{
           maxWidth: '84%',
           padding: '9px 13px',
@@ -123,6 +132,8 @@ export default function ChatMessage({
           onAdjust={onAdjust}
           onMatchComplete={onMatchComplete}
           highlightFindStudios={highlightBrief}
+          referenceImages={referenceImages}
+          skipContactForm={skipContactForm}
         />
       )}
     </div>
