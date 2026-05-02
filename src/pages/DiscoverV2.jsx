@@ -60,7 +60,7 @@ export default function DiscoverV2() {
   const [pendingImages,  setPendingImages]  = useState([]);   // [{data: base64, mime, name}]
   const [briefImages,    setBriefImages]    = useState([]);   // images from last user msg before brief
   const [skipContactForm, setSkipContactForm] = useState(
-    () => sessionStorage.getItem('qala_has_contact') === 'true'
+    () => localStorage.getItem('qala_has_contact') === 'true'
   );
   const [sending, setSending]           = useState(false);
   const [starting, setStarting]         = useState(false);
@@ -213,7 +213,7 @@ export default function DiscoverV2() {
 
       // Mark contact as collected if key already has details
       if (data.has_contact) {
-        sessionStorage.setItem('qala_has_contact', 'true');
+        localStorage.setItem('qala_has_contact', 'true');
         setSkipContactForm(true);
       }
 

@@ -200,6 +200,8 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
         email: contactForm.email.trim(),
         phone: contactForm.phone.trim(),
       });
+      // Persist so the form is skipped on future visits with same key
+      localStorage.setItem('qala_has_contact', 'true');
     } catch { /* non-fatal */ }
     finally { setSavingContact(false); }
     proceedToMatch();
