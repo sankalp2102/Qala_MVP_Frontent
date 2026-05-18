@@ -80,6 +80,8 @@ export default function Landing() {
       if (resumeId) sessionStorage.setItem('qala_resume_session', 'true');
       if (data.has_contact) localStorage.setItem('qala_has_contact', 'true');
       else localStorage.removeItem('qala_has_contact');
+      // Store the full key code so studio profile can send it with Get Introduced
+      localStorage.setItem('qala_access_key', `QALA-${accessKey.trim()}`);
       if (data.access_token && data.user) loginWithAccessKey(data.access_token, data.user);
       setTransition(true);
       setTimeout(() => { setPhase('message'); setTransition(false); }, 320);

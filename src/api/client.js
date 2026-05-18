@@ -334,4 +334,15 @@ export const chatAPI = {
     axios.post(`${BASE}/api/discovery/access-request/`, data,
       { headers: { 'Content-Type': 'application/json' } }
     ),
+
+  getIntroduced: (sessionId, sellerProfileId) =>
+    axios.post(`${BASE}/api/discovery/get-introduced/`,
+      {
+        session_id:        sessionId,
+        seller_profile_id: sellerProfileId,
+        // Fallback so backend can find contact details even without session
+        access_key_code:   localStorage.getItem('qala_access_key') || '',
+      },
+      { headers: { 'Content-Type': 'application/json' } }
+    ),
 };

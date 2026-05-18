@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { discoveryAPI } from '../api/client';
+import { discoveryAPI, chatAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import qalaLogo from '../assets/qala-logo.png';
 import { mediaUrl, mediaOnError } from '../utils/mediaUrl';
@@ -836,6 +836,7 @@ export default function StudioProfile() {
   const [inquiryOpen,    setInquiryOpen]    = useState(false);
   const [showIntroPopup,   setShowIntroPopup]   = useState(false);
   const [introLoading,     setIntroLoading]     = useState(false);
+  const [introError,       setIntroError]       = useState(false);
   const [inquiryDone, setInquiryDone] = useState(false);
   const [btsOpen, setBtsOpen] = useState(false);
   const [btsLightboxOpen, setBtsLightboxOpen] = useState(false);
@@ -1264,7 +1265,9 @@ export default function StudioProfile() {
                   fontSize: 13.5, color: 'var(--text3)',
                   lineHeight: 1.65, marginBottom: 24,
                 }}>
-                  Qala Team will get you introduced to the studio soon.
+                  {introError
+                    ? 'Please complete the discovery chat first so we have your contact details.'
+                    : 'Qala Team will get you introduced to the studio soon.'}
                 </p>
                 <button
                   onClick={() => setShowIntroPopup(false)}
@@ -1298,12 +1301,20 @@ export default function StudioProfile() {
             </div>
             <button
               disabled={introLoading}
-              onClick={() => {
+              onClick={async () => {
                 setIntroLoading(true);
-                setTimeout(() => {
+                setIntroError(false);
+                const sessionId = sessionStorage.getItem('qala_chat_session_id');
+                try {
+                  await chatAPI.getIntroduced(sessionId, s.studio_id);
+                } catch (err) {
+                  // Show error message for 400 (no contact) and 404 (studio not found)
+                  const status = err.response?.status;
+                  if (status === 400 || status === 404) setIntroError(true);
+                } finally {
                   setIntroLoading(false);
                   setShowIntroPopup(true);
-                }, 200 + Math.random() * 300);
+                }
               }}
               style={{
                 width: '100%', padding: '13px', borderRadius: 8,
