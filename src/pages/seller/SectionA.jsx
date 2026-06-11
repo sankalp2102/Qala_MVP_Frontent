@@ -54,15 +54,18 @@ export default function SectionA({ profileId, onSave }) {
   const [form, setForm] = useState({
     studio_name: '', location_city: '', location_state: '',
     years_in_operation: '', website_url: '', instagram_url: '', poc_working_style: '',
+    certifications: '',
   });
   const [flags, setFlags] = useState({});
   const [contacts, setContacts]     = useState([]);
-  const [usps, setUsps]             = useState([{ order: 1, strength: '' }, { order: 2, strength: '' }, { order: 3, strength: '' }]);
+  const [usps, setUsps]             = useState([{ order: 1, strength: '' }, { order: 2, strength: '' }, { order: 3, strength: '' }]); // always exactly 3
   const [heroMedia, setHeroMedia]   = useState(null);
   const [workMedia, setWorkMedia]   = useState([]);
   const [newContact, setNewContact] = useState({ name: '', role: '', email: '', phone: '' });
   const [addingC, setAddingC]       = useState(false);
   const [editingContact, setEditingContact] = useState(null); // { id, name, role, email, phone }
+  const [awards, setAwards]         = useState([]);
+  const [newAward, setNewAward]     = useState({ award_name: '', link: '' });
   const [saving, setSaving]         = useState(false);
   const [uploading, setUploading]   = useState('');
   const [uploadProgress, setUploadProgress] = useState(null); // { done, total, failed }
@@ -80,6 +83,7 @@ export default function SectionA({ profileId, onSave }) {
         website_url: d.website_url || '',
         instagram_url: d.instagram_url || '',
         poc_working_style: d.poc_working_style || '',
+        certifications: d.certifications || '',
       });
       setFlags({
         studio_name: d.studio_name_flagged ? d.studio_name_flag_reason : null,
@@ -89,7 +93,10 @@ export default function SectionA({ profileId, onSave }) {
         poc: d.poc_flagged ? d.poc_flag_reason : null,
       });
       if (d.contacts?.length) setContacts(d.contacts);
-      if (d.usps?.length) setUsps(d.usps.map(u => ({ order: u.order, strength: u.strength })));
+      API.getAwards(profileId).then(r => setAwards(r.data || [])).catch(() => {});
+      const loaded = (d.usps || []).slice(0, 3).map(u => ({ order: u.order, strength: u.strength }));
+      while (loaded.length < 3) loaded.push({ order: loaded.length + 1, strength: '' });
+      setUsps(loaded);
       const media = d.media_files || [];
       setHeroMedia(media.find(m => m.media_type === 'hero') || null);
       setWorkMedia(media.filter(m => m.media_type === 'work_dump'));
@@ -105,8 +112,8 @@ export default function SectionA({ profileId, onSave }) {
     setSaving(true);
     try {
       await API.putStudio(profileId, form);
-      const uspData = usps.filter(u => u.strength.trim());
-      if (uspData.length) await API.putUSPs(profileId, uspData);
+      const uspData = usps.slice(0, 3).map((u, i) => ({ order: i + 1, strength: u.strength }));
+      await API.putUSPs(profileId, uspData);
       success('Section A saved!');
       onSave?.();
     } catch (e) {
@@ -230,13 +237,14 @@ export default function SectionA({ profileId, onSave }) {
         </div>
       </CardSection>
 
-      {/* A.3 Years in operation */}
-      <CardSection title="A.3 — Years in Operation">
+      {/* A.3 Year of Establishment */}
+      <CardSection title="A.3 — Year of Establishment">
         <FlagBanner reason={flags.years} />
-        <Field label="How many years has your studio been operating?" hint="You can enter a decimal, e.g. 2.5 for 2½ years">
-          <input type="number" step="0.5" min="0" value={form.years_in_operation}
+        <Field label="In which year was your studio established? *" hint="Enter the 4-digit calendar year, e.g. 2014">
+          <input type="number" min="1900" max={new Date().getFullYear()} step="1"
+            value={form.years_in_operation}
             onChange={e => autosave('years_in_operation', e.target.value)}
-            placeholder="e.g. 8" style={{ maxWidth: 200 }} />
+            placeholder="e.g. 2014" style={{ maxWidth: 200 }} />
         </Field>
       </CardSection>
 
@@ -319,23 +327,21 @@ export default function SectionA({ profileId, onSave }) {
         )}
       </CardSection>
 
-      {/* A.7 USPs */}
-      <CardSection title="A.6 — Studio Strengths / USPs">
-        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
-          What makes your studio stand out? List your top strengths (up to 5). These are shown prominently to buyers.
+      {/* A.6 Studio Strengths — exactly 3 required */}
+      <CardSection title="A.6 — Studio Strengths">
+        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 4 }}>
+          What makes your studio stand out? List your top 3 strengths. These are shown prominently to buyers.
         </p>
-        {usps.map((u, i) => (
+        <p style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 16 }}>Exactly 3 strengths are required.</p>
+        {usps.slice(0, 3).map((u, i) => (
           <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 10, alignItems: 'center' }}>
             <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', color: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
             <input className="input-raw" style={{ flex: 1 }}
-              placeholder={['e.g. 20+ years of hand block printing expertise', 'e.g. GOTS-certified natural dyes only', 'e.g. Exclusively work with heritage weavers from Chanderi'][i] || `Strength #${i + 1}`}
+              placeholder={['e.g. 20+ years of hand block printing expertise', 'e.g. GOTS-certified natural dyes only', 'e.g. Exclusively work with heritage weavers from Chanderi'][i]}
               value={u.strength}
               onChange={e => setUsps(arr => arr.map((x, j) => j === i ? { ...x, strength: e.target.value } : x))} />
           </div>
         ))}
-        {usps.length < 5 && (
-          <button className="btn btn-ghost btn-sm" style={{ marginTop: 4 }} onClick={() => setUsps(a => [...a, { order: a.length + 1, strength: '' }])}>+ Add Strength</button>
-        )}
       </CardSection>
 
       {/* A.8 Hero Image */}
@@ -389,6 +395,44 @@ export default function SectionA({ profileId, onSave }) {
           <span style={{ fontSize: 11, color: 'var(--red)', marginLeft: 10 }}>{uploadProgress.failed} failed</span>
         )}
         <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 8 }}>Select multiple files at once · Images: JPG · PNG · WEBP up to 10 MB · Videos: MP4 · MOV up to 100 MB</p>
+      </CardSection>
+
+      {/* A — Certifications */}
+      <CardSection title="A — Certifications">
+        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 4 }}>List any certifications your studio holds. Optional.</p>
+        <p style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 14 }}>e.g. GOTS, Fair Trade, GI Tag, OEKO-TEX, SA8000</p>
+        <textarea value={form.certifications} onChange={e => autosave('certifications', e.target.value)} rows={3}
+          placeholder="e.g. GOTS certified since 2019, Fair Trade member, GI Tag — Chanderi"
+          style={{ width: '100%', padding: '12px 16px', border: '1px solid var(--border2)', borderRadius: 'var(--radius)', background: 'var(--surface2)', color: 'var(--text)', fontSize: 14, fontFamily: 'var(--font-body)', lineHeight: 1.7, resize: 'vertical' }}
+        />
+      </CardSection>
+
+      {/* A — Awards & Press (moved from Section B) */}
+      <CardSection title="A — Awards &amp; Press Mentions">
+        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>Have you been featured in any press, won any awards, or been part of any recognised programmes?</p>
+        {awards.map(aw => (
+          <div key={aw.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--radius)', marginBottom: 8, border: '1px solid var(--border)' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>{aw.award_name}</div>
+              {aw.link && <a href={aw.link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--gold)' }}>View →</a>}
+            </div>
+            <button className="btn btn-danger btn-sm" onClick={() => API.delAward(profileId, aw.id).then(() => setAwards(x => x.filter(y => y.id !== aw.id)))}>Remove</button>
+          </div>
+        ))}
+        <div style={{ padding: 16, border: '1px solid var(--border2)', borderRadius: 'var(--radius)', marginTop: 8, background: 'var(--surface2)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10, marginBottom: 10 }}>
+            <div className="field"><label>Award / Press Mention *</label>
+              <input value={newAward.award_name} onChange={e => setNewAward(a => ({ ...a, award_name: e.target.value }))} placeholder="e.g. Featured in Vogue India — March 2023" />
+            </div>
+            <div className="field"><label>URL (optional)</label>
+              <input type="url" value={newAward.link} onChange={e => setNewAward(a => ({ ...a, link: e.target.value }))} placeholder="https://..." />
+            </div>
+          </div>
+          <button className="btn btn-outline btn-sm" onClick={async () => {
+            if (!newAward.award_name) return;
+            try { const r = await API.addAward(profileId, { ...newAward, order: awards.length + 1 }); setAwards(x => [...x, r.data]); setNewAward({ award_name: '', link: '' }); } catch {}
+          }}>Save Award / Mention</button>
+        </div>
       </CardSection>
 
       <button className="btn btn-primary btn-lg fade-up" onClick={save} disabled={saving}>

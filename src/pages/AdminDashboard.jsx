@@ -7,6 +7,7 @@ import { useToast } from '../hooks/useToast';
 import { Toast } from '../components/Toast';
 import PasswordInput from '../components/PasswordInput';
 import { mediaUrl } from '../utils/mediaUrl';
+import LibraryManager from '../components/LibraryManager';
 
 const sLabel = { submitted:'Submitted', in_progress:'In Progress', not_started:'Not Started', flagged:'Flagged', approved:'Approved' };
 const sBadge = s => ({ submitted:'badge-green', in_progress:'badge-orange', not_started:'badge-gray', flagged:'badge-red', approved:'badge-teal' }[s]||'badge-gray');
@@ -2895,6 +2896,7 @@ function AccessRequests() {
     { to: '/admin/access-keys',                  icon: '', label: 'Access Keys'                  },
     { to: '/admin/contacts',                     icon: '', label: 'Contacts'                     },
     { to: '/admin/access-requests',              icon: '', label: 'Access Requests'              },
+    { to: '/admin/library',                      icon: '', label: 'Library'                      },
   ];
   return (
     <DashLayout nav={navItems}>
@@ -2911,6 +2913,7 @@ function AccessRequests() {
         <Route path="access-keys"                     element={<AccessKeys />}             />
         <Route path="contacts"                         element={<Contacts />}              />
         <Route path="access-requests"                  element={<AccessRequests />}         />
+        <Route path="library"                          element={<LibraryManager />}         />
       </Routes>
     </DashLayout>
   );

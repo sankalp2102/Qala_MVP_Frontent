@@ -216,19 +216,13 @@ export default function SectionC({ profileId, onSave }) {
                   <input type="number" step="0.5" min="0" value={editDraft.sampling_time_weeks}
                     onChange={e => setEditDraft(d => ({ ...d, sampling_time_weeks: e.target.value }))} placeholder="e.g. 2" />
                 </Field>
-                <Field label="Production: 50 units (months)" hint="How many months to produce 50 finished units?">
+                <Field label="Production: 100 units (months)" hint="How many months to produce 100 finished units?">
                   <input type="number" step="0.5" min="0" value={editDraft.production_timeline_months_50units}
                     onChange={e => setEditDraft(d => ({ ...d, production_timeline_months_50units: e.target.value }))} placeholder="e.g. 1.5" />
                 </Field>
               </div>
 
-              <RadioGroup
-                label="Delay Likelihood"
-                hint="How likely are delays in this craft's production?"
-                options={DELAY_OPTS}
-                value={editDraft.delay_likelihood}
-                onChange={v => setEditDraft(d => ({ ...d, delay_likelihood: v }))}
-              />
+{/* Delay Likelihood removed from form per PDF spec */}
 
               <Field label="Common Delay Reasons" hint="What typically causes delays? Leave blank if delays are rare.">
                 <input value={editDraft.delay_common_reasons}
@@ -236,10 +230,7 @@ export default function SectionC({ profileId, onSave }) {
                   placeholder="e.g. Monsoon season affects drying time, artisan availability" />
               </Field>
 
-              <Field label="Well Known Limitations" hint="Design elements or materials that don't work well with this craft?">
-                <textarea value={editDraft.limitations} onChange={e => setEditDraft(d => ({ ...d, limitations: e.target.value }))} rows={3}
-                  placeholder="e.g. Does not adhere well on synthetic blends or polyester." />
-              </Field>
+{/* Well Known Limitations removed from form per PDF spec */}
 
               <div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
@@ -277,10 +268,10 @@ export default function SectionC({ profileId, onSave }) {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: 12 }}>
                   {c.innovation_level && <span style={{ color: innovColor[c.innovation_level] }}>◆ {c.innovation_level} innovation</span>}
                   {c.sampling_time_weeks && <span style={{ color: 'var(--text3)' }}>{c.sampling_time_weeks} wk sampling</span>}
-                  {c.production_timeline_months_50units && <span style={{ color: 'var(--text3)' }}>{c.production_timeline_months_50units} mo for 50 units</span>}
-                  {c.delay_likelihood && <span style={{ color: delayColor[c.delay_likelihood] }}>{c.delay_likelihood} delay risk</span>}
+                  {c.production_timeline_months_50units && <span style={{ color: 'var(--text3)' }}>{c.production_timeline_months_50units} mo for 100 units</span>}
+{/* delay_likelihood hidden per PDF spec */}
                 </div>
-                {c.limitations && <p style={{ fontSize: 12, color: 'var(--text4)', marginTop: 4 }}>Limitations: {c.limitations}</p>}
+{/* limitations hidden from view per PDF spec */}
                 {c.file_name && <p style={{ fontSize: 11, color: 'var(--teal)', marginTop: 6 }}>{c.file_name}</p>}
                 {c.is_flagged && !c.flag_resolved && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 8 }}>Admin flagged: {c.flag_reason}</div>}
               </div>
@@ -335,20 +326,13 @@ export default function SectionC({ profileId, onSave }) {
                 <input type="number" step="0.5" min="0" value={draft.sampling_time_weeks}
                   onChange={e => setDraft(d => ({ ...d, sampling_time_weeks: e.target.value }))} placeholder="e.g. 2" />
               </Field>
-              <Field label="C.1 — Production: 50 units (months)" hint="How many months to produce 50 finished units of this craft?">
+              <Field label="C.1 — Production: 100 units (months)" hint="How many months to produce 100 finished units of this craft?">
                 <input type="number" step="0.5" min="0" value={draft.production_timeline_months_50units}
                   onChange={e => setDraft(d => ({ ...d, production_timeline_months_50units: e.target.value }))} placeholder="e.g. 1.5" />
               </Field>
             </div>
 
-            {/* Delay Likelihood */}
-            <RadioGroup
-              label="C.1 — Delay Likelihood"
-              hint="How likely are delays in this craft's production?"
-              options={DELAY_OPTS}
-              value={draft.delay_likelihood}
-              onChange={v => setDraft(d => ({ ...d, delay_likelihood: v }))}
-            />
+{/* Delay Likelihood removed from form per PDF spec */}
 
             {/* Delay Reasons — always shown */}
             <Field label="C.1 — Common Delay Reasons" hint="What typically causes delays for this craft? Leave blank if delays are rare.">
@@ -357,13 +341,7 @@ export default function SectionC({ profileId, onSave }) {
                 placeholder="e.g. Monsoon season affects drying time, sourcing raw materials from a single village, master artisan availability" />
             </Field>
 
-            {/* Limitations — 2 columns */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              <Field label="C.1 — Well Known Limitations" hint="Are there specific design elements, materials, or techniques that don't work well with this craft?">
-                <textarea value={draft.limitations} onChange={e => setDraft(d => ({ ...d, limitations: e.target.value }))} rows={3}
-                  placeholder="e.g. Does not adhere well on synthetic blends or polyester. Colour fastness issues on georgette. Not recommended for stretch fabrics." />
-              </Field>
-            </div>
+{/* Well Known Limitations removed from form per PDF spec */}
 
             {/* Craft Image Upload */}
             <div>

@@ -150,52 +150,11 @@ export default function SectionD({ profileId, onSave }) {
         />
       </CardSection>
 
-      {/* D.3 */}
-      <CardSection title="D.3 — Sampling Iterations">
-        <FlagBanner reason={flags.iterations} />
-        <div className="field" style={{ maxWidth: 260 }}>
-          <label>How many rounds of sampling do you offer before charging extra?</label>
-          <input type="number" min="1" max="20" value={form.max_sampling_iterations}
-            onChange={e => setForm(f => ({ ...f, max_sampling_iterations: e.target.value }))}
-            placeholder="e.g. 3" />
-          <span className="hint">e.g. enter 3 if you offer 3 free sampling rounds before additional charges apply</span>
-        </div>
-      </CardSection>
+{/* D.3 Sampling Iterations removed from form per PDF spec */}
 
-      {/* D.4 */}
-      <CardSection title="D.4 — Pre-Call Questions for Buyers">
-        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16, lineHeight: 1.7 }}>
-          What information do you need from a buyer <em>before</em> you get on a discovery call?
-          These questions are shown to buyers when they try to connect with you — they must answer them first.
-          Add up to 5 questions.
-        </p>
-        {reqs.map((r, i) => (
-          <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 10, alignItems: 'flex-start' }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', color: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0, marginTop: 1 }}>{i + 1}</div>
-            <input className="input-raw" style={{ flex: 1 }}
-              placeholder={[
-                'e.g. What is the target market for your collection?',
-                'e.g. Can you share a moodboard or reference images?',
-                'e.g. What is your approximate order quantity?',
-                'e.g. What is your required delivery timeline?',
-                'e.g. Do you have existing tech packs or just references?',
-              ][i] || `Question #${i + 1}`}
-              value={r.question}
-              onChange={e => setReqs(a => a.map((x, j) => j === i ? { ...x, question: e.target.value } : x))} />
-            {reqs.length > 1 && (
-              <button onClick={() => setReqs(a => a.filter((_, j) => j !== i))}
-                style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 16, padding: '4px', marginTop: 2 }}>×</button>
-            )}
-          </div>
-        ))}
-        {reqs.length < 5 && (
-          <button className="btn btn-ghost btn-sm" style={{ marginTop: 4 }} onClick={() => setReqs(a => [...a, { order: a.length + 1, question: '' }])}>
-            + Add Question
-          </button>
-        )}
-      </CardSection>
+{/* D.4 Pre-Call Questions removed from form per PDF spec */}
 
-      {/* D.5 Buyer Coordinator */}
+            {/* D.5 Buyer Coordinator */}
       <CardSection title="D.5 — Buyer Coordinator">
         <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 6, lineHeight: 1.7 }}>
           Who from your team is typically responsible for coordinating &amp; working with the buyers?

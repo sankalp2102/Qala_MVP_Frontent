@@ -103,12 +103,10 @@ export default function SectionB({ profileId, onSave }) {
   const [products, setProducts] = useState({});
   const [fabrics, setFabrics]   = useState({}); // { fabric_name: { works_with, is_primary, innovation_note, category } }
   const [brands, setBrands]     = useState([]);
-  const [awards, setAwards]     = useState([]);
   const [newBrand, setNewBrand] = useState({ brand_name: '', scope: '' });
   const [brandImg, setBrandImg] = useState(null);
   const [editingBrand, setEditingBrand] = useState(null);
   const [editBrandImg, setEditBrandImg] = useState(null);
-  const [newAward, setNewAward] = useState({ award_name: '', link: '' });
   const [saving, setSaving]     = useState(false);
 
   useEffect(() => {
@@ -120,7 +118,6 @@ export default function SectionB({ profileId, onSave }) {
       setFabrics(m);
     }).catch(() => {});
     onboardingAPI.getBrands(profileId).then(r => setBrands(r.data || [])).catch(() => {});
-    onboardingAPI.getAwards(profileId).then(r => setAwards(r.data || [])).catch(() => {});
   }, [profileId]);
 
   const save = async () => {
@@ -193,26 +190,6 @@ export default function SectionB({ profileId, onSave }) {
     } catch { error('Failed to update brand'); }
   };
 
-  const addAward = async () => {
-    if (!newAward.award_name) { error('Award name required'); return; }
-    try {
-      // Calculate order from current state length synchronously
-      const currentOrder = awards.length + 1;
-      
-      const r = await onboardingAPI.addAward(profileId, { 
-        ...newAward, 
-        order: currentOrder 
-      });
-      
-      // Update state and ensure we add to the list
-      setAwards(prevAwards => [...prevAwards, r.data]);
-      setNewAward({ award_name: '', link: '' });
-      success('Award added');
-    } catch (err) { 
-      console.error('Failed to add award:', err);
-      error('Failed to add award'); 
-    }
-  };
 
   return (
     <div style={{ padding: '40px 48px', maxWidth: 780 }}>
@@ -229,9 +206,9 @@ export default function SectionB({ profileId, onSave }) {
       </div>
 
       {/* B.1 Product Types */}
-      <CardSection title="B.1 — Garment Types You Produce">
+      <CardSection title="B.1 — Products Portfolio">
         <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
-          Select all the garment silhouettes your studio is set up to produce. These are direct filter signals — buyers search by these categories.
+          Select all the garment types your studio produces. Buyers search and filter by these categories.
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 7 }}>
           {PRODUCT_LIST.map(({ key, label }) => (
@@ -382,112 +359,6 @@ export default function SectionB({ profileId, onSave }) {
             }}>+ Add</button>
           </div>
           <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 6 }}>Press Enter or click Add. Each custom fabric will expand for description.</p>
-        </div>
-      </CardSection>
-
-      {/* B.3 Brand Experience */}
-      <CardSection title="B.3 — Brand Experience">
-        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
-          Which brands or buyers have you worked with? List them here — this builds trust with new buyers.
-        </p>
-        {brands.map(b => (
-          editingBrand?.id === b.id ? (
-            /* ── Inline edit form ── */
-            <div key={b.id} style={{ padding: 16, border: '1px solid rgba(200,165,90,0.35)', borderRadius: 'var(--radius)', marginBottom: 8, background: 'var(--gold-dim)' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Editing brand</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10, marginBottom: 10 }}>
-                <div className="field">
-                  <label>Brand / Buyer Name *</label>
-                  <input value={editingBrand.brand_name} onChange={e => setEditingBrand(x => ({ ...x, brand_name: e.target.value }))} placeholder="e.g. Good Earth" />
-                </div>
-                <div className="field">
-                  <label>Scope of Work</label>
-                  <input value={editingBrand.scope || ''} onChange={e => setEditingBrand(x => ({ ...x, scope: e.target.value }))} placeholder="e.g. Hand block printed kurtas for SS23 collection, 200 pcs" />
-                </div>
-              </div>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>Replace Image</div>
-                {editingBrand.file_name && !editBrandImg && (
-                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 6 }}>Current: {editingBrand.file_name}</div>
-                )}
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setEditBrandImg(e.target.files[0])} style={{ display: 'none' }} />
-                  <span className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>{editBrandImg ? editBrandImg.name : '↺ Choose New Image'}</span>
-                </label>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-teal btn-sm" onClick={saveEditBrand}>Save Changes</button>
-                <button className="btn btn-ghost btn-sm" onClick={() => { setEditingBrand(null); setEditBrandImg(null); }}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            /* ── Read view ── */
-            <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--radius)', marginBottom: 8, border: '1px solid var(--border)' }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{b.brand_name}</div>
-                {b.scope && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>{b.scope}</div>}
-                {b.file_name && <div style={{ fontSize: 11, color: 'var(--teal)', marginTop: 3 }}>{b.file_name}</div>}
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexShrink: 0, marginLeft: 12 }}>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setEditingBrand({ id: b.id, brand_name: b.brand_name, scope: b.scope || '', file_name: b.file_name || '' })}
-                >
-                  Edit
-                </button>
-                <button className="btn btn-danger btn-sm" onClick={() => delBrand(b.id)}>Remove</button>
-              </div>
-            </div>
-          )
-        ))}
-        <div style={{ padding: 16, border: '1px solid var(--border2)', borderRadius: 'var(--radius)', marginTop: 8, background: 'var(--surface2)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10, marginBottom: 10 }}>
-            <div className="field">
-              <label>Brand / Buyer Name *</label>
-              <input value={newBrand.brand_name} onChange={e => setNewBrand(b => ({ ...b, brand_name: e.target.value }))} placeholder="e.g. Good Earth" />
-            </div>
-            <div className="field">
-              <label>Scope of Work *</label>
-              <input value={newBrand.scope} onChange={e => setNewBrand(b => ({ ...b, scope: e.target.value }))} placeholder="e.g. Hand block printed kurtas for SS23 collection, 200 pcs" />
-            </div>
-          </div>
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>Image *</div>
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setBrandImg(e.target.files[0])} style={{ display: 'none' }} />
-              <span className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>{brandImg ? brandImg.name : '+ Attach Image'}</span>
-            </label>
-          </div>
-          <button className="btn btn-outline btn-sm" onClick={addBrand}>Save Brand</button>
-        </div>
-      </CardSection>
-
-      {/* B.4 Awards & Press */}
-      <CardSection title="B.4 — Awards & Press Mentions">
-        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
-          Have you been featured in any press, won any awards, or been part of any recognized programs? Add them here.
-        </p>
-        {awards.map(a => (
-          <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--radius)', marginBottom: 8, border: '1px solid var(--border)' }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>{a.award_name}</div>
-              {a.link && <a href={a.link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--gold)' }}>View →</a>}
-            </div>
-            <button className="btn btn-danger btn-sm" onClick={() => onboardingAPI.delAward(profileId, a.id).then(() => setAwards(x => x.filter(y => y.id !== a.id)))}>Remove</button>
-          </div>
-        ))}
-        <div style={{ padding: 16, border: '1px solid var(--border2)', borderRadius: 'var(--radius)', marginTop: 8, background: 'var(--surface2)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10, marginBottom: 10 }}>
-            <div className="field">
-              <label>Award / Press Mention *</label>
-              <input value={newAward.award_name} onChange={e => setNewAward(a => ({ ...a, award_name: e.target.value }))} placeholder="e.g. Featured in Vogue India — March 2023" />
-            </div>
-            <div className="field">
-              <label>URL (optional)</label>
-              <input type="url" value={newAward.link} onChange={e => setNewAward(a => ({ ...a, link: e.target.value }))} placeholder="https://..." />
-            </div>
-          </div>
-          <button className="btn btn-outline btn-sm" onClick={addAward}>Save Award / Mention</button>
         </div>
       </CardSection>
 

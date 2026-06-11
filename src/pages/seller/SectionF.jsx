@@ -135,7 +135,7 @@ export default function SectionF({ profileId, onSave }) {
       </CardSection>
 
       {/* F.2 BTS Media */}
-      <CardSection title="F.2 — Behind-the-Scenes &amp; Promotional Media">
+      <CardSection title="F.2 — Behind the Scenes">
         <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 6, lineHeight: 1.7 }}>
           Upload photos and videos from your studio — craftspeople at work, production in progress, your workspace, finished products, packaging. This content appears on your profile to buyers.
         </p>

@@ -12,8 +12,6 @@ function onRefreshDone(newToken) {
 }
 
 // ── Request interceptor: attach auth token + rid header ──
-// SuperTokens sessions  → Authorization: Bearer <token>
-// Access-key sessions   → Authorization: AccessKey <token>
 api.interceptors.request.use(cfg => {
   const token     = localStorage.getItem('qala_token');
   const tokenType = localStorage.getItem('qala_token_type');
@@ -27,13 +25,8 @@ api.interceptors.request.use(cfg => {
 });
 
 // ── Response interceptor: capture rotated access tokens + handle 401 refresh ──
-// Access-key sessions bypass the SuperTokens refresh flow entirely.
-// They never have ST cookies, so a 401 means the signed token expired (30 days)
-// — just clear it and redirect to login. No refresh attempt.
 api.interceptors.response.use(
   res => {
-    // SuperTokens rotates the access token on responses — capture it
-    // (only applies to SuperTokens sessions, not access-key sessions)
     const newToken = res.headers['st-access-token'];
     if (newToken && localStorage.getItem('qala_token_type') !== 'access_key') {
       localStorage.setItem('qala_token', newToken);
@@ -46,8 +39,6 @@ api.interceptors.response.use(
     if (err.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      // Access-key sessions: never attempt SuperTokens refresh.
-      // A 401 means the signed token expired — clear and redirect.
       if (localStorage.getItem('qala_token_type') === 'access_key') {
         localStorage.removeItem('qala_token');
         localStorage.removeItem('qala_token_type');
@@ -57,7 +48,6 @@ api.interceptors.response.use(
         return Promise.reject(err);
       }
 
-      // If a refresh is already in-flight, queue this request
       if (isRefreshing) {
         return new Promise(resolve => {
           refreshQueue.push(token => {
@@ -78,16 +68,12 @@ api.interceptors.response.use(
           localStorage.setItem('qala_token', t);
           originalRequest.headers.authorization = `Bearer ${t}`;
         }
-        // Even if no header token, the refresh may have set new cookies —
-        // retry the original request which will go through with cookies
         onRefreshDone(t || null);
         return api.request(originalRequest);
       } catch {
-        // Refresh truly failed — session is dead (SuperTokens sessions only).
-        // Never wipe access-key tokens here — they don't use SuperTokens refresh.
         onRefreshDone(null);
-        const wasLoggedIn    = !!localStorage.getItem('qala_token');
-        const isAccessKey    = localStorage.getItem('qala_token_type') === 'access_key';
+        const wasLoggedIn = !!localStorage.getItem('qala_token');
+        const isAccessKey = localStorage.getItem('qala_token_type') === 'access_key';
         if (!isAccessKey) {
           localStorage.removeItem('qala_token');
           if (wasLoggedIn && !window.location.pathname.startsWith('/login')) {
@@ -109,7 +95,6 @@ export const authAPI = {
       { formFields: [{ id:'email', value:email }, { id:'password', value:password }] },
       { headers: { 'Content-Type':'application/json', 'rid':'emailpassword', 'st-auth-mode':'cookie' }, withCredentials: true },
     );
-    // Capture token from signin response
     p.then(r => {
       const t = r.headers['st-access-token'];
       if (t) localStorage.setItem('qala_token', t);
@@ -174,8 +159,6 @@ export const onboardingAPI = {
   putProcess:  (pid,d) => api.put('/api/seller/onboarding/process/', d, { headers: ph(pid) }),
   uploadBTS:   (pid,f) => api.post('/api/seller/onboarding/process/media/', f, { headers: ph(pid) }),
   delBTS:      (pid,id) => api.delete(`/api/seller/onboarding/process/media/${id}/`, { headers: ph(pid) }),
-
-  // Seller — own studio inquiries (buyers who clicked "Get a Callback")
   getStudioInquiries: pid => api.get('/api/seller/studio-inquiries/', { headers: ph(pid) }),
 };
 
@@ -191,30 +174,24 @@ export const adminAPI = {
   deleteStudioMedia: (pid, mediaId) => api.delete(`/api/admin/seller-profiles/${pid}/studio-media/${mediaId}/`),
   deleteBTSMedia:    (pid, mediaId) => api.delete(`/api/admin/seller-profiles/${pid}/bts-media/${mediaId}/`),
   editSection:   (pid, section, d) => api.patch(`/api/admin/seller-profiles/${pid}/edit/${section}/`, d),
-  // Discovery
   getDiscoveryBuyers:       () => api.get('/api/admin/discovery/buyers/'),
   getDiscoveryBuyer:        id => api.get(`/api/admin/discovery/buyers/${id}/`),
   getDiscoveryInquiries:    () => api.get('/api/admin/discovery/inquiries/'),
   getAdminStudioInquiries:  () => api.get('/api/admin/discovery/studio-inquiries/'),
-  // Access Keys
   listAccessKeys:    ()  => api.get('/api/admin/chat/access-keys/'),
   generateAccessKeys: d  => api.post('/api/admin/chat/access-keys/', d),
   updateAccessKey:   (id, d) => api.patch(`/api/admin/chat/access-keys/${id}/`, d),
-  // Contacts
   listContacts: () => api.get('/api/admin/chat/contacts/'),
-  // Access Requests
   listAccessRequests:       ()       => api.get('/api/admin/access-requests/'),
   updateAccessRequest: (id, data)    => api.patch(`/api/admin/access-requests/${id}/`, data),
 };
 
-// ─── BUYER API ─────────────────────────────────────────────────────────────────
 export const buyerAPI = {
   getSessions: () => api.get('/api/buyer/sessions/'),
   getProfile:  () => api.get('/api/me/customer/'),
   updateProfile: d => api.patch('/api/me/customer/', d),
 };
 
-// ─── DISCOVERY API ─────────────────────────────────────────────────────────────
 const SESSION_KEY = 'qala_session_token';
 
 export const discoveryAPI = {
@@ -253,7 +230,6 @@ export const discoveryAPI = {
       headers: { 'Content-Type': 'application/json' },
     }),
 
-  // Public studio profile
   getStudioProfile: profileId =>
     axios.get(`${BASE}/api/discovery/studios/${profileId}/`),
 
@@ -272,7 +248,6 @@ export const discoveryAPI = {
     });
   },
 
-  // Feature 6 — Studio Directory
   getStudioDirectory: ({ craft = '', fabric = '', productType = '' } = {}) => {
     const params = {};
     if (craft)       params.craft        = craft;
@@ -282,42 +257,29 @@ export const discoveryAPI = {
   },
 };
 
-// ── ADD THIS to src/api/client.js ─────────────────────────────────────────────
-// Paste the entire chatAPI block below at the bottom of client.js,
-// replacing the existing chatAPI export if one exists.
-
 export const chatAPI = {
-  // Start a new chat session (anonymous with access key, or logged-in user)
   start: (accessKey = null) =>
     axios.post(`${BASE}/api/discovery/chat/start/`,
       accessKey ? { access_key: accessKey } : {},
       { headers: { 'Content-Type': 'application/json' } }
     ),
 
-  // Send a user message
-  // image: plain base64 string (no data: prefix)
-  // selectedImageIds: array of StudioMedia integer IDs
   sendMessage: (sessionId, message, images = null, selectedImageIds = null) =>
     axios.post(`${BASE}/api/discovery/chat/message/`,
       {
         session_id: sessionId,
         message,
-        // images: array of {data: base64, mime: string}
         ...(images?.length    && { images }),
         ...(selectedImageIds  && { selected_image_ids: selectedImageIds }),
       },
       { headers: { 'Content-Type': 'application/json' } }
     ),
 
-  // Resume a session (page refresh)
   getSession: (sessionId) =>
     axios.get(`${BASE}/api/discovery/chat/session/`, {
       params: { session_id: sessionId },
     }),
 
-  // Trigger studio matching after user confirms the brief.
-  // Uses session.extracted (built up from conversation) to run the matching engine.
-  // Returns { session_token, matched, studios_count }
   match: (sessionId) =>
     axios.post(`${BASE}/api/discovery/chat/match/`,
       { session_id: sessionId },
@@ -334,4 +296,42 @@ export const chatAPI = {
     axios.post(`${BASE}/api/discovery/access-request/`, data,
       { headers: { 'Content-Type': 'application/json' } }
     ),
+
+  getIntroduced: (sessionId, sellerProfileId) =>
+    axios.post(`${BASE}/api/discovery/get-introduced/`,
+      {
+        session_id:        sessionId,
+        seller_profile_id: sellerProfileId,
+        access_key_code:   localStorage.getItem('qala_access_key') || '',
+      },
+      { headers: { 'Content-Type': 'application/json' } }
+    ),
+};
+
+export const adminLibraryAPI = {
+  getStats: () =>
+    api.get('/api/admin/library/stats/'),
+
+  listEntries: ({ category = '', search = '', page = 1, page_size = 50 } = {}) => {
+    const params = { page, page_size };
+    if (category) params.category = category;
+    if (search)   params.search   = search;
+    return api.get('/api/admin/library/', { params });
+  },
+
+  getEntry: (id) =>
+    api.get(`/api/admin/library/${id}/`),
+
+  deleteEntry: (id) =>
+    api.delete(`/api/admin/library/${id}/`),
+
+  uploadExcel: (formData) =>
+    api.post('/api/admin/library/upload-excel/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+
+  uploadImages: (formData) =>
+    api.post('/api/admin/library/upload-images/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
 };
