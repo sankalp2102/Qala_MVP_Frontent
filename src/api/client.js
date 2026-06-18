@@ -230,8 +230,13 @@ export const discoveryAPI = {
       headers: { 'Content-Type': 'application/json' },
     }),
 
+  // Legacy — lookup by numeric profile ID (keep for existing recommendation links)
   getStudioProfile: profileId =>
     axios.get(`${BASE}/api/discovery/studios/${profileId}/`),
+
+  // v3 — lookup by slug for /:studioSlug routes
+  getStudioProfileBySlug: slug =>
+    axios.get(`${BASE}/api/discovery/studios/by-slug/${slug}/`),
 
   studioInquiry: (profileId, data, file = null) => {
     if (file) {

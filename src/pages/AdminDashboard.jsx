@@ -1029,6 +1029,18 @@ function ProfileReview() {
   };
 
   // ── CraftBlock ──
+  // ── Badge display helper (mirrors StudioProfile logic) ──
+  const resolveDisplayBadge = c => {
+    if (c.qala_badge) return c.qala_badge;
+    if (c.is_primary)  return 'expert';
+    return null;
+  };
+  const BADGE_LABEL = { expert: 'Expert', master: 'Master', skilled: 'Skilled' };
+  const BADGE_COLOR = { expert: 'var(--gold)', master: '#C48050', skilled: '#4A7A6A' };
+
+  // Keys that get special rendering in the craft edit form (not auto-generated plain inputs)
+  const CRAFT_SPECIAL_KEYS = ['qala_badge', 'innovation_level', 'delay_likelihood', 'is_primary'];
+
   const CraftBlock = ({ crafts, profileId, onSaved, togglePublish, itemPublished }) => {
     const [editingId, setEditingId] = useState(null);
     const [form,      setForm]      = useState({});
@@ -1036,13 +1048,20 @@ function ProfileReview() {
 
     if (!crafts?.length) return null;
 
-    const craftEditableKeys = craft => Object.entries(craft).filter(([k, v]) =>
-      !SKIP_KEYS.includes(k) && typeof v !== 'object' && k !== 'seller_profile'
+    // Auto-generate inputs for primitive fields that aren't in SKIP_KEYS or CRAFT_SPECIAL_KEYS
+    const craftAutoKeys = craft => Object.entries(craft).filter(([k, v]) =>
+      !SKIP_KEYS.includes(k) &&
+      !CRAFT_SPECIAL_KEYS.includes(k) &&
+      typeof v !== 'object' &&
+      k !== 'seller_profile'
     );
 
     const startEdit = craft => {
       const initial = {};
-      craftEditableKeys(craft).forEach(([k, v]) => { initial[k] = v ?? ''; });
+      // Include all editable keys including special ones
+      [...craftAutoKeys(craft), ...CRAFT_SPECIAL_KEYS.map(k => [k, craft[k]])].forEach(([k, v]) => {
+        initial[k] = v ?? '';
+      });
       setForm(initial);
       setEditingId(craft.id);
     };
@@ -1068,13 +1087,26 @@ function ProfileReview() {
           Section C — Crafts ({crafts.length})
         </div>
         {crafts.map(c => {
-          const pub = !togglePublish || itemPublished('craft', c.id);
+          const pub   = !togglePublish || itemPublished('craft', c.id);
+          const badge = resolveDisplayBadge(c);
           return (
           <div key={c.id} style={{ padding:'14px 16px', background:'var(--surface2)', borderRadius:'var(--radius)', marginBottom:10, border:`1px solid ${pub ? 'var(--border)' : 'var(--red)'}`, borderLeft:`3px solid ${c.is_primary?'var(--gold)':'var(--border)'}`, opacity: pub ? 1 : 0.6 }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: editingId===c.id ? 14 : 0 }}>
-              <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+              <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
                 <span style={{ fontWeight:600, fontSize:14, color:'var(--text)' }}>{c.craft_name}</span>
                 {c.is_primary && <span className="badge badge-gold" style={{ fontSize:10 }}>Primary</span>}
+                {/* v3: show resolved badge (qala_badge or auto-Expert for primary) */}
+                {badge && (
+                  <span style={{
+                    fontSize:10, padding:'2px 8px', borderRadius:20,
+                    border:`1px solid ${BADGE_COLOR[badge]}44`,
+                    color: BADGE_COLOR[badge],
+                    background: `${BADGE_COLOR[badge]}18`,
+                    fontWeight:600,
+                  }}>
+                    {BADGE_LABEL[badge]}
+                  </span>
+                )}
                 {c.innovation_level && <span className="badge badge-gray" style={{ fontSize:10 }}>{c.innovation_level} innovation</span>}
                 {c.sampling_time_weeks && <span style={{ fontSize:12, color:'var(--text3)' }}>{c.sampling_time_weeks}wk</span>}
                 {!pub && <span style={{ fontSize:9, fontWeight:700, color:'var(--red)', letterSpacing:'0.04em', textTransform:'uppercase' }}>Hidden</span>}
@@ -1109,7 +1141,8 @@ function ProfileReview() {
                   Editing craft
                 </div>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))', gap:10, marginBottom:12 }}>
-                  {craftEditableKeys(c).map(([k]) => (
+                  {/* Auto-generated inputs for regular primitive fields */}
+                  {craftAutoKeys(c).map(([k]) => (
                     <div className="field" key={k}>
                       <label style={{ fontSize:11 }}>{k.replace(/_/g,' ')}</label>
                       <input
@@ -1119,6 +1152,56 @@ function ProfileReview() {
                       />
                     </div>
                   ))}
+
+                  {/* is_primary — boolean select */}
+                  <div className="field">
+                    <label style={{ fontSize:11 }}>is primary</label>
+                    <select value={form['is_primary'] ?? ''} onChange={e => setForm(f => ({...f, is_primary: e.target.value === 'true'}))} style={{ fontSize:13 }}>
+                      <option value="true">Yes — Primary</option>
+                      <option value="false">No — Secondary</option>
+                    </select>
+                  </div>
+
+                  {/* innovation_level — select */}
+                  <div className="field">
+                    <label style={{ fontSize:11 }}>innovation level</label>
+                    <select value={form['innovation_level'] ?? ''} onChange={e => setForm(f => ({...f, innovation_level: e.target.value}))} style={{ fontSize:13 }}>
+                      <option value="">— not set —</option>
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                  </div>
+
+                  {/* delay_likelihood — select */}
+                  <div className="field">
+                    <label style={{ fontSize:11 }}>delay likelihood</label>
+                    <select value={form['delay_likelihood'] ?? ''} onChange={e => setForm(f => ({...f, delay_likelihood: e.target.value}))} style={{ fontSize:13 }}>
+                      <option value="">— not set —</option>
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                  </div>
+
+                  {/* qala_badge — Qala-assigned badge dropdown */}
+                  <div className="field">
+                    <label style={{ fontSize:11, color:'var(--gold)' }}>qala badge (Qala-assigned)</label>
+                    <select
+                      value={form['qala_badge'] ?? ''}
+                      onChange={e => setForm(f => ({...f, qala_badge: e.target.value || null}))}
+                      style={{ fontSize:13, borderColor:'rgba(122,140,110,0.4)' }}
+                    >
+                      <option value="">— none (use default logic) —</option>
+                      <option value="skilled">Skilled</option>
+                      <option value="expert">Expert</option>
+                      <option value="master">Master</option>
+                    </select>
+                    <span style={{ fontSize:10, color:'var(--text4)', marginTop:3, display:'block' }}>
+                      Primary crafts auto-show Expert if not set. Set here to override.
+                    </span>
+                  </div>
+
                 </div>
                 <div style={{ display:'flex', gap:8 }}>
                   <button className="btn btn-primary btn-sm" onClick={() => saveCraft(c.id)} disabled={saving}>
