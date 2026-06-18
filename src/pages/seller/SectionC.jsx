@@ -205,7 +205,7 @@ export default function SectionC({ profileId, onSave }) {
 
               <RadioGroup
                 label="Innovation Level"
-                hint="How would you describe your approach to this craft?"
+                hint="High — experimental and boundary-pushing · Medium — modern interpretations of tradition · Low — pure, classic, unchanged heritage"
                 options={INNOV_OPTS}
                 value={editDraft.innovation_level}
                 onChange={v => setEditDraft(d => ({ ...d, innovation_level: v }))}
@@ -314,7 +314,7 @@ export default function SectionC({ profileId, onSave }) {
             {/* Innovation Level */}
             <RadioGroup
               label="C.1 — Innovation Level"
-              hint="How would you describe your approach to this craft?"
+              hint="High — experimental and boundary-pushing · Medium — modern interpretations of tradition · Low — pure, classic, unchanged heritage"
               options={INNOV_OPTS}
               value={draft.innovation_level}
               onChange={v => setDraft(d => ({ ...d, innovation_level: v }))}

@@ -498,7 +498,72 @@ function ProfileReview() {
     );
   };
 
-  // ── USPBlock — Section A.6 Studio Strengths ──
+  // ── PricingTierBlock — Qala-assigned pricing tier ──
+  const PricingTierBlock = ({ currentTier, profileId, onSaved }) => {
+    const [tier,   setTier]   = useState(currentTier || '');
+    const [saving, setSaving] = useState(false);
+
+    const TIERS = [
+      { value: '',     label: 'Not assigned' },
+      { value: '$',    label: '$ — Entry level',       desc: 'Accessible, high-volume, lean finishing' },
+      { value: '$$',   label: '$$ — Mid range',         desc: 'Balanced craft and finish, moderate complexity' },
+      { value: '$$$',  label: '$$$ — Premium',          desc: 'Strong craft expertise, refined execution' },
+      { value: '$$$$', label: '$$$$ — Luxury',          desc: 'Master-level craft, high design capability, impeccable finish' },
+    ];
+
+    const save = async () => {
+      setSaving(true);
+      try {
+        await adminAPI.editSection(profileId, 'studio', { pricing_tier: tier || null });
+        success('Pricing tier saved!');
+        onSaved();
+      } catch (e) {
+        error(e.response?.data ? JSON.stringify(e.response.data) : 'Save failed');
+      } finally { setSaving(false); }
+    };
+
+    return (
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)' }}>
+            Pricing Tier
+            <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text4)', marginLeft: 10, fontFamily: 'var(--font-body)' }}>
+              Qala-assigned · not visible to seller
+            </span>
+          </div>
+        </div>
+        <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '16px 18px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+            {TIERS.map(t => (
+              <button
+                key={t.value}
+                onClick={() => setTier(t.value)}
+                style={{
+                  padding: '8px 16px', borderRadius: 8, cursor: 'pointer',
+                  fontFamily: 'var(--font-body)', fontSize: 13,
+                  border: `1px solid ${tier === t.value ? 'rgba(200,165,90,0.5)' : 'var(--border2)'}`,
+                  background: tier === t.value ? 'var(--gold-dim)' : 'var(--surface3)',
+                  color: tier === t.value ? 'var(--gold)' : 'var(--text3)',
+                  fontWeight: tier === t.value ? 700 : 400,
+                  transition: 'all .15s',
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          {tier && TIERS.find(t => t.value === tier)?.desc && (
+            <div style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 14 }}>
+              {TIERS.find(t => t.value === tier).desc}
+            </div>
+          )}
+          <button className="btn btn-primary btn-sm" onClick={save} disabled={saving || tier === (currentTier || '')}>
+            {saving ? <span className="spinner" style={{ width: 13, height: 13 }} /> : 'Save Tier'}
+          </button>
+        </div>
+      </div>
+    );
+  };
   const USPBlock = ({ usps, profileId, onSaved }) => {
     const [editing, setEditing] = useState(false);
     const [items,   setItems]   = useState([]);
@@ -1278,6 +1343,7 @@ function ProfileReview() {
           <div className="card fade-up">
 
             <Block title="Section A — Studio Details" data={onboarding.studio_details} model="studio_details" profileId={pid} onSaved={() => loadOnboarding(selected)} />
+            <PricingTierBlock currentTier={onboarding.studio_details?.pricing_tier} profileId={pid} onSaved={() => loadOnboarding(selected)} />
             <USPBlock usps={onboarding.studio_details?.usps} profileId={pid} onSaved={() => loadOnboarding(selected)} />
             <MediaViewer files={onboarding.studio_details?.media_files} title="Studio Media (Hero / Work Samples)" mediaType="studio" profileId={pid} onDeleted={() => loadOnboarding(selected)} togglePublish={togglePublish} itemPublished={itemPublished} />
 

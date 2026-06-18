@@ -101,13 +101,42 @@ function CardSection({ title, children }) {
 export default function SectionB({ profileId, onSave }) {
   const { toasts, success, error } = useToast();
   const [products, setProducts] = useState({});
-  const [fabrics, setFabrics]   = useState({}); // { fabric_name: { works_with, is_primary, innovation_note, category } }
+  const [fabrics, setFabrics]   = useState({});
   const [brands, setBrands]     = useState([]);
   const [newBrand, setNewBrand] = useState({ brand_name: '', scope: '' });
   const [brandImg, setBrandImg] = useState(null);
   const [editingBrand, setEditingBrand] = useState(null);
   const [editBrandImg, setEditBrandImg] = useState(null);
   const [saving, setSaving]     = useState(false);
+
+  // B.1 — Products Portfolio (moved from A)
+  const [workMedia, setWorkMedia]           = useState([]);
+  const [uploading, setUploading]           = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(null);
+  const [editingMedia, setEditingMedia]     = useState(null); // { id, product_name, crafts_used, fabrics_used }
+
+  // B.2 — Garment Categories
+  const [genderFocus, setGenderFocus]       = useState([]);
+  const [occasions, setOccasions]           = useState([]);
+  const [styleCategories, setStyleCategories] = useState([]);
+  const [savingCategories, setSavingCategories] = useState(false);
+
+  // Studio crafts (for portfolio metadata multi-select)
+  const [studioCrafts, setStudioCrafts]     = useState([]);
+
+  const GENDER_OPTIONS = ['Womenswear', 'Menswear', 'Kidswear', 'Gender Neutral'];
+  const OCCASION_OPTIONS = [
+    'Casual / Everyday', 'Festive / Occasion', 'Resort / Holiday',
+    'Workwear', 'Bridal / Wedding', 'Streetwear',
+    'Activewear', 'Lounge / At-home', 'Nightwear',
+  ];
+  const STYLE_OPTIONS = [
+    'Dresses', 'Tops', 'Shirts', 'T-Shirts', 'Tunics / Kurtas',
+    'Coord Sets', 'Jumpsuits', 'Skirts', 'Shorts', 'Trousers / Pants',
+    'Denim', 'Blazers', 'Coats & Jackets', 'Capes', 'Waistcoats / Vests',
+    'Kaftans', 'Resortwear Sets', 'Loungewear / Sleepwear',
+    'Activewear', 'Kidswear', 'Accessories / Scarves / Stoles',
+  ];
 
   useEffect(() => {
     if (!profileId) return;
@@ -118,6 +147,23 @@ export default function SectionB({ profileId, onSave }) {
       setFabrics(m);
     }).catch(() => {});
     onboardingAPI.getBrands(profileId).then(r => setBrands(r.data || [])).catch(() => {});
+
+    // Load portfolio (work_dump media from Section A)
+    onboardingAPI.getStudio(profileId).then(r => {
+      const d = r.data;
+      if (!d) return;
+      const media = d.media_files || [];
+      setWorkMedia(media.filter(m => m.media_type === 'work_dump'));
+      // Load garment categories
+      setGenderFocus(d.gender_focus || []);
+      setOccasions(d.occasions || []);
+      setStyleCategories(d.style_categories || []);
+    }).catch(() => {});
+
+    // Load studio crafts for portfolio metadata
+    onboardingAPI.getCrafts(profileId).then(r => {
+      setStudioCrafts((r.data || []).map(c => c.craft_name));
+    }).catch(() => {});
   }, [profileId]);
 
   const save = async () => {
@@ -134,6 +180,79 @@ export default function SectionB({ profileId, onSave }) {
   };
 
   const toggleProduct = k => setProducts(p => ({ ...p, [k]: !p[k] }));
+
+  // ── Portfolio helpers ──────────────────────────────────────────────────────
+
+  const uploadPortfolio = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    e.target.value = '';
+
+    // Check 20-item cap client-side
+    const remaining = 20 - workMedia.length;
+    if (remaining <= 0) { error('Maximum 20 portfolio uploads reached. Remove an item first.'); return; }
+    const toUpload = files.slice(0, remaining);
+    if (toUpload.length < files.length) error(`Only ${remaining} slot(s) remaining — uploading first ${remaining} file(s).`);
+
+    setUploading(true);
+    setUploadProgress({ done: 0, total: toUpload.length, failed: 0 });
+    let done = 0, failed = 0;
+
+    for (const file of toUpload) {
+      try {
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('media_type', 'work_dump');
+        fd.append('order', workMedia.length + done + 1);
+        const r = await onboardingAPI.uploadStudioMedia(profileId, fd);
+        setWorkMedia(m => [...m, r.data]);
+      } catch { failed++; }
+      done++;
+      setUploadProgress({ done, total: toUpload.length, failed });
+    }
+
+    if (failed === 0) success(`${done} file${done > 1 ? 's' : ''} uploaded!`);
+    else error(`${failed} of ${done} failed.`);
+    setUploading(false);
+    setUploadProgress(null);
+  };
+
+  const delPortfolioItem = async (mediaId) => {
+    try {
+      await onboardingAPI.delStudioMedia(profileId, mediaId);
+      setWorkMedia(m => m.filter(x => x.id !== mediaId));
+    } catch { error('Failed to remove'); }
+  };
+
+  const saveMediaMeta = async (mediaId, meta) => {
+    // PATCH the media item with product_name / crafts_used / fabrics_used
+    // Uses the existing patchStudio endpoint which passes through to StudioMedia
+    // via the media_id param — update if a dedicated PATCH endpoint exists
+    try {
+      await onboardingAPI.patchStudio(profileId, { media_meta: { id: mediaId, ...meta } });
+      setWorkMedia(m => m.map(x => x.id === mediaId ? { ...x, ...meta } : x));
+      setEditingMedia(null);
+      success('Saved');
+    } catch { error('Failed to save'); }
+  };
+
+  // ── Category helpers ───────────────────────────────────────────────────────
+
+  const toggleChip = (list, setList, val) =>
+    setList(l => l.includes(val) ? l.filter(x => x !== val) : [...l, val]);
+
+  const saveCategories = async () => {
+    setSavingCategories(true);
+    try {
+      await onboardingAPI.patchStudio(profileId, {
+        gender_focus:     genderFocus,
+        occasions:        occasions,
+        style_categories: styleCategories,
+      });
+      success('Categories saved!');
+    } catch { error('Save failed'); }
+    finally { setSavingCategories(false); }
+  };
 
   const toggleFabric = (name, cat) => setFabrics(f => {
     const ex = f[name] || { category: cat, fabric_name: name, works_with: false, is_primary: null, innovation_note: '' };
@@ -202,11 +321,155 @@ export default function SectionB({ profileId, onSave }) {
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 700, color: 'var(--text)' }}>Products & Fabrics</h1>
           </div>
         </div>
-        <p style={{ color: 'var(--text3)', fontSize: 14, marginLeft: 56 }}>What garments you produce, which fabrics you work with, your brand history, and any recognition.</p>
+        <p style={{ color: 'var(--text3)', fontSize: 14, marginLeft: 56 }}>Your products portfolio, garment categories, and the fabrics you work with.</p>
       </div>
 
-      {/* B.1 Product Types */}
+      {/* B.1 — Products Portfolio */}
       <CardSection title="B.1 — Products Portfolio">
+        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 4 }}>
+          Share pictures of the different types of garments you have produced. This is your rack — show variety across silhouettes and techniques.
+        </p>
+        <p style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 16 }}>
+          Ideally 15–20 images / videos. Max 20 uploads. For each item, add the product name, crafts used, and fabric.
+        </p>
+
+        {/* Uploaded items */}
+        {workMedia.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+            {workMedia.map(m => (
+              <div key={m.id} style={{ padding: '12px 14px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+                {editingMedia?.id === m.id ? (
+                  /* ── Edit metadata inline ── */
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+                      {m.file_name}
+                    </div>
+                    <div className="field" style={{ marginBottom: 10 }}>
+                      <label>Product Name</label>
+                      <input value={editingMedia.product_name || ''} onChange={e => setEditingMedia(x => ({ ...x, product_name: e.target.value }))} placeholder="e.g. Ajrakh Resort Dress" />
+                    </div>
+                    <div className="field" style={{ marginBottom: 10 }}>
+                      <label>Crafts Used</label>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {studioCrafts.map(c => {
+                          const on = (editingMedia.crafts_used || []).includes(c);
+                          return (
+                            <button key={c} onClick={() => setEditingMedia(x => ({ ...x, crafts_used: on ? (x.crafts_used || []).filter(v => v !== c) : [...(x.crafts_used || []), c] }))}
+                              style={{ padding: '5px 12px', borderRadius: 20, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-body)', border: `1px solid ${on ? 'rgba(200,165,90,0.4)' : 'var(--border2)'}`, background: on ? 'var(--gold-dim)' : 'var(--surface3)', color: on ? 'var(--gold)' : 'var(--text3)' }}>
+                              {c}
+                            </button>
+                          );
+                        })}
+                        {studioCrafts.length === 0 && <span style={{ fontSize: 12, color: 'var(--text4)' }}>Add crafts in Section C first</span>}
+                      </div>
+                    </div>
+                    <div className="field" style={{ marginBottom: 12 }}>
+                      <label>Fabric(s)</label>
+                      <input value={(editingMedia.fabrics_used || []).join(', ')} onChange={e => setEditingMedia(x => ({ ...x, fabrics_used: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))} placeholder="e.g. Mulmul, Cotton Voile" />
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button className="btn btn-teal btn-sm" onClick={() => saveMediaMeta(m.id, { product_name: editingMedia.product_name, crafts_used: editingMedia.crafts_used, fabrics_used: editingMedia.fabrics_used })}>Save</button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setEditingMedia(null)}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  /* ── Read view ── */
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{m.product_name || m.file_name}</div>
+                      {m.product_name && <div style={{ fontSize: 11, color: 'var(--text4)', marginTop: 1 }}>{m.file_name}</div>}
+                      <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4, display: 'flex', gap: 10 }}>
+                        {m.crafts_used?.length > 0 && <span>Crafts: {m.crafts_used.join(', ')}</span>}
+                        {m.fabrics_used?.length > 0 && <span>Fabrics: {m.fabrics_used.join(', ')}</span>}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginLeft: 12 }}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setEditingMedia({ id: m.id, product_name: m.product_name || '', crafts_used: m.crafts_used || [], fabrics_used: m.fabrics_used || [] })}>Edit</button>
+                      <button className="btn btn-danger btn-sm" onClick={() => delPortfolioItem(m.id)}>Remove</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Upload button */}
+        {workMedia.length < 20 && (
+          <label style={{ display: 'inline-block' }}>
+            <input type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" onChange={uploadPortfolio} style={{ display: 'none' }} />
+            <span className="btn btn-outline btn-sm" style={{ cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
+              {uploading
+                ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Uploading {uploadProgress?.done || 0} / {uploadProgress?.total || 0}…</>
+                : `+ Upload Images / Videos (${workMedia.length}/20)`}
+            </span>
+          </label>
+        )}
+        {workMedia.length >= 20 && (
+          <div style={{ fontSize: 12, color: 'var(--text4)', marginTop: 4 }}>Maximum 20 uploads reached. Remove an item to add a new one.</div>
+        )}
+        <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 8 }}>Images: JPG · PNG · WEBP up to 10 MB · Videos: MP4 · MOV up to 100 MB</p>
+      </CardSection>
+
+      {/* B.2 — Garment Categories */}
+      <CardSection title="B.2 — Garment Categories">
+        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
+          Tell us who you design for and what occasions your garments suit. This helps buyers find you.
+        </p>
+
+        {/* Gender */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Gender</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+            {GENDER_OPTIONS.map(g => {
+              const on = genderFocus.includes(g);
+              return (
+                <button key={g} onClick={() => toggleChip(genderFocus, setGenderFocus, g)} style={{ padding: '7px 14px', borderRadius: 20, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-body)', border: `1px solid ${on ? 'rgba(200,165,90,0.4)' : 'var(--border2)'}`, background: on ? 'var(--gold-dim)' : 'var(--surface2)', color: on ? 'var(--gold)' : 'var(--text2)', fontWeight: on ? 600 : 400, transition: 'all .15s' }}>
+                  {g}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Occasions */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Occasion</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+            {OCCASION_OPTIONS.map(o => {
+              const on = occasions.includes(o);
+              return (
+                <button key={o} onClick={() => toggleChip(occasions, setOccasions, o)} style={{ padding: '7px 14px', borderRadius: 20, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-body)', border: `1px solid ${on ? 'rgba(200,165,90,0.4)' : 'var(--border2)'}`, background: on ? 'var(--gold-dim)' : 'var(--surface2)', color: on ? 'var(--gold)' : 'var(--text2)', fontWeight: on ? 600 : 400, transition: 'all .15s' }}>
+                  {o}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Style */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Style / Garment Type</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+            {STYLE_OPTIONS.map(s => {
+              const on = styleCategories.includes(s);
+              return (
+                <button key={s} onClick={() => toggleChip(styleCategories, setStyleCategories, s)} style={{ padding: '7px 14px', borderRadius: 20, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-body)', border: `1px solid ${on ? 'rgba(200,165,90,0.4)' : 'var(--border2)'}`, background: on ? 'var(--gold-dim)' : 'var(--surface2)', color: on ? 'var(--gold)' : 'var(--text2)', fontWeight: on ? 600 : 400, transition: 'all .15s' }}>
+                  {s}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <button className="btn btn-teal btn-sm" onClick={saveCategories} disabled={savingCategories}>
+          {savingCategories ? <><span className="spinner" style={{ width: 13, height: 13 }} /> Saving…</> : 'Save Categories'}
+        </button>
+      </CardSection>
+
+      {/* B.3 — Product Types (hidden per spec — data still saved) */}
+      <div style={{ display: 'none' }}>
+      <CardSection title="B.3 — Product Types (internal)">
         <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
           Select all the garment types your studio produces. Buyers search and filter by these categories.
         </p>
@@ -228,9 +491,10 @@ export default function SectionB({ profileId, onSave }) {
           ))}
         </div>
       </CardSection>
+      </div>{/* end hidden B.3 Product Types */}
 
-      {/* B.2 Fabrics */}
-      <CardSection title="B.2 — Fabrics You Work With">
+      {/* B.4 — Fabrics You Work With */}
+      <CardSection title="B.3 — Fabrics You Work With">
         <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 6 }}>
           Select each fabric your studio works with. For selected fabrics, mark them as <strong style={{ color: 'var(--gold)' }}>Primary</strong> (core expertise) or <strong style={{ color: 'var(--text2)' }}>Secondary</strong>, and add a short description of how you use it — this feeds the recommendation engine.
         </p>
@@ -239,7 +503,6 @@ export default function SectionB({ profileId, onSave }) {
         {FABRIC_CATEGORIES.map(cat => (
           <div key={cat.cat} style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10, paddingBottom: 6, borderBottom: '1px solid var(--border)' }}>{cat.label}</div>
-            {/* Pill row for toggling */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 12 }}>
               {cat.fabrics.map(f => {
                 const on = fabrics[f]?.works_with;
@@ -257,7 +520,6 @@ export default function SectionB({ profileId, onSave }) {
                 );
               })}
             </div>
-            {/* Expanded detail cards for selected fabrics in this category */}
             {cat.fabrics.filter(f => fabrics[f]?.works_with).map(f => {
               const entry = fabrics[f] || {};
               const isPrimary = entry.is_primary === true;
@@ -311,7 +573,6 @@ export default function SectionB({ profileId, onSave }) {
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Other Fabrics (not listed above)</div>
           <p style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 12 }}>Add any fabrics you work with that aren't in the list above. Each one will appear as a selected fabric with a description field.</p>
 
-          {/* Existing custom fabrics */}
           {Object.entries(fabrics).filter(([name, entry]) => entry.works_with && entry.category === 'other').map(([f, entry]) => {
             const isPrimary = entry.is_primary === true;
             const isSecondary = entry.is_primary === false;
@@ -332,7 +593,6 @@ export default function SectionB({ profileId, onSave }) {
             );
           })}
 
-          {/* Add custom fabric row */}
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <input
               className="input-raw"
@@ -361,6 +621,12 @@ export default function SectionB({ profileId, onSave }) {
           <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 6 }}>Press Enter or click Add. Each custom fabric will expand for description.</p>
         </div>
       </CardSection>
+
+      {/* Brands — hidden per spec (data preserved) */}
+      <div style={{ display: 'none' }}>
+        {/* brands state and handlers kept intact above for data compatibility */}
+        {brands.length > 0 && <span>{brands.length}</span>}
+      </div>
 
       <button className="btn btn-primary btn-lg fade-up" onClick={save} disabled={saving}>
         {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save Section B'}

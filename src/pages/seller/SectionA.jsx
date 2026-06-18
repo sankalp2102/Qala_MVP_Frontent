@@ -52,7 +52,7 @@ export default function SectionA({ profileId, onSave }) {
   const { toasts, success, error } = useToast();
 
   const [form, setForm] = useState({
-    studio_name: '', location_city: '', location_state: '',
+    studio_name: '', studio_slug: '', location_city: '', location_state: '',
     years_in_operation: '', website_url: '', instagram_url: '', poc_working_style: '',
     certifications: '',
   });
@@ -77,6 +77,7 @@ export default function SectionA({ profileId, onSave }) {
       if (!d) return;
       setForm({
         studio_name: d.studio_name || '',
+        studio_slug: d.studio_slug || '',
         location_city: d.location_city || '',
         location_state: d.location_state || '',
         years_in_operation: d.years_in_operation || '',
@@ -220,6 +221,20 @@ export default function SectionA({ profileId, onSave }) {
         <FlagBanner reason={flags.studio_name} />
         <Field label="What is the name of your studio or brand? *">
           <input value={form.studio_name} onChange={e => autosave('studio_name', e.target.value)} placeholder="e.g. Priya Craft Studio" />
+        </Field>
+        <Field label="Studio URL" hint="Your profile URL on Qala — auto-generated from your studio name, you can edit it.">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 13, color: 'var(--text4)', whiteSpace: 'nowrap' }}>qala.studio/</span>
+            <input
+              value={form.studio_slug}
+              onChange={e => {
+                const slug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+                autosave('studio_slug', slug);
+              }}
+              placeholder="e.g. priya-craft-studio"
+              style={{ flex: 1 }}
+            />
+          </div>
         </Field>
       </CardSection>
 
@@ -367,35 +382,38 @@ export default function SectionA({ profileId, onSave }) {
         <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 8 }}>JPG · PNG · WEBP up to 10 MB. Only 1 hero image allowed.</p>
       </CardSection>
 
-      {/* A.9 Work Dump */}
-      <CardSection title="A.8 — Work Portfolio">
-        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
-          This is the way for you to showcase your capability: share pictures of the different types of garments you have produced in the past, your signature work. Ideally, 15–20 images across silhouettes and aesthetics.
-        </p>
-        {workMedia.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-            {workMedia.map(m => (
-              <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--surface2)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', fontSize: 12 }}>
-                <span>{m.mime_type?.startsWith('video') ? 'Video' : 'Image'}</span>
-                <span style={{ color: 'var(--text2)' }}>{m.file_name}</span>
-                <button onClick={() => delMedia(m.id, 'work_dump')} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 13, padding: 0 }}>×</button>
-              </div>
-            ))}
-          </div>
-        )}
-        <label style={{ display: 'inline-block' }}>
-          <input type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" onChange={e => uploadMedia(e, 'work_dump')} style={{ display: 'none' }} />
-          <span className="btn btn-outline btn-sm" style={{ cursor: uploading === 'work_dump' ? 'not-allowed' : 'pointer', opacity: uploading === 'work_dump' ? 0.6 : 1 }}>
-            {uploading === 'work_dump'
-              ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Uploading {uploadProgress?.done || 0} / {uploadProgress?.total || 0}…</>
-              : '+ Upload Images / Videos'}
-          </span>
-        </label>
-        {uploadProgress && uploadProgress.failed > 0 && (
-          <span style={{ fontSize: 11, color: 'var(--red)', marginLeft: 10 }}>{uploadProgress.failed} failed</span>
-        )}
-        <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 8 }}>Select multiple files at once · Images: JPG · PNG · WEBP up to 10 MB · Videos: MP4 · MOV up to 100 MB</p>
-      </CardSection>
+      {/* A.9 Work Portfolio — hidden: moved to Section B */}
+      {/* kept in DOM for data compatibility — not shown to seller */}
+      <div style={{ display: 'none' }}>
+        <div>
+          <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
+            This is the way for you to showcase your capability: share pictures of the different types of garments you have produced in the past, your signature work. Ideally, 15–20 images across silhouettes and aesthetics.
+          </p>
+          {workMedia.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+              {workMedia.map(m => (
+                <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--surface2)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', fontSize: 12 }}>
+                  <span>{m.mime_type?.startsWith('video') ? 'Video' : 'Image'}</span>
+                  <span style={{ color: 'var(--text2)' }}>{m.file_name}</span>
+                  <button onClick={() => delMedia(m.id, 'work_dump')} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 13, padding: 0 }}>×</button>
+                </div>
+              ))}
+            </div>
+          )}
+          <label style={{ display: 'inline-block' }}>
+            <input type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" onChange={e => uploadMedia(e, 'work_dump')} style={{ display: 'none' }} />
+            <span className="btn btn-outline btn-sm" style={{ cursor: uploading === 'work_dump' ? 'not-allowed' : 'pointer', opacity: uploading === 'work_dump' ? 0.6 : 1 }}>
+              {uploading === 'work_dump'
+                ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Uploading {uploadProgress?.done || 0} / {uploadProgress?.total || 0}…</>
+                : '+ Upload Images / Videos'}
+            </span>
+          </label>
+          {uploadProgress && uploadProgress.failed > 0 && (
+            <span style={{ fontSize: 11, color: 'var(--red)', marginLeft: 10 }}>{uploadProgress.failed} failed</span>
+          )}
+          <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 8 }}>Select multiple files at once · Images: JPG · PNG · WEBP up to 10 MB · Videos: MP4 · MOV up to 100 MB</p>
+        </div>
+      </div>{/* end hidden work portfolio */}
 
       {/* A — Certifications */}
       <CardSection title="A — Certifications">
