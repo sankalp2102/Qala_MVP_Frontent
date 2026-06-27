@@ -6,6 +6,10 @@ import { DashLayout } from '../components/DashLayout';
 import { Spinner } from '../components/Spinner';
 import { mediaUrl } from '../utils/mediaUrl';
 import SectionA from './seller/SectionA';
+import EnquiryDetail from './seller/EnquiryDetail';
+import EnquiriesList from './seller/EnquiriesList';
+import ProposalBuilder from './seller/ProposalBuilder';
+import ActiveProjects from './seller/ActiveProjects';
 import SectionB from './seller/SectionB';
 import SectionC from './seller/SectionC';
 import SectionD from './seller/SectionD';
@@ -311,6 +315,8 @@ export default function SellerDashboard() {
     { to:'/dashboard/production',  icon:'', label:'E — Production', badge: status?.section_e_status === 'flagged' ? { type:'red', text:'!' } : null },
     { to:'/dashboard/process',     icon:'', label:'F — Process',    badge: status?.section_f_status === 'flagged' ? { type:'red', text:'!' } : null },
     { to:'/dashboard/inquiries',   icon:'', label:'Inquiries'                                                                                      },
+    { to:'/dashboard/enquiries',   icon:'📋', label:'Project Enquiries'                                                                                  },
+    { to:'/dashboard/active',      icon:'🏭', label:'Active Projects'                                                                                    },
   ].filter(n => n.badge !== null || true).map(n => ({ ...n, badge: n.badge || undefined }));
 
   return (
@@ -324,6 +330,10 @@ export default function SellerDashboard() {
         <Route path="production" element={<SectionE profileId={profileId} onSave={refresh} />} />
         <Route path="process"    element={<SectionF profileId={profileId} onSave={refresh} />} />
         <Route path="inquiries"  element={<SellerInquiries profileId={profileId} />}           />
+        <Route path="enquiries"  element={<EnquiriesList />}                                          />
+        <Route path="enquiries/:projectId" element={<EnquiryDetail />}                                />
+        <Route path="enquiries/:projectId/proposal/:proposalId" element={<ProposalBuilder />}         />
+        <Route path="active"     element={<ActiveProjects />}                                          />
       </Routes>
     </DashLayout>
   );

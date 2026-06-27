@@ -230,7 +230,7 @@ export const discoveryAPI = {
       headers: { 'Content-Type': 'application/json' },
     }),
 
-  // Legacy — lookup by numeric profile ID (keep for existing recommendation links)
+  // Legacy — lookup by numeric profile ID (keep for existing recommendation/directory links)
   getStudioProfile: profileId =>
     axios.get(`${BASE}/api/discovery/studios/${profileId}/`),
 
@@ -311,6 +311,56 @@ export const chatAPI = {
       },
       { headers: { 'Content-Type': 'application/json' } }
     ),
+};
+
+export const projectsAPI = {
+  // ── Buyer ──────────────────────────────────────────────────────────────────
+  listProjects:          ()              => api.get('/api/buyer/projects/'),
+  createProject:         data            => api.post('/api/buyer/projects/', data),
+  getProject:            id              => api.get(`/api/buyer/projects/${id}/`),
+  updateProject:         (id, data)      => api.patch(`/api/buyer/projects/${id}/`, data),
+  getBrief:              id              => api.get(`/api/buyer/projects/${id}/brief/`),
+  updateBrief:           (id, data)      => api.patch(`/api/buyer/projects/${id}/brief/`, data),
+  uploadMoodboard:       (id, form)      => api.post(`/api/buyer/projects/${id}/brief/moodboards/`, form),
+  deleteMoodboard:       (id, mid)       => api.delete(`/api/buyer/projects/${id}/brief/moodboards/${mid}/`),
+  submitBrief:           id              => api.post(`/api/buyer/projects/${id}/brief/submit/`),
+  getProposals:          id              => api.get(`/api/buyer/projects/${id}/proposals/`),
+  acceptProposal:        (id, pid)       => api.post(`/api/buyer/projects/${id}/proposals/${pid}/accept/`),
+  getOrders:             id              => api.get(`/api/buyer/projects/${id}/orders/`),
+  getOrder:              (id, oid)       => api.get(`/api/buyer/projects/${id}/orders/${oid}/`),
+  getContracts:          id              => api.get(`/api/buyer/projects/${id}/contracts/`),
+  getActivity:           id              => api.get(`/api/buyer/projects/${id}/activity/`),
+
+  // ── Seller ─────────────────────────────────────────────────────────────────
+  getEnquiries:          ()              => api.get('/api/seller/projects/enquiries/'),
+  getEnquiry:            id              => api.get(`/api/seller/projects/enquiries/${id}/`),
+  getActiveProjects:     ()              => api.get('/api/seller/projects/active/'),
+  createProposal:        (id, data)      => api.post(`/api/seller/projects/${id}/proposals/`, data),
+  updateProposal:        (id, pid, data) => api.patch(`/api/seller/projects/${id}/proposals/${pid}/`, data),
+  updateProposalJSON:    (id, pid, data) => api.patch(`/api/seller/projects/${id}/proposals/${pid}/`, data, { headers: { 'Content-Type': 'application/json' } }),
+  submitProposal:        (id, pid)       => api.post(`/api/seller/projects/${id}/proposals/${pid}/submit/`),
+  dispatchOrder:         (id, oid, data) => api.patch(`/api/seller/projects/${id}/orders/${oid}/dispatch/`, data),
+
+  // ── Admin ──────────────────────────────────────────────────────────────────
+  adminListProjects:     (params)        => api.get('/api/admin/projects/', { params }),
+  adminCreateProject:    data            => api.post('/api/admin/projects/', data),
+  adminGetProject:       id              => api.get(`/api/admin/projects/${id}/`),
+  adminUpdateProject:    (id, data)      => api.patch(`/api/admin/projects/${id}/`, data),
+  adminUpdateBrief:      (id, data)      => api.patch(`/api/admin/projects/${id}/brief/`, data),
+  adminUploadMoodboard:  (id, form)      => api.post(`/api/admin/projects/${id}/brief/moodboards/`, form),
+  adminDeleteMoodboard:  (id, mid)       => api.delete(`/api/admin/projects/${id}/brief/moodboards/${mid}/`),
+  adminGetShareStudios:  id              => api.get(`/api/admin/projects/${id}/share/`),
+  adminShareBrief:       (id, data)      => api.post(`/api/admin/projects/${id}/share/`, data),
+  adminGetProposals:     id              => api.get(`/api/admin/projects/${id}/proposals/`),
+  adminUpdateProposal:   (id, pid, data) => api.patch(`/api/admin/projects/${id}/proposals/${pid}/`, data),
+  adminSendProposal:     (id, pid)       => api.post(`/api/admin/projects/${id}/proposals/${pid}/send-to-buyer/`),
+  adminCreateOrder:      (id, data)      => api.post(`/api/admin/projects/${id}/orders/`, data),
+  adminUpdateOrder:      (id, oid, data) => api.patch(`/api/admin/projects/${id}/orders/${oid}/`, data),
+  adminUploadOrderDoc:   (id, oid, form) => api.post(`/api/admin/projects/${id}/orders/${oid}/documents/`, form),
+  adminUploadContract:   (id, form)      => api.post(`/api/admin/projects/${id}/contracts/`, form),
+  adminGetOrders:        (params)        => api.get('/api/admin/orders/', { params }),
+  adminGetCustomers:     (params)        => api.get('/api/admin/customers/', { params }),
+  adminRequestRevision:  (id, pid, data) => api.post(`/api/admin/projects/${id}/proposals/${pid}/request-revision/`, data),
 };
 
 export const adminLibraryAPI = {

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, Routes, Route } from 'react-router-dom';
+import ProjectsList from './buyer/ProjectsList';
+import ProjectDetail from './buyer/ProjectDetail';
 import { useAuth } from '../context/AuthContext';
 import { buyerAPI } from '../api/client';
 import { Spinner } from '../components/Spinner';
@@ -18,9 +20,9 @@ function journeyLabel(stage) {
 }
 
 function journeyColor(stage) {
-  if (stage === 'ready_to_produce')   return { bg: 'var(--green-dim)',  text: 'var(--green)' };
-  if (stage === 'build_with_support') return { bg: 'var(--gold-dim)',   text: 'var(--gold)' };
-  return                                     { bg: 'var(--surface3)',   text: 'var(--text3)' };
+  if (stage === 'ready_to_produce')   return { bg: 'var(--green-dim)', text: 'var(--green)' };
+  if (stage === 'build_with_support') return { bg: 'var(--gold-dim)',  text: 'var(--gold)'  };
+  return                                     { bg: 'var(--surface3)', text: 'var(--text3)'  };
 }
 
 function formatDate(iso) {
@@ -39,10 +41,10 @@ function chipList(arr) {
   ));
 }
 
-// ── sub-components ────────────────────────────────────────────────────────────
+// ── SessionCard ───────────────────────────────────────────────────────────────
 
 function SessionCard({ session, onResume }) {
-  const color = journeyColor(session.journey_stage);
+  const color    = journeyColor(session.journey_stage);
   const products = session.product_types?.slice(0, 2) || [];
   const crafts   = session.crafts?.slice(0, 2) || [];
 
@@ -56,7 +58,6 @@ function SessionCard({ session, onResume }) {
       onMouseEnter={e => e.currentTarget.style.boxShadow = 'var(--shadow-lg)'}
       onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
     >
-      {/* Top row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 4 }}>
@@ -75,7 +76,6 @@ function SessionCard({ session, onResume }) {
         </span>
       </div>
 
-      {/* Tags */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {chipList(products)}
         {chipList(crafts)}
@@ -86,7 +86,6 @@ function SessionCard({ session, onResume }) {
         )}
       </div>
 
-      {/* Footer */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
         <span style={{ fontSize: 13, color: 'var(--text3)' }}>
           {session.recommendation_count} studio{session.recommendation_count !== 1 ? 's' : ''} matched
@@ -109,18 +108,18 @@ function SessionCard({ session, onResume }) {
   );
 }
 
+// ── ProfileCard ───────────────────────────────────────────────────────────────
+
 function ProfileCard({ profile, onSave }) {
   const [editing, setEditing] = useState(false);
-  const [name, setName]       = useState(profile?.full_name || '');
-  const [phone, setPhone]     = useState(profile?.phone || '');
-  const [saving, setSaving]   = useState(false);
+  const [name,    setName]    = useState(profile?.full_name || '');
+  const [phone,   setPhone]   = useState(profile?.phone || '');
+  const [saving,  setSaving]  = useState(false);
 
   const save = async () => {
     setSaving(true);
-    try {
-      await onSave({ full_name: name, phone });
-      setEditing(false);
-    } finally { setSaving(false); }
+    try { await onSave({ full_name: name, phone }); setEditing(false); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -184,21 +183,21 @@ function ProfileCard({ profile, onSave }) {
 function AccessKeyCard({ accessKey }) {
   const [copied, setCopied] = useState(false);
 
-  function handleCopy() {
+  const handleCopy = () => {
     navigator.clipboard.writeText(accessKey.key_code).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  }
+  };
 
   const pct = accessKey.tokens_allocated > 0
     ? Math.min(100, (accessKey.tokens_used / accessKey.tokens_allocated) * 100)
     : 0;
 
   const statusColors = {
-    active:  { bg: 'var(--green-dim)',  text: 'var(--green)',  label: 'Active'  },
-    expired: { bg: 'var(--amber-dim)',  text: 'var(--amber)',  label: 'Expired' },
-    revoked: { bg: 'var(--red-dim)',    text: 'var(--red)',    label: 'Revoked' },
+    active:  { bg: 'var(--green-dim)', text: 'var(--green)', label: 'Active'  },
+    expired: { bg: 'var(--amber-dim)', text: 'var(--amber)', label: 'Expired' },
+    revoked: { bg: 'var(--red-dim)',   text: 'var(--red)',   label: 'Revoked' },
   };
   const sc = statusColors[accessKey.status] || statusColors.active;
 
@@ -207,7 +206,6 @@ function AccessKeyCard({ accessKey }) {
       background: 'var(--surface)', border: '1px solid var(--border)',
       borderRadius: 'var(--radius-lg)', padding: '20px 24px',
     }}>
-      {/* Header row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
           Access Key
@@ -221,38 +219,26 @@ function AccessKeyCard({ accessKey }) {
         </span>
       </div>
 
-      {/* Key code row */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
         background: 'var(--surface2)', border: '1px solid var(--border)',
         borderRadius: 8, padding: '10px 14px', marginBottom: 16,
       }}>
-        <span style={{
-          flex: 1, fontFamily: 'monospace', fontSize: 15,
-          fontWeight: 600, color: 'var(--text)', letterSpacing: '0.1em',
-        }}>
+        <span style={{ flex: 1, fontFamily: 'monospace', fontSize: 15, fontWeight: 600, color: 'var(--text)', letterSpacing: '0.1em' }}>
           {accessKey.key_code}
         </span>
-        <button
-          onClick={handleCopy}
-          title="Copy key"
-          style={{
-            background: copied ? 'var(--green-dim)' : 'var(--surface3)',
-            border: '1px solid var(--border)',
-            borderRadius: 6, padding: '5px 12px',
-            fontSize: 11, fontWeight: 500,
-            color: copied ? 'var(--green)' : 'var(--text2)',
-            cursor: 'pointer', fontFamily: 'var(--font-body)',
-            transition: 'all 0.15s', whiteSpace: 'nowrap',
-            flexShrink: 0,
-          }}
-        >
+        <button onClick={handleCopy} style={{
+          background: copied ? 'var(--green-dim)' : 'var(--surface3)',
+          border: '1px solid var(--border)', borderRadius: 6, padding: '5px 12px',
+          fontSize: 11, fontWeight: 500, color: copied ? 'var(--green)' : 'var(--text2)',
+          cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s',
+          whiteSpace: 'nowrap', flexShrink: 0,
+        }}>
           {copied ? 'Copied ✓' : 'Copy'}
         </button>
       </div>
 
-      {/* Token usage bar */}
-      <div style={{ marginBottom: 6 }}>
+      <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
           <span style={{ fontSize: 11, color: 'var(--text3)' }}>Token usage</span>
           <span style={{ fontSize: 11, color: 'var(--text3)' }}>
@@ -261,8 +247,7 @@ function AccessKeyCard({ accessKey }) {
         </div>
         <div style={{ height: 4, background: 'var(--surface3)', borderRadius: 2, overflow: 'hidden' }}>
           <div style={{
-            height: '100%', borderRadius: 2,
-            width: `${pct}%`,
+            height: '100%', borderRadius: 2, width: `${pct}%`,
             background: pct > 80 ? 'var(--red)' : pct > 50 ? 'var(--amber)' : 'var(--teal)',
             transition: 'width 0.6s ease',
           }} />
@@ -272,15 +257,96 @@ function AccessKeyCard({ accessKey }) {
   );
 }
 
-// ── main ──────────────────────────────────────────────────────────────────────
+// ── Sidebar (right column) ────────────────────────────────────────────────────
+
+function Sidebar({ profile, onSave }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <ProfileCard profile={profile} onSave={onSave} />
+
+      {profile?.access_key && (
+        <AccessKeyCard accessKey={profile.access_key} />
+      )}
+
+      <div style={{
+        background: 'var(--surface)', border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)', padding: '20px 24px',
+      }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 14 }}>
+          Explore
+        </div>
+        {[
+          ['Browse Studios',   '/directory'],
+          ['Start New Search', '/discover'],
+        ].map(([label, path]) => (
+          <Link key={path} to={path} style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '10px 0', borderBottom: '1px solid var(--border)',
+            fontSize: 14, color: 'var(--text2)', textDecoration: 'none',
+            transition: 'color 0.15s',
+          }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--gold)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text2)'}
+          >
+            {label} <span style={{ fontSize: 18, fontWeight: 300 }}>›</span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Sessions tab ──────────────────────────────────────────────────────────────
+
+function SessionsTab({ sessions, onResume, onNew }) {
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700, color: 'var(--text)' }}>
+          Past Sessions
+        </h2>
+        <button onClick={onNew} className="btn btn-primary" style={{ fontSize: 13, padding: '8px 18px' }}>
+          + New Search
+        </button>
+      </div>
+
+      {sessions.length === 0 ? (
+        <div style={{
+          background: 'var(--surface)', border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-lg)', padding: '40px 32px', textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>✦</div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--text)', marginBottom: 8 }}>
+            No sessions yet
+          </div>
+          <p style={{ fontSize: 14, color: 'var(--text3)', marginBottom: 24 }}>
+            Complete a discovery questionnaire to get matched with craft studios.
+          </p>
+          <button onClick={onNew} className="btn btn-primary" style={{ fontSize: 14, padding: '10px 24px' }}>
+            Start Discovery →
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {sessions.map(s => (
+            <SessionCard key={s.session_token} session={s} onResume={onResume} />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── Main export ───────────────────────────────────────────────────────────────
 
 export default function BuyerDashboard() {
-  const { user } = useAuth();
-  const nav = useNavigate();
+  const { user }  = useAuth();
+  const nav       = useNavigate();
 
-  const [sessions, setSessions] = useState([]);
-  const [profile,  setProfile]  = useState(null);
-  const [loading,  setLoading]  = useState(true);
+  const [sessions,   setSessions]   = useState([]);
+  const [profile,    setProfile]    = useState(null);
+  const [loading,    setLoading]    = useState(true);
+  const [activeTab,  setActiveTab]  = useState('sessions');
 
   useEffect(() => {
     Promise.all([
@@ -313,9 +379,7 @@ export default function BuyerDashboard() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 clamp(16px, 4vw, 48px)', height: 58,
       }}>
-        <Link to="/">
-          <img src={qalaLogo} alt="Qala" className="qala-logo" />
-        </Link>
+        <Link to="/"><img src={qalaLogo} alt="Qala" className="qala-logo" /></Link>
         <UserAvatar />
       </div>
 
@@ -323,7 +387,6 @@ export default function BuyerDashboard() {
         maxWidth: 960, margin: '0 auto',
         padding: 'clamp(24px, 4vw, 48px) clamp(16px, 4vw, 48px)',
       }}>
-
         {/* Header */}
         <div className="fade-up" style={{ marginBottom: 40 }}>
           <h1 style={{
@@ -340,98 +403,47 @@ export default function BuyerDashboard() {
           </p>
         </div>
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) 280px',
-          gap: 28,
-          alignItems: 'start',
-        }}
-          className="buyer-grid"
-        >
-          {/* Left — sessions */}
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700, color: 'var(--text)' }}>
-                Past Sessions
-              </h2>
-              <button
-                onClick={() => nav('/discover')}
-                className="btn btn-primary"
-                style={{ fontSize: 13, padding: '8px 18px' }}
-              >
-                + New Search
-              </button>
-            </div>
-
-            {sessions.length === 0 ? (
-              <div style={{
-                background: 'var(--surface)', border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-lg)', padding: '40px 32px',
-                textAlign: 'center',
-              }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }}>✦</div>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--text)', marginBottom: 8 }}>
-                  No sessions yet
-                </div>
-                <p style={{ fontSize: 14, color: 'var(--text3)', marginBottom: 24 }}>
-                  Complete a discovery questionnaire to get matched with craft studios.
-                </p>
-                <button
-                  onClick={() => nav('/discover')}
-                  className="btn btn-primary"
-                  style={{ fontSize: 14, padding: '10px 24px' }}
-                >
-                  Start Discovery →
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {sessions.map(s => (
-                  <SessionCard key={s.session_token} session={s} onResume={handleResume} />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Right — profile */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <ProfileCard profile={profile} onSave={handleSaveProfile} />
-
-            {/* Access Key */}
-            {profile?.access_key && (
-              <AccessKeyCard accessKey={profile.access_key} />
-            )}
-
-            {/* Quick links */}
-            <div style={{
-              background: 'var(--surface)', border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-lg)', padding: '20px 24px',
-            }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 14 }}>
-                Explore
-              </div>
-              {[
-                ['Browse Studios',     '/directory'],
-                ['Start New Search',   '/discover'],
-              ].map(([label, path]) => (
-                <Link key={path} to={path} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '10px 0', borderBottom: '1px solid var(--border)',
-                  fontSize: 14, color: 'var(--text2)', textDecoration: 'none',
-                  transition: 'color 0.15s',
-                }}
-                  onMouseEnter={e => e.currentTarget.style.color = 'var(--gold)'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text2)'}
-                >
-                  {label} <span style={{ fontSize: 18, fontWeight: 300 }}>›</span>
-                </Link>
-              ))}
-            </div>
-          </div>
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', marginBottom: 28 }}>
+          {[['sessions', 'Discovery Sessions'], ['projects', 'Projects']].map(([key, label]) => (
+            <button key={key} onClick={() => setActiveTab(key)} style={{
+              padding: '9px 20px', border: 'none',
+              borderBottom: activeTab === key ? '2px solid var(--gold)' : '2px solid transparent',
+              background: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)',
+              fontSize: 13, fontWeight: activeTab === key ? 600 : 400,
+              color: activeTab === key ? 'var(--gold)' : 'var(--text3)',
+              transition: 'all 0.15s', marginBottom: -1,
+            }}>{label}</button>
+          ))}
         </div>
+
+        {/* Sessions tab — two-column layout with sidebar */}
+        {activeTab === 'sessions' && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1fr) 280px',
+            gap: 28,
+            alignItems: 'start',
+          }} className="buyer-grid">
+            <SessionsTab
+              sessions={sessions}
+              onResume={handleResume}
+              onNew={() => nav('/discover')}
+            />
+            <Sidebar profile={profile} onSave={handleSaveProfile} />
+          </div>
+        )}
+
+        {/* Projects tab — full width, nested routes */}
+        {activeTab === 'projects' && (
+          <Routes>
+            <Route index                  element={<ProjectsList />} />
+            <Route path=":projectId"      element={<ProjectDetail />} />
+            <Route path=":projectId/*"    element={<ProjectDetail />} />
+          </Routes>
+        )}
       </div>
 
-      {/* Responsive: stack on mobile */}
       <style>{`
         @media (max-width: 700px) {
           .buyer-grid { grid-template-columns: 1fr !important; }
