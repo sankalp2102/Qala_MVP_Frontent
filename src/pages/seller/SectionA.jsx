@@ -5,25 +5,20 @@ import { Toast } from '../../components/Toast';
 
 const API = onboardingAPI;
 
-function SectionHeader({ icon, letter, title, desc }) {
+function SectionHeader({ letter, title, desc }) {
   return (
     <div className="fade-up" style={{ marginBottom: 36 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-        <div style={{ width: 44, height: 44, borderRadius: 11, background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{icon}</div>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Section {letter}</div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 700, color: 'var(--text)', lineHeight: 1.1 }}>{title}</h1>
-        </div>
-      </div>
-      <p style={{ color: 'var(--text3)', fontSize: 14, marginLeft: 56 }}>{desc}</p>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Section {letter}</div>
+      <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 500, fontStyle: 'italic', color: 'var(--gold)', lineHeight: 1.1 }}>{title}</h1>
+      <p style={{ color: 'var(--text3)', fontSize: 14, marginTop: 8 }}>{desc}</p>
     </div>
   );
 }
 
 function CardSection({ title, children }) {
   return (
-    <div className="card fade-up" style={{ marginBottom: 20 }}>
-      <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600, color: 'var(--text)', marginBottom: 18, paddingBottom: 14, borderBottom: '1px solid var(--border)' }}>{title}</div>
+    <div className="card fade-up" style={{ marginBottom: 16 }}>
+      <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, fontStyle: 'italic', color: 'var(--text)', marginBottom: 18, paddingBottom: 14, borderBottom: '1px solid var(--border)' }}>{title}</div>
       {children}
     </div>
   );
@@ -53,22 +48,23 @@ export default function SectionA({ profileId, onSave }) {
 
   const [form, setForm] = useState({
     studio_name: '', studio_slug: '', location_city: '', location_state: '',
-    years_in_operation: '', website_url: '', instagram_url: '', poc_working_style: '',
-    certifications: '',
+    years_in_operation: '', website_url: '', instagram_url: '',
+    short_description: '',   // A.6 one-liner (v3)
   });
-  const [flags, setFlags] = useState({});
-  const [contacts, setContacts]     = useState([]);
-  const [usps, setUsps]             = useState([{ order: 1, strength: '' }, { order: 2, strength: '' }, { order: 3, strength: '' }]); // always exactly 3
-  const [heroMedia, setHeroMedia]   = useState(null);
-  const [workMedia, setWorkMedia]   = useState([]);
-  const [newContact, setNewContact] = useState({ name: '', role: '', email: '', phone: '' });
-  const [addingC, setAddingC]       = useState(false);
-  const [editingContact, setEditingContact] = useState(null); // { id, name, role, email, phone }
-  const [awards, setAwards]         = useState([]);
-  const [newAward, setNewAward]     = useState({ award_name: '', link: '' });
-  const [saving, setSaving]         = useState(false);
-  const [uploading, setUploading]   = useState('');
-  const [uploadProgress, setUploadProgress] = useState(null); // { done, total, failed }
+  const [flags, setFlags]   = useState({});
+  const [usps, setUsps]     = useState([{ order: 1, strength: '' }, { order: 2, strength: '' }, { order: 3, strength: '' }]);
+  const [heroMedia, setHeroMedia] = useState(null);
+
+  // A.7 Certifications — v3: tag input instead of textarea
+  const [certTags, setCertTags] = useState([]);
+  const [certInput, setCertInput] = useState('');
+
+  // A.8 Awards
+  const [awards, setAwards]     = useState([]);
+  const [newAward, setNewAward] = useState({ award_name: '', link: '' });
+
+  const [saving, setSaving]     = useState(false);
+  const [uploading, setUploading] = useState('');
 
   useEffect(() => {
     if (!profileId) return;
@@ -83,24 +79,29 @@ export default function SectionA({ profileId, onSave }) {
         years_in_operation: d.years_in_operation || '',
         website_url: d.website_url || '',
         instagram_url: d.instagram_url || '',
-        poc_working_style: d.poc_working_style || '',
-        certifications: d.certifications || '',
+        short_description: d.short_description || '',
       });
       setFlags({
         studio_name: d.studio_name_flagged ? d.studio_name_flag_reason : null,
         location: d.location_flagged ? d.location_flag_reason : null,
         years: d.years_flagged ? d.years_flag_reason : null,
         website: d.website_flagged ? d.website_flag_reason : null,
-        poc: d.poc_flagged ? d.poc_flag_reason : null,
       });
-      if (d.contacts?.length) setContacts(d.contacts);
+      // certifications stored as comma-separated text — parse into tags
+      if (d.certifications) {
+        try {
+          const parsed = JSON.parse(d.certifications);
+          setCertTags(Array.isArray(parsed) ? parsed : d.certifications.split(',').map(s => s.trim()).filter(Boolean));
+        } catch {
+          setCertTags(d.certifications.split(',').map(s => s.trim()).filter(Boolean));
+        }
+      }
       API.getAwards(profileId).then(r => setAwards(r.data || [])).catch(() => {});
       const loaded = (d.usps || []).slice(0, 3).map(u => ({ order: u.order, strength: u.strength }));
       while (loaded.length < 3) loaded.push({ order: loaded.length + 1, strength: '' });
       setUsps(loaded);
       const media = d.media_files || [];
       setHeroMedia(media.find(m => m.media_type === 'hero') || null);
-      setWorkMedia(media.filter(m => m.media_type === 'work_dump'));
     }).catch(() => {});
   }, [profileId]);
 
@@ -109,10 +110,28 @@ export default function SectionA({ profileId, onSave }) {
     try { await API.patchStudio(profileId, { [field]: val }); } catch {}
   };
 
+  const saveCerts = async tags => {
+    setCertTags(tags);
+    try { await API.patchStudio(profileId, { certifications: JSON.stringify(tags) }); } catch {}
+  };
+
+  const addCertTag = () => {
+    const v = certInput.trim();
+    if (!v) return;
+    const next = [...certTags, v];
+    saveCerts(next);
+    setCertInput('');
+  };
+
+  const removeCertTag = i => {
+    const next = certTags.filter((_, j) => j !== i);
+    saveCerts(next);
+  };
+
   const save = async () => {
     setSaving(true);
     try {
-      await API.putStudio(profileId, form);
+      await API.putStudio(profileId, { ...form, certifications: JSON.stringify(certTags) });
       const uspData = usps.slice(0, 3).map((u, i) => ({ order: i + 1, strength: u.strength }));
       await API.putUSPs(profileId, uspData);
       success('Section A saved!');
@@ -122,105 +141,39 @@ export default function SectionA({ profileId, onSave }) {
     } finally { setSaving(false); }
   };
 
-  const addContact = async () => {
-    if (!newContact.name || !newContact.role) { error('Name and role required'); return; }
-    try {
-      const r = await API.addContact(profileId, { ...newContact, order: contacts.length + 1 });
-      setContacts(c => [...c, r.data]);
-      setNewContact({ name: '', role: '', email: '', phone: '' });
-      setAddingC(false);
-      success('Contact added');
-    } catch { error('Failed to add contact'); }
-  };
-
-  const delContact = async id => {
-    try { await API.delContact(profileId, id); setContacts(c => c.filter(x => x.id !== id)); }
-    catch { error('Failed'); }
-  };
-
-  const saveEditContact = async () => {
-    if (!editingContact.name || !editingContact.role) { error('Name and role required'); return; }
-    try {
-      const r = await API.patchContact(profileId, editingContact.id, {
-        name: editingContact.name,
-        role: editingContact.role,
-        email: editingContact.email,
-        phone: editingContact.phone,
-      });
-      setContacts(c => c.map(x => x.id === editingContact.id ? r.data : x));
-      setEditingContact(null);
-      success('Contact updated');
-    } catch { error('Failed to update contact'); }
-  };
-
-  const uploadMedia = async (e, mediaType) => {
+  const uploadHero = async e => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     e.target.value = '';
-
-    // Hero: only take the last file selected (replaces existing)
-    if (mediaType === 'hero') {
-      const file = files[files.length - 1];
-      setUploading('hero');
-      try {
-        const fd = new FormData();
-        fd.append('file', file);
-        fd.append('media_type', 'hero');
-        fd.append('order', 1);
-        const r = await API.uploadStudioMedia(profileId, fd);
-        setHeroMedia(r.data);
-        success('Uploaded!');
-      } catch { error('Upload failed'); }
-      finally { setUploading(''); }
-      return;
-    }
-
-    // Work dump: sequential multi-upload
-    setUploading('work_dump');
-    setUploadProgress({ done: 0, total: files.length, failed: 0 });
-    let done = 0, failed = 0;
-
-    for (const file of files) {
-      try {
-        const fd = new FormData();
-        fd.append('file', file);
-        fd.append('media_type', 'work_dump');
-        fd.append('order', 1);
-        const r = await API.uploadStudioMedia(profileId, fd);
-        setWorkMedia(m => [...m, r.data]);
-      } catch {
-        failed++;
-      }
-      done++;
-      setUploadProgress({ done, total: files.length, failed });
-    }
-
-    if (failed === 0) success(`${files.length} file${files.length > 1 ? 's' : ''} uploaded!`);
-    else if (failed < files.length) error(`${failed} of ${files.length} failed — rest uploaded.`);
-    else error('All uploads failed. Check file types and sizes.');
-
-    setUploading('');
-    setUploadProgress(null);
+    const file = files[files.length - 1];
+    setUploading('hero');
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('media_type', 'hero');
+      fd.append('order', 1);
+      const r = await API.uploadStudioMedia(profileId, fd);
+      setHeroMedia(r.data);
+      success('Uploaded!');
+    } catch { error('Upload failed'); }
+    finally { setUploading(''); }
   };
 
-  const delMedia = async (mediaId, mediaType) => {
-    try {
-      await API.delStudioMedia(profileId, mediaId);
-      if (mediaType === 'hero') setHeroMedia(null);
-      else setWorkMedia(m => m.filter(x => x.id !== mediaId));
-    } catch { error('Failed'); }
+  const delHero = async () => {
+    try { await API.delStudioMedia(profileId, heroMedia.id); setHeroMedia(null); }
+    catch { error('Failed'); }
   };
 
   return (
     <div style={{ padding: '40px 48px', maxWidth: 760 }}>
       <Toast toasts={toasts} />
-      <SectionHeader icon="" letter="A" title="Studio Details" desc="Your studio's identity, location, media, and point of contact." />
+      <SectionHeader letter="A" title="Introduction" desc="Your studio core information, contacts, strengths, and recognition." />
 
       {/* A.1 Studio Name */}
       <CardSection title="A.1 — Studio / Brand Name">
         <FlagBanner reason={flags.studio_name} />
         <Field label="What is the name of your studio or brand? *">
-          <input value={form.studio_name} onChange={e => autosave('studio_name', e.target.value)} placeholder="e.g. Priya Craft Studio" />
+          <input value={form.studio_name} onChange={e => autosave('studio_name', e.target.value)} placeholder="e.g. Kullvi Whims" />
         </Field>
         <Field label="Studio URL" hint="Your profile URL on Qala — auto-generated from your studio name, you can edit it.">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -231,7 +184,7 @@ export default function SectionA({ profileId, onSave }) {
                 const slug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
                 autosave('studio_slug', slug);
               }}
-              placeholder="e.g. priya-craft-studio"
+              placeholder="e.g. kullvi-whims"
               style={{ flex: 1 }}
             />
           </div>
@@ -256,177 +209,78 @@ export default function SectionA({ profileId, onSave }) {
       <CardSection title="A.3 — Year of Establishment">
         <FlagBanner reason={flags.years} />
         <Field label="In which year was your studio established? *" hint="Enter the 4-digit calendar year, e.g. 2014">
-          <input type="number" min="1900" max={new Date().getFullYear()} step="1"
+          <input type="number" min="1900" max="2030" step="1"
             value={form.years_in_operation}
             onChange={e => autosave('years_in_operation', e.target.value)}
-            placeholder="e.g. 2014" style={{ maxWidth: 200 }} />
+            placeholder="e.g. 2014" style={{ maxWidth: 160 }} />
         </Field>
       </CardSection>
 
-      {/* A.4 Website + Instagram */}
+      {/* A.4 Online Presence */}
       <CardSection title="A.4 — Online Presence">
         <FlagBanner reason={flags.website} />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <Field label="Website URL" hint="Include https://">
             <input type="url" value={form.website_url} onChange={e => autosave('website_url', e.target.value)} placeholder="https://yourstudio.com" />
           </Field>
-          <Field label="Instagram URL" hint="Your studio's public profile">
+          <Field label="Instagram URL" hint="Make sure this is the studio account, not a personal page.">
             <input type="url" value={form.instagram_url} onChange={e => autosave('instagram_url', e.target.value)} placeholder="https://instagram.com/yourstudio" />
           </Field>
         </div>
       </CardSection>
 
-      {/* A.5 Contacts */}
-      <CardSection title="A.5 — Studio Contacts">
+      {/* A.5 Studio Strengths — exactly 3 */}
+      <CardSection title="A.5 — Studio Strengths">
         <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
-          Who should we contact at your studio? Add the key people (owner, designer, production manager, etc.)
+          What makes your studio stand out? List your top 3 strengths. Exactly 3 are required.
         </p>
-        {contacts.map(c => (
-          editingContact?.id === c.id ? (
-            /* ── Inline edit form ── */
-            <div key={c.id} style={{ padding: 16, border: '1px solid rgba(200,165,90,0.35)', borderRadius: 'var(--radius)', marginBottom: 8, background: 'var(--gold-dim)' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Editing contact</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-                <Field label="Name *"><input value={editingContact.name} onChange={e => setEditingContact(x => ({ ...x, name: e.target.value }))} placeholder="e.g. Priya Sharma" /></Field>
-                <Field label="Role *"><input value={editingContact.role} onChange={e => setEditingContact(x => ({ ...x, role: e.target.value }))} placeholder="e.g. Studio Owner" /></Field>
-                <Field label="Email"><input type="email" value={editingContact.email || ''} onChange={e => setEditingContact(x => ({ ...x, email: e.target.value }))} placeholder="priya@studio.com" /></Field>
-                <Field label="Phone"><input value={editingContact.phone || ''} onChange={e => setEditingContact(x => ({ ...x, phone: e.target.value }))} placeholder="+91 98765 43210" /></Field>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-teal btn-sm" onClick={saveEditContact}>Save Changes</button>
-                <button className="btn btn-ghost btn-sm" onClick={() => setEditingContact(null)}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            /* ── Read view ── */
-            <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--radius)', marginBottom: 8, border: '1px solid var(--border)' }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{c.name}</div>
-                <div style={{ fontSize: 13, color: 'var(--gold)', marginTop: 2 }}>{c.role}</div>
-                <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>
-                  {c.email && <span>{c.email}</span>}
-                  {c.email && c.phone && <span> · </span>}
-                  {c.phone && <span>{c.phone}</span>}
-                </div>
-                {c.is_flagged && !c.flag_resolved && (
-                  <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>{c.flag_reason}</div>
-                )}
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexShrink: 0, marginLeft: 12 }}>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setEditingContact({ id: c.id, name: c.name, role: c.role, email: c.email || '', phone: c.phone || '' })}
-                >
-                  Edit
-                </button>
-                <button className="btn btn-danger btn-sm" onClick={() => delContact(c.id)}>Remove</button>
-              </div>
-            </div>
-          )
-        ))}
-        {addingC ? (
-          <div style={{ padding: 16, border: '1px solid var(--border2)', borderRadius: 'var(--radius)', marginTop: 8, background: 'var(--surface2)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <Field label="Name *"><input value={newContact.name} onChange={e => setNewContact(c => ({ ...c, name: e.target.value }))} placeholder="e.g. Priya Sharma" /></Field>
-              <Field label="Role *"><input value={newContact.role} onChange={e => setNewContact(c => ({ ...c, role: e.target.value }))} placeholder="e.g. Studio Owner" /></Field>
-              <Field label="Email"><input type="email" value={newContact.email} onChange={e => setNewContact(c => ({ ...c, email: e.target.value }))} placeholder="priya@studio.com" /></Field>
-              <Field label="Phone"><input value={newContact.phone} onChange={e => setNewContact(c => ({ ...c, phone: e.target.value }))} placeholder="+91 98765 43210" /></Field>
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-teal btn-sm" onClick={addContact}>Save Contact</button>
-              <button className="btn btn-ghost btn-sm" onClick={() => { setAddingC(false); setNewContact({ name: '', role: '', email: '', phone: '' }); }}>Cancel</button>
-            </div>
-          </div>
-        ) : (
-          <button className="btn btn-outline btn-sm" style={{ marginTop: 8 }} onClick={() => setAddingC(true)}>+ Add Contact</button>
-        )}
-      </CardSection>
-
-      {/* A.6 Studio Strengths — exactly 3 required */}
-      <CardSection title="A.6 — Studio Strengths">
-        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 4 }}>
-          What makes your studio stand out? List your top 3 strengths. These are shown prominently to buyers.
-        </p>
-        <p style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 16 }}>Exactly 3 strengths are required.</p>
         {usps.slice(0, 3).map((u, i) => (
           <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 10, alignItems: 'center' }}>
             <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', color: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
             <input className="input-raw" style={{ flex: 1 }}
-              placeholder={['e.g. 20+ years of hand block printing expertise', 'e.g. GOTS-certified natural dyes only', 'e.g. Exclusively work with heritage weavers from Chanderi'][i]}
+              placeholder={[
+                'e.g. Fastest sampling turnaround in block printing — 10 days flat',
+                'e.g. Own natural dye garden, 40+ plant sources',
+                'e.g. GI-certified artisan cluster',
+              ][i]}
               value={u.strength}
               onChange={e => setUsps(arr => arr.map((x, j) => j === i ? { ...x, strength: e.target.value } : x))} />
           </div>
         ))}
       </CardSection>
 
-      {/* A.8 Hero Image */}
-      <CardSection title="A.7 — Hero / Cover Image">
-        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
-          Upload one hero image that best represents your studio — this is your first impression. It appears at the top of your profile.
-        </p>
-        {heroMedia ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', marginBottom: 12 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{heroMedia.file_name}</div>
-              <div style={{ fontSize: 11, color: 'var(--text3)' }}>{heroMedia.mime_type} · {heroMedia.file_size_kb} KB</div>
-            </div>
-            <button className="btn btn-danger btn-sm" onClick={() => delMedia(heroMedia.id, 'hero')}>Remove</button>
-          </div>
-        ) : null}
-        <label style={{ display: 'inline-block' }}>
-          <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => uploadMedia(e, 'hero')} style={{ display: 'none' }} />
-          <span className="btn btn-outline btn-sm" style={{ cursor: 'pointer' }}>
-            {uploading === 'hero' ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Uploading…</> : heroMedia ? '↺ Replace Hero Image' : '+ Upload Hero Image'}
-          </span>
-        </label>
-        <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 8 }}>JPG · PNG · WEBP up to 10 MB. Only 1 hero image allowed.</p>
+      {/* A.6 One-liner */}
+      <CardSection title="A.6 — One-liner">
+        <Field label="Describe your studio in one sentence" hint="Be specific. Avoid premium, unique, passionate.">
+          <textarea rows={2} value={form.short_description} onChange={e => autosave('short_description', e.target.value)}
+            placeholder="Specialists in hand block printing on natural fabrics, based in Kutch for 12 years."
+            style={{ width: '100%', padding: '12px 16px', border: '1px solid var(--border2)', borderRadius: 'var(--radius)', background: 'var(--surface2)', color: 'var(--text)', fontSize: 14, fontFamily: 'var(--font-body)', lineHeight: 1.7, resize: 'vertical' }}
+          />
+        </Field>
       </CardSection>
 
-      {/* A.9 Work Portfolio — hidden: moved to Section B */}
-      {/* kept in DOM for data compatibility — not shown to seller */}
-      <div style={{ display: 'none' }}>
-        <div>
-          <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
-            This is the way for you to showcase your capability: share pictures of the different types of garments you have produced in the past, your signature work. Ideally, 15–20 images across silhouettes and aesthetics.
-          </p>
-          {workMedia.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-              {workMedia.map(m => (
-                <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--surface2)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', fontSize: 12 }}>
-                  <span>{m.mime_type?.startsWith('video') ? 'Video' : 'Image'}</span>
-                  <span style={{ color: 'var(--text2)' }}>{m.file_name}</span>
-                  <button onClick={() => delMedia(m.id, 'work_dump')} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 13, padding: 0 }}>×</button>
-                </div>
-              ))}
-            </div>
-          )}
-          <label style={{ display: 'inline-block' }}>
-            <input type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" onChange={e => uploadMedia(e, 'work_dump')} style={{ display: 'none' }} />
-            <span className="btn btn-outline btn-sm" style={{ cursor: uploading === 'work_dump' ? 'not-allowed' : 'pointer', opacity: uploading === 'work_dump' ? 0.6 : 1 }}>
-              {uploading === 'work_dump'
-                ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Uploading {uploadProgress?.done || 0} / {uploadProgress?.total || 0}…</>
-                : '+ Upload Images / Videos'}
+      {/* A.7 Certifications — tag input */}
+      <CardSection title="A.7 — Certifications">
+        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 14 }}>Press Enter to add. e.g. GOTS, Fair Trade, OEKO-TEX, SA8000, Craftmark, GI tag</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+          {certTags.map((tag, i) => (
+            <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px 5px 12px', border: '1px solid var(--border2)', borderRadius: 20, fontSize: 12, color: 'var(--text2)', background: 'var(--surface2)' }}>
+              {tag}
+              <button onClick={() => removeCertTag(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text4)', fontSize: 14, padding: 0, lineHeight: 1 }}>×</button>
             </span>
-          </label>
-          {uploadProgress && uploadProgress.failed > 0 && (
-            <span style={{ fontSize: 11, color: 'var(--red)', marginLeft: 10 }}>{uploadProgress.failed} failed</span>
-          )}
-          <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 8 }}>Select multiple files at once · Images: JPG · PNG · WEBP up to 10 MB · Videos: MP4 · MOV up to 100 MB</p>
+          ))}
         </div>
-      </div>{/* end hidden work portfolio */}
-
-      {/* A — Certifications */}
-      <CardSection title="A — Certifications">
-        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 4 }}>List any certifications your studio holds. Optional.</p>
-        <p style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 14 }}>e.g. GOTS, Fair Trade, GI Tag, OEKO-TEX, SA8000</p>
-        <textarea value={form.certifications} onChange={e => autosave('certifications', e.target.value)} rows={3}
-          placeholder="e.g. GOTS certified since 2019, Fair Trade member, GI Tag — Chanderi"
-          style={{ width: '100%', padding: '12px 16px', border: '1px solid var(--border2)', borderRadius: 'var(--radius)', background: 'var(--surface2)', color: 'var(--text)', fontSize: 14, fontFamily: 'var(--font-body)', lineHeight: 1.7, resize: 'vertical' }}
+        <input
+          value={certInput}
+          onChange={e => setCertInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCertTag(); } }}
+          placeholder="Type a certification and press Enter"
+          style={{ maxWidth: 360 }}
         />
       </CardSection>
 
-      {/* A — Awards & Press (moved from Section B) */}
-      <CardSection title="A — Awards &amp; Press Mentions">
+      {/* A.8 Awards & Press */}
+      <CardSection title="A.8 — Awards &amp; Press Mentions">
         <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>Have you been featured in any press, won any awards, or been part of any recognised programmes?</p>
         {awards.map(aw => (
           <div key={aw.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--radius)', marginBottom: 8, border: '1px solid var(--border)' }}>
@@ -439,7 +293,7 @@ export default function SectionA({ profileId, onSave }) {
         ))}
         <div style={{ padding: 16, border: '1px solid var(--border2)', borderRadius: 'var(--radius)', marginTop: 8, background: 'var(--surface2)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10, marginBottom: 10 }}>
-            <div className="field"><label>Award / Press Mention *</label>
+            <div className="field"><label>Award / Press Mention</label>
               <input value={newAward.award_name} onChange={e => setNewAward(a => ({ ...a, award_name: e.target.value }))} placeholder="e.g. Featured in Vogue India — March 2023" />
             </div>
             <div className="field"><label>URL (optional)</label>
@@ -453,8 +307,31 @@ export default function SectionA({ profileId, onSave }) {
         </div>
       </CardSection>
 
+      {/* A.9 Hero Image */}
+      <CardSection title="A.9 — Hero / Cover Image">
+        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
+          Upload one hero image that best represents your studio — this is your first impression.
+        </p>
+        {heroMedia && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', marginBottom: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{heroMedia.file_name}</div>
+              <div style={{ fontSize: 11, color: 'var(--text3)' }}>{heroMedia.mime_type} · {heroMedia.file_size_kb} KB</div>
+            </div>
+            <button className="btn btn-danger btn-sm" onClick={delHero}>Remove</button>
+          </div>
+        )}
+        <label style={{ display: 'inline-block' }}>
+          <input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadHero} style={{ display: 'none' }} />
+          <span className="btn btn-outline btn-sm" style={{ cursor: 'pointer' }}>
+            {uploading === 'hero' ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Uploading…</> : heroMedia ? '↺ Replace Hero Image' : '+ Upload Hero Image'}
+          </span>
+        </label>
+        <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 8 }}>JPG · PNG · WEBP up to 10 MB.</p>
+      </CardSection>
+
       <button className="btn btn-primary btn-lg fade-up" onClick={save} disabled={saving}>
-        {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save Section A'}
+        {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save & Next'}
       </button>
     </div>
   );

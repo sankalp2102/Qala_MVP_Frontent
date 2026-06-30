@@ -3,37 +3,112 @@ import { onboardingAPI } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 
-function CardSection({ title, children }) {
+const API = onboardingAPI;
+
+const TYPES = [
+  { key: 'printing', label: 'Printing & Dyeing Techniques', desc: 'Add each printing and dyeing technique your studio practices. Mark expertise and note any distinctive innovation.', cta: '+ Add Printing / Dyeing Technique' },
+  { key: 'surface',  label: 'Surface Techniques',           desc: 'Embroidery, applique, crochet, patchwork, beadwork, mirror work — anything applied to the surface of the fabric.', cta: '+ Add Surface Technique' },
+  { key: 'weaving',  label: 'Weaving Techniques',           desc: 'Does your studio weave, or work closely with weavers? Add any weaving techniques here.', cta: '+ Add Weaving Technique', hint: 'e.g. Plain weave, Ikat, Jamdani, Dobby, Jacquard, Khadi handspun.' },
+];
+
+const LEVELS = [
+  { value: 'high',   label: 'Pro' },     // spec: Mod/High/Pro maps to innovation_level low/medium/high in backend
+  { value: 'medium', label: 'High' },
+  { value: 'low',    label: 'Moderate' },
+];
+// Display order should read Moderate, High, Pro left-to-right
+const LEVELS_ORDERED = [
+  { value: 'low',    label: 'Moderate' },
+  { value: 'medium', label: 'High' },
+  { value: 'high',   label: 'Pro' },
+];
+
+function SectionHeader({ letter, title, desc }) {
   return (
-    <div className="card fade-up" style={{ marginBottom: 20 }}>
-      <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600, color: 'var(--text)', marginBottom: 18, paddingBottom: 14, borderBottom: '1px solid var(--border)' }}>{title}</div>
+    <div className="fade-up" style={{ marginBottom: 36 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Section {letter}</div>
+      <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 500, fontStyle: 'italic', color: 'var(--gold)', lineHeight: 1.1 }}>{title}</h1>
+      <p style={{ color: 'var(--text3)', fontSize: 14, marginTop: 8 }}>{desc}</p>
+    </div>
+  );
+}
+
+function CardSection({ title, desc, children }) {
+  return (
+    <div className="card fade-up" style={{ marginBottom: 16 }}>
+      <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, fontStyle: 'italic', color: 'var(--text)', marginBottom: 6 }}>{title}</div>
+      {desc && <p style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 16, lineHeight: 1.7 }}>{desc}</p>}
       {children}
     </div>
   );
 }
 
-function FlagBanner({ reason }) {
-  if (!reason) return null;
-  return <div style={{ background: 'var(--red-dim)', border: '1px solid rgba(224,85,85,0.25)', borderLeft: '3px solid var(--red)', borderRadius: 'var(--radius)', padding: '8px 12px', fontSize: 12, color: 'var(--red)', marginBottom: 12 }}>Admin flagged: {reason}</div>;
+function ExpertiseButtons({ value, onChange }) {
+  const colors = {
+    low:    { bg: '#EBF5E8', text: '#5C845C', border: '#9EC09E' },
+    medium: { bg: '#A8D4A8', text: '#2A5E2A', border: '#7AB47A' },
+    high:   { bg: '#4A7C4A', text: '#FFFFFF', border: '#4A7C4A' },
+  };
+  return (
+    <div style={{ display: 'flex', gap: 6 }}>
+      {LEVELS_ORDERED.map(l => {
+        const selected = value === l.value;
+        const c = colors[l.value];
+        return (
+          <button key={l.value} onClick={() => onChange(l.value)}
+            style={{
+              fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 5,
+              border: `1px solid ${selected ? c.border : 'var(--border2)'}`,
+              background: selected ? c.bg : 'var(--surface2)',
+              color: selected ? c.text : 'var(--text3)',
+              cursor: 'pointer',
+            }}>
+            {l.label}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
-function YesNoField({ label, hint, flagReason, value, onChange }) {
+function TechniqueCard({ craft, onUpdate, onDelete, onImageUpload, onImageRemove }) {
   return (
-    <div>
-      <div style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--text)', marginBottom: hint ? 6 : 12, lineHeight: 1.6 }}>{label}</div>
-      {hint && <p style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 14, lineHeight: 1.7 }}>{hint}</p>}
-      <FlagBanner reason={flagReason} />
+    <div style={{ border: '1px solid var(--border2)', borderRadius: 6, padding: '14px 16px', background: 'var(--surface2)', marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+        <input
+          value={craft.craft_name}
+          onChange={e => onUpdate({ craft_name: e.target.value })}
+          placeholder="Technique name"
+          style={{ flex: 1, minWidth: 160, fontWeight: 600, fontSize: 14 }}
+        />
+        <ExpertiseButtons value={craft.innovation_level || 'low'} onChange={lvl => onUpdate({ innovation_level: lvl })} />
+        <button className="btn btn-danger btn-sm" onClick={onDelete}>Delete</button>
+      </div>
+      <input
+        value={craft.specialization || ''}
+        onChange={e => onUpdate({ specialization: e.target.value })}
+        placeholder="Innovation / specialization (optional)"
+        style={{ width: '100%', marginBottom: 10 }}
+      />
       <div style={{ display: 'flex', gap: 8 }}>
-        {[{ v: true, l: 'Yes' }, { v: false, l: 'No' }].map(({ v, l }) => (
-          <button key={l} onClick={() => onChange(v)} style={{
-            padding: '10px 28px', borderRadius: 'var(--radius)',
-            border: `1px solid ${value === v ? 'rgba(200,165,90,0.4)' : 'var(--border2)'}`,
-            background: value === v ? 'var(--gold-dim)' : 'var(--surface2)',
-            color: value === v ? 'var(--gold)' : 'var(--text2)',
-            fontWeight: value === v ? 700 : 400, cursor: 'pointer', fontSize: 14,
-            fontFamily: 'var(--font-body)', transition: 'all .15s',
-          }}>{l}</button>
-        ))}
+        {[0, 1, 2].map(i => {
+          const img = craft._images?.[i];
+          return (
+            <div key={i} style={{ width: 76, height: 76, border: '1px dashed var(--border2)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+              {img ? (
+                <>
+                  <img src={img.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button onClick={() => onImageRemove(i)} style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: 4, width: 18, height: 18, fontSize: 11, cursor: 'pointer', lineHeight: 1 }}>×</button>
+                </>
+              ) : (
+                <label style={{ cursor: 'pointer', fontSize: 18, color: 'var(--text4)' }}>
+                  +
+                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => onImageUpload(e, i)} />
+                </label>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -41,72 +116,108 @@ function YesNoField({ label, hint, flagReason, value, onChange }) {
 
 export default function SectionD({ profileId, onSave }) {
   const { toasts, success, error } = useToast();
-  const [form, setForm] = useState({
-    has_fashion_designer: null,
-    can_develop_from_references: null,
-    max_sampling_iterations: '',
-  });
-  const [flags, setFlags] = useState({});
-  const [reqs, setReqs]   = useState([{ order: 1, question: '' }, { order: 2, question: '' }]);
-  const [coordinator, setCoordinator] = useState({ name: '', position: '', writeup: '' });
-  const [coordImg, setCoordImg]       = useState(null);
-  const [coordExisting, setCoordExisting] = useState(null); // existing file_name from server
-  const [savingCoord, setSavingCoord] = useState(false);
+  const [crafts, setCrafts] = useState({ printing: [], surface: [], weaving: [] });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!profileId) return;
-    onboardingAPI.getCollab(profileId).then(r => {
-      const d = r.data;
-      if (!d) return;
-      setForm({
-        has_fashion_designer: d.has_fashion_designer,
-        can_develop_from_references: d.can_develop_from_references,
-        max_sampling_iterations: d.max_sampling_iterations ?? '',
+    API.getCrafts(profileId).then(r => {
+      const all = r.data || [];
+      const grouped = { printing: [], surface: [], weaving: [] };
+      all.forEach(c => {
+        const type = c.technique_type || 'printing';
+        if (grouped[type]) grouped[type].push(c);
       });
-      setFlags({
-        designer: d.designer_flagged ? d.designer_flag_reason : null,
-        references: d.references_flagged ? d.references_flag_reason : null,
-        iterations: d.iterations_flagged ? d.iterations_flag_reason : null,
-      });
-      if (d.buyer_requirements?.length) {
-        setReqs(d.buyer_requirements.map(r => ({ order: r.order, question: r.question })));
-      }
-      if (d.buyer_coordinator) {
-        setCoordinator({
-          name: d.buyer_coordinator.name || '',
-          position: d.buyer_coordinator.position || '',
-          writeup: d.buyer_coordinator.writeup || '',
-        });
-        setCoordExisting(d.buyer_coordinator.file_name || null);
-      }
+      setCrafts(grouped);
     }).catch(() => {});
   }, [profileId]);
 
-  const saveCoordinator = async () => {
-    if (!coordinator.name.trim()) { error('Coordinator name is required'); return; }
-    setSavingCoord(true);
-    try {
-      const fd = new FormData();
-      fd.append('name', coordinator.name);
-      fd.append('position', coordinator.position);
-      fd.append('writeup', coordinator.writeup);
-      if (coordImg) fd.append('image', coordImg);
-      const r = await onboardingAPI.putCoordinator(profileId, fd);
-      setCoordExisting(r.data.file_name || null);
-      setCoordImg(null);
-      success('Coordinator saved!');
-    } catch (e) {
-      error(e.response?.data ? JSON.stringify(e.response.data) : 'Failed to save coordinator');
-    } finally { setSavingCoord(false); }
+  const addCard = type => {
+    setCrafts(prev => ({
+      ...prev,
+      [type]: [...prev[type], {
+        _local: true, _tempId: Date.now(),
+        craft_name: '', specialization: '', innovation_level: 'low',
+        technique_type: type, is_primary: true,
+      }],
+    }));
   };
 
-  const save = async () => {
+  const updateCard = (type, idx, patch) => {
+    setCrafts(prev => ({
+      ...prev,
+      [type]: prev[type].map((c, i) => i === idx ? { ...c, ...patch } : c),
+    }));
+  };
+
+  const deleteCard = async (type, idx) => {
+    const card = crafts[type][idx];
+    if (card.id) {
+      try { await API.delCraft(profileId, card.id); } catch {}
+    }
+    setCrafts(prev => ({ ...prev, [type]: prev[type].filter((_, i) => i !== idx) }));
+  };
+
+  const uploadImage = async (type, idx, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    const card = crafts[type][idx];
+
+    try {
+      const fd = new FormData();
+      fd.append('craft_name', card.craft_name || 'Untitled');
+      fd.append('technique_type', type);
+      fd.append('innovation_level', card.innovation_level || 'low');
+      fd.append('specialization', card.specialization || '');
+      fd.append('is_primary', true);
+      fd.append('image', file);
+
+      let saved;
+      if (card.id) {
+        const fdPatch = new FormData();
+        fdPatch.append('image', file);
+        const r = await API.patchCraft(profileId, card.id, fdPatch);
+        saved = r.data;
+      } else {
+        const r = await API.addCraft(profileId, fd);
+        saved = r.data;
+      }
+      updateCard(type, idx, { ...saved, _images: [{ url: saved.image }] });
+      success('Image uploaded');
+    } catch {
+      error('Image upload failed');
+    }
+  };
+
+  const saveAll = async () => {
     setSaving(true);
     try {
-      await onboardingAPI.putCollab(profileId, form);
-      const rData = reqs.filter(r => r.question.trim());
-      if (rData.length) await onboardingAPI.putBuyerReqs(profileId, rData);
+      for (const type of Object.keys(crafts)) {
+        for (let i = 0; i < crafts[type].length; i++) {
+          const card = crafts[type][i];
+          if (!card.craft_name?.trim()) continue;
+
+          if (card.id) {
+            await API.patchCraft(profileId, card.id, {
+              craft_name: card.craft_name,
+              technique_type: type,
+              innovation_level: card.innovation_level,
+              specialization: card.specialization,
+            });
+          } else {
+            const fd = new FormData();
+            fd.append('craft_name', card.craft_name);
+            fd.append('technique_type', type);
+            fd.append('innovation_level', card.innovation_level || 'low');
+            fd.append('specialization', card.specialization || '');
+            fd.append('is_primary', true);
+            fd.append('order', i + 1);
+            const r = await API.addCraft(profileId, fd);
+            updateCard(type, i, r.data);
+          }
+        }
+      }
       success('Section D saved!');
       onSave?.();
     } catch (e) {
@@ -117,100 +228,31 @@ export default function SectionD({ profileId, onSave }) {
   return (
     <div style={{ padding: '40px 48px', maxWidth: 760 }}>
       <Toast toasts={toasts} />
-      <div className="fade-up" style={{ marginBottom: 36 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 11, background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}></div>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Section D</div>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 700, color: 'var(--text)' }}>Collaboration &amp; Design Support</h1>
-          </div>
-        </div>
-        <p style={{ color: 'var(--text3)', fontSize: 14, marginLeft: 56 }}>How you collaborate with buyers on design, sampling, and pre-production.</p>
-      </div>
+      <SectionHeader letter="D" title="Crafts & Techniques" desc="This is the most important section — the richer your craft data, the better your buyer matches." />
 
-      {/* D.1 */}
-      <CardSection title="D.1 — In-House Fashion Designer">
-        <YesNoField
-          label="Does your studio have an in-house fashion designer?"
-          hint="A dedicated designer who can create original garment designs, develop tech packs, or adapt buyer references into production-ready specs."
-          flagReason={flags.designer}
-          value={form.has_fashion_designer}
-          onChange={v => setForm(f => ({ ...f, has_fashion_designer: v }))}
-        />
-      </CardSection>
-
-      {/* D.2 */}
-      <CardSection title="D.2 — Developing from Buyer References">
-        <YesNoField
-          label="Can you develop designs from buyer references or mood boards?"
-          hint="e.g. A buyer sends you a Pinterest board, a reference garment, or a rough sketch — can your team translate that into a finished sample?"
-          flagReason={flags.references}
-          value={form.can_develop_from_references}
-          onChange={v => setForm(f => ({ ...f, can_develop_from_references: v }))}
-        />
-      </CardSection>
-
-{/* D.3 Sampling Iterations removed from form per PDF spec */}
-
-{/* D.4 Pre-Call Questions removed from form per PDF spec */}
-
-            {/* D.5 Buyer Coordinator */}
-      <CardSection title="D.5 — Buyer Coordinator">
-        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 6, lineHeight: 1.7 }}>
-          Who from your team is typically responsible for coordinating &amp; working with the buyers?
-        </p>
-        <p style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 16 }}>
-          Tell us their name, position in your organisation and a little bit about them — their background, working style etc.
-        </p>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-          <div className="field">
-            <label>Name *</label>
-            <input value={coordinator.name} onChange={e => setCoordinator(c => ({ ...c, name: e.target.value }))} placeholder="e.g. Priya Sharma" />
-          </div>
-          <div className="field">
-            <label>Position</label>
-            <input value={coordinator.position} onChange={e => setCoordinator(c => ({ ...c, position: e.target.value }))} placeholder="e.g. Studio Manager / Head of Production" />
-          </div>
-        </div>
-
-        <div className="field" style={{ marginBottom: 14 }}>
-          <label>About them</label>
-          <textarea
-            value={coordinator.writeup}
-            onChange={e => setCoordinator(c => ({ ...c, writeup: e.target.value }))}
-            rows={4}
-            placeholder="e.g. Priya has 12 years of experience in textile production. She manages all buyer relationships from initial brief through to final delivery. She's detail-oriented, responsive, and prefers WhatsApp for quick updates and email for formal communication."
-            style={{
-              width: '100%', padding: '12px 16px',
-              border: '1.5px solid var(--border)', borderRadius: 'var(--radius)',
-              background: 'var(--surface)', color: 'var(--text)',
-              fontSize: 14, fontFamily: 'var(--font-body)', lineHeight: 1.7, resize: 'vertical',
-            }}
-          />
-        </div>
-
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>Photo</div>
-          {coordExisting && !coordImg && (
-            <div style={{ fontSize: 12, color: 'var(--teal)', marginBottom: 6 }}>Current: {coordExisting}</div>
+      {TYPES.map(t => (
+        <CardSection key={t.key} title={`D.${TYPES.indexOf(t) + 1} — ${t.label}`} desc={t.desc}>
+          {crafts[t.key].length === 0 && (
+            <p style={{ fontSize: 13, color: 'var(--text4)', fontStyle: 'italic', marginBottom: 12 }}>
+              {t.hint ? t.hint : 'No techniques added yet.'}
+            </p>
           )}
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setCoordImg(e.target.files?.[0] || null)} style={{ display: 'none' }} />
-            <span className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>
-              {coordImg ? coordImg.name : coordExisting ? '↺ Replace Photo' : '+ Upload Photo'}
-            </span>
-          </label>
-          <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 6 }}>JPG · PNG · WEBP up to 10 MB</p>
-        </div>
+          {crafts[t.key].map((card, idx) => (
+            <TechniqueCard
+              key={card.id || card._tempId}
+              craft={card}
+              onUpdate={patch => updateCard(t.key, idx, patch)}
+              onDelete={() => deleteCard(t.key, idx)}
+              onImageUpload={(e, slot) => uploadImage(t.key, idx, e)}
+              onImageRemove={() => {}}
+            />
+          ))}
+          <button className="btn btn-outline btn-sm" onClick={() => addCard(t.key)}>{t.cta}</button>
+        </CardSection>
+      ))}
 
-        <button className="btn btn-outline btn-sm" onClick={saveCoordinator} disabled={savingCoord}>
-          {savingCoord ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Saving…</> : coordExisting || coordinator.name ? 'Update Coordinator' : 'Save Coordinator'}
-        </button>
-      </CardSection>
-
-      <button className="btn btn-primary btn-lg fade-up" onClick={save} disabled={saving}>
-        {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save Section D'}
+      <button className="btn btn-primary btn-lg fade-up" onClick={saveAll} disabled={saving}>
+        {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save & Next'}
       </button>
     </div>
   );

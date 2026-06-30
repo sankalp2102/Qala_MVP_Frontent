@@ -135,6 +135,8 @@ export const onboardingAPI = {
   putProducts: (pid,d) => api.put('/api/seller/onboarding/products/', d, { headers: ph(pid) }),
   getFabrics:  pid => api.get('/api/seller/onboarding/fabrics/', { headers: ph(pid) }),
   putFabrics:  (pid,d) => api.put('/api/seller/onboarding/fabrics/', d, { headers: ph(pid) }),
+  getDyes:     pid => api.get('/api/seller/onboarding/dyes/', { headers: ph(pid) }),
+  putDyes:     (pid,d) => api.put('/api/seller/onboarding/dyes/', d, { headers: ph(pid) }),
   getBrands:   pid => api.get('/api/seller/onboarding/brands/', { headers: ph(pid) }),
   addBrand:    (pid,d) => api.post('/api/seller/onboarding/brands/', d, { headers: ph(pid) }),
   patchBrand:  (pid,id,d) => api.patch(`/api/seller/onboarding/brands/${id}/`, d, { headers: ph(pid) }),
@@ -159,6 +161,12 @@ export const onboardingAPI = {
   putProcess:  (pid,d) => api.put('/api/seller/onboarding/process/', d, { headers: ph(pid) }),
   uploadBTS:   (pid,f) => api.post('/api/seller/onboarding/process/media/', f, { headers: ph(pid) }),
   delBTS:      (pid,id) => api.delete(`/api/seller/onboarding/process/media/${id}/`, { headers: ph(pid) }),
+  getProjects:        pid => api.get('/api/seller/onboarding/projects/', { headers: ph(pid) }),
+  addProject:         (pid,d) => api.post('/api/seller/onboarding/projects/', d, { headers: ph(pid) }),
+  patchProject:       (pid,id,d) => api.patch(`/api/seller/onboarding/projects/${id}/`, d, { headers: ph(pid) }),
+  delProject:         (pid,id) => api.delete(`/api/seller/onboarding/projects/${id}/`, { headers: ph(pid) }),
+  uploadProjectPhoto: (pid,projectId,f) => api.post(`/api/seller/onboarding/projects/${projectId}/photos/`, f, { headers: ph(pid) }),
+  delProjectPhoto:    (pid,projectId,photoId) => api.delete(`/api/seller/onboarding/projects/${projectId}/photos/${photoId}/`, { headers: ph(pid) }),
   getStudioInquiries: pid => api.get('/api/seller/studio-inquiries/', { headers: ph(pid) }),
 };
 

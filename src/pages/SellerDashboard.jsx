@@ -6,15 +6,17 @@ import { DashLayout } from '../components/DashLayout';
 import { Spinner } from '../components/Spinner';
 import { mediaUrl } from '../utils/mediaUrl';
 import SectionA from './seller/SectionA';
-import EnquiryDetail from './seller/EnquiryDetail';
-import EnquiriesList from './seller/EnquiriesList';
-import ProposalBuilder from './seller/ProposalBuilder';
-import ActiveProjects from './seller/ActiveProjects';
 import SectionB from './seller/SectionB';
 import SectionC from './seller/SectionC';
 import SectionD from './seller/SectionD';
 import SectionE from './seller/SectionE';
 import SectionF from './seller/SectionF';
+import SectionG from './seller/SectionG';
+import SectionH from './seller/SectionH';
+import EnquiryDetail from './seller/EnquiryDetail';
+import EnquiriesList from './seller/EnquiriesList';
+import ProposalBuilder from './seller/ProposalBuilder';
+import ActiveProjects from './seller/ActiveProjects';
 
 function statusBadge(s) {
   const map    = { submitted:'badge-green', in_progress:'badge-orange', not_started:'badge-gray', flagged:'badge-red', approved:'badge-teal' };
@@ -22,13 +24,16 @@ function statusBadge(s) {
   return <span className={`badge ${map[s]||'badge-gray'}`}>{labels[s]||s}</span>;
 }
 
+// v3: 8 sections A–H
 const SECTIONS = [
-  { key:'a', label:'Studio Details',     path:'studio',      icon:'', desc:'Name, location, contacts, portfolio, USPs' },
-  { key:'b', label:'Products & Fabrics', path:'products',    icon:'', desc:'21 garment types, 40+ fabrics, brands, awards' },
-  { key:'c', label:'Crafts',             path:'crafts',      icon:'', desc:'Specializations, timelines, innovation scoring' },
-  { key:'d', label:'Collaboration',      path:'collab',      icon:'', desc:'Designer, sampling rounds, buyer requirements' },
-  { key:'e', label:'Production Scale',   path:'production',  icon:'', desc:'Monthly capacity, MOQ conditions' },
-  { key:'f', label:'Process',            path:'process',     icon:'', desc:'Production steps, behind-the-scenes media' },
+  { key:'a', label:'Introduction',          path:'studio',      icon:'', desc:'Studio identity, location, contacts, strengths, recognition' },
+  { key:'b', label:'Categories',            path:'products',    icon:'', desc:'Gender, occasions, garment types, home furnishings' },
+  { key:'c', label:'Fabrics & Dyes',        path:'fabrics',     icon:'', desc:'What you work with, and how well' },
+  { key:'d', label:'Crafts & Techniques',   path:'crafts',      icon:'', desc:'Printing, surface, and weaving techniques' },
+  { key:'e', label:'Collaboration',         path:'collab',      icon:'', desc:'Collaboration modes and design capabilities' },
+  { key:'f', label:'Team & Capacity',       path:'production',  icon:'', desc:'Team, capacity, timelines, MOQ' },
+  { key:'g', label:'Past Projects',         path:'projects',    icon:'', desc:'Collections, collaborations, and notable work' },
+  { key:'h', label:'Behind the Scenes',     path:'process',     icon:'', desc:'Studio media and final notes' },
 ];
 
 /* ── OVERVIEW ── */
@@ -50,7 +55,7 @@ function Overview({ snapshot, flags }) {
         <h1 style={{ fontFamily:'var(--font-display)', fontSize:42, fontWeight:700, color:'var(--text)', marginBottom:8, lineHeight:1.1 }}>
           Your Studio<br/><em style={{ color:'var(--gold)' }}>Profile</em>
         </h1>
-        <p style={{ color:'var(--text3)', fontSize:15 }}>Complete all 6 sections to get discovered by buyers.</p>
+        <p style={{ color:'var(--text3)', fontSize:15 }}>Complete all 8 sections to get discovered by buyers.</p>
       </div>
 
       {/* Flags */}
@@ -72,7 +77,7 @@ function Overview({ snapshot, flags }) {
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:16 }}>
           <div>
             <div style={{ fontSize:12, fontWeight:600, color:'var(--text3)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }}>Overall Completion</div>
-            <div style={{ fontSize:13, color:'var(--text2)' }}>{submitted} of 6 sections submitted</div>
+            <div style={{ fontSize:13, color:'var(--text2)' }}>{submitted} of 8 sections submitted</div>
           </div>
           <div style={{ fontFamily:'var(--font-display)', fontSize:48, fontWeight:700, color:'var(--gold)', lineHeight:1 }}>
             {pct}<span style={{ fontSize:24 }}>%</span>
@@ -307,16 +312,18 @@ export default function SellerDashboard() {
 
   const status = snapshot?.status;
   const navItems = [
-    { to:'/dashboard',             icon:'', label:'Overview',     end: true                                                                              },
-    { to:'/dashboard/studio',      icon:'', label:'A — Studio',     badge: status?.section_a_status === 'flagged' ? { type:'red', text:'!' } : null },
-    { to:'/dashboard/products',    icon:'', label:'B — Products',   badge: status?.section_b_status === 'flagged' ? { type:'red', text:'!' } : null },
-    { to:'/dashboard/crafts',      icon:'', label:'C — Crafts',     badge: status?.section_c_status === 'flagged' ? { type:'red', text:'!' } : null },
-    { to:'/dashboard/collab',      icon:'', label:'D — Collab',     badge: status?.section_d_status === 'flagged' ? { type:'red', text:'!' } : null },
-    { to:'/dashboard/production',  icon:'', label:'E — Production', badge: status?.section_e_status === 'flagged' ? { type:'red', text:'!' } : null },
-    { to:'/dashboard/process',     icon:'', label:'F — Process',    badge: status?.section_f_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard',             icon:'', label:'Overview',             end: true                                                                              },
+    { to:'/dashboard/studio',      icon:'', label:'A — Introduction',     badge: status?.section_a_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard/products',    icon:'', label:'B — Categories',       badge: status?.section_b_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard/fabrics',     icon:'', label:'C — Fabrics & Dyes',   badge: status?.section_c_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard/crafts',      icon:'', label:'D — Crafts',           badge: status?.section_d_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard/collab',      icon:'', label:'E — Collaboration',    badge: status?.section_e_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard/production',  icon:'', label:'F — Team & Capacity', badge: status?.section_f_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard/projects',    icon:'', label:'G — Past Projects',   badge: status?.section_g_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard/process',     icon:'', label:'H — Behind the Scenes', badge: status?.section_h_status === 'flagged' ? { type:'red', text:'!' } : null },
     { to:'/dashboard/inquiries',   icon:'', label:'Inquiries'                                                                                      },
-    { to:'/dashboard/enquiries',   icon:'📋', label:'Project Enquiries'                                                                                  },
-    { to:'/dashboard/active',      icon:'🏭', label:'Active Projects'                                                                                    },
+    { to:'/dashboard/enquiries',   icon:'', label:'Project Enquiries'                                                                                  },
+    { to:'/dashboard/active',      icon:'', label:'Active Projects'                                                                                    },
   ].filter(n => n.badge !== null || true).map(n => ({ ...n, badge: n.badge || undefined }));
 
   return (
@@ -325,10 +332,12 @@ export default function SellerDashboard() {
         <Route index             element={<Overview snapshot={snapshot} flags={flags} />}  />
         <Route path="studio"     element={<SectionA profileId={profileId} onSave={refresh} />} />
         <Route path="products"   element={<SectionB profileId={profileId} onSave={refresh} />} />
-        <Route path="crafts"     element={<SectionC profileId={profileId} onSave={refresh} />} />
-        <Route path="collab"     element={<SectionD profileId={profileId} onSave={refresh} />} />
-        <Route path="production" element={<SectionE profileId={profileId} onSave={refresh} />} />
-        <Route path="process"    element={<SectionF profileId={profileId} onSave={refresh} />} />
+        <Route path="fabrics"    element={<SectionC profileId={profileId} onSave={refresh} />} />
+        <Route path="crafts"     element={<SectionD profileId={profileId} onSave={refresh} />} />
+        <Route path="collab"     element={<SectionE profileId={profileId} onSave={refresh} />} />
+        <Route path="production" element={<SectionF profileId={profileId} onSave={refresh} />} />
+        <Route path="projects"   element={<SectionG profileId={profileId} onSave={refresh} />} />
+        <Route path="process"    element={<SectionH profileId={profileId} onSave={refresh} />} />
         <Route path="inquiries"  element={<SellerInquiries profileId={profileId} />}           />
         <Route path="enquiries"  element={<EnquiriesList />}                                          />
         <Route path="enquiries/:projectId" element={<EnquiryDetail />}                                />
