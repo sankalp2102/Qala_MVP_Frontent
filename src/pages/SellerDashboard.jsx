@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { onboardingAPI } from '../api/client';
@@ -180,7 +180,6 @@ function SellerInquiries({ profileId }) {
 
         {filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 0' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>📭</div>
             <div style={{ fontSize: 14, color: 'var(--text3)', marginBottom: 6 }}>No inquiries yet.</div>
             <div style={{ fontSize: 12, color: 'var(--text4)' }}>
               When buyers click "Get a Callback" on your profile, they'll appear here.
@@ -251,7 +250,7 @@ function SellerInquiries({ profileId }) {
                         borderRadius: 6, padding: '6px 12px', fontWeight: 500,
                       }}
                     >
-                      📎 View attached file
+                      View attached file
                     </a>
                   </div>
                 )}
@@ -298,6 +297,7 @@ function SellerInquiries({ profileId }) {
 /* ── MAIN EXPORT ── */
 export default function SellerDashboard() {
   const { user } = useAuth();
+  const nav = useNavigate();
   const [snapshot, setSnapshot] = useState(null);
   const [flags, setFlags]       = useState(null);
   const profileId = user?.profiles?.[0]?.id;
@@ -330,14 +330,14 @@ export default function SellerDashboard() {
     <DashLayout nav={navItems}>
       <Routes>
         <Route index             element={<Overview snapshot={snapshot} flags={flags} />}  />
-        <Route path="studio"     element={<SectionA profileId={profileId} onSave={refresh} />} />
-        <Route path="products"   element={<SectionB profileId={profileId} onSave={refresh} />} />
-        <Route path="fabrics"    element={<SectionC profileId={profileId} onSave={refresh} />} />
-        <Route path="crafts"     element={<SectionD profileId={profileId} onSave={refresh} />} />
-        <Route path="collab"     element={<SectionE profileId={profileId} onSave={refresh} />} />
-        <Route path="production" element={<SectionF profileId={profileId} onSave={refresh} />} />
-        <Route path="projects"   element={<SectionG profileId={profileId} onSave={refresh} />} />
-        <Route path="process"    element={<SectionH profileId={profileId} onSave={refresh} />} />
+        <Route path="studio"     element={<SectionA profileId={profileId} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/products'); }} />} />
+        <Route path="products"   element={<SectionB profileId={profileId} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/fabrics'); }} />} />
+        <Route path="fabrics"    element={<SectionC profileId={profileId} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/crafts'); }} />} />
+        <Route path="crafts"     element={<SectionD profileId={profileId} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/collab'); }} />} />
+        <Route path="collab"     element={<SectionE profileId={profileId} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/production'); }} />} />
+        <Route path="production" element={<SectionF profileId={profileId} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/projects'); }} />} />
+        <Route path="projects"   element={<SectionG profileId={profileId} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/process'); }} />} />
+        <Route path="process"    element={<SectionH profileId={profileId} onSave={refresh} onNext={() => { refresh(); nav('/dashboard'); }} />} />
         <Route path="inquiries"  element={<SellerInquiries profileId={profileId} />}           />
         <Route path="enquiries"  element={<EnquiriesList />}                                          />
         <Route path="enquiries/:projectId" element={<EnquiryDetail />}                                />

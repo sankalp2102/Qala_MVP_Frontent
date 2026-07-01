@@ -89,7 +89,7 @@ function CheckboxRow({ label, desc, checked, onChange }) {
   );
 }
 
-export default function SectionE({ profileId, onSave }) {
+export default function SectionE({ profileId, onSave, onNext }) {
   const { toasts, success, error } = useToast();
   const [form, setForm] = useState({
     catalogue_collab: null, co_creation: null, production_house: null,
@@ -113,12 +113,13 @@ export default function SectionE({ profileId, onSave }) {
     }).catch(() => {});
   }, [profileId]);
 
-  const save = async () => {
+  const save = async (andNext = false) => {
     setSaving(true);
     try {
       await API.putCollab(profileId, form);
       success('Section E saved!');
       onSave?.();
+      if (andNext) onNext?.();
     } catch (e) {
       error(e.response?.data ? JSON.stringify(e.response.data) : 'Save failed');
     } finally { setSaving(false); }
@@ -156,9 +157,12 @@ export default function SectionE({ profileId, onSave }) {
         />
       </CardSection>
 
-      <button className="btn btn-primary btn-lg fade-up" onClick={save} disabled={saving}>
-        {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save & Next'}
-      </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <button className="btn btn-primary btn-lg fade-up" onClick={() => save(true)} disabled={saving}>
+          {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save & Next'}
+        </button>
+        <button className="btn btn-ghost fade-up" onClick={() => save(false)} disabled={saving}>Save</button>
+      </div>
     </div>
   );
 }

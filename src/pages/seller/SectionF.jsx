@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { onboardingAPI } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
+import { inputStyle, textareaStyle, TrashIcon } from './SectionA';
 
 const API = onboardingAPI;
 
@@ -27,52 +28,50 @@ function CardSection({ title, desc, children }) {
 
 function Field({ label, hint, children }) {
   return (
-    <div className="field">
-      <label>{label}</label>
+    <div style={{ marginBottom: 14 }}>
+      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>{label}</label>
       {children}
-      {hint && <span className="hint">{hint}</span>}
+      {hint && <span style={{ fontSize: 11, color: 'var(--text4)', marginTop: 4, display: 'block' }}>{hint}</span>}
     </div>
   );
 }
 
-export default function SectionF({ profileId, onSave }) {
+function TrashBtn({ onClick, label = 'Remove' }) {
+  return (
+    <button aria-label={label} onClick={onClick}
+      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text4)', padding: 4, display: 'flex', alignItems: 'center', borderRadius: 4 }}>
+      <TrashIcon size={16} />
+    </button>
+  );
+}
+
+export default function SectionF({ profileId, onSave, onNext }) {
   const { toasts, success, error } = useToast();
 
-  // F.1 Team Members (reuse StudioContact model)
-  const [contacts, setContacts]   = useState([]);
-  const [addingC, setAddingC]     = useState(false);
-  const [newContact, setNewContact] = useState({ name: '', role: '', email: '', phone: '' });
+  const [contacts, setContacts]         = useState([]);
+  const [addingC, setAddingC]           = useState(false);
+  const [newContact, setNewContact]     = useState({ name: '', role: '', email: '', phone: '' });
   const [editingContact, setEditingContact] = useState(null);
 
-  // F.2 Buyer Coordinator
   const [coordinator, setCoordinator] = useState({ name: '', position: '', writeup: '' });
-  const [coordImg, setCoordImg] = useState(null);
-  const [savingCoord, setSavingCoord] = useState(false);
+  const [coordSaved, setCoordSaved]   = useState(false);
 
-  // F.3–F.6 Capacity
   const [form, setForm] = useState({
     artisan_count: '', monthly_capacity_units: '',
     sampling_time_weeks: '', production_time_weeks: '',
     moq_per_batch: '', moq_flexible: false,
   });
-
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!profileId) return;
-
-    API.getStudio(profileId).then(r => {
-      if (r.data?.contacts) setContacts(r.data.contacts);
-    }).catch(() => {});
-
+    API.getStudio(profileId).then(r => { if (r.data?.contacts) setContacts(r.data.contacts); }).catch(() => {});
     API.getCoordinator(profileId).then(r => {
       const d = r.data;
       if (d) setCoordinator({ name: d.name || '', position: d.position || '', writeup: d.writeup || '' });
     }).catch(() => {});
-
     API.getProduction(profileId).then(r => {
-      const d = r.data;
-      if (!d) return;
+      const d = r.data; if (!d) return;
       setForm(f => ({
         ...f,
         artisan_count: d.artisan_count ?? '',
@@ -82,14 +81,40 @@ export default function SectionF({ profileId, onSave }) {
         moq_flexible: !!d.moq_flexible,
       }));
     }).catch(() => {});
-
-    // sampling_time_weeks lives on CraftDetail per-technique; here we treat it
-    // as a studio-level estimate the seller enters once for the form's F.5
     API.getCrafts(profileId).then(r => {
       const first = (r.data || []).find(c => c.sampling_time_weeks != null);
       if (first) setForm(f => ({ ...f, sampling_time_weeks: first.sampling_time_weeks }));
     }).catch(() => {});
   }, [profileId]);
+
+  const saveCoordinatorSilent = useCallback(async (updated) => {
+    try {
+      const fd = new FormData();
+      fd.append('name', updated.name);
+      fd.append('position', updated.position);
+      fd.append('writeup', updated.writeup);
+      await API.putCoordinator(profileId, fd);
+      setCoordSaved(true);
+      setTimeout(() => setCoordSaved(false), 1500);
+    } catch {}
+  }, [profileId]);
+
+  const handleCoordBlur = () => saveCoordinatorSilent(coordinator);
+
+  const uploadCoordPhoto = async e => {
+    const file = e.target.files?.[0]; if (!file) return;
+    e.target.value = '';
+    try {
+      const fd = new FormData();
+      fd.append('name', coordinator.name);
+      fd.append('position', coordinator.position);
+      fd.append('writeup', coordinator.writeup);
+      fd.append('image', file);
+      await API.putCoordinator(profileId, fd);
+      setCoordSaved(true); setTimeout(() => setCoordSaved(false), 1500);
+      success('Photo uploaded');
+    } catch { error('Upload failed'); }
+  };
 
   const addContact = async () => {
     if (!newContact.name || !newContact.role) { error('Name and role required'); return; }
@@ -97,8 +122,7 @@ export default function SectionF({ profileId, onSave }) {
       const r = await API.addContact(profileId, { ...newContact, order: contacts.length + 1 });
       setContacts(c => [...c, r.data]);
       setNewContact({ name: '', role: '', email: '', phone: '' });
-      setAddingC(false);
-      success('Team member added');
+      setAddingC(false); success('Team member added');
     } catch { error('Failed to add'); }
   };
 
@@ -110,8 +134,7 @@ export default function SectionF({ profileId, onSave }) {
         email: editingContact.email, phone: editingContact.phone,
       });
       setContacts(c => c.map(x => x.id === editingContact.id ? r.data : x));
-      setEditingContact(null);
-      success('Updated');
+      setEditingContact(null); success('Updated');
     } catch { error('Failed to update'); }
   };
 
@@ -120,21 +143,7 @@ export default function SectionF({ profileId, onSave }) {
     catch { error('Failed'); }
   };
 
-  const saveCoordinator = async () => {
-    setSavingCoord(true);
-    try {
-      const fd = new FormData();
-      fd.append('name', coordinator.name);
-      fd.append('position', coordinator.position);
-      fd.append('writeup', coordinator.writeup);
-      if (coordImg) fd.append('image', coordImg);
-      await API.putCoordinator(profileId, fd);
-      success('Coordinator saved');
-    } catch { error('Failed to save coordinator'); }
-    finally { setSavingCoord(false); }
-  };
-
-  const save = async () => {
+  const save = async (andNext = false) => {
     setSaving(true);
     try {
       await API.putProduction(profileId, {
@@ -146,6 +155,7 @@ export default function SectionF({ profileId, onSave }) {
       });
       success('Section F saved!');
       onSave?.();
+      if (andNext) onNext?.();
     } catch (e) {
       error(e.response?.data ? JSON.stringify(e.response.data) : 'Save failed');
     } finally { setSaving(false); }
@@ -156,16 +166,15 @@ export default function SectionF({ profileId, onSave }) {
       <Toast toasts={toasts} />
       <SectionHeader letter="F" title="Team & Capacity" desc="Who is in your studio, how many people, and what you can realistically deliver — and when." />
 
-      {/* F.1 Team Members */}
       <CardSection title="F.1 — Key Team Members" desc="Add the key people — whoever runs design, production, and client communication.">
         {contacts.map(c => (
           editingContact?.id === c.id ? (
-            <div key={c.id} style={{ padding: 16, border: '1px solid rgba(200,165,90,0.35)', borderRadius: 'var(--radius)', marginBottom: 8, background: 'var(--gold-dim)' }}>
+            <div key={c.id} style={{ padding: 16, border: '1px solid rgba(200,165,90,0.35)', borderRadius: 8, marginBottom: 8, background: 'var(--gold-dim)' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-                <Field label="Name *"><input value={editingContact.name} onChange={e => setEditingContact(x => ({ ...x, name: e.target.value }))} /></Field>
-                <Field label="Role *"><input value={editingContact.role} onChange={e => setEditingContact(x => ({ ...x, role: e.target.value }))} /></Field>
-                <Field label="Email"><input type="email" value={editingContact.email || ''} onChange={e => setEditingContact(x => ({ ...x, email: e.target.value }))} /></Field>
-                <Field label="Phone"><input value={editingContact.phone || ''} onChange={e => setEditingContact(x => ({ ...x, phone: e.target.value }))} /></Field>
+                <Field label="Name *"><input style={inputStyle} value={editingContact.name} onChange={e => setEditingContact(x => ({ ...x, name: e.target.value }))} /></Field>
+                <Field label="Role *"><input style={inputStyle} value={editingContact.role} onChange={e => setEditingContact(x => ({ ...x, role: e.target.value }))} /></Field>
+                <Field label="Email"><input style={inputStyle} type="email" value={editingContact.email || ''} onChange={e => setEditingContact(x => ({ ...x, email: e.target.value }))} /></Field>
+                <Field label="Phone"><input style={inputStyle} value={editingContact.phone || ''} onChange={e => setEditingContact(x => ({ ...x, phone: e.target.value }))} /></Field>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="btn btn-teal btn-sm" onClick={saveEditContact}>Save</button>
@@ -173,25 +182,25 @@ export default function SectionF({ profileId, onSave }) {
               </div>
             </div>
           ) : (
-            <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--radius)', marginBottom: 8, border: '1px solid var(--border)' }}>
+            <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: 'var(--surface2)', borderRadius: 8, marginBottom: 8, border: '1px solid var(--border)' }}>
               <div>
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{c.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--text3)' }}>{c.role} {c.email && `· ${c.email}`}</div>
+                <div style={{ fontSize: 12, color: 'var(--text3)' }}>{c.role}{c.email && ` · ${c.email}`}</div>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <button className="btn btn-ghost btn-sm" onClick={() => setEditingContact({ id: c.id, name: c.name, role: c.role, email: c.email || '', phone: c.phone || '' })}>Edit</button>
-                <button className="btn btn-danger btn-sm" onClick={() => delContact(c.id)}>Remove</button>
+                <TrashBtn label="Remove team member" onClick={() => delContact(c.id)} />
               </div>
             </div>
           )
         ))}
         {addingC ? (
-          <div style={{ padding: 16, border: '1px solid var(--border2)', borderRadius: 'var(--radius)', marginTop: 8, background: 'var(--surface2)' }}>
+          <div style={{ padding: 16, border: '1px solid var(--border2)', borderRadius: 8, marginTop: 8, background: 'var(--surface2)' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <Field label="Name *"><input value={newContact.name} onChange={e => setNewContact(c => ({ ...c, name: e.target.value }))} /></Field>
-              <Field label="Role *"><input value={newContact.role} onChange={e => setNewContact(c => ({ ...c, role: e.target.value }))} /></Field>
-              <Field label="Email"><input type="email" value={newContact.email} onChange={e => setNewContact(c => ({ ...c, email: e.target.value }))} /></Field>
-              <Field label="Phone"><input value={newContact.phone} onChange={e => setNewContact(c => ({ ...c, phone: e.target.value }))} /></Field>
+              <Field label="Name *"><input style={inputStyle} value={newContact.name} onChange={e => setNewContact(c => ({ ...c, name: e.target.value }))} /></Field>
+              <Field label="Role *"><input style={inputStyle} value={newContact.role} onChange={e => setNewContact(c => ({ ...c, role: e.target.value }))} /></Field>
+              <Field label="Email"><input style={inputStyle} type="email" value={newContact.email} onChange={e => setNewContact(c => ({ ...c, email: e.target.value }))} /></Field>
+              <Field label="Phone"><input style={inputStyle} value={newContact.phone} onChange={e => setNewContact(c => ({ ...c, phone: e.target.value }))} /></Field>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button className="btn btn-teal btn-sm" onClick={addContact}>Save</button>
@@ -203,55 +212,75 @@ export default function SectionF({ profileId, onSave }) {
         )}
       </CardSection>
 
-      {/* F.2 Buyer Coordinator */}
       <CardSection title="F.2 — Buyer Coordinator" desc="Who typically coordinates with buyers?">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4, minHeight: 18 }}>
+          {coordSaved && <span style={{ fontSize: 11, color: 'var(--text4)' }}>Saved</span>}
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          <Field label="Name"><input value={coordinator.name} onChange={e => setCoordinator(c => ({ ...c, name: e.target.value }))} /></Field>
-          <Field label="Position"><input value={coordinator.position} onChange={e => setCoordinator(c => ({ ...c, position: e.target.value }))} /></Field>
+          <Field label="Name">
+            <input style={inputStyle} value={coordinator.name}
+              onChange={e => setCoordinator(c => ({ ...c, name: e.target.value }))}
+              onBlur={handleCoordBlur} />
+          </Field>
+          <Field label="Position">
+            <input style={inputStyle} value={coordinator.position}
+              onChange={e => setCoordinator(c => ({ ...c, position: e.target.value }))}
+              onBlur={handleCoordBlur} />
+          </Field>
         </div>
         <Field label="About Them">
-          <textarea rows={3} value={coordinator.writeup} onChange={e => setCoordinator(c => ({ ...c, writeup: e.target.value }))}
-            style={{ width: '100%', padding: '12px 16px', border: '1px solid var(--border2)', borderRadius: 'var(--radius)', background: 'var(--surface2)', resize: 'vertical', fontFamily: 'var(--font-body)' }} />
+          <textarea style={textareaStyle} rows={3}
+            value={coordinator.writeup}
+            onChange={e => setCoordinator(c => ({ ...c, writeup: e.target.value }))}
+            onBlur={handleCoordBlur} />
         </Field>
-        <label style={{ display: 'inline-block', marginTop: 8 }}>
-          <input type="file" accept="image/*" onChange={e => setCoordImg(e.target.files?.[0] || null)} style={{ display: 'none' }} />
-          <span className="btn btn-outline btn-sm" style={{ cursor: 'pointer' }}>{coordImg ? coordImg.name : '+ Upload Photo'}</span>
+        <label style={{ display: 'inline-block', marginTop: 8, cursor: 'pointer' }}>
+          <input type="file" accept="image/*" onChange={uploadCoordPhoto} style={{ display: 'none' }} />
+          <span className="btn btn-outline btn-sm">+ Upload Photo</span>
         </label>
-        <button className="btn btn-teal btn-sm" style={{ marginLeft: 8 }} onClick={saveCoordinator} disabled={savingCoord}>
-          {savingCoord ? 'Saving…' : 'Save Coordinator'}
-        </button>
       </CardSection>
 
-      {/* F.3 Artisan Count */}
       <CardSection title="F.3 — Total Artisan / Worker Count">
         <Field label="How many people work on production?" hint="Include everyone on production — artisans, tailors, embroiderers, helpers.">
-          <input type="number" value={form.artisan_count} onChange={e => setForm(f => ({ ...f, artisan_count: e.target.value }))} placeholder="e.g. 24" style={{ maxWidth: 160 }} />
+          <input style={{ ...inputStyle, maxWidth: 160 }} type="text" inputMode="numeric" pattern="[0-9]*"
+            value={form.artisan_count}
+            onChange={e => setForm(f => ({ ...f, artisan_count: e.target.value.replace(/\D/g, '') }))}
+            placeholder="e.g. 24" />
         </Field>
       </CardSection>
 
-      {/* F.4 Monthly Capacity */}
       <CardSection title="F.4 — Monthly Production Capacity">
         <Field label="Total units per month" hint="Total units across all crafts and product types combined.">
-          <input type="number" value={form.monthly_capacity_units} onChange={e => setForm(f => ({ ...f, monthly_capacity_units: e.target.value }))} placeholder="e.g. 500 units" style={{ maxWidth: 200 }} />
+          <input style={{ ...inputStyle, maxWidth: 200 }} type="text" inputMode="numeric" pattern="[0-9]*"
+            value={form.monthly_capacity_units}
+            onChange={e => setForm(f => ({ ...f, monthly_capacity_units: e.target.value.replace(/\D/g, '') }))}
+            placeholder="e.g. 500 units" />
         </Field>
       </CardSection>
 
-      {/* F.5 Timelines */}
       <CardSection title="F.5 — Timelines">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <Field label="Sampling Time (weeks)" hint="From brief to sample in buyer's hands">
-            <input type="number" value={form.sampling_time_weeks} onChange={e => setForm(f => ({ ...f, sampling_time_weeks: e.target.value }))} placeholder="e.g. 3" />
+            <input style={inputStyle} type="text" inputMode="numeric"
+              value={form.sampling_time_weeks}
+              onChange={e => setForm(f => ({ ...f, sampling_time_weeks: e.target.value.replace(/\D/g, '') }))}
+              placeholder="e.g. 3" />
           </Field>
           <Field label="Production Time for 100 pcs (weeks)" hint="From approved sample to goods dispatched">
-            <input type="number" value={form.production_time_weeks} onChange={e => setForm(f => ({ ...f, production_time_weeks: e.target.value }))} placeholder="e.g. 6" />
+            <input style={inputStyle} type="text" inputMode="numeric"
+              value={form.production_time_weeks}
+              onChange={e => setForm(f => ({ ...f, production_time_weeks: e.target.value.replace(/\D/g, '') }))}
+              placeholder="e.g. 6" />
           </Field>
         </div>
       </CardSection>
 
-      {/* F.6 MOQ */}
       <CardSection title="F.6 — Minimum Order Quantity">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-          <input type="number" value={form.moq_per_batch} onChange={e => setForm(f => ({ ...f, moq_per_batch: e.target.value }))} placeholder="e.g. 50" style={{ width: 140 }} />
+          <input style={{ ...inputStyle, width: 140 }} type="text" inputMode="numeric"
+            value={form.moq_per_batch}
+            onChange={e => setForm(f => ({ ...f, moq_per_batch: e.target.value.replace(/\D/g, '') }))}
+            placeholder="e.g. 50" />
           <span style={{ fontSize: 13, color: 'var(--text3)' }}>pieces per batch</span>
         </div>
         <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
@@ -261,9 +290,12 @@ export default function SectionF({ profileId, onSave }) {
         <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 10 }}>This number is a baseline shown on your profile.</p>
       </CardSection>
 
-      <button className="btn btn-primary btn-lg fade-up" onClick={save} disabled={saving}>
-        {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save & Next'}
-      </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <button className="btn btn-primary btn-lg fade-up" onClick={() => save(true)} disabled={saving}>
+          {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save & Next'}
+        </button>
+        <button className="btn btn-ghost fade-up" onClick={() => save(false)} disabled={saving}>Save</button>
+      </div>
     </div>
   );
 }

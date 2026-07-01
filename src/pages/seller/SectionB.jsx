@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { onboardingAPI } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
+import { inputStyle } from './SectionA';
 
 const API = onboardingAPI;
 
@@ -17,7 +18,7 @@ const GARMENTS_DEFAULT = [
   'Accessories / Scarves / Stoles', 'Shirts', 'Trousers / Pants', 'Blazers / Jackets', 'Jumpsuits',
 ];
 
-const HOME_FURNISHINGS = [
+const HOME_FURNISHINGS_DEFAULT = [
   { group: 'Bedding', items: ['Bed sheets', 'Duvet covers', 'Pillow covers', 'Quilts / Razais', 'Bed runners'] },
   { group: 'Table Linen', items: ['Tablecloths', 'Table runners', 'Placemats', 'Napkins'] },
   { group: 'Kitchen Linen', items: ['Aprons', 'Kitchen towels', 'Oven mitts'] },
@@ -49,7 +50,11 @@ function CardSection({ title, children }) {
   );
 }
 
-/* ── Ranked item row (gender, occasions) ── */
+function SavedPulse({ show }) {
+  if (!show) return null;
+  return <span style={{ fontSize: 11, color: 'var(--text4)' }}>Saved</span>;
+}
+
 function RankItemRow({ name, rank, onToggle }) {
   const checked = rank != null;
   return (
@@ -68,7 +73,7 @@ function RankItemRow({ name, rank, onToggle }) {
   );
 }
 
-/* ── Top 5 garment row ── */
+/* change 4: Top badge always visible, greyed out until row is checked */
 function Top5Row({ name, top5, checked, onToggle, disabled }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
@@ -76,36 +81,33 @@ function Top5Row({ name, top5, checked, onToggle, disabled }) {
         <input type="checkbox" checked={checked} onChange={() => onToggle(name)} />
         <span style={{ fontSize: 14, color: 'var(--text)' }}>{name}</span>
       </label>
-      {checked && (
-        <button
-          onClick={() => onToggle(name, 'top5')}
-          disabled={disabled && !top5}
-          style={{
-            fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 4,
-            background: top5 ? 'var(--gold-dim)' : 'transparent',
-            color: top5 ? 'var(--gold)' : 'var(--text4)',
-            border: `1px solid ${top5 ? 'rgba(200,165,90,0.4)' : 'var(--border2)'}`,
-            cursor: disabled && !top5 ? 'not-allowed' : 'pointer', opacity: disabled && !top5 ? 0.4 : 1,
-          }}>
-          ★ Top
-        </button>
-      )}
+      {/* always rendered — disabled when unchecked or cap reached */}
+      <button
+        onClick={() => checked && onToggle(name, 'top5')}
+        disabled={!checked || (disabled && !top5)}
+        style={{
+          fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 4,
+          background: top5 ? 'var(--gold-dim)' : 'transparent',
+          color: top5 ? 'var(--gold)' : !checked ? 'var(--border2)' : 'var(--text4)',
+          border: `1px solid ${top5 ? 'rgba(200,165,90,0.4)' : 'var(--border2)'}`,
+          cursor: (!checked || (disabled && !top5)) ? 'default' : 'pointer',
+          opacity: !checked ? 0.35 : disabled && !top5 ? 0.4 : 1,
+          flexShrink: 0,
+        }}>
+        ★ Top
+      </button>
     </div>
   );
 }
 
-/* ── Category accordion (Apparel / Home Furnishings) ── */
-function CategoryAccordion({ icon, name, sub, count, defaultOpen, children }) {
-  const [open, setOpen] = useState(defaultOpen);
+function CategoryAccordion({ name, sub, count, defaultOpen, children }) {
+  const [open, setOpen] = useState(!!defaultOpen);
   return (
     <div style={{ border: '1px solid var(--border2)', borderRadius: 10, marginBottom: 12, overflow: 'hidden' }}>
       <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 18px', background: 'var(--surface2)', cursor: 'pointer' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 18 }}>{icon}</span>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{name}</div>
-            <div style={{ fontSize: 11, color: 'var(--text4)' }}>{sub}</div>
-          </div>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{name}</div>
+          <div style={{ fontSize: 11, color: 'var(--text4)' }}>{sub}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {count > 0 && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold)', background: 'var(--gold-dim)', padding: '3px 8px', borderRadius: 4 }}>{count}</span>}
@@ -117,9 +119,20 @@ function CategoryAccordion({ icon, name, sub, count, defaultOpen, children }) {
   );
 }
 
-/* ── Home furnishing sub-group ── */
-function HFGroup({ group, items, checked, onToggle }) {
+/* change 5: HFGroup with + Add other within each group */
+function HFGroup({ group, items, checked, onToggle, onAddItem }) {
+  const [addingItem, setAddingItem] = useState(false);
+  const [newItem, setNewItem]       = useState('');
   const count = items.filter(i => checked.includes(i)).length;
+
+  const commitItem = () => {
+    const v = newItem.trim();
+    if (!v) return;
+    onAddItem(group, v);
+    setNewItem('');
+    setAddingItem(false);
+  };
+
   return (
     <div style={{ marginBottom: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -141,27 +154,47 @@ function HFGroup({ group, items, checked, onToggle }) {
           );
         })}
       </div>
+      {addingItem ? (
+        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <input style={{ ...inputStyle, flex: 1, height: 32, fontSize: 12 }} value={newItem} onChange={e => setNewItem(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commitItem(); } }}
+            placeholder={`Add to ${group}`} autoFocus />
+          <button className="btn btn-teal btn-sm" onClick={commitItem}>Add</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setAddingItem(false); setNewItem(''); }}>Cancel</button>
+        </div>
+      ) : (
+        <button onClick={() => setAddingItem(true)}
+          style={{ marginTop: 6, fontSize: 11, color: 'var(--text4)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
+          + Add other
+        </button>
+      )}
     </div>
   );
 }
 
-export default function SectionB({ profileId, onSave }) {
+export default function SectionB({ profileId, onSave, onNext }) {
   const { toasts, success, error } = useToast();
+  const [savedPulse, setSavedPulse] = useState(false);
 
-  const [genders, setGenders]     = useState([]); // [{name, rank}]
-  const [occasions, setOccasions] = useState([]); // [{name, rank}]
+  const [genders, setGenders]     = useState([]);
+  const [occasions, setOccasions] = useState([]);
   const [customOcc, setCustomOcc] = useState('');
   const [addingOcc, setAddingOcc] = useState(false);
 
-  const [garments, setGarments]   = useState([]); // [{name, top5}]
+  const [garments, setGarments]         = useState([]);
   const [customGarment, setCustomGarment] = useState('');
-  const [addingGarment, setAddingGarment]   = useState(false);
-
-  const [homeFurnishings, setHomeFurnishings] = useState([]); // string[]
-
-  const [saving, setSaving] = useState(false);
+  const [addingGarment, setAddingGarment] = useState(false);
   const [allGarmentNames, setAllGarmentNames] = useState(GARMENTS_DEFAULT);
   const [allOccasionNames, setAllOccasionNames] = useState(OCCASIONS_DEFAULT);
+
+  const [homeFurnishings, setHomeFurnishings] = useState([]);
+  /* change 5: custom items per group + custom categories */
+  const [hfGroups, setHfGroups] = useState(HOME_FURNISHINGS_DEFAULT);
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [newCatName, setNewCatName]         = useState('');
+
+  const [saving, setSaving] = useState(false);
+  const debounceRef         = useRef(null);
 
   useEffect(() => {
     if (!profileId) return;
@@ -171,40 +204,49 @@ export default function SectionB({ profileId, onSave }) {
       setGenders(d.gender_focus || []);
       const occ = d.occasions || [];
       setOccasions(occ);
-      // merge any custom occasions into the displayed list
-      const customNames = occ.map(o => o.name).filter(n => !OCCASIONS_DEFAULT.includes(n));
-      setAllOccasionNames([...OCCASIONS_DEFAULT, ...customNames]);
-
+      const customOccNames = occ.map(o => o.name).filter(n => !OCCASIONS_DEFAULT.includes(n));
+      setAllOccasionNames([...OCCASIONS_DEFAULT, ...customOccNames]);
       const gar = d.garment_types || [];
       setGarments(gar);
-      const customGarmentNames = gar.map(g => g.name).filter(n => !GARMENTS_DEFAULT.includes(n));
-      setAllGarmentNames([...GARMENTS_DEFAULT, ...customGarmentNames]);
-
+      const customGarNames = gar.map(g => g.name).filter(n => !GARMENTS_DEFAULT.includes(n));
+      setAllGarmentNames([...GARMENTS_DEFAULT, ...customGarNames]);
       setHomeFurnishings(d.home_furnishings || []);
     }).catch(() => {});
   }, [profileId]);
 
-  const nextRank = list => (list.length ? Math.max(...list.map(x => x.rank)) + 1 : 1);
+  /* change 3: debounced autosave */
+  const triggerAutosave = useCallback((payload) => {
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        await API.patchStudio(profileId, payload);
+        setSavedPulse(true);
+        setTimeout(() => setSavedPulse(false), 1500);
+      } catch {}
+    }, 800);
+  }, [profileId]);
+
+  const nextRank = list => list.length ? Math.max(...list.map(x => x.rank)) + 1 : 1;
 
   const toggleGender = name => {
     setGenders(prev => {
       const exists = prev.find(g => g.name === name);
-      if (exists) {
-        const filtered = prev.filter(g => g.name !== name).sort((a, b) => a.rank - b.rank);
-        return filtered.map((g, i) => ({ ...g, rank: i + 1 }));
-      }
-      return [...prev, { name, rank: nextRank(prev) }];
+      const next = exists
+        ? prev.filter(g => g.name !== name).sort((a,b) => a.rank - b.rank).map((g,i) => ({ ...g, rank: i+1 }))
+        : [...prev, { name, rank: nextRank(prev) }];
+      triggerAutosave({ gender_focus: next });
+      return next;
     });
   };
 
   const toggleOccasion = name => {
     setOccasions(prev => {
       const exists = prev.find(o => o.name === name);
-      if (exists) {
-        const filtered = prev.filter(o => o.name !== name).sort((a, b) => a.rank - b.rank);
-        return filtered.map((o, i) => ({ ...o, rank: i + 1 }));
-      }
-      return [...prev, { name, rank: nextRank(prev) }];
+      const next = exists
+        ? prev.filter(o => o.name !== name).sort((a,b) => a.rank - b.rank).map((o,i) => ({ ...o, rank: i+1 }))
+        : [...prev, { name, rank: nextRank(prev) }];
+      triggerAutosave({ occasions: next });
+      return next;
     });
   };
 
@@ -212,9 +254,8 @@ export default function SectionB({ profileId, onSave }) {
     const v = customOcc.trim();
     if (!v) return;
     setAllOccasionNames(prev => [...prev, v]);
-    setOccasions(prev => [...prev, { name: v, rank: nextRank(prev) }]);
-    setCustomOcc('');
-    setAddingOcc(false);
+    setOccasions(prev => { const next = [...prev, { name: v, rank: nextRank(prev) }]; triggerAutosave({ occasions: next }); return next; });
+    setCustomOcc(''); setAddingOcc(false);
   };
 
   const TOP5_MAX = 5;
@@ -222,47 +263,66 @@ export default function SectionB({ profileId, onSave }) {
 
   const toggleGarment = (name, mode) => {
     setGarments(prev => {
+      let next = prev;
       const exists = prev.find(g => g.name === name);
       if (mode === 'top5') {
         if (!exists) return prev;
-        if (exists.top5) {
-          return prev.map(g => g.name === name ? { ...g, top5: false } : g);
-        }
-        if (top5Count >= TOP5_MAX) return prev; // cap
-        return prev.map(g => g.name === name ? { ...g, top5: true } : g);
+        next = exists.top5
+          ? prev.map(g => g.name === name ? { ...g, top5: false } : g)
+          : top5Count >= TOP5_MAX ? prev
+          : prev.map(g => g.name === name ? { ...g, top5: true } : g);
+      } else {
+        next = exists ? prev.filter(g => g.name !== name) : [...prev, { name, top5: false }];
       }
-      // toggling selection itself
-      if (exists) {
-        return prev.filter(g => g.name !== name);
-      }
-      return [...prev, { name, top5: false }];
+      triggerAutosave({ garment_types: next });
+      return next;
     });
   };
 
   const addCustomGarment = () => {
     const v = customGarment.trim();
     if (!v) return;
-    setAllGarmentNames(prev => [...prev, v]);
-    setGarments(prev => [...prev, { name: v, top5: false }]);
-    setCustomGarment('');
-    setAddingGarment(false);
+    setAllGarmentNames(p => [...p, v]);
+    setGarments(prev => { const next = [...prev, { name: v, top5: false }]; triggerAutosave({ garment_types: next }); return next; });
+    setCustomGarment(''); setAddingGarment(false);
   };
 
   const toggleHF = item => {
-    setHomeFurnishings(prev => prev.includes(item) ? prev.filter(x => x !== item) : [...prev, item]);
+    setHomeFurnishings(prev => {
+      const next = prev.includes(item) ? prev.filter(x => x !== item) : [...prev, item];
+      triggerAutosave({ home_furnishings: next });
+      return next;
+    });
   };
 
-  const save = async () => {
+  /* change 5: add item to an existing HF group */
+  const addHFItem = (groupName, itemName) => {
+    setHfGroups(prev => prev.map(g => g.group === groupName ? { ...g, items: [...g.items, itemName] } : g));
+    setHomeFurnishings(prev => {
+      const next = [...prev, itemName];
+      triggerAutosave({ home_furnishings: next });
+      return next;
+    });
+  };
+
+  /* change 5: add a whole new HF category */
+  const addHFCategory = () => {
+    const v = newCatName.trim();
+    if (!v) return;
+    setHfGroups(prev => [...prev, { group: v, items: [] }]);
+    setNewCatName(''); setAddingCategory(false);
+  };
+
+  const save = async (andNext = false) => {
     setSaving(true);
     try {
       await API.putStudio(profileId, {
-        gender_focus: genders,
-        occasions,
-        garment_types: garments,
-        home_furnishings: homeFurnishings,
+        gender_focus: genders, occasions,
+        garment_types: garments, home_furnishings: homeFurnishings,
       });
       success('Section B saved!');
       onSave?.();
+      if (andNext) onNext?.();
     } catch (e) {
       error(e.response?.data ? JSON.stringify(e.response.data) : 'Save failed');
     } finally { setSaving(false); }
@@ -273,29 +333,23 @@ export default function SectionB({ profileId, onSave }) {
       <Toast toasts={toasts} />
       <SectionHeader letter="B" title="Categories" desc="Which buyers you dress, what you make, and how well. These are the primary matching signals for Qalawati." />
 
-      <CategoryAccordion icon="👗" name="Apparel" sub="Clothing, garments, accessories" defaultOpen count={genders.length + occasions.length + garments.length}>
+      <CategoryAccordion name="Apparel" sub="Clothing, garments, accessories" defaultOpen count={genders.length + occasions.length + garments.length}>
 
-        {/* B.1 Gender */}
         <CardSection title="B.1 — Gender">
-          <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 14 }}>
-            Check the categories you produce for. The order you check them in becomes your ranking — checked first means you do it best.
-          </p>
+          <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 14 }}>Check the categories you produce for. Order of checking becomes your ranking.</p>
           {GENDERS.map(name => (
             <RankItemRow key={name} name={name} rank={genders.find(g => g.name === name)?.rank ?? null} onToggle={toggleGender} />
           ))}
         </CardSection>
 
-        {/* B.2 Occasions */}
         <CardSection title="B.2 — Occasions">
-          <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 14 }}>
-            Check the occasions you produce for. Rank them by strength — first check = strongest occasion.
-          </p>
+          <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 14 }}>Rank by strength — first check = strongest occasion.</p>
           {allOccasionNames.map(name => (
             <RankItemRow key={name} name={name} rank={occasions.find(o => o.name === name)?.rank ?? null} onToggle={toggleOccasion} />
           ))}
           {addingOcc ? (
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <input value={customOcc} onChange={e => setCustomOcc(e.target.value)} placeholder="e.g. Maternity wear" style={{ flex: 1 }} />
+              <input style={{ ...inputStyle, flex: 1 }} value={customOcc} onChange={e => setCustomOcc(e.target.value)} placeholder="e.g. Maternity wear" />
               <button className="btn btn-teal btn-sm" onClick={addCustomOccasion}>Add</button>
               <button className="btn btn-ghost btn-sm" onClick={() => { setAddingOcc(false); setCustomOcc(''); }}>Cancel</button>
             </div>
@@ -304,28 +358,18 @@ export default function SectionB({ profileId, onSave }) {
           )}
         </CardSection>
 
-        {/* B.3 Garment Types */}
         <CardSection title="B.3 — Garment Types">
-          <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 6 }}>
-            Select all garment types you produce. Check your best 5 first — they will be highlighted as your top garment types on your profile.
-          </p>
+          <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 6 }}>Select all you produce. Mark your best 5 with the ★ Top button.</p>
           <p style={{ fontSize: 12, color: 'var(--gold)', marginBottom: 14, fontWeight: 600 }}>Top 5 slots: {TOP5_MAX - top5Count} remaining</p>
           {allGarmentNames.map(name => {
             const g = garments.find(x => x.name === name);
             return (
-              <Top5Row
-                key={name}
-                name={name}
-                checked={!!g}
-                top5={!!g?.top5}
-                disabled={top5Count >= TOP5_MAX}
-                onToggle={toggleGarment}
-              />
+              <Top5Row key={name} name={name} checked={!!g} top5={!!g?.top5} disabled={top5Count >= TOP5_MAX} onToggle={toggleGarment} />
             );
           })}
           {addingGarment ? (
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <input value={customGarment} onChange={e => setCustomGarment(e.target.value)} placeholder="e.g. Sarees" style={{ flex: 1 }} />
+              <input style={{ ...inputStyle, flex: 1 }} value={customGarment} onChange={e => setCustomGarment(e.target.value)} placeholder="e.g. Sarees" />
               <button className="btn btn-teal btn-sm" onClick={addCustomGarment}>Add</button>
               <button className="btn btn-ghost btn-sm" onClick={() => { setAddingGarment(false); setCustomGarment(''); }}>Cancel</button>
             </div>
@@ -335,16 +379,34 @@ export default function SectionB({ profileId, onSave }) {
         </CardSection>
       </CategoryAccordion>
 
-      {/* Home Furnishings */}
-      <CategoryAccordion icon="🏠" name="Home Furnishings" sub="Textiles for the home" count={homeFurnishings.length}>
-        {HOME_FURNISHINGS.map(g => (
-          <HFGroup key={g.group} group={g.group} items={g.items} checked={homeFurnishings} onToggle={toggleHF} />
+      {/* change 5: HF groups with per-group "Add other" + "Add category" at bottom */}
+      <CategoryAccordion name="Home Furnishings" sub="Textiles for the home" count={homeFurnishings.length}>
+        {hfGroups.map(g => (
+          <HFGroup key={g.group} group={g.group} items={g.items} checked={homeFurnishings} onToggle={toggleHF} onAddItem={addHFItem} />
         ))}
+
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+          {addingCategory ? (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input style={{ ...inputStyle, flex: 1, height: 34 }} value={newCatName} onChange={e => setNewCatName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addHFCategory(); } }}
+                placeholder="New category name, e.g. Outdoor / Garden" autoFocus />
+              <button className="btn btn-teal btn-sm" onClick={addHFCategory}>Add Category</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setAddingCategory(false); setNewCatName(''); }}>Cancel</button>
+            </div>
+          ) : (
+            <button className="btn btn-outline btn-sm" style={{ borderStyle: 'dashed' }} onClick={() => setAddingCategory(true)}>+ Add category</button>
+          )}
+        </div>
       </CategoryAccordion>
 
-      <button className="btn btn-primary btn-lg fade-up" onClick={save} disabled={saving} style={{ marginTop: 8 }}>
-        {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save & Next'}
-      </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 8 }}>
+        <button className="btn btn-primary btn-lg fade-up" onClick={() => save(true)} disabled={saving}>
+          {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save & Next'}
+        </button>
+        <button className="btn btn-ghost fade-up" onClick={() => save(false)} disabled={saving}>Save</button>
+        <SavedPulse show={savedPulse} />
+      </div>
     </div>
   );
 }

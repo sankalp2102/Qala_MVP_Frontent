@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { onboardingAPI } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
+import { TrashIcon } from './SectionA';
+import { mediaUrl } from '../../utils/mediaUrl';
 
 const API = onboardingAPI;
 
@@ -11,16 +13,10 @@ const TYPES = [
   { key: 'weaving',  label: 'Weaving Techniques',           desc: 'Does your studio weave, or work closely with weavers? Add any weaving techniques here.', cta: '+ Add Weaving Technique', hint: 'e.g. Plain weave, Ikat, Jamdani, Dobby, Jacquard, Khadi handspun.' },
 ];
 
-const LEVELS = [
-  { value: 'high',   label: 'Pro' },     // spec: Mod/High/Pro maps to innovation_level low/medium/high in backend
-  { value: 'medium', label: 'High' },
-  { value: 'low',    label: 'Moderate' },
-];
-// Display order should read Moderate, High, Pro left-to-right
 const LEVELS_ORDERED = [
-  { value: 'low',    label: 'Moderate' },
-  { value: 'medium', label: 'High' },
-  { value: 'high',   label: 'Pro' },
+  { value: 'low',    label: 'Moderate', bg: '#EBF5E8', text: '#5C845C', border: '#9EC09E' },
+  { value: 'medium', label: 'High',     bg: '#A8D4A8', text: '#2A5E2A', border: '#7AB47A' },
+  { value: 'high',   label: 'Pro',      bg: '#4A7C4A', text: '#FFFFFF', border: '#4A7C4A' },
 ];
 
 function SectionHeader({ letter, title, desc }) {
@@ -44,23 +40,17 @@ function CardSection({ title, desc, children }) {
 }
 
 function ExpertiseButtons({ value, onChange }) {
-  const colors = {
-    low:    { bg: '#EBF5E8', text: '#5C845C', border: '#9EC09E' },
-    medium: { bg: '#A8D4A8', text: '#2A5E2A', border: '#7AB47A' },
-    high:   { bg: '#4A7C4A', text: '#FFFFFF', border: '#4A7C4A' },
-  };
   return (
     <div style={{ display: 'flex', gap: 6 }}>
       {LEVELS_ORDERED.map(l => {
         const selected = value === l.value;
-        const c = colors[l.value];
         return (
           <button key={l.value} onClick={() => onChange(l.value)}
             style={{
               fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 5,
-              border: `1px solid ${selected ? c.border : 'var(--border2)'}`,
-              background: selected ? c.bg : 'var(--surface2)',
-              color: selected ? c.text : 'var(--text3)',
+              border: `1px solid ${selected ? l.border : 'var(--border2)'}`,
+              background: selected ? l.bg : 'var(--surface2)',
+              color: selected ? l.text : 'var(--text3)',
               cursor: 'pointer',
             }}>
             {l.label}
@@ -72,6 +62,14 @@ function ExpertiseButtons({ value, onChange }) {
 }
 
 function TechniqueCard({ craft, onUpdate, onDelete, onImageUpload, onImageRemove }) {
+  /*
+   * Issue 3 fix: craft.image is a relative path like /media/sellers/.../craft.jpg
+   * Must be wrapped with mediaUrl() to resolve to the full GCS or API URL.
+   * Previously using img.url directly caused broken image icons.
+   */
+  const rawUrl = craft._images?.[0]?.url || craft.image || null;
+  const imgSrc = rawUrl ? mediaUrl(rawUrl) : null;
+
   return (
     <div style={{ border: '1px solid var(--border2)', borderRadius: 6, padding: '14px 16px', background: 'var(--surface2)', marginBottom: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
@@ -79,42 +77,52 @@ function TechniqueCard({ craft, onUpdate, onDelete, onImageUpload, onImageRemove
           value={craft.craft_name}
           onChange={e => onUpdate({ craft_name: e.target.value })}
           placeholder="Technique name"
-          style={{ flex: 1, minWidth: 160, fontWeight: 600, fontSize: 14 }}
+          style={{ flex: 1, minWidth: 160, fontWeight: 600, fontSize: 14, height: 38, padding: '0 12px', border: '1.5px solid var(--border2)', borderRadius: 8, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'var(--font-body)', outline: 'none' }}
         />
         <ExpertiseButtons value={craft.innovation_level || 'low'} onChange={lvl => onUpdate({ innovation_level: lvl })} />
-        <button className="btn btn-danger btn-sm" onClick={onDelete}>Delete</button>
+        {/* Issue 2 fix: inline SVG TrashIcon — not an icon font, renders correctly */}
+        <button
+          aria-label="Delete technique"
+          onClick={onDelete}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text4)', padding: 4, display: 'flex', alignItems: 'center', borderRadius: 4 }}>
+          <TrashIcon size={16} />
+        </button>
       </div>
+
       <input
         value={craft.specialization || ''}
         onChange={e => onUpdate({ specialization: e.target.value })}
         placeholder="Innovation / specialization (optional)"
-        style={{ width: '100%', marginBottom: 10 }}
+        style={{ width: '100%', marginBottom: 10, height: 36, padding: '0 12px', border: '1.5px solid var(--border2)', borderRadius: 8, background: 'var(--surface)', color: 'var(--text)', fontSize: 13, fontFamily: 'var(--font-body)', outline: 'none' }}
       />
-      <div style={{ display: 'flex', gap: 8 }}>
-        {[0, 1, 2].map(i => {
-          const img = craft._images?.[i];
-          return (
-            <div key={i} style={{ width: 76, height: 76, border: '1px dashed var(--border2)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
-              {img ? (
-                <>
-                  <img src={img.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <button onClick={() => onImageRemove(i)} style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: 4, width: 18, height: 18, fontSize: 11, cursor: 'pointer', lineHeight: 1 }}>×</button>
-                </>
-              ) : (
-                <label style={{ cursor: 'pointer', fontSize: 18, color: 'var(--text4)' }}>
-                  +
-                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => onImageUpload(e, i)} />
-                </label>
-              )}
-            </div>
-          );
-        })}
+
+      {/* Single image slot */}
+      <div style={{ width: 76, height: 76, border: '1px dashed var(--border2)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+        {imgSrc ? (
+          <>
+            <img
+              src={imgSrc}
+              alt=""
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              onError={e => { e.target.style.display = 'none'; }}
+            />
+            <button onClick={onImageRemove} aria-label="Remove image"
+              style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: 3, width: 18, height: 18, fontSize: 12, cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
+              ×
+            </button>
+          </>
+        ) : (
+          <label style={{ cursor: 'pointer', fontSize: 20, color: 'var(--text4)', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            +
+            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={onImageUpload} />
+          </label>
+        )}
       </div>
     </div>
   );
 }
 
-export default function SectionD({ profileId, onSave }) {
+export default function SectionD({ profileId, onSave, onNext }) {
   const { toasts, success, error } = useToast();
   const [crafts, setCrafts] = useState({ printing: [], surface: [], weaving: [] });
   const [saving, setSaving] = useState(false);
@@ -135,76 +143,60 @@ export default function SectionD({ profileId, onSave }) {
   const addCard = type => {
     setCrafts(prev => ({
       ...prev,
-      [type]: [...prev[type], {
-        _local: true, _tempId: Date.now(),
-        craft_name: '', specialization: '', innovation_level: 'low',
-        technique_type: type, is_primary: true,
-      }],
+      [type]: [...prev[type], { _local: true, _tempId: Date.now(), craft_name: '', specialization: '', innovation_level: 'low', technique_type: type, is_primary: true }],
     }));
   };
 
   const updateCard = (type, idx, patch) => {
-    setCrafts(prev => ({
-      ...prev,
-      [type]: prev[type].map((c, i) => i === idx ? { ...c, ...patch } : c),
-    }));
+    setCrafts(prev => ({ ...prev, [type]: prev[type].map((c, i) => i === idx ? { ...c, ...patch } : c) }));
   };
 
   const deleteCard = async (type, idx) => {
     const card = crafts[type][idx];
-    if (card.id) {
-      try { await API.delCraft(profileId, card.id); } catch {}
-    }
+    if (card.id) { try { await API.delCraft(profileId, card.id); } catch {} }
     setCrafts(prev => ({ ...prev, [type]: prev[type].filter((_, i) => i !== idx) }));
   };
 
   const uploadImage = async (type, idx, e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const file = e.target.files?.[0]; if (!file) return;
     e.target.value = '';
     const card = crafts[type][idx];
-
     try {
-      const fd = new FormData();
-      fd.append('craft_name', card.craft_name || 'Untitled');
-      fd.append('technique_type', type);
-      fd.append('innovation_level', card.innovation_level || 'low');
-      fd.append('specialization', card.specialization || '');
-      fd.append('is_primary', true);
-      fd.append('image', file);
-
       let saved;
       if (card.id) {
-        const fdPatch = new FormData();
-        fdPatch.append('image', file);
-        const r = await API.patchCraft(profileId, card.id, fdPatch);
-        saved = r.data;
+        const fd = new FormData(); fd.append('image', file);
+        const r = await API.patchCraft(profileId, card.id, fd); saved = r.data;
       } else {
-        const r = await API.addCraft(profileId, fd);
-        saved = r.data;
+        const fd = new FormData();
+        fd.append('craft_name', card.craft_name || 'Untitled');
+        fd.append('technique_type', type);
+        fd.append('innovation_level', card.innovation_level || 'low');
+        fd.append('specialization', card.specialization || '');
+        fd.append('is_primary', true);
+        fd.append('image', file);
+        const r = await API.addCraft(profileId, fd); saved = r.data;
       }
+      /* Store the raw path from the API — mediaUrl() is applied at render time */
       updateCard(type, idx, { ...saved, _images: [{ url: saved.image }] });
       success('Image uploaded');
-    } catch {
-      error('Image upload failed');
-    }
+    } catch { error('Image upload failed'); }
   };
 
-  const saveAll = async () => {
+  const removeImage = async (type, idx) => {
+    const card = crafts[type][idx];
+    if (card.id) { try { await API.patchCraft(profileId, card.id, { image: null }); } catch {} }
+    updateCard(type, idx, { image: null, _images: [] });
+  };
+
+  const saveAll = async (andNext = false) => {
     setSaving(true);
     try {
       for (const type of Object.keys(crafts)) {
         for (let i = 0; i < crafts[type].length; i++) {
           const card = crafts[type][i];
           if (!card.craft_name?.trim()) continue;
-
           if (card.id) {
-            await API.patchCraft(profileId, card.id, {
-              craft_name: card.craft_name,
-              technique_type: type,
-              innovation_level: card.innovation_level,
-              specialization: card.specialization,
-            });
+            await API.patchCraft(profileId, card.id, { craft_name: card.craft_name, technique_type: type, innovation_level: card.innovation_level, specialization: card.specialization });
           } else {
             const fd = new FormData();
             fd.append('craft_name', card.craft_name);
@@ -220,6 +212,7 @@ export default function SectionD({ profileId, onSave }) {
       }
       success('Section D saved!');
       onSave?.();
+      if (andNext) onNext?.();
     } catch (e) {
       error(e.response?.data ? JSON.stringify(e.response.data) : 'Save failed');
     } finally { setSaving(false); }
@@ -234,7 +227,7 @@ export default function SectionD({ profileId, onSave }) {
         <CardSection key={t.key} title={`D.${TYPES.indexOf(t) + 1} — ${t.label}`} desc={t.desc}>
           {crafts[t.key].length === 0 && (
             <p style={{ fontSize: 13, color: 'var(--text4)', fontStyle: 'italic', marginBottom: 12 }}>
-              {t.hint ? t.hint : 'No techniques added yet.'}
+              {t.hint || 'No techniques added yet.'}
             </p>
           )}
           {crafts[t.key].map((card, idx) => (
@@ -243,17 +236,20 @@ export default function SectionD({ profileId, onSave }) {
               craft={card}
               onUpdate={patch => updateCard(t.key, idx, patch)}
               onDelete={() => deleteCard(t.key, idx)}
-              onImageUpload={(e, slot) => uploadImage(t.key, idx, e)}
-              onImageRemove={() => {}}
+              onImageUpload={e => uploadImage(t.key, idx, e)}
+              onImageRemove={() => removeImage(t.key, idx)}
             />
           ))}
           <button className="btn btn-outline btn-sm" onClick={() => addCard(t.key)}>{t.cta}</button>
         </CardSection>
       ))}
 
-      <button className="btn btn-primary btn-lg fade-up" onClick={saveAll} disabled={saving}>
-        {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save & Next'}
-      </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <button className="btn btn-primary btn-lg fade-up" onClick={() => saveAll(true)} disabled={saving}>
+          {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save & Next'}
+        </button>
+        <button className="btn btn-ghost fade-up" onClick={() => saveAll(false)} disabled={saving}>Save</button>
+      </div>
     </div>
   );
 }

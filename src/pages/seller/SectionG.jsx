@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { onboardingAPI } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
+import { TrashIcon } from './SectionA';
 
 const API = onboardingAPI;
 
@@ -55,7 +56,10 @@ function ProjectCard({ project, onPatch, onDelete, onUploadPhoto, onDeletePhoto 
           <ToggleSwitch checked={project.open_for_collab} onChange={v => onPatch({ open_for_collab: v })} onColor="#7A8C6E" label="Open for Collab" />
           <ToggleSwitch checked={project.is_hidden} onChange={v => onPatch({ is_hidden: v })} />
           <button className="btn btn-ghost btn-sm" onClick={() => setEditing(e => !e)}>{editing ? 'Done' : 'Edit'}</button>
-          <button className="btn btn-danger btn-sm" onClick={onDelete}>Delete</button>
+          <button aria-label="Delete project" onClick={onDelete}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text4)', padding: 4, display: 'flex', alignItems: 'center', borderRadius: 4 }}>
+            <TrashIcon size={16} />
+          </button>
         </div>
       </div>
 
@@ -132,7 +136,7 @@ function emptyDraft() {
   };
 }
 
-export default function SectionG({ profileId, onSave }) {
+export default function SectionG({ profileId, onSave, onNext }) {
   const { toasts, success, error } = useToast();
   const [projects, setProjects] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -198,17 +202,15 @@ export default function SectionG({ profileId, onSave }) {
     } catch { error('Failed to remove photo'); }
   };
 
-  const finish = async () => {
+  const finish = async (andNext = false) => {
     setSaving(true);
     try {
-      // ensure any local-only drafts with a name get saved
       for (let i = 0; i < projects.length; i++) {
-        if (projects[i]._local && projects[i].name?.trim()) {
-          await saveNewProject(i);
-        }
+        if (projects[i]._local && projects[i].name?.trim()) await saveNewProject(i);
       }
       success('Section G saved!');
       onSave?.();
+      if (andNext) onNext?.();
     } finally { setSaving(false); }
   };
 
@@ -232,9 +234,12 @@ export default function SectionG({ profileId, onSave }) {
         <button className="btn btn-outline" onClick={addProject}>+ Add New Project</button>
       </div>
 
-      <button className="btn btn-primary btn-lg fade-up" onClick={finish} disabled={saving}>
-        {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save & Next'}
-      </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <button className="btn btn-primary btn-lg fade-up" onClick={() => finish(true)} disabled={saving}>
+          {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save & Next'}
+        </button>
+        <button className="btn btn-ghost fade-up" onClick={() => finish(false)} disabled={saving}>Save</button>
+      </div>
     </div>
   );
 }
