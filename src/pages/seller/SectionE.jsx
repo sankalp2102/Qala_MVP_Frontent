@@ -48,10 +48,10 @@ function YNToggle({ value, onChange }) {
     <div style={{ display: 'flex', gap: 8 }}>
       {[{ v: true, l: 'Yes' }, { v: false, l: 'No' }].map(({ v, l }) => (
         <button key={l} onClick={() => onChange(v)} style={{
-          padding: '8px 28px', borderRadius: 'var(--radius)',
-          border: `1px solid ${value === v ? 'var(--gold)' : 'var(--border2)'}`,
-          background: value === v ? 'var(--gold)' : 'var(--surface2)',
-          color: value === v ? '#fff' : 'var(--text2)',
+          padding: '8px 28px', borderRadius: 5,
+          border: `1px solid ${value === v ? '#D97520' : '#D8D4CF'}`,
+          background: value === v ? '#D97520' : '#fff',
+          color: value === v ? '#fff' : '#555',
           fontWeight: value === v ? 600 : 400, cursor: 'pointer', fontSize: 13,
         }}>{l}</button>
       ))}
@@ -61,7 +61,7 @@ function YNToggle({ value, onChange }) {
 
 function CollabModeCard({ mode, value, onChange }) {
   return (
-    <div style={{ border: '1px solid var(--border2)', borderRadius: 8, padding: '16px 18px', background: '#fff', marginBottom: 12 }}>
+    <div style={{ border: '1px solid #E4E0DB', borderRadius: 8, padding: '16px 18px', background: '#fff', marginBottom: 12 }}>
       <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', marginBottom: 4 }}>{mode.name}</div>
       <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 10, lineHeight: 1.6 }}>{mode.desc}</p>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
@@ -69,8 +69,8 @@ function CollabModeCard({ mode, value, onChange }) {
           <span key={p} style={{ fontSize: 10, color: '#666', background: '#F2F0EC', border: '1px solid #E5E1DB', borderRadius: 20, padding: '2px 8px' }}>{p}</span>
         ))}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 13, color: 'var(--text2)' }}>Do you offer this?</span>
+      <div style={{ borderTop: '1px solid #F0EDE8', paddingTop: 10, display: 'flex', alignItems: 'center', gap: 16 }}>
+        <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999', fontWeight: 600, minWidth: 90 }}>Do you offer this?</span>
         <YNToggle value={value} onChange={onChange} />
       </div>
     </div>
@@ -89,7 +89,7 @@ function CheckboxRow({ label, desc, checked, onChange }) {
   );
 }
 
-export default function SectionE({ profileId, onSave, onNext }) {
+export default function SectionE({ profileId, initialData, onSave, onNext }) {
   const { toasts, success, error } = useToast();
   const [form, setForm] = useState({
     catalogue_collab: null, co_creation: null, production_house: null,
@@ -97,20 +97,23 @@ export default function SectionE({ profileId, onSave, onNext }) {
   });
   const [saving, setSaving] = useState(false);
 
+  const populateFromData = (d) => {
+    if (!d) return;
+    setForm({
+      catalogue_collab: d.catalogue_collab,
+      co_creation: d.co_creation,
+      production_house: d.production_house,
+      has_fashion_designer: d.has_fashion_designer,
+      has_textile_design: d.has_textile_design,
+      has_design_from_scratch: d.has_design_from_scratch,
+    });
+  };
+
+  useEffect(() => { if (initialData) populateFromData(initialData); }, [initialData]);
+
   useEffect(() => {
-    if (!profileId) return;
-    API.getCollab(profileId).then(r => {
-      const d = r.data;
-      if (!d) return;
-      setForm({
-        catalogue_collab: d.catalogue_collab,
-        co_creation: d.co_creation,
-        production_house: d.production_house,
-        has_fashion_designer: d.has_fashion_designer,
-        has_textile_design: d.has_textile_design,
-        has_design_from_scratch: d.has_design_from_scratch,
-      });
-    }).catch(() => {});
+    if (!profileId || initialData) return;
+    API.getCollab(profileId).then(r => populateFromData(r.data)).catch(() => {});
   }, [profileId]);
 
   const save = async (andNext = false) => {

@@ -45,7 +45,7 @@ function TrashBtn({ onClick, label = 'Remove' }) {
   );
 }
 
-export default function SectionF({ profileId, onSave, onNext }) {
+export default function SectionF({ profileId, initialData, onSave, onNext }) {
   const { toasts, success, error } = useToast();
 
   const [contacts, setContacts]         = useState([]);
@@ -63,8 +63,30 @@ export default function SectionF({ profileId, onSave, onNext }) {
   });
   const [saving, setSaving] = useState(false);
 
+  /* Populate from snapshot slices: { production, collab, studio } */
   useEffect(() => {
-    if (!profileId) return;
+    if (!initialData) return;
+    const { production: d, collab, studio } = initialData;
+    if (studio?.contacts) setContacts(studio.contacts);
+    if (collab?.buyer_coordinator) {
+      const bc = collab.buyer_coordinator;
+      setCoordinator({ name: bc.name || '', position: bc.position || '', writeup: bc.writeup || '' });
+    }
+    if (d) {
+      setForm(f => ({
+        ...f,
+        artisan_count: d.artisan_count ?? '',
+        monthly_capacity_units: d.monthly_capacity_units ?? '',
+        production_time_weeks: d.production_time_weeks ?? '',
+        moq_per_batch: d.moq_per_batch ?? '',
+        moq_flexible: !!d.moq_flexible,
+      }));
+    }
+  }, [initialData]);
+
+  /* Fallback: only fetch if no snapshot data */
+  useEffect(() => {
+    if (!profileId || initialData) return;
     API.getStudio(profileId).then(r => { if (r.data?.contacts) setContacts(r.data.contacts); }).catch(() => {});
     API.getCoordinator(profileId).then(r => {
       const d = r.data;
@@ -182,7 +204,7 @@ export default function SectionF({ profileId, onSave, onNext }) {
               </div>
             </div>
           ) : (
-            <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: 'var(--surface2)', borderRadius: 8, marginBottom: 8, border: '1px solid var(--border)' }}>
+            <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: '#FAFAF8', borderRadius: 6, marginBottom: 8, border: '1px solid #E4E0DB' }}>
               <div>
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{c.name}</div>
                 <div style={{ fontSize: 12, color: 'var(--text3)' }}>{c.role}{c.email && ` · ${c.email}`}</div>
@@ -195,7 +217,7 @@ export default function SectionF({ profileId, onSave, onNext }) {
           )
         ))}
         {addingC ? (
-          <div style={{ padding: 16, border: '1px solid var(--border2)', borderRadius: 8, marginTop: 8, background: 'var(--surface2)' }}>
+          <div style={{ padding: 16, border: '1px solid #E4E0DB', borderRadius: 6, marginTop: 8, background: '#FAFAF8' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <Field label="Name *"><input style={inputStyle} value={newContact.name} onChange={e => setNewContact(c => ({ ...c, name: e.target.value }))} /></Field>
               <Field label="Role *"><input style={inputStyle} value={newContact.role} onChange={e => setNewContact(c => ({ ...c, role: e.target.value }))} /></Field>

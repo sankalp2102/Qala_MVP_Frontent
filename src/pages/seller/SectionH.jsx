@@ -26,7 +26,29 @@ function CardSection({ title, desc, children }) {
   );
 }
 
-export default function SectionH({ profileId, onSave }) {
+function UploadArea({ uploading, progress }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ border: '1px dashed #C8C4BF', borderRadius: 6, padding: 28, textAlign: 'center', background: hovered && !uploading ? '#FAFAF8' : 'transparent', transition: 'background .1s' }}>
+      {uploading ? (
+        <div style={{ fontSize: 13, color: '#888' }}>
+          <span className="spinner" style={{ width: 14, height: 14, display: 'inline-block', marginRight: 6 }} />
+          Uploading {progress?.done || 0} / {progress?.total || 0}…
+        </div>
+      ) : (
+        <>
+          <div style={{ fontSize: 13, color: '#888', marginBottom: 4 }}>Upload photos &amp; videos</div>
+          <div style={{ fontSize: 11, color: '#BBBBBB' }}>Images up to 10 MB · Videos up to 100 MB</div>
+        </>
+      )}
+    </div>
+  );
+}
+
+export default function SectionH({ profileId, initialData, onSave, onNext }) {
   const { toasts, success, error } = useToast();
   const nav = useNavigate();
 
@@ -37,13 +59,16 @@ export default function SectionH({ profileId, onSave }) {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!profileId) return;
-    API.getProcess(profileId).then(r => {
-      if (r.data?.bts_media) setMedia(r.data.bts_media);
-    }).catch(() => {});
-    API.getStudio(profileId).then(r => {
-      setStudioNotes(r.data?.studio_notes || '');
-    }).catch(() => {});
+    if (!initialData) return;
+    const { process, studio } = initialData;
+    if (process?.bts_media) setMedia(process.bts_media);
+    if (studio?.studio_notes) setStudioNotes(studio.studio_notes || '');
+  }, [initialData]);
+
+  useEffect(() => {
+    if (!profileId || initialData) return;
+    API.getProcess(profileId).then(r => { if (r.data?.bts_media) setMedia(r.data.bts_media); }).catch(() => {});
+    API.getStudio(profileId).then(r => { setStudioNotes(r.data?.studio_notes || ''); }).catch(() => {});
   }, [profileId]);
 
   const upload = async e => {
@@ -114,13 +139,9 @@ export default function SectionH({ profileId, onSave }) {
             ))}
           </div>
         )}
-        <label style={{ display: 'inline-block' }}>
-          <input type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/x-msvideo" onChange={upload} style={{ display: 'none' }} />
-          <span className="btn btn-outline btn-sm" style={{ cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
-            {uploading
-              ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Uploading {uploadProgress?.done || 0} / {uploadProgress?.total || 0}…</>
-              : '+ Upload Photos / Videos'}
-          </span>
+        <label style={{ display: 'block', cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
+          <input type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/x-msvideo" onChange={upload} style={{ display: 'none' }} disabled={uploading} />
+          <UploadArea uploading={uploading} progress={uploadProgress} />
         </label>
         {uploadProgress?.failed > 0 && <span style={{ fontSize: 11, color: 'var(--red)', marginLeft: 10 }}>{uploadProgress.failed} failed</span>}
         <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 8 }}>Images: JPG · PNG · WEBP up to 10 MB. Videos: MP4 · MOV · AVI up to 100 MB.</p>

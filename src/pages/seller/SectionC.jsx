@@ -133,9 +133,9 @@ function ExpertiseButtons({ value, onChange, disabled }) {
   );
 }
 
-function ExpertiseRow({ name, level, checked, onToggle, onLevel }) {
+function ExpertiseRow({ name, level, checked, onToggle, onLevel, isLast }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: '1px solid var(--border)', gap: 12 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: isLast ? 'none' : '1px solid #F5F3EF', gap: 12 }}>
       <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', flex: 1 }}>
         <input type="checkbox" checked={checked} onChange={onToggle} />
         <span style={{ fontSize: 14, color: 'var(--text)' }}>{name}</span>
@@ -147,6 +147,7 @@ function ExpertiseRow({ name, level, checked, onToggle, onLevel }) {
 
 function FabricAccordion({ label, fabrics, answers, onToggle, onLevel, defaultOpen }) {
   const [open, setOpen] = useState(!!defaultOpen);
+  const [hovered, setHovered] = useState(false);
   const count = fabrics.filter(f => answers[f]?.checked).length;
   return (
     /*
@@ -156,7 +157,7 @@ function FabricAccordion({ label, fabrics, answers, onToggle, onLevel, defaultOp
      * The border-radius still renders correctly without overflow:hidden.
      */
     <div style={{ border: '1px solid #EDE8E2', borderRadius: 7, marginBottom: 8 }}>
-      <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 14px', background: '#FAFAF8', cursor: 'pointer', borderRadius: open ? '7px 7px 0 0' : 7 }}>
+      <div onClick={() => setOpen(o => !o)} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 14px', background: hovered ? '#F5F1EB' : '#FAFAF8', cursor: 'pointer', borderRadius: open ? '7px 7px 0 0' : 7, transition: 'background .1s' }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {count > 0 && <span style={{ fontSize: 11, fontWeight: 600, color: '#4A7C4A', background: '#EEF3EC', padding: '2px 8px', borderRadius: 4 }}>{count} selected</span>}
@@ -165,10 +166,11 @@ function FabricAccordion({ label, fabrics, answers, onToggle, onLevel, defaultOp
       </div>
       {open && (
         <div style={{ padding: '4px 14px 10px', background: '#fff', borderTop: '1px solid #F0EDE8', borderRadius: '0 0 7px 7px' }}>
-          {fabrics.map(f => (
+          {fabrics.map((f, i) => (
             <ExpertiseRow key={f} name={f}
               checked={!!answers[f]?.checked} level={answers[f]?.level || null}
-              onToggle={() => onToggle(f)} onLevel={lvl => onLevel(f, lvl)} />
+              onToggle={() => onToggle(f)} onLevel={lvl => onLevel(f, lvl)}
+              isLast={i === fabrics.length - 1} />
           ))}
         </div>
       )}
@@ -176,7 +178,7 @@ function FabricAccordion({ label, fabrics, answers, onToggle, onLevel, defaultOp
   );
 }
 
-export default function SectionC({ profileId, onSave, onNext }) {
+export default function SectionC({ profileId, initialData, onSave, onNext }) {
   const { toasts, success, error } = useToast();
 
   const [fabricGroups, setFabricGroups] = useState(() =>
@@ -190,37 +192,50 @@ export default function SectionC({ profileId, onSave, onNext }) {
   const [newTypeName, setNewTypeName]     = useState('');
   const [saving, setSaving]               = useState(false);
 
-  const taStyle = { width: '100%', padding: '10px 14px', border: '1.5px solid var(--border2)', borderRadius: 8, background: 'var(--surface)', color: 'var(--text)', fontSize: 14, fontFamily: 'var(--font-body)', lineHeight: 1.7, outline: 'none', resize: 'vertical' };
-  const inStyle = { width: '100%', height: 34, padding: '0 12px', border: '1.5px solid var(--border2)', borderRadius: 8, background: 'var(--surface)', color: 'var(--text)', fontSize: 13, fontFamily: 'var(--font-body)', outline: 'none' };
+  const taStyle = { width: '100%', padding: '9px 12px', border: '1px solid #D8D4CF', borderRadius: 5, background: '#fff', color: '#1A1A1A', fontSize: 13, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, outline: 'none', resize: 'vertical' };
+  const inStyle = { width: '100%', padding: '9px 12px', border: '1px solid #D8D4CF', borderRadius: 5, background: '#fff', color: '#1A1A1A', fontSize: 13, fontFamily: "'DM Sans', sans-serif", outline: 'none' };
 
+  const populateFabrics = (rows) => {
+    const answers = {}; const customByCat = {};
+    (rows || []).forEach(row => {
+      const known = FABRIC_GROUPS.find(g => g.cat === row.category)?.fabrics.includes(row.fabric_name);
+      if (!known) { customByCat[row.category] = customByCat[row.category] || []; customByCat[row.category].push(row.fabric_name); }
+      answers[row.fabric_name] = { checked: row.works_with || !!row.expertise_level, level: row.expertise_level || null };
+    });
+    setFabricAnswers(answers);
+    if (Object.keys(customByCat).length) {
+      setFabricGroups(prev => {
+        const next = { ...prev };
+        Object.entries(customByCat).forEach(([cat, names]) => { next[cat] = [...(next[cat] || []), ...names]; });
+        return next;
+      });
+    }
+  };
+
+  const populateDyes = (rows) => {
+    const answers = {};
+    (rows || []).forEach(row => { answers[row.dye_name] = row.expertise_level; });
+    setDyeAnswers(answers);
+  };
+
+  /* Populate from snapshot immediately */
   useEffect(() => {
-    if (!profileId) return;
+    if (!initialData) return;
+    const { studio, fabrics, dyes } = initialData;
+    if (studio) { setFabricNotes(studio.fabric_notes || ''); setDyeNotes(studio.dye_notes || ''); }
+    if (fabrics) populateFabrics(fabrics);
+    if (dyes)    populateDyes(dyes);
+  }, [initialData]);
+
+  /* Fallback: only fetch if no snapshot data */
+  useEffect(() => {
+    if (!profileId || initialData) return;
     API.getStudio(profileId).then(r => {
       setFabricNotes(r.data?.fabric_notes || '');
       setDyeNotes(r.data?.dye_notes || '');
     }).catch(() => {});
-    API.getFabrics(profileId).then(r => {
-      const rows = r.data || [];
-      const answers = {}; const customByCat = {};
-      rows.forEach(row => {
-        const known = FABRIC_GROUPS.find(g => g.cat === row.category)?.fabrics.includes(row.fabric_name);
-        if (!known) { customByCat[row.category] = customByCat[row.category] || []; customByCat[row.category].push(row.fabric_name); }
-        answers[row.fabric_name] = { checked: row.works_with || !!row.expertise_level, level: row.expertise_level || null };
-      });
-      setFabricAnswers(answers);
-      if (Object.keys(customByCat).length) {
-        setFabricGroups(prev => {
-          const next = { ...prev };
-          Object.entries(customByCat).forEach(([cat, names]) => { next[cat] = [...(next[cat] || []), ...names]; });
-          return next;
-        });
-      }
-    }).catch(() => {});
-    API.getDyes(profileId).then(r => {
-      const answers = {};
-      (r.data || []).forEach(row => { answers[row.dye_name] = row.expertise_level; });
-      setDyeAnswers(answers);
-    }).catch(() => {});
+    API.getFabrics(profileId).then(r => populateFabrics(r.data)).catch(() => {});
+    API.getDyes(profileId).then(r => populateDyes(r.data)).catch(() => {});
   }, [profileId]);
 
   const toggleFabric = (cat, name) => {
@@ -292,10 +307,11 @@ export default function SectionC({ profileId, onSave, onNext }) {
       </CardSection>
 
       <CardSection title="C.2 — Dyes You Work With">
-        {DYES.map(name => (
+        {DYES.map((name, i) => (
           <ExpertiseRow key={name} name={name}
             checked={!!dyeAnswers[name]} level={dyeAnswers[name] || null}
-            onToggle={() => toggleDye(name)} onLevel={lvl => setDyeLevel(name, lvl)} />
+            onToggle={() => toggleDye(name)} onLevel={lvl => setDyeLevel(name, lvl)}
+            isLast={i === DYES.length - 1} />
         ))}
         <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
           <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>More about the dyes you work with</label>

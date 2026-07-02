@@ -7,18 +7,18 @@ const API = onboardingAPI;
 
 /* ── shared input/textarea styles — exported for other sections ── */
 export const inputStyle = {
-  width: '100%', height: 40, padding: '0 14px',
-  border: '1.5px solid var(--border2)', borderRadius: 8,
-  background: 'var(--surface)', color: 'var(--text)',
-  fontSize: 14, fontFamily: 'var(--font-body)',
-  outline: 'none', transition: 'border-color .15s, box-shadow .15s',
+  width: '100%', padding: '9px 12px',
+  border: '1px solid #D8D4CF', borderRadius: 5,
+  background: '#fff', color: '#1A1A1A',
+  fontSize: 13, fontFamily: "'DM Sans', sans-serif",
+  outline: 'none', transition: 'border-color .15s',
   appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'textfield',
 };
 export const textareaStyle = {
-  width: '100%', padding: '10px 14px',
-  border: '1.5px solid var(--border2)', borderRadius: 8,
-  background: 'var(--surface)', color: 'var(--text)',
-  fontSize: 14, fontFamily: 'var(--font-body)', lineHeight: 1.7,
+  width: '100%', padding: '9px 12px',
+  border: '1px solid #D8D4CF', borderRadius: 5,
+  background: '#fff', color: '#1A1A1A',
+  fontSize: 13, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7,
   outline: 'none', transition: 'border-color .15s', resize: 'vertical',
 };
 
@@ -101,7 +101,7 @@ function SavedPulse({ show }) {
   return <span style={{ fontSize: 11, color: 'var(--text4)' }}>Saved</span>;
 }
 
-export default function SectionA({ profileId, onSave, onNext }) {
+export default function SectionA({ profileId, initialData, onSave, onNext }) {
   const { toasts, success, error } = useToast();
   const [savedPulse, setSavedPulse] = useState(false);
 
@@ -120,36 +120,51 @@ export default function SectionA({ profileId, onSave, onNext }) {
   const [uploading, setUploading] = useState('');
   const debounceRef               = useRef({});
 
+  /* Populate from snapshot initialData immediately — no API call needed */
+  const populateFromData = (d) => {
+    if (!d) return;
+    setForm({
+      studio_name: d.studio_name || '', studio_slug: d.studio_slug || '',
+      location_city: d.location_city || '', location_state: d.location_state || '',
+      years_in_operation: d.years_in_operation || '',
+      website_url: d.website_url || '', instagram_url: d.instagram_url || '',
+      short_description: d.short_description || '',
+    });
+    setFlags({
+      studio_name: d.studio_name_flagged ? d.studio_name_flag_reason : null,
+      location: d.location_flagged ? d.location_flag_reason : null,
+      years: d.years_flagged ? d.years_flag_reason : null,
+      website: d.website_flagged ? d.website_flag_reason : null,
+    });
+    if (d.certifications) {
+      try {
+        const p = JSON.parse(d.certifications);
+        setCertTags(Array.isArray(p) ? p : d.certifications.split(',').map(s => s.trim()).filter(Boolean));
+      } catch { setCertTags(d.certifications.split(',').map(s => s.trim()).filter(Boolean)); }
+    }
+    const loaded = (d.usps || []).slice(0, 3).map(u => ({ order: u.order, strength: u.strength }));
+    while (loaded.length < 3) loaded.push({ order: loaded.length + 1, strength: '' });
+    setUsps(loaded);
+    setHeroMedia((d.media_files || []).find(m => m.media_type === 'hero') || null);
+  };
+
+  /* If snapshot data arrives (or changes), use it immediately */
+  useEffect(() => {
+    if (initialData) {
+      populateFromData(initialData);
+    }
+  }, [initialData]);
+
+  /* Only fall back to direct API call if no snapshot data available */
+  useEffect(() => {
+    if (!profileId || initialData) return;
+    API.getStudio(profileId).then(r => populateFromData(r.data)).catch(() => {});
+  }, [profileId]);
+
+  /* Awards are not in snapshot — always fetch separately, but only once */
   useEffect(() => {
     if (!profileId) return;
-    API.getStudio(profileId).then(r => {
-      const d = r.data;
-      if (!d) return;
-      setForm({
-        studio_name: d.studio_name || '', studio_slug: d.studio_slug || '',
-        location_city: d.location_city || '', location_state: d.location_state || '',
-        years_in_operation: d.years_in_operation || '',
-        website_url: d.website_url || '', instagram_url: d.instagram_url || '',
-        short_description: d.short_description || '',
-      });
-      setFlags({
-        studio_name: d.studio_name_flagged ? d.studio_name_flag_reason : null,
-        location: d.location_flagged ? d.location_flag_reason : null,
-        years: d.years_flagged ? d.years_flag_reason : null,
-        website: d.website_flagged ? d.website_flag_reason : null,
-      });
-      if (d.certifications) {
-        try {
-          const p = JSON.parse(d.certifications);
-          setCertTags(Array.isArray(p) ? p : d.certifications.split(',').map(s => s.trim()).filter(Boolean));
-        } catch { setCertTags(d.certifications.split(',').map(s => s.trim()).filter(Boolean)); }
-      }
-      API.getAwards(profileId).then(r => setAwards(r.data || [])).catch(() => {});
-      const loaded = (d.usps || []).slice(0, 3).map(u => ({ order: u.order, strength: u.strength }));
-      while (loaded.length < 3) loaded.push({ order: loaded.length + 1, strength: '' });
-      setUsps(loaded);
-      setHeroMedia((d.media_files || []).find(m => m.media_type === 'hero') || null);
-    }).catch(() => {});
+    API.getAwards(profileId).then(r => setAwards(r.data || [])).catch(() => {});
   }, [profileId]);
 
   const debouncedPatch = useCallback((field, val) => {
@@ -270,7 +285,7 @@ export default function SectionA({ profileId, onSave, onNext }) {
         <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>What makes your studio stand out? Exactly 3 required.</p>
         {usps.slice(0, 3).map((u, i) => (
           <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 10, alignItems: 'center' }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', color: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#CCC', minWidth: 16, flexShrink: 0 }}>{i + 1}</div>
             <input style={{ ...inputStyle, flex: 1 }}
               placeholder={['e.g. Fastest sampling turnaround in block printing — 10 days flat', 'e.g. Own natural dye garden, 40+ plant sources', 'e.g. GI-certified artisan cluster'][i]}
               value={u.strength}
@@ -292,7 +307,7 @@ export default function SectionA({ profileId, onSave, onNext }) {
         <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 14 }}>Press Enter to add. e.g. GOTS, Fair Trade, OEKO-TEX, SA8000, Craftmark, GI tag</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
           {certTags.map((tag, i) => (
-            <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px 5px 12px', border: '1px solid var(--border2)', borderRadius: 20, fontSize: 12, color: 'var(--text2)', background: 'var(--surface2)' }}>
+            <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', border: '1px solid #E4E0DB', borderRadius: 20, fontSize: 12, color: '#555', background: '#FAFAF8' }}>
               {tag}
               <button onClick={() => removeCertTag(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text4)', fontSize: 14, padding: 0, lineHeight: 1 }}>×</button>
             </span>

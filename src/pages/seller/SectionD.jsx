@@ -62,82 +62,82 @@ function ExpertiseButtons({ value, onChange }) {
 }
 
 function TechniqueCard({ craft, onUpdate, onDelete, onImageUpload, onImageRemove }) {
-  /*
-   * Issue 3 fix: craft.image is a relative path like /media/sellers/.../craft.jpg
-   * Must be wrapped with mediaUrl() to resolve to the full GCS or API URL.
-   * Previously using img.url directly caused broken image icons.
-   */
+  const [imgHover, setImgHover] = useState(false);
   const rawUrl = craft._images?.[0]?.url || craft.image || null;
   const imgSrc = rawUrl ? mediaUrl(rawUrl) : null;
 
   return (
-    <div style={{ border: '1px solid var(--border2)', borderRadius: 6, padding: '14px 16px', background: 'var(--surface2)', marginBottom: 12 }}>
+    <div style={{ border: '1px solid #E4E0DB', borderRadius: 6, padding: '14px 16px', background: '#FAFAF8', marginBottom: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
         <input
           value={craft.craft_name}
           onChange={e => onUpdate({ craft_name: e.target.value })}
           placeholder="Technique name"
-          style={{ flex: 1, minWidth: 160, fontWeight: 600, fontSize: 14, height: 38, padding: '0 12px', border: '1.5px solid var(--border2)', borderRadius: 8, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'var(--font-body)', outline: 'none' }}
+          style={{ flex: 1, minWidth: 160, fontWeight: 600, fontSize: 14, padding: '9px 12px', border: '1px solid #D8D4CF', borderRadius: 5, background: '#fff', color: '#1A1A1A', fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
         />
         <ExpertiseButtons value={craft.innovation_level || 'low'} onChange={lvl => onUpdate({ innovation_level: lvl })} />
-        {/* Issue 2 fix: inline SVG TrashIcon — not an icon font, renders correctly */}
         <button
           aria-label="Delete technique"
           onClick={onDelete}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text4)', padding: 4, display: 'flex', alignItems: 'center', borderRadius: 4 }}>
-          <TrashIcon size={16} />
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#CCC', padding: '4px 6px', lineHeight: 1, display: 'inline-flex', alignItems: 'center' }}
+          onMouseEnter={e => e.currentTarget.style.color = '#C0392B'}
+          onMouseLeave={e => e.currentTarget.style.color = '#CCC'}>
+          <TrashIcon size={13} />
         </button>
       </div>
 
-      <input
-        value={craft.specialization || ''}
-        onChange={e => onUpdate({ specialization: e.target.value })}
-        placeholder="Innovation / specialization (optional)"
-        style={{ width: '100%', marginBottom: 10, height: 36, padding: '0 12px', border: '1.5px solid var(--border2)', borderRadius: 8, background: 'var(--surface)', color: 'var(--text)', fontSize: 13, fontFamily: 'var(--font-body)', outline: 'none' }}
-      />
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#CCCCCC', fontWeight: 600, marginBottom: 4 }}>Innovation / Specialization</div>
+        <input
+          value={craft.specialization || ''}
+          onChange={e => onUpdate({ specialization: e.target.value })}
+          placeholder="Optional — what makes your approach distinctive?"
+          style={{ width: '100%', padding: '7px 10px', border: '1px solid #D8D4CF', borderRadius: 5, background: '#fff', color: '#1A1A1A', fontSize: 12, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
+        />
+      </div>
 
-      {/* Single image slot */}
-      <div style={{ width: 76, height: 76, border: '1px dashed var(--border2)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
-        {imgSrc ? (
-          <>
-            <img
-              src={imgSrc}
-              alt=""
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              onError={e => { e.target.style.display = 'none'; }}
-            />
-            <button onClick={onImageRemove} aria-label="Remove image"
-              style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: 3, width: 18, height: 18, fontSize: 12, cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
-              ×
-            </button>
-          </>
-        ) : (
-          <label style={{ cursor: 'pointer', fontSize: 20, color: 'var(--text4)', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            +
-            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={onImageUpload} />
-          </label>
-        )}
+      <div>
+        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#CCCCCC', fontWeight: 600, marginBottom: 6 }}>Photo</div>
+        <div
+          onMouseEnter={() => setImgHover(true)}
+          onMouseLeave={() => setImgHover(false)}
+          style={{ width: 76, height: 76, borderRadius: 5, border: `1px ${imgSrc ? 'solid #E4E0DB' : 'dashed #C8C4BF'}`, background: imgSrc ? 'transparent' : imgHover ? '#FEF8F0' : '#FAFAF8', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', flexShrink: 0, cursor: imgSrc ? 'default' : 'pointer', transition: 'border-color .15s, background .15s', ...(imgHover && !imgSrc ? { borderColor: '#D97520' } : {}) }}>
+          {imgSrc ? (
+            <>
+              <img src={imgSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
+              <button onClick={onImageRemove} aria-label="Remove image" style={{ position: 'absolute', top: 3, right: 3, background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: '50%', width: 16, height: 16, fontSize: 10, cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>×</button>
+            </>
+          ) : (
+            <label style={{ cursor: 'pointer', fontSize: 20, color: '#CCC', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              +
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={onImageUpload} />
+            </label>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-export default function SectionD({ profileId, onSave, onNext }) {
+export default function SectionD({ profileId, initialData, onSave, onNext }) {
   const { toasts, success, error } = useToast();
   const [crafts, setCrafts] = useState({ printing: [], surface: [], weaving: [] });
   const [saving, setSaving] = useState(false);
 
+  const populateCrafts = (rows) => {
+    const grouped = { printing: [], surface: [], weaving: [] };
+    (rows || []).forEach(c => {
+      const type = c.technique_type || 'printing';
+      if (grouped[type]) grouped[type].push(c);
+    });
+    setCrafts(grouped);
+  };
+
+  useEffect(() => { if (initialData) populateCrafts(initialData); }, [initialData]);
+
   useEffect(() => {
-    if (!profileId) return;
-    API.getCrafts(profileId).then(r => {
-      const all = r.data || [];
-      const grouped = { printing: [], surface: [], weaving: [] };
-      all.forEach(c => {
-        const type = c.technique_type || 'printing';
-        if (grouped[type]) grouped[type].push(c);
-      });
-      setCrafts(grouped);
-    }).catch(() => {});
+    if (!profileId || initialData) return;
+    API.getCrafts(profileId).then(r => populateCrafts(r.data)).catch(() => {});
   }, [profileId]);
 
   const addCard = type => {
@@ -240,7 +240,11 @@ export default function SectionD({ profileId, onSave, onNext }) {
               onImageRemove={() => removeImage(t.key, idx)}
             />
           ))}
-          <button className="btn btn-outline btn-sm" onClick={() => addCard(t.key)}>{t.cta}</button>
+          <button
+            onClick={() => addCard(t.key)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 14px', border: '1px dashed #C8C4BF', borderRadius: 5, fontSize: 12, color: '#888', cursor: 'pointer', background: 'transparent', fontFamily: "'DM Sans', sans-serif", marginTop: 4 }}>
+            {t.cta}
+          </button>
         </CardSection>
       ))}
 

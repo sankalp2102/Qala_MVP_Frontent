@@ -55,17 +55,17 @@ function SavedPulse({ show }) {
   return <span style={{ fontSize: 11, color: 'var(--text4)' }}>Saved</span>;
 }
 
-function RankItemRow({ name, rank, onToggle }) {
+function RankItemRow({ name, rank, onToggle, isLast }) {
   const checked = rank != null;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: isLast ? 'none' : '1px solid #F5F3EF' }}>
       <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', flex: 1 }}>
         <input type="checkbox" checked={checked} onChange={() => onToggle(name)} />
-        <span style={{ fontSize: 14, color: 'var(--text)' }}>{name}</span>
+        <span style={{ fontSize: 13, color: '#1A1A1A' }}>{name}</span>
       </label>
       <div style={{
         width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: checked ? 'var(--gold)' : 'transparent', color: '#fff', fontSize: 11, fontWeight: 700, flexShrink: 0,
+        background: checked ? '#D97520' : 'transparent', color: '#fff', fontSize: 11, fontWeight: 700, flexShrink: 0,
       }}>
         {checked ? rank : ''}
       </div>
@@ -73,28 +73,25 @@ function RankItemRow({ name, rank, onToggle }) {
   );
 }
 
-/* change 4: Top badge always visible, greyed out until row is checked */
-function Top5Row({ name, top5, checked, onToggle, disabled }) {
+function Top5Row({ name, top5, checked, onToggle, disabled, isLast }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: isLast ? 'none' : '1px solid #F5F3EF' }}>
       <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', flex: 1 }}>
         <input type="checkbox" checked={checked} onChange={() => onToggle(name)} />
-        <span style={{ fontSize: 14, color: 'var(--text)' }}>{name}</span>
+        <span style={{ fontSize: 13, color: '#1A1A1A' }}>{name}</span>
       </label>
-      {/* always rendered — disabled when unchecked or cap reached */}
       <button
         onClick={() => checked && onToggle(name, 'top5')}
         disabled={!checked || (disabled && !top5)}
         style={{
-          fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 4,
-          background: top5 ? 'var(--gold-dim)' : 'transparent',
-          color: top5 ? 'var(--gold)' : !checked ? 'var(--border2)' : 'var(--text4)',
-          border: `1px solid ${top5 ? 'rgba(200,165,90,0.4)' : 'var(--border2)'}`,
+          fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 4,
+          background: top5 ? '#EEF3EC' : 'transparent',
+          color: top5 ? '#4A7C4A' : !checked ? '#DDD' : '#AAA',
+          border: `1px solid ${top5 ? '#9EC09E' : checked ? '#D8D4CF' : '#EEE'}`,
           cursor: (!checked || (disabled && !top5)) ? 'default' : 'pointer',
-          opacity: !checked ? 0.35 : disabled && !top5 ? 0.4 : 1,
           flexShrink: 0,
         }}>
-        ★ Top
+        {'★'} Top
       </button>
     </div>
   );
@@ -103,8 +100,8 @@ function Top5Row({ name, top5, checked, onToggle, disabled }) {
 function CategoryAccordion({ name, sub, count, defaultOpen, children }) {
   const [open, setOpen] = useState(!!defaultOpen);
   return (
-    <div style={{ border: '1px solid var(--border2)', borderRadius: 10, marginBottom: 12, overflow: 'hidden' }}>
-      <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 18px', background: 'var(--surface2)', cursor: 'pointer' }}>
+    <div style={{ border: '1px solid #E0DCDA', borderRadius: 10, marginBottom: 12, overflow: 'hidden' }}>
+      <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 18px', background: '#FAFAF8', cursor: 'pointer' }}>
         <div>
           <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{name}</div>
           <div style={{ fontSize: 11, color: 'var(--text4)' }}>{sub}</div>
@@ -114,7 +111,7 @@ function CategoryAccordion({ name, sub, count, defaultOpen, children }) {
           <span style={{ fontSize: 12, color: 'var(--text4)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
         </div>
       </div>
-      {open && <div style={{ padding: '4px 18px 16px', background: 'var(--surface)' }}>{children}</div>}
+      {open && <div style={{ padding: '4px 18px 16px', background: '#F9F8F6' }}>{children}</div>}
     </div>
   );
 }
@@ -145,8 +142,8 @@ function HFGroup({ group, items, checked, onToggle, onAddItem }) {
           return (
             <label key={item} style={{
               display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 6,
-              border: `1px solid ${isChecked ? 'rgba(200,165,90,0.4)' : 'var(--border2)'}`,
-              background: isChecked ? 'var(--gold-dim)' : 'var(--surface2)', cursor: 'pointer', fontSize: 12,
+              border: `1px solid ${isChecked ? '#D97520' : '#E4E0DB'}`,
+              background: isChecked ? '#FEF8F0' : '#fff', cursor: 'pointer', fontSize: 12,
             }}>
               <input type="checkbox" checked={isChecked} onChange={() => onToggle(item)} style={{ margin: 0 }} />
               {item}
@@ -172,7 +169,7 @@ function HFGroup({ group, items, checked, onToggle, onAddItem }) {
   );
 }
 
-export default function SectionB({ profileId, onSave, onNext }) {
+export default function SectionB({ profileId, initialData, onSave, onNext }) {
   const { toasts, success, error } = useToast();
   const [savedPulse, setSavedPulse] = useState(false);
 
@@ -196,22 +193,27 @@ export default function SectionB({ profileId, onSave, onNext }) {
   const [saving, setSaving] = useState(false);
   const debounceRef         = useRef(null);
 
+  const populateFromData = (d) => {
+    if (!d) return;
+    setGenders(d.gender_focus || []);
+    const occ = d.occasions || [];
+    setOccasions(occ);
+    const customOccNames = occ.map(o => o.name).filter(n => !OCCASIONS_DEFAULT.includes(n));
+    setAllOccasionNames([...OCCASIONS_DEFAULT, ...customOccNames]);
+    const gar = d.garment_types || [];
+    setGarments(gar);
+    const customGarNames = gar.map(g => g.name).filter(n => !GARMENTS_DEFAULT.includes(n));
+    setAllGarmentNames([...GARMENTS_DEFAULT, ...customGarNames]);
+    setHomeFurnishings(d.home_furnishings || []);
+  };
+
+  /* Use snapshot data immediately when available */
+  useEffect(() => { if (initialData) populateFromData(initialData); }, [initialData]);
+
+  /* Fallback: only fetch if no snapshot data */
   useEffect(() => {
-    if (!profileId) return;
-    API.getStudio(profileId).then(r => {
-      const d = r.data;
-      if (!d) return;
-      setGenders(d.gender_focus || []);
-      const occ = d.occasions || [];
-      setOccasions(occ);
-      const customOccNames = occ.map(o => o.name).filter(n => !OCCASIONS_DEFAULT.includes(n));
-      setAllOccasionNames([...OCCASIONS_DEFAULT, ...customOccNames]);
-      const gar = d.garment_types || [];
-      setGarments(gar);
-      const customGarNames = gar.map(g => g.name).filter(n => !GARMENTS_DEFAULT.includes(n));
-      setAllGarmentNames([...GARMENTS_DEFAULT, ...customGarNames]);
-      setHomeFurnishings(d.home_furnishings || []);
-    }).catch(() => {});
+    if (!profileId || initialData) return;
+    API.getStudio(profileId).then(r => populateFromData(r.data)).catch(() => {});
   }, [profileId]);
 
   /* change 3: debounced autosave */
@@ -337,15 +339,15 @@ export default function SectionB({ profileId, onSave, onNext }) {
 
         <CardSection title="B.1 — Gender">
           <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 14 }}>Check the categories you produce for. Order of checking becomes your ranking.</p>
-          {GENDERS.map(name => (
-            <RankItemRow key={name} name={name} rank={genders.find(g => g.name === name)?.rank ?? null} onToggle={toggleGender} />
+          {GENDERS.map((name, i) => (
+            <RankItemRow key={name} name={name} rank={genders.find(g => g.name === name)?.rank ?? null} onToggle={toggleGender} isLast={i === GENDERS.length - 1} />
           ))}
         </CardSection>
 
         <CardSection title="B.2 — Occasions">
           <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 14 }}>Rank by strength — first check = strongest occasion.</p>
-          {allOccasionNames.map(name => (
-            <RankItemRow key={name} name={name} rank={occasions.find(o => o.name === name)?.rank ?? null} onToggle={toggleOccasion} />
+          {allOccasionNames.map((name, i) => (
+            <RankItemRow key={name} name={name} rank={occasions.find(o => o.name === name)?.rank ?? null} onToggle={toggleOccasion} isLast={i === allOccasionNames.length - 1} />
           ))}
           {addingOcc ? (
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
@@ -361,10 +363,10 @@ export default function SectionB({ profileId, onSave, onNext }) {
         <CardSection title="B.3 — Garment Types">
           <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 6 }}>Select all you produce. Mark your best 5 with the ★ Top button.</p>
           <p style={{ fontSize: 12, color: 'var(--gold)', marginBottom: 14, fontWeight: 600 }}>Top 5 slots: {TOP5_MAX - top5Count} remaining</p>
-          {allGarmentNames.map(name => {
+          {allGarmentNames.map((name, i) => {
             const g = garments.find(x => x.name === name);
             return (
-              <Top5Row key={name} name={name} checked={!!g} top5={!!g?.top5} disabled={top5Count >= TOP5_MAX} onToggle={toggleGarment} />
+              <Top5Row key={name} name={name} checked={!!g} top5={!!g?.top5} disabled={top5Count >= TOP5_MAX} onToggle={toggleGarment} isLast={i === allGarmentNames.length - 1} />
             );
           })}
           {addingGarment ? (

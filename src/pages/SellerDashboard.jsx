@@ -330,14 +330,14 @@ export default function SellerDashboard() {
     <DashLayout nav={navItems}>
       <Routes>
         <Route index             element={<Overview snapshot={snapshot} flags={flags} />}  />
-        <Route path="studio"     element={<SectionA profileId={profileId} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/products'); }} />} />
-        <Route path="products"   element={<SectionB profileId={profileId} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/fabrics'); }} />} />
-        <Route path="fabrics"    element={<SectionC profileId={profileId} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/crafts'); }} />} />
-        <Route path="crafts"     element={<SectionD profileId={profileId} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/collab'); }} />} />
-        <Route path="collab"     element={<SectionE profileId={profileId} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/production'); }} />} />
-        <Route path="production" element={<SectionF profileId={profileId} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/projects'); }} />} />
-        <Route path="projects"   element={<SectionG profileId={profileId} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/process'); }} />} />
-        <Route path="process"    element={<SectionH profileId={profileId} onSave={refresh} onNext={() => { refresh(); nav('/dashboard'); }} />} />
+        <Route path="studio"     element={<SectionA profileId={profileId} initialData={snapshot?.studio_details}  onSave={refresh} onNext={() => { refresh(); nav('/dashboard/products'); }} />} />
+        <Route path="products"   element={<SectionB profileId={profileId} initialData={snapshot?.studio_details}  onSave={refresh} onNext={() => { refresh(); nav('/dashboard/fabrics'); }} />} />
+        <Route path="fabrics"    element={<SectionC profileId={profileId} initialData={{ studio: snapshot?.studio_details, fabrics: snapshot?.fabric_answers, dyes: snapshot?.dye_answers }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/crafts'); }} />} />
+        <Route path="crafts"     element={<SectionD profileId={profileId} initialData={snapshot?.crafts}         onSave={refresh} onNext={() => { refresh(); nav('/dashboard/collab'); }} />} />
+        <Route path="collab"     element={<SectionE profileId={profileId} initialData={snapshot?.collab_design}  onSave={refresh} onNext={() => { refresh(); nav('/dashboard/production'); }} />} />
+        <Route path="production" element={<SectionF profileId={profileId} initialData={{ production: snapshot?.production_scale, collab: snapshot?.collab_design, studio: snapshot?.studio_details }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/projects'); }} />} />
+        <Route path="projects"   element={<SectionG profileId={profileId} initialData={snapshot?.studio_projects} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/process'); }} />} />
+        <Route path="process"    element={<SectionH profileId={profileId} initialData={{ process: snapshot?.process_readiness, studio: snapshot?.studio_details }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard'); }} />} />
         <Route path="inquiries"  element={<SellerInquiries profileId={profileId} />}           />
         <Route path="enquiries"  element={<EnquiriesList />}                                          />
         <Route path="enquiries/:projectId" element={<EnquiryDetail />}                                />
