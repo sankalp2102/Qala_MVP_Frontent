@@ -1,499 +1,443 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { onboardingAPI } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
+import { inputStyle } from './SectionA';
 
-// ── Exact 21 product types from ProductTypes model ──
-const PRODUCT_LIST = [
-  { key: 'dresses',                   label: 'Dresses' },
-  { key: 'tops',                      label: 'Tops' },
-  { key: 'shirts',                    label: 'Shirts' },
-  { key: 't_shirts',                  label: 'T-Shirts' },
-  { key: 'tunics_kurtas',             label: 'Tunics / Kurtas' },
-  { key: 'coord_sets',                label: 'Coord Sets' },
-  { key: 'jumpsuits',                 label: 'Jumpsuits' },
-  { key: 'skirts',                    label: 'Skirts' },
-  { key: 'shorts',                    label: 'Shorts' },
-  { key: 'trousers_pants',            label: 'Trousers / Pants' },
-  { key: 'denim',                     label: 'Denim' },
-  { key: 'blazers',                   label: 'Blazers' },
-  { key: 'coats_jackets',             label: 'Coats & Jackets' },
-  { key: 'capes',                     label: 'Capes' },
-  { key: 'waistcoats_vests',          label: 'Waistcoats / Vests' },
-  { key: 'kaftans',                   label: 'Kaftans' },
-  { key: 'resortwear_sets',           label: 'Resortwear Sets' },
-  { key: 'loungewear_sleepwear',      label: 'Loungewear / Sleepwear' },
-  { key: 'activewear',                label: 'Activewear' },
-  { key: 'kidswear',                  label: 'Kidswear' },
-  { key: 'accessories_scarves_stoles',label: 'Accessories / Scarves / Stoles' },
+const API = onboardingAPI;
+
+const GENDERS = ['Womenswear', 'Menswear', 'Gender Neutral / Unisex', 'Kidswear'];
+
+const OCCASIONS_DEFAULT = [
+  'Resortwear / Travel', 'Everyday / Casual', 'Occasionwear / Ethnic',
+  'Festive / Bridal', 'Workwear / Contemporary', 'Loungewear / Sleepwear', 'Activewear',
 ];
 
-// ── Fabric list matching FabricAnswer model categories ──
-const FABRIC_CATEGORIES = [
-  { cat: 'cotton', label: 'Cotton Based', fabrics: [
-    'General Cotton',
-    'Organic cotton',
-    'Kala cotton',
-    'Cotton mulmul / muslin',
-    'Cotton poplin',
-    'Cotton cambric',
-    'Cotton voile',
-    'Cotton satin',
-    'Cotton-silk blend',
-    'Cotton-linen blend',
-    'Other cotton blends',
-    'Other cotton fabric',
-  ]},
-  { cat: 'silk', label: 'Silk Based', fabrics: [
-    'General Silk',
-    'Mulberry silk',
-    'Tussar silk',
-    'Eri silk',
-    'Muga silk',
-    'Silk crepe',
-    'Silk georgette',
-    'Silk chiffon',
-    'Silk satin',
-    'Silk blends',
-    'Other silk fabric',
-  ]},
-  { cat: 'linen', label: 'Linen & Bast', fabrics: [
-    'Linen',
-    'Linen blends',
-    'Hemp',
-    'Hemp blends',
-    'Other bast fiber fabric',
-  ]},
-  { cat: 'wool', label: 'Wool Based', fabrics: [
-    'General Wool',
-    'Pashmina',
-    'Other Fine wool',
-    'Wool blends',
-    'Other wool fabric',
-  ]},
-  { cat: 'regenerated', label: 'Regenerated / Cellulosic', fabrics: [
-    'Viscose',
-    'Rayon',
-    'Modal',
-    'Lyocell / Tencel',
-    'Other regenerated cellulosic fabric',
-  ]},
-  { cat: 'handcrafted', label: 'Handcrafted / Heritage', fabrics: [
-    'Handloom cotton',
-    'Handloom silk',
-    'Handwoven Wool',
-    'Other handloom fabric',
-  ]},
-  { cat: 'other', label: 'Other', fabrics: [
-    'Other fabric',
-  ]},
+const GARMENTS_DEFAULT = [
+  'Dresses', 'Coord Sets', 'Tops', 'Kaftans', 'Tunics / Kurtas', 'Skirts',
+  'Accessories / Scarves / Stoles', 'Shirts', 'Trousers / Pants', 'Blazers / Jackets', 'Jumpsuits',
 ];
+
+const HOME_FURNISHINGS_DEFAULT = [
+  { group: 'Bedding', items: ['Bed sheets', 'Duvet covers', 'Pillow covers', 'Quilts / Razais', 'Bed runners'] },
+  { group: 'Table Linen', items: ['Tablecloths', 'Table runners', 'Placemats', 'Napkins'] },
+  { group: 'Kitchen Linen', items: ['Aprons', 'Kitchen towels', 'Oven mitts'] },
+  { group: 'Bath Linen', items: ['Bath towels', 'Hand towels', 'Bathrobes', 'Bath mats'] },
+  { group: 'Living Room Textiles', items: ['Cushion covers', 'Sofa throws / Blankets', 'Poufs'] },
+  { group: 'Curtains & Drapes', items: ['Curtain panels', 'Sheer curtains', 'Tie-backs'] },
+  { group: 'Upholstery', items: ['Chair covers / slipcovers', 'Headboard covers'] },
+  { group: 'Floor Coverings', items: ['Rugs', 'Dhurries', 'Doormats'] },
+  { group: 'Wall Textiles', items: ['Wall hangings', 'Tapestries', 'Macrame panels'] },
+  { group: 'Accessories', items: ['Laundry bags', 'Storage baskets', 'Decorative hangings'] },
+];
+
+function SectionHeader({ letter, title, desc }) {
+  return (
+    <div className="fade-up" style={{ marginBottom: 36 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Section {letter}</div>
+      <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 500, fontStyle: 'italic', color: 'var(--gold)', lineHeight: 1.1 }}>{title}</h1>
+      <p style={{ color: 'var(--text3)', fontSize: 14, marginTop: 8 }}>{desc}</p>
+    </div>
+  );
+}
 
 function CardSection({ title, children }) {
   return (
-    <div className="card fade-up" style={{ marginBottom: 20 }}>
-      <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600, color: 'var(--text)', marginBottom: 18, paddingBottom: 14, borderBottom: '1px solid var(--border)' }}>{title}</div>
+    <div className="card fade-up" style={{ marginBottom: 16 }}>
+      <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, fontStyle: 'italic', color: 'var(--text)', marginBottom: 18, paddingBottom: 14, borderBottom: '1px solid var(--border)' }}>{title}</div>
       {children}
     </div>
   );
 }
 
-export default function SectionB({ profileId, onSave }) {
-  const { toasts, success, error } = useToast();
-  const [products, setProducts] = useState({});
-  const [fabrics, setFabrics]   = useState({}); // { fabric_name: { works_with, is_primary, innovation_note, category } }
-  const [brands, setBrands]     = useState([]);
-  const [awards, setAwards]     = useState([]);
-  const [newBrand, setNewBrand] = useState({ brand_name: '', scope: '' });
-  const [brandImg, setBrandImg] = useState(null);
-  const [editingBrand, setEditingBrand] = useState(null);
-  const [editBrandImg, setEditBrandImg] = useState(null);
-  const [newAward, setNewAward] = useState({ award_name: '', link: '' });
-  const [saving, setSaving]     = useState(false);
+function SavedPulse({ show }) {
+  if (!show) return null;
+  return <span style={{ fontSize: 11, color: 'var(--text4)' }}>Saved</span>;
+}
 
+function RankItemRow({ name, rank, onToggle, isLast }) {
+  const checked = rank != null;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: isLast ? 'none' : '1px solid #F5F3EF' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', flex: 1 }}>
+        <input type="checkbox" checked={checked} onChange={() => onToggle(name)} />
+        <span style={{ fontSize: 13, color: '#1A1A1A' }}>{name}</span>
+      </label>
+      <div style={{
+        width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: checked ? '#D97520' : 'transparent', color: '#fff', fontSize: 11, fontWeight: 700, flexShrink: 0,
+      }}>
+        {checked ? rank : ''}
+      </div>
+    </div>
+  );
+}
+
+function Top5Row({ name, top5, checked, onToggle, capReached, isLast }) {
+  const [showCapTip, setShowCapTip] = useState(false);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: isLast ? 'none' : '1px solid #F5F3EF' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', flex: 1 }}>
+        <input type="checkbox" checked={checked} onChange={() => onToggle(name)} />
+        <span style={{ fontSize: 13, color: '#1A1A1A' }}>{name}</span>
+      </label>
+      {/* Always visible — green when top5, grey when checked but cap reached, dim when unchecked */}
+      <div style={{ position: 'relative' }}
+        onMouseEnter={() => capReached && !top5 && setShowCapTip(true)}
+        onMouseLeave={() => setShowCapTip(false)}>
+        <button
+          onClick={() => {
+            if (!checked) return;
+            if (top5) { onToggle(name, 'top5'); return; }           // deselect always allowed
+            if (capReached) return;                                   // cap hit — show tooltip only
+            onToggle(name, 'top5');
+          }}
+          style={{
+            fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 4,
+            background: top5 ? '#EEF3EC' : 'transparent',
+            color: top5 ? '#4A7C4A' : !checked ? '#DDD' : '#AAA',
+            border: `1px solid ${top5 ? '#9EC09E' : checked ? '#D8D4CF' : '#EEE'}`,
+            cursor: !checked ? 'default' : top5 || !capReached ? 'pointer' : 'not-allowed',
+            flexShrink: 0,
+          }}>
+          {'★'} Top
+        </button>
+        {showCapTip && (
+          <div style={{
+            position: 'absolute', bottom: 'calc(100% + 6px)', right: 0,
+            background: '#1A1A1A', color: '#fff', fontSize: 11,
+            padding: '5px 10px', borderRadius: 6, whiteSpace: 'nowrap',
+            zIndex: 200, pointerEvents: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+          }}>
+            Deselect one Top to mark this
+            <div style={{ position: 'absolute', top: '100%', right: 10, width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '5px solid #1A1A1A' }} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CategoryAccordion({ name, sub, count, defaultOpen, children }) {
+  const [open, setOpen] = useState(!!defaultOpen);
+  return (
+    <div style={{ border: '1px solid #E0DCDA', borderRadius: 10, marginBottom: 12, overflow: 'hidden' }}>
+      <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 18px', background: '#FAFAF8', cursor: 'pointer' }}>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{name}</div>
+          <div style={{ fontSize: 11, color: 'var(--text4)' }}>{sub}</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {count > 0 && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold)', background: 'var(--gold-dim)', padding: '3px 8px', borderRadius: 4 }}>{count}</span>}
+          <span style={{ fontSize: 12, color: 'var(--text4)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
+        </div>
+      </div>
+      {open && <div style={{ padding: '4px 18px 16px', background: '#F9F8F6' }}>{children}</div>}
+    </div>
+  );
+}
+
+/* change 5: HFGroup with + Add other within each group */
+function HFGroup({ group, items, checked, onToggle, onAddItem }) {
+  const [addingItem, setAddingItem] = useState(false);
+  const [newItem, setNewItem]       = useState('');
+  const count = items.filter(i => checked.includes(i)).length;
+
+  const commitItem = () => {
+    const v = newItem.trim();
+    if (!v) return;
+    onAddItem(group, v);
+    setNewItem('');
+    setAddingItem(false);
+  };
+
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{group}</span>
+        {count > 0 && <span style={{ fontSize: 10, color: 'var(--gold)' }}>({count})</span>}
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {items.map(item => {
+          const isChecked = checked.includes(item);
+          return (
+            <label key={item} style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 6,
+              border: `1px solid ${isChecked ? '#D97520' : '#E4E0DB'}`,
+              background: isChecked ? '#FEF8F0' : '#fff', cursor: 'pointer', fontSize: 12,
+            }}>
+              <input type="checkbox" checked={isChecked} onChange={() => onToggle(item)} style={{ margin: 0 }} />
+              {item}
+            </label>
+          );
+        })}
+      </div>
+      {addingItem ? (
+        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <input style={{ ...inputStyle, flex: 1, height: 32, fontSize: 12 }} value={newItem} onChange={e => setNewItem(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commitItem(); } }}
+            placeholder={`Add to ${group}`} autoFocus />
+          <button className="btn btn-teal btn-sm" onClick={commitItem}>Add</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setAddingItem(false); setNewItem(''); }}>Cancel</button>
+        </div>
+      ) : (
+        <button onClick={() => setAddingItem(true)}
+          style={{ marginTop: 6, fontSize: 11, color: 'var(--text4)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
+          + Add other
+        </button>
+      )}
+    </div>
+  );
+}
+
+export default function SectionB({ profileId, initialData, onSave, onNext }) {
+  const { toasts, success, error } = useToast();
+  const [savedPulse, setSavedPulse] = useState(false);
+
+  const [genders, setGenders]     = useState([]);
+  const [occasions, setOccasions] = useState([]);
+  const [customOcc, setCustomOcc] = useState('');
+  const [addingOcc, setAddingOcc] = useState(false);
+
+  const [garments, setGarments]         = useState([]);
+  const [customGarment, setCustomGarment] = useState('');
+  const [addingGarment, setAddingGarment] = useState(false);
+  const [allGarmentNames, setAllGarmentNames] = useState(GARMENTS_DEFAULT);
+  const [allOccasionNames, setAllOccasionNames] = useState(OCCASIONS_DEFAULT);
+
+  const [homeFurnishings, setHomeFurnishings] = useState([]);
+  /* change 5: custom items per group + custom categories */
+  const [hfGroups, setHfGroups] = useState(HOME_FURNISHINGS_DEFAULT);
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [newCatName, setNewCatName]         = useState('');
+
+  const [saving, setSaving] = useState(false);
+  const debounceRef         = useRef(null);
+
+  const populateFromData = (d) => {
+    if (!d) return;
+    setGenders(d.gender_focus || []);
+    const occ = d.occasions || [];
+    setOccasions(occ);
+    const customOccNames = occ.map(o => o.name).filter(n => !OCCASIONS_DEFAULT.includes(n));
+    setAllOccasionNames([...OCCASIONS_DEFAULT, ...customOccNames]);
+    const gar = d.garment_types || [];
+    setGarments(gar);
+    const customGarNames = gar.map(g => g.name).filter(n => !GARMENTS_DEFAULT.includes(n));
+    setAllGarmentNames([...GARMENTS_DEFAULT, ...customGarNames]);
+    setHomeFurnishings(d.home_furnishings || []);
+  };
+
+  /* Use snapshot data immediately when available */
+  useEffect(() => { if (initialData) populateFromData(initialData); }, [initialData]);
+
+  /* Fallback: only fetch if no snapshot data */
   useEffect(() => {
-    if (!profileId) return;
-    onboardingAPI.getProducts(profileId).then(r => setProducts(r.data || {})).catch(() => {});
-    onboardingAPI.getFabrics(profileId).then(r => {
-      const m = {};
-      (r.data || []).forEach(f => { m[f.fabric_name] = f; });
-      setFabrics(m);
-    }).catch(() => {});
-    onboardingAPI.getBrands(profileId).then(r => setBrands(r.data || [])).catch(() => {});
-    onboardingAPI.getAwards(profileId).then(r => setAwards(r.data || [])).catch(() => {});
+    if (!profileId || initialData) return;
+    API.getStudio(profileId).then(r => populateFromData(r.data)).catch(() => {});
   }, [profileId]);
 
-  const save = async () => {
+  /* change 3: debounced autosave */
+  const triggerAutosave = useCallback((payload) => {
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        await API.patchStudio(profileId, payload);
+        setSavedPulse(true);
+        setTimeout(() => setSavedPulse(false), 1500);
+      } catch {}
+    }, 800);
+  }, [profileId]);
+
+  const nextRank = list => list.length ? Math.max(...list.map(x => x.rank)) + 1 : 1;
+
+  const toggleGender = name => {
+    setGenders(prev => {
+      const exists = prev.find(g => g.name === name);
+      const next = exists
+        ? prev.filter(g => g.name !== name).sort((a,b) => a.rank - b.rank).map((g,i) => ({ ...g, rank: i+1 }))
+        : [...prev, { name, rank: nextRank(prev) }];
+      triggerAutosave({ gender_focus: next });
+      return next;
+    });
+  };
+
+  const toggleOccasion = name => {
+    setOccasions(prev => {
+      const exists = prev.find(o => o.name === name);
+      const next = exists
+        ? prev.filter(o => o.name !== name).sort((a,b) => a.rank - b.rank).map((o,i) => ({ ...o, rank: i+1 }))
+        : [...prev, { name, rank: nextRank(prev) }];
+      triggerAutosave({ occasions: next });
+      return next;
+    });
+  };
+
+  const addCustomOccasion = () => {
+    const v = customOcc.trim();
+    if (!v) return;
+    setAllOccasionNames(prev => [...prev, v]);
+    setOccasions(prev => { const next = [...prev, { name: v, rank: nextRank(prev) }]; triggerAutosave({ occasions: next }); return next; });
+    setCustomOcc(''); setAddingOcc(false);
+  };
+
+  const TOP5_MAX = 5;
+  const top5Count = garments.filter(g => g.top5).length;
+
+  const toggleGarment = (name, mode) => {
+    setGarments(prev => {
+      let next = prev;
+      const exists = prev.find(g => g.name === name);
+      if (mode === 'top5') {
+        // explicit top5 toggle — deselect always works, select only if under cap
+        if (!exists) return prev;
+        next = exists.top5
+          ? prev.map(g => g.name === name ? { ...g, top5: false } : g)
+          : prev.filter(g => g.top5).length >= TOP5_MAX ? prev
+          : prev.map(g => g.name === name ? { ...g, top5: true } : g);
+      } else {
+        if (exists) {
+          // unchecking — remove from list entirely
+          next = prev.filter(g => g.name !== name);
+        } else {
+          // checking — auto-mark as top5 if slots remain, otherwise top5:false
+          const currentTop5Count = prev.filter(g => g.top5).length;
+          next = [...prev, { name, top5: currentTop5Count < TOP5_MAX }];
+        }
+      }
+      triggerAutosave({ garment_types: next });
+      return next;
+    });
+  };
+
+  const addCustomGarment = () => {
+    const v = customGarment.trim();
+    if (!v) return;
+    setAllGarmentNames(p => [...p, v]);
+    setGarments(prev => { const next = [...prev, { name: v, top5: false }]; triggerAutosave({ garment_types: next }); return next; });
+    setCustomGarment(''); setAddingGarment(false);
+  };
+
+  const toggleHF = item => {
+    setHomeFurnishings(prev => {
+      const next = prev.includes(item) ? prev.filter(x => x !== item) : [...prev, item];
+      triggerAutosave({ home_furnishings: next });
+      return next;
+    });
+  };
+
+  /* change 5: add item to an existing HF group */
+  const addHFItem = (groupName, itemName) => {
+    setHfGroups(prev => prev.map(g => g.group === groupName ? { ...g, items: [...g.items, itemName] } : g));
+    setHomeFurnishings(prev => {
+      const next = [...prev, itemName];
+      triggerAutosave({ home_furnishings: next });
+      return next;
+    });
+  };
+
+  /* change 5: add a whole new HF category */
+  const addHFCategory = () => {
+    const v = newCatName.trim();
+    if (!v) return;
+    setHfGroups(prev => [...prev, { group: v, items: [] }]);
+    setNewCatName(''); setAddingCategory(false);
+  };
+
+  const save = async (andNext = false) => {
     setSaving(true);
     try {
-      await onboardingAPI.putProducts(profileId, products);
-      const fabArr = Object.values(fabrics).filter(f => f.fabric_name);
-      if (fabArr.length) await onboardingAPI.putFabrics(profileId, fabArr);
+      await API.putStudio(profileId, {
+        gender_focus: genders, occasions,
+        garment_types: garments, home_furnishings: homeFurnishings,
+      });
       success('Section B saved!');
       onSave?.();
+      if (andNext) onNext?.();
     } catch (e) {
       error(e.response?.data ? JSON.stringify(e.response.data) : 'Save failed');
     } finally { setSaving(false); }
   };
 
-  const toggleProduct = k => setProducts(p => ({ ...p, [k]: !p[k] }));
-
-  const toggleFabric = (name, cat) => setFabrics(f => {
-    const ex = f[name] || { category: cat, fabric_name: name, works_with: false, is_primary: null, innovation_note: '' };
-    return { ...f, [name]: { ...ex, works_with: !ex.works_with } };
-  });
-
-  const setFabricPrimary = (name, cat, val) => setFabrics(f => {
-    const ex = f[name] || { category: cat, fabric_name: name, works_with: true, innovation_note: '' };
-    return { ...f, [name]: { ...ex, is_primary: val, works_with: true } };
-  });
-
-  const addBrand = async () => {
-    if (!newBrand.brand_name) { error('Brand name required'); return; }
-    try {
-      const fd = new FormData();
-      fd.append('brand_name', newBrand.brand_name);
-      if (newBrand.scope) fd.append('scope', newBrand.scope);
-      if (brandImg) fd.append('image', brandImg);
-      
-      // Calculate order from current state length synchronously
-      const currentOrder = brands.length + 1;
-      fd.append('order', currentOrder);
-      
-      const r = await onboardingAPI.addBrand(profileId, fd);
-      
-      // Update state and ensure we add to the list
-      setBrands(prevBrands => [...prevBrands, r.data]);
-      setNewBrand({ brand_name: '', scope: '' });
-      setBrandImg(null);
-      success('Brand added');
-    } catch (err) { 
-      console.error('Failed to add brand:', err);
-      error('Failed to add brand'); 
-    }
-  };
-
-  const delBrand = async id => {
-    try { await onboardingAPI.delBrand(profileId, id); setBrands(b => b.filter(x => x.id !== id)); }
-    catch { error('Failed'); }
-  };
-
-  const saveEditBrand = async () => {
-    if (!editingBrand.brand_name) { error('Brand name required'); return; }
-    try {
-      const fd = new FormData();
-      fd.append('brand_name', editingBrand.brand_name);
-      fd.append('scope', editingBrand.scope || '');
-      if (editBrandImg) fd.append('image', editBrandImg);
-      const r = await onboardingAPI.patchBrand(profileId, editingBrand.id, fd);
-      setBrands(b => b.map(x => x.id === editingBrand.id ? r.data : x));
-      setEditingBrand(null);
-      setEditBrandImg(null);
-      success('Brand updated');
-    } catch { error('Failed to update brand'); }
-  };
-
-  const addAward = async () => {
-    if (!newAward.award_name) { error('Award name required'); return; }
-    try {
-      // Calculate order from current state length synchronously
-      const currentOrder = awards.length + 1;
-      
-      const r = await onboardingAPI.addAward(profileId, { 
-        ...newAward, 
-        order: currentOrder 
-      });
-      
-      // Update state and ensure we add to the list
-      setAwards(prevAwards => [...prevAwards, r.data]);
-      setNewAward({ award_name: '', link: '' });
-      success('Award added');
-    } catch (err) { 
-      console.error('Failed to add award:', err);
-      error('Failed to add award'); 
-    }
-  };
-
   return (
-    <div style={{ padding: '40px 48px', maxWidth: 780 }}>
+    <div style={{ padding: '40px 48px', maxWidth: 760 }}>
       <Toast toasts={toasts} />
-      <div className="fade-up" style={{ marginBottom: 36 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 11, background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}></div>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Section B</div>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 700, color: 'var(--text)' }}>Products & Fabrics</h1>
-          </div>
-        </div>
-        <p style={{ color: 'var(--text3)', fontSize: 14, marginLeft: 56 }}>What garments you produce, which fabrics you work with, your brand history, and any recognition.</p>
-      </div>
+      <SectionHeader letter="B" title="Categories" desc="Which buyers you dress, what you make, and how well. These are the primary matching signals for Qalawati." />
 
-      {/* B.1 Product Types */}
-      <CardSection title="B.1 — Garment Types You Produce">
-        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
-          Select all the garment silhouettes your studio is set up to produce. These are direct filter signals — buyers search by these categories.
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 7 }}>
-          {PRODUCT_LIST.map(({ key, label }) => (
-            <label key={key} style={{
-              display: 'flex', alignItems: 'center', gap: 9,
-              padding: '9px 12px', borderRadius: 'var(--radius)',
-              background: products[key] ? 'var(--gold-dim)' : 'var(--surface2)',
-              border: `1px solid ${products[key] ? 'rgba(200,165,90,0.3)' : 'var(--border)'}`,
-              cursor: 'pointer', fontSize: 13, fontWeight: products[key] ? 600 : 400,
-              color: products[key] ? 'var(--gold)' : 'var(--text2)',
-              transition: 'all .15s',
-            }}>
-              <input type="checkbox" checked={!!products[key]} onChange={() => toggleProduct(key)}
-                style={{ accentColor: 'var(--gold)', width: 13, height: 13, flexShrink: 0 }} />
-              {label}
-            </label>
+      <CategoryAccordion name="Apparel" sub="Clothing, garments, accessories" defaultOpen count={genders.length + occasions.length + garments.length}>
+
+        <CardSection title="B.1 — Gender">
+          <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 14 }}>Check the categories you produce for. Order of checking becomes your ranking.</p>
+          {GENDERS.map((name, i) => (
+            <RankItemRow key={name} name={name} rank={genders.find(g => g.name === name)?.rank ?? null} onToggle={toggleGender} isLast={i === GENDERS.length - 1} />
           ))}
-        </div>
-      </CardSection>
+        </CardSection>
 
-      {/* B.2 Fabrics */}
-      <CardSection title="B.2 — Fabrics You Work With">
-        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 6 }}>
-          Select each fabric your studio works with. For selected fabrics, mark them as <strong style={{ color: 'var(--gold)' }}>Primary</strong> (core expertise) or <strong style={{ color: 'var(--text2)' }}>Secondary</strong>, and add a short description of how you use it — this feeds the recommendation engine.
-        </p>
-        <p style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 18 }}>Click a fabric name to select it. Expand to add details.</p>
-
-        {FABRIC_CATEGORIES.map(cat => (
-          <div key={cat.cat} style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10, paddingBottom: 6, borderBottom: '1px solid var(--border)' }}>{cat.label}</div>
-            {/* Pill row for toggling */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 12 }}>
-              {cat.fabrics.map(f => {
-                const on = fabrics[f]?.works_with;
-                return (
-                  <button key={f} onClick={() => toggleFabric(f, cat.cat)} style={{
-                    padding: '7px 14px', borderRadius: 20, fontSize: 13, cursor: 'pointer',
-                    border: `1px solid ${on ? 'rgba(200,165,90,0.4)' : 'var(--border2)'}`,
-                    background: on ? 'var(--gold-dim)' : 'var(--surface2)',
-                    color: on ? 'var(--gold)' : 'var(--text2)',
-                    fontWeight: on ? 600 : 400, transition: 'all .15s',
-                    fontFamily: 'var(--font-body)',
-                  }}>
-                    {f}
-                  </button>
-                );
-              })}
-            </div>
-            {/* Expanded detail cards for selected fabrics in this category */}
-            {cat.fabrics.filter(f => fabrics[f]?.works_with).map(f => {
-              const entry = fabrics[f] || {};
-              const isPrimary = entry.is_primary === true;
-              const isSecondary = entry.is_primary === false;
-              return (
-                <div key={f} style={{
-                  background: 'var(--surface2)', border: '1px solid rgba(200,165,90,0.2)',
-                  borderLeft: '3px solid var(--gold)', borderRadius: 'var(--radius)',
-                  padding: '14px 16px', marginBottom: 8,
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--gold)' }}>{f}</div>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => setFabricPrimary(f, cat.cat, isPrimary ? null : true)} style={{
-                        padding: '4px 12px', borderRadius: 20, fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-body)',
-                        border: `1px solid ${isPrimary ? 'rgba(200,165,90,0.5)' : 'var(--border2)'}`,
-                        background: isPrimary ? 'var(--gold-dim)' : 'transparent',
-                        color: isPrimary ? 'var(--gold)' : 'var(--text4)', fontWeight: isPrimary ? 600 : 400,
-                      }}>Primary</button>
-                      <button onClick={() => setFabricPrimary(f, cat.cat, isSecondary ? null : false)} style={{
-                        padding: '4px 12px', borderRadius: 20, fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-body)',
-                        border: `1px solid ${isSecondary ? 'var(--border3)' : 'var(--border2)'}`,
-                        background: isSecondary ? 'var(--surface4)' : 'transparent',
-                        color: isSecondary ? 'var(--text2)' : 'var(--text4)', fontWeight: isSecondary ? 600 : 400,
-                      }}>Secondary</button>
-                    </div>
-                  </div>
-                  <textarea
-                    value={entry.innovation_note || ''}
-                    onChange={e => setFabrics(fbs => ({
-                      ...fbs,
-                      [f]: { ...fbs[f], innovation_note: e.target.value }
-                    }))}
-                    rows={2}
-                    placeholder={`Describe how you use ${f} — techniques, finishes, typical products, any special treatments or innovations...`}
-                    style={{
-                      width: '100%', padding: '9px 12px',
-                      border: '1px solid var(--border2)', borderRadius: 8,
-                      background: 'var(--surface3)', color: 'var(--text)',
-                      fontSize: 13, fontFamily: 'var(--font-body)', lineHeight: 1.6, resize: 'vertical',
-                    }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        ))}
-
-        {/* Other / Custom fabrics */}
-        <div style={{ marginBottom: 8, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Other Fabrics (not listed above)</div>
-          <p style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 12 }}>Add any fabrics you work with that aren't in the list above. Each one will appear as a selected fabric with a description field.</p>
-
-          {/* Existing custom fabrics */}
-          {Object.entries(fabrics).filter(([name, entry]) => entry.works_with && entry.category === 'other').map(([f, entry]) => {
-            const isPrimary = entry.is_primary === true;
-            const isSecondary = entry.is_primary === false;
-            return (
-              <div key={f} style={{ background: 'var(--surface2)', border: '1px solid var(--border2)', borderLeft: '3px solid var(--border3)', borderRadius: 'var(--radius)', padding: '14px 16px', marginBottom: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{f}</span>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <button onClick={() => setFabricPrimary(f, 'other', isPrimary ? null : true)} style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-body)', border: `1px solid ${isPrimary ? 'rgba(255,255,255,0.3)' : 'var(--border2)'}`, background: isPrimary ? 'var(--gold-dim)' : 'transparent', color: isPrimary ? 'var(--gold)' : 'var(--text4)', fontWeight: isPrimary ? 600 : 400 }}>Primary</button>
-                    <button onClick={() => setFabricPrimary(f, 'other', isSecondary ? null : false)} style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-body)', border: `1px solid ${isSecondary ? 'var(--border3)' : 'var(--border2)'}`, background: isSecondary ? 'var(--surface4)' : 'transparent', color: isSecondary ? 'var(--text2)' : 'var(--text4)', fontWeight: isSecondary ? 600 : 400 }}>Secondary</button>
-                    <button onClick={() => setFabrics(fbs => { const n = { ...fbs }; delete n[f]; return n; })} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 15, padding: '2px 4px' }}>×</button>
-                  </div>
-                </div>
-                <textarea value={entry.innovation_note || ''} onChange={e => setFabrics(fbs => ({ ...fbs, [f]: { ...fbs[f], innovation_note: e.target.value } }))} rows={2}
-                  placeholder={`Describe how you use ${f}...`}
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid var(--border2)', borderRadius: 8, background: 'var(--surface3)', color: 'var(--text)', fontSize: 13, fontFamily: 'var(--font-body)', lineHeight: 1.6, resize: 'vertical' }} />
-              </div>
-            );
-          })}
-
-          {/* Add custom fabric row */}
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <input
-              className="input-raw"
-              placeholder="e.g. Khadi Silk, Jamdani, Ikat Cotton…"
-              id="custom-fabric-input"
-              style={{ flex: 1 }}
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  const val = e.target.value.trim();
-                  if (!val) return;
-                  if (fabrics[val]) { e.target.value = ''; return; }
-                  setFabrics(fbs => ({ ...fbs, [val]: { category: 'other', fabric_name: val, works_with: true, is_primary: null, innovation_note: '' } }));
-                  e.target.value = '';
-                }
-              }}
-            />
-            <button className="btn btn-outline btn-sm" onClick={() => {
-              const inp = document.getElementById('custom-fabric-input');
-              const val = inp?.value?.trim();
-              if (!val) return;
-              if (fabrics[val]) { inp.value = ''; return; }
-              setFabrics(fbs => ({ ...fbs, [val]: { category: 'other', fabric_name: val, works_with: true, is_primary: null, innovation_note: '' } }));
-              inp.value = '';
-            }}>+ Add</button>
-          </div>
-          <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 6 }}>Press Enter or click Add. Each custom fabric will expand for description.</p>
-        </div>
-      </CardSection>
-
-      {/* B.3 Brand Experience */}
-      <CardSection title="B.3 — Brand Experience">
-        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
-          Which brands or buyers have you worked with? List them here — this builds trust with new buyers.
-        </p>
-        {brands.map(b => (
-          editingBrand?.id === b.id ? (
-            /* ── Inline edit form ── */
-            <div key={b.id} style={{ padding: 16, border: '1px solid rgba(200,165,90,0.35)', borderRadius: 'var(--radius)', marginBottom: 8, background: 'var(--gold-dim)' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Editing brand</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10, marginBottom: 10 }}>
-                <div className="field">
-                  <label>Brand / Buyer Name *</label>
-                  <input value={editingBrand.brand_name} onChange={e => setEditingBrand(x => ({ ...x, brand_name: e.target.value }))} placeholder="e.g. Good Earth" />
-                </div>
-                <div className="field">
-                  <label>Scope of Work</label>
-                  <input value={editingBrand.scope || ''} onChange={e => setEditingBrand(x => ({ ...x, scope: e.target.value }))} placeholder="e.g. Hand block printed kurtas for SS23 collection, 200 pcs" />
-                </div>
-              </div>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>Replace Image</div>
-                {editingBrand.file_name && !editBrandImg && (
-                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 6 }}>Current: {editingBrand.file_name}</div>
-                )}
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setEditBrandImg(e.target.files[0])} style={{ display: 'none' }} />
-                  <span className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>{editBrandImg ? editBrandImg.name : '↺ Choose New Image'}</span>
-                </label>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-teal btn-sm" onClick={saveEditBrand}>Save Changes</button>
-                <button className="btn btn-ghost btn-sm" onClick={() => { setEditingBrand(null); setEditBrandImg(null); }}>Cancel</button>
-              </div>
+        <CardSection title="B.2 — Occasions">
+          <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 14 }}>Rank by strength — first check = strongest occasion.</p>
+          {allOccasionNames.map((name, i) => (
+            <RankItemRow key={name} name={name} rank={occasions.find(o => o.name === name)?.rank ?? null} onToggle={toggleOccasion} isLast={i === allOccasionNames.length - 1} />
+          ))}
+          {addingOcc ? (
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <input style={{ ...inputStyle, flex: 1 }} value={customOcc} onChange={e => setCustomOcc(e.target.value)} placeholder="e.g. Maternity wear" />
+              <button className="btn btn-teal btn-sm" onClick={addCustomOccasion}>Add</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setAddingOcc(false); setCustomOcc(''); }}>Cancel</button>
             </div>
           ) : (
-            /* ── Read view ── */
-            <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--radius)', marginBottom: 8, border: '1px solid var(--border)' }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{b.brand_name}</div>
-                {b.scope && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>{b.scope}</div>}
-                {b.file_name && <div style={{ fontSize: 11, color: 'var(--teal)', marginTop: 3 }}>{b.file_name}</div>}
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexShrink: 0, marginLeft: 12 }}>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setEditingBrand({ id: b.id, brand_name: b.brand_name, scope: b.scope || '', file_name: b.file_name || '' })}
-                >
-                  Edit
-                </button>
-                <button className="btn btn-danger btn-sm" onClick={() => delBrand(b.id)}>Remove</button>
-              </div>
-            </div>
-          )
-        ))}
-        <div style={{ padding: 16, border: '1px solid var(--border2)', borderRadius: 'var(--radius)', marginTop: 8, background: 'var(--surface2)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10, marginBottom: 10 }}>
-            <div className="field">
-              <label>Brand / Buyer Name *</label>
-              <input value={newBrand.brand_name} onChange={e => setNewBrand(b => ({ ...b, brand_name: e.target.value }))} placeholder="e.g. Good Earth" />
-            </div>
-            <div className="field">
-              <label>Scope of Work *</label>
-              <input value={newBrand.scope} onChange={e => setNewBrand(b => ({ ...b, scope: e.target.value }))} placeholder="e.g. Hand block printed kurtas for SS23 collection, 200 pcs" />
-            </div>
-          </div>
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>Image *</div>
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setBrandImg(e.target.files[0])} style={{ display: 'none' }} />
-              <span className="btn btn-ghost btn-sm" style={{ cursor: 'pointer' }}>{brandImg ? brandImg.name : '+ Attach Image'}</span>
-            </label>
-          </div>
-          <button className="btn btn-outline btn-sm" onClick={addBrand}>Save Brand</button>
-        </div>
-      </CardSection>
+            <button className="btn btn-outline btn-sm" style={{ marginTop: 12 }} onClick={() => setAddingOcc(true)}>+ Add occasion</button>
+          )}
+        </CardSection>
 
-      {/* B.4 Awards & Press */}
-      <CardSection title="B.4 — Awards & Press Mentions">
-        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
-          Have you been featured in any press, won any awards, or been part of any recognized programs? Add them here.
-        </p>
-        {awards.map(a => (
-          <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--radius)', marginBottom: 8, border: '1px solid var(--border)' }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>{a.award_name}</div>
-              {a.link && <a href={a.link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--gold)' }}>View →</a>}
+        <CardSection title="B.3 — Garment Types">
+          <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 6 }}>Select all garment types you produce. Your first 5 selections are automatically marked as Top — you can change which are Top by clicking the ★ button.</p>
+          <p style={{ fontSize: 12, color: '#D97520', marginBottom: 14, fontWeight: 600 }}>Top 5 slots: {TOP5_MAX - top5Count} remaining</p>
+          {allGarmentNames.map((name, i) => {
+            const g = garments.find(x => x.name === name);
+            return (
+              <Top5Row key={name} name={name} checked={!!g} top5={!!g?.top5} capReached={top5Count >= TOP5_MAX} onToggle={toggleGarment} isLast={i === allGarmentNames.length - 1} />
+            );
+          })}
+          {addingGarment ? (
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <input style={{ ...inputStyle, flex: 1 }} value={customGarment} onChange={e => setCustomGarment(e.target.value)} placeholder="e.g. Sarees" />
+              <button className="btn btn-teal btn-sm" onClick={addCustomGarment}>Add</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setAddingGarment(false); setCustomGarment(''); }}>Cancel</button>
             </div>
-            <button className="btn btn-danger btn-sm" onClick={() => onboardingAPI.delAward(profileId, a.id).then(() => setAwards(x => x.filter(y => y.id !== a.id)))}>Remove</button>
-          </div>
-        ))}
-        <div style={{ padding: 16, border: '1px solid var(--border2)', borderRadius: 'var(--radius)', marginTop: 8, background: 'var(--surface2)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10, marginBottom: 10 }}>
-            <div className="field">
-              <label>Award / Press Mention *</label>
-              <input value={newAward.award_name} onChange={e => setNewAward(a => ({ ...a, award_name: e.target.value }))} placeholder="e.g. Featured in Vogue India — March 2023" />
-            </div>
-            <div className="field">
-              <label>URL (optional)</label>
-              <input type="url" value={newAward.link} onChange={e => setNewAward(a => ({ ...a, link: e.target.value }))} placeholder="https://..." />
-            </div>
-          </div>
-          <button className="btn btn-outline btn-sm" onClick={addAward}>Save Award / Mention</button>
-        </div>
-      </CardSection>
+          ) : (
+            <button className="btn btn-outline btn-sm" style={{ marginTop: 12, borderStyle: 'dashed' }} onClick={() => setAddingGarment(true)}>+ Add garment type not in list</button>
+          )}
+        </CardSection>
+      </CategoryAccordion>
 
-      <button className="btn btn-primary btn-lg fade-up" onClick={save} disabled={saving}>
-        {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save Section B'}
-      </button>
+      {/* change 5: HF groups with per-group "Add other" + "Add category" at bottom */}
+      <CategoryAccordion name="Home Furnishings" sub="Textiles for the home" count={homeFurnishings.length}>
+        {hfGroups.map(g => (
+          <HFGroup key={g.group} group={g.group} items={g.items} checked={homeFurnishings} onToggle={toggleHF} onAddItem={addHFItem} />
+        ))}
+
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+          {addingCategory ? (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input style={{ ...inputStyle, flex: 1, height: 34 }} value={newCatName} onChange={e => setNewCatName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addHFCategory(); } }}
+                placeholder="New category name, e.g. Outdoor / Garden" autoFocus />
+              <button className="btn btn-teal btn-sm" onClick={addHFCategory}>Add Category</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setAddingCategory(false); setNewCatName(''); }}>Cancel</button>
+            </div>
+          ) : (
+            <button className="btn btn-outline btn-sm" style={{ borderStyle: 'dashed' }} onClick={() => setAddingCategory(true)}>+ Add category</button>
+          )}
+        </div>
+      </CategoryAccordion>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 8 }}>
+        <button className="btn btn-primary btn-lg fade-up" onClick={() => save(true)} disabled={saving}>
+          {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save & Next'}
+        </button>
+        <button className="btn btn-ghost fade-up" onClick={() => save(false)} disabled={saving}>Save</button>
+        <SavedPulse show={savedPulse} />
+      </div>
     </div>
   );
 }

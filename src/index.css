@@ -354,3 +354,27 @@ textarea:focus-visible, select:focus-visible {
 .fade-up-3 { animation-delay: 0.3s; }
 .fade-up-4 { animation-delay: 0.4s; }
 .fade-up-5 { animation-delay: 0.5s; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   STUDIO ONBOARDING FORM THEME — scoped terracotta accent
+   Applies ONLY inside .qala-form-theme (the seller Overview + Section A–H).
+   Redefines the accent variable locally so every var(--gold) usage in those
+   pages turns terracotta, matching the prototype. Rest of the app is unaffected.
+   ══════════════════════════════════════════════════════════════════════════ */
+.qala-form-theme {
+  --gold:     #D97520;                    /* terracotta accent (was sage #7A8C6E) */
+  --gold-l:   #E08A3C;                    /* lighter — hover/light */
+  --gold-d:   #C06818;                    /* darker — active */
+  --gold-dim: rgba(217, 117, 32, 0.08);   /* faint terracotta tint */
+}
+
+/* Primary CTA (Save & Continue) — solid terracotta like the prototype's .btn-primary */
+.qala-form-theme .btn-primary {
+  background: #D97520;
+  color: #fff;
+}
+.qala-form-theme .btn-primary:hover { background: #C06818; }
+.qala-form-theme .btn-primary:active { background: #C06818; }
+
+/* Text-link buttons hover to terracotta instead of sage */
+.qala-form-theme .btn-tertiary:hover { color: #D97520; }

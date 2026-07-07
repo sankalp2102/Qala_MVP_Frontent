@@ -1,29 +1,77 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { onboardingAPI } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 
 const API = onboardingAPI;
 
-function SectionHeader({ icon, letter, title, desc }) {
+/* ── shared input/textarea styles — exported for other sections ── */
+export const inputStyle = {
+  width: '100%', padding: '9px 12px',
+  border: '1px solid #D8D4CF', borderRadius: 5,
+  background: '#fff', color: '#1A1A1A',
+  fontSize: 13, fontFamily: "'DM Sans', sans-serif",
+  outline: 'none', transition: 'border-color .15s',
+  appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'textfield',
+};
+export const textareaStyle = {
+  width: '100%', padding: '9px 12px',
+  border: '1px solid #D8D4CF', borderRadius: 5,
+  background: '#fff', color: '#1A1A1A',
+  fontSize: 13, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7,
+  outline: 'none', transition: 'border-color .15s', resize: 'vertical',
+};
+
+/*
+ * TrashIcon — inline SVG, no external icon library needed.
+ * Exported so SectionD, SectionF, SectionG can import it too.
+ * Uses a clean 24×24 trash bin path — not oval, renders correctly at any size.
+ */
+export function TrashIcon({ size = 16, color = 'currentColor' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden="true" style={{ display: 'block', flexShrink: 0 }}>
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    </svg>
+  );
+}
+
+/* Shared button wrapper — square, no border by default, just the icon */
+export function TrashBtn({ onClick, label = 'Remove', size = 16 }) {
+  return (
+    <button
+      aria-label={label}
+      onClick={onClick}
+      style={{
+        background: 'none', border: 'none', cursor: 'pointer',
+        color: 'var(--text4)', padding: 4, borderRadius: 4,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        lineHeight: 1,
+      }}>
+      <TrashIcon size={size} />
+    </button>
+  );
+}
+
+function SectionHeader({ letter, title, desc }) {
   return (
     <div className="fade-up" style={{ marginBottom: 36 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-        <div style={{ width: 44, height: 44, borderRadius: 11, background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>{icon}</div>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Section {letter}</div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 700, color: 'var(--text)', lineHeight: 1.1 }}>{title}</h1>
-        </div>
-      </div>
-      <p style={{ color: 'var(--text3)', fontSize: 14, marginLeft: 56 }}>{desc}</p>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Section {letter}</div>
+      <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 500, fontStyle: 'italic', color: 'var(--gold)', lineHeight: 1.1 }}>{title}</h1>
+      <p style={{ color: 'var(--text3)', fontSize: 14, marginTop: 8 }}>{desc}</p>
     </div>
   );
 }
 
 function CardSection({ title, children }) {
   return (
-    <div className="card fade-up" style={{ marginBottom: 20 }}>
-      <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600, color: 'var(--text)', marginBottom: 18, paddingBottom: 14, borderBottom: '1px solid var(--border)' }}>{title}</div>
+    <div className="card fade-up" style={{ marginBottom: 16 }}>
+      <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, fontStyle: 'italic', color: 'var(--text)', marginBottom: 18, paddingBottom: 14, borderBottom: '1px solid var(--border)' }}>{title}</div>
       {children}
     </div>
   );
@@ -31,10 +79,10 @@ function CardSection({ title, children }) {
 
 function Field({ label, hint, children }) {
   return (
-    <div className="field">
-      <label>{label}</label>
+    <div style={{ marginBottom: 14 }}>
+      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>{label}</label>
       {children}
-      {hint && <span className="hint">{hint}</span>}
+      {hint && <span style={{ fontSize: 11, color: 'var(--text4)', marginTop: 4, display: 'block' }}>{hint}</span>}
     </div>
   );
 }
@@ -42,358 +90,290 @@ function Field({ label, hint, children }) {
 function FlagBanner({ reason }) {
   if (!reason) return null;
   return (
-    <div style={{ background: 'var(--red-dim)', border: '1px solid rgba(224,85,85,0.25)', borderLeft: '3px solid var(--red)', borderRadius: 'var(--radius)', padding: '8px 12px', fontSize: 12, color: 'var(--red)', marginBottom: 8 }}>
+    <div style={{ background: 'var(--red-dim)', border: '1px solid rgba(224,85,85,0.25)', borderLeft: '3px solid var(--red)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: 'var(--red)', marginBottom: 8 }}>
       Admin flagged: {reason}
     </div>
   );
 }
 
-export default function SectionA({ profileId, onSave }) {
+function SavedPulse({ show }) {
+  if (!show) return null;
+  return <span style={{ fontSize: 11, color: 'var(--text4)' }}>Saved</span>;
+}
+
+export default function SectionA({ profileId, initialData, onSave, onNext }) {
   const { toasts, success, error } = useToast();
+  const [savedPulse, setSavedPulse] = useState(false);
 
   const [form, setForm] = useState({
-    studio_name: '', location_city: '', location_state: '',
-    years_in_operation: '', website_url: '', instagram_url: '', poc_working_style: '',
+    studio_name: '', studio_slug: '', location_city: '', location_state: '',
+    years_in_operation: '', website_url: '', instagram_url: '', short_description: '',
   });
-  const [flags, setFlags] = useState({});
-  const [contacts, setContacts]     = useState([]);
-  const [usps, setUsps]             = useState([{ order: 1, strength: '' }, { order: 2, strength: '' }, { order: 3, strength: '' }]);
-  const [heroMedia, setHeroMedia]   = useState(null);
-  const [workMedia, setWorkMedia]   = useState([]);
-  const [newContact, setNewContact] = useState({ name: '', role: '', email: '', phone: '' });
-  const [addingC, setAddingC]       = useState(false);
-  const [editingContact, setEditingContact] = useState(null); // { id, name, role, email, phone }
-  const [saving, setSaving]         = useState(false);
-  const [uploading, setUploading]   = useState('');
-  const [uploadProgress, setUploadProgress] = useState(null); // { done, total, failed }
+  const [flags, setFlags]         = useState({});
+  const [usps, setUsps]           = useState([{ order:1, strength:'' }, { order:2, strength:'' }, { order:3, strength:'' }]);
+  const [heroMedia, setHeroMedia] = useState(null);
+  const [certTags, setCertTags]   = useState([]);
+  const [certInput, setCertInput] = useState('');
+  const [awards, setAwards]       = useState([]);
+  const [newAward, setNewAward]   = useState({ award_name: '', link: '' });
+  const [saving, setSaving]       = useState(false);
+  const [uploading, setUploading] = useState('');
+  const debounceRef               = useRef({});
 
-  useEffect(() => {
-    if (!profileId) return;
-    API.getStudio(profileId).then(r => {
-      const d = r.data;
-      if (!d) return;
-      setForm({
-        studio_name: d.studio_name || '',
-        location_city: d.location_city || '',
-        location_state: d.location_state || '',
-        years_in_operation: d.years_in_operation || '',
-        website_url: d.website_url || '',
-        instagram_url: d.instagram_url || '',
-        poc_working_style: d.poc_working_style || '',
-      });
-      setFlags({
-        studio_name: d.studio_name_flagged ? d.studio_name_flag_reason : null,
-        location: d.location_flagged ? d.location_flag_reason : null,
-        years: d.years_flagged ? d.years_flag_reason : null,
-        website: d.website_flagged ? d.website_flag_reason : null,
-        poc: d.poc_flagged ? d.poc_flag_reason : null,
-      });
-      if (d.contacts?.length) setContacts(d.contacts);
-      if (d.usps?.length) setUsps(d.usps.map(u => ({ order: u.order, strength: u.strength })));
-      const media = d.media_files || [];
-      setHeroMedia(media.find(m => m.media_type === 'hero') || null);
-      setWorkMedia(media.filter(m => m.media_type === 'work_dump'));
-    }).catch(() => {});
-  }, [profileId]);
-
-  const autosave = async (field, val) => {
-    setForm(f => ({ ...f, [field]: val }));
-    try { await API.patchStudio(profileId, { [field]: val }); } catch {}
+  /* Populate from snapshot initialData immediately — no API call needed */
+  const populateFromData = (d) => {
+    if (!d) return;
+    setForm({
+      studio_name: d.studio_name || '', studio_slug: d.studio_slug || '',
+      location_city: d.location_city || '', location_state: d.location_state || '',
+      years_in_operation: d.years_in_operation || '',
+      website_url: d.website_url || '', instagram_url: d.instagram_url || '',
+      short_description: d.short_description || '',
+    });
+    setFlags({
+      studio_name: d.studio_name_flagged ? d.studio_name_flag_reason : null,
+      location: d.location_flagged ? d.location_flag_reason : null,
+      years: d.years_flagged ? d.years_flag_reason : null,
+      website: d.website_flagged ? d.website_flag_reason : null,
+    });
+    if (d.certifications) {
+      try {
+        const p = JSON.parse(d.certifications);
+        setCertTags(Array.isArray(p) ? p : d.certifications.split(',').map(s => s.trim()).filter(Boolean));
+      } catch { setCertTags(d.certifications.split(',').map(s => s.trim()).filter(Boolean)); }
+    }
+    const loaded = (d.usps || []).slice(0, 3).map(u => ({ order: u.order, strength: u.strength }));
+    while (loaded.length < 3) loaded.push({ order: loaded.length + 1, strength: '' });
+    setUsps(loaded);
+    setHeroMedia((d.media_files || []).find(m => m.media_type === 'hero') || null);
   };
 
-  const save = async () => {
+  /* If snapshot data arrives (or changes), use it immediately */
+  useEffect(() => {
+    if (initialData) {
+      populateFromData(initialData);
+    }
+  }, [initialData]);
+
+  /* Only fall back to direct API call if no snapshot data available */
+  useEffect(() => {
+    if (!profileId || initialData) return;
+    API.getStudio(profileId).then(r => populateFromData(r.data)).catch(() => {});
+  }, [profileId]);
+
+  /* Awards are not in snapshot — always fetch separately, but only once */
+  useEffect(() => {
+    if (!profileId) return;
+    API.getAwards(profileId).then(r => setAwards(r.data || [])).catch(() => {});
+  }, [profileId]);
+
+  const debouncedPatch = useCallback((field, val) => {
+    clearTimeout(debounceRef.current[field]);
+    debounceRef.current[field] = setTimeout(async () => {
+      try {
+        await API.patchStudio(profileId, { [field]: val });
+        setSavedPulse(true);
+        setTimeout(() => setSavedPulse(false), 1500);
+      } catch {}
+    }, 600);
+  }, [profileId]);
+
+  const handleField = (field, val) => {
+    setForm(f => ({ ...f, [field]: val }));
+    debouncedPatch(field, val);
+  };
+
+  const saveCerts = async tags => {
+    setCertTags(tags);
+    try { await API.patchStudio(profileId, { certifications: JSON.stringify(tags) }); } catch {}
+  };
+  const addCertTag = () => {
+    const v = certInput.trim(); if (!v) return;
+    saveCerts([...certTags, v]); setCertInput('');
+  };
+  const removeCertTag = i => saveCerts(certTags.filter((_, j) => j !== i));
+
+  const save = async (andNext = false) => {
     setSaving(true);
     try {
-      await API.putStudio(profileId, form);
-      const uspData = usps.filter(u => u.strength.trim());
-      if (uspData.length) await API.putUSPs(profileId, uspData);
+      await API.putStudio(profileId, { ...form, certifications: JSON.stringify(certTags) });
+      await API.putUSPs(profileId, usps.slice(0,3).map((u,i) => ({ order: i+1, strength: u.strength })));
       success('Section A saved!');
       onSave?.();
+      if (andNext) onNext?.();
     } catch (e) {
       error(e.response?.data ? JSON.stringify(e.response.data) : 'Save failed');
     } finally { setSaving(false); }
   };
 
-  const addContact = async () => {
-    if (!newContact.name || !newContact.role) { error('Name and role required'); return; }
-    try {
-      const r = await API.addContact(profileId, { ...newContact, order: contacts.length + 1 });
-      setContacts(c => [...c, r.data]);
-      setNewContact({ name: '', role: '', email: '', phone: '' });
-      setAddingC(false);
-      success('Contact added');
-    } catch { error('Failed to add contact'); }
-  };
-
-  const delContact = async id => {
-    try { await API.delContact(profileId, id); setContacts(c => c.filter(x => x.id !== id)); }
-    catch { error('Failed'); }
-  };
-
-  const saveEditContact = async () => {
-    if (!editingContact.name || !editingContact.role) { error('Name and role required'); return; }
-    try {
-      const r = await API.patchContact(profileId, editingContact.id, {
-        name: editingContact.name,
-        role: editingContact.role,
-        email: editingContact.email,
-        phone: editingContact.phone,
-      });
-      setContacts(c => c.map(x => x.id === editingContact.id ? r.data : x));
-      setEditingContact(null);
-      success('Contact updated');
-    } catch { error('Failed to update contact'); }
-  };
-
-  const uploadMedia = async (e, mediaType) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
+  const uploadHero = async e => {
+    const file = e.target.files?.[0]; if (!file) return;
     e.target.value = '';
-
-    // Hero: only take the last file selected (replaces existing)
-    if (mediaType === 'hero') {
-      const file = files[files.length - 1];
-      setUploading('hero');
-      try {
-        const fd = new FormData();
-        fd.append('file', file);
-        fd.append('media_type', 'hero');
-        fd.append('order', 1);
-        const r = await API.uploadStudioMedia(profileId, fd);
-        setHeroMedia(r.data);
-        success('Uploaded!');
-      } catch { error('Upload failed'); }
-      finally { setUploading(''); }
-      return;
-    }
-
-    // Work dump: sequential multi-upload
-    setUploading('work_dump');
-    setUploadProgress({ done: 0, total: files.length, failed: 0 });
-    let done = 0, failed = 0;
-
-    for (const file of files) {
-      try {
-        const fd = new FormData();
-        fd.append('file', file);
-        fd.append('media_type', 'work_dump');
-        fd.append('order', 1);
-        const r = await API.uploadStudioMedia(profileId, fd);
-        setWorkMedia(m => [...m, r.data]);
-      } catch {
-        failed++;
-      }
-      done++;
-      setUploadProgress({ done, total: files.length, failed });
-    }
-
-    if (failed === 0) success(`${files.length} file${files.length > 1 ? 's' : ''} uploaded!`);
-    else if (failed < files.length) error(`${failed} of ${files.length} failed — rest uploaded.`);
-    else error('All uploads failed. Check file types and sizes.');
-
-    setUploading('');
-    setUploadProgress(null);
+    setUploading('hero');
+    try {
+      const fd = new FormData();
+      fd.append('file', file); fd.append('media_type', 'hero'); fd.append('order', 1);
+      const r = await API.uploadStudioMedia(profileId, fd);
+      setHeroMedia(r.data); success('Uploaded!');
+    } catch { error('Upload failed'); }
+    finally { setUploading(''); }
   };
 
-  const delMedia = async (mediaId, mediaType) => {
-    try {
-      await API.delStudioMedia(profileId, mediaId);
-      if (mediaType === 'hero') setHeroMedia(null);
-      else setWorkMedia(m => m.filter(x => x.id !== mediaId));
-    } catch { error('Failed'); }
+  const delHero = async () => {
+    try { await API.delStudioMedia(profileId, heroMedia.id); setHeroMedia(null); }
+    catch { error('Failed'); }
   };
 
   return (
     <div style={{ padding: '40px 48px', maxWidth: 760 }}>
       <Toast toasts={toasts} />
-      <SectionHeader icon="" letter="A" title="Studio Details" desc="Your studio's identity, location, media, and point of contact." />
+      <SectionHeader letter="A" title="Introduction" desc="Your studio core information, contacts, strengths, and recognition." />
 
-      {/* A.1 Studio Name */}
       <CardSection title="A.1 — Studio / Brand Name">
         <FlagBanner reason={flags.studio_name} />
-        <Field label="What is the name of your studio or brand? *">
-          <input value={form.studio_name} onChange={e => autosave('studio_name', e.target.value)} placeholder="e.g. Priya Craft Studio" />
+        <Field label="Studio or brand name *">
+          <input style={inputStyle} value={form.studio_name} onChange={e => handleField('studio_name', e.target.value)} placeholder="e.g. Kullvi Whims" />
+        </Field>
+        <Field label="Studio URL" hint="Auto-generated from your studio name — you can edit it.">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 13, color: 'var(--text4)', whiteSpace: 'nowrap' }}>qala.studio/</span>
+            <input style={{ ...inputStyle, flex: 1 }}
+              value={form.studio_slug}
+              onChange={e => {
+                const slug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+                handleField('studio_slug', slug);
+              }}
+              placeholder="e.g. kullvi-whims" />
+          </div>
         </Field>
       </CardSection>
 
-      {/* A.2 Location */}
       <CardSection title="A.2 — Location">
         <FlagBanner reason={flags.location} />
         <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 14 }}>Where is your studio based?</p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          <Field label="City *">
-            <input value={form.location_city} onChange={e => autosave('location_city', e.target.value)} placeholder="e.g. Jaipur" />
-          </Field>
-          <Field label="State *">
-            <input value={form.location_state} onChange={e => autosave('location_state', e.target.value)} placeholder="e.g. Rajasthan" />
-          </Field>
+          <Field label="City *"><input style={inputStyle} value={form.location_city} onChange={e => handleField('location_city', e.target.value)} placeholder="e.g. Jaipur" /></Field>
+          <Field label="State *"><input style={inputStyle} value={form.location_state} onChange={e => handleField('location_state', e.target.value)} placeholder="e.g. Rajasthan" /></Field>
         </div>
       </CardSection>
 
-      {/* A.3 Years in operation */}
-      <CardSection title="A.3 — Years in Operation">
+      <CardSection title="A.3 — Year of Establishment">
         <FlagBanner reason={flags.years} />
-        <Field label="How many years has your studio been operating?" hint="You can enter a decimal, e.g. 2.5 for 2½ years">
-          <input type="number" step="0.5" min="0" value={form.years_in_operation}
-            onChange={e => autosave('years_in_operation', e.target.value)}
-            placeholder="e.g. 8" style={{ maxWidth: 200 }} />
+        <Field label="Year established *" hint="4-digit year, e.g. 2014">
+          <input
+            style={{ ...inputStyle, maxWidth: 160 }}
+            type="text" inputMode="numeric" pattern="[0-9]*" maxLength={4}
+            value={form.years_in_operation}
+            onChange={e => handleField('years_in_operation', e.target.value.replace(/\D/g, '').slice(0, 4))}
+            placeholder="e.g. 2014" />
         </Field>
       </CardSection>
 
-      {/* A.4 Website + Instagram */}
       <CardSection title="A.4 — Online Presence">
         <FlagBanner reason={flags.website} />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <Field label="Website URL" hint="Include https://">
-            <input type="url" value={form.website_url} onChange={e => autosave('website_url', e.target.value)} placeholder="https://yourstudio.com" />
+            <input style={inputStyle} type="url" value={form.website_url} onChange={e => handleField('website_url', e.target.value)} placeholder="https://yourstudio.com" />
           </Field>
-          <Field label="Instagram URL" hint="Your studio's public profile">
-            <input type="url" value={form.instagram_url} onChange={e => autosave('instagram_url', e.target.value)} placeholder="https://instagram.com/yourstudio" />
+          <Field label="Instagram URL" hint="Studio account, not personal.">
+            <input style={inputStyle} type="url" value={form.instagram_url} onChange={e => handleField('instagram_url', e.target.value)} placeholder="https://instagram.com/yourstudio" />
           </Field>
         </div>
       </CardSection>
 
-      {/* A.5 Contacts */}
-      <CardSection title="A.5 — Studio Contacts">
-        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
-          Who should we contact at your studio? Add the key people (owner, designer, production manager, etc.)
-        </p>
-        {contacts.map(c => (
-          editingContact?.id === c.id ? (
-            /* ── Inline edit form ── */
-            <div key={c.id} style={{ padding: 16, border: '1px solid rgba(200,165,90,0.35)', borderRadius: 'var(--radius)', marginBottom: 8, background: 'var(--gold-dim)' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Editing contact</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-                <Field label="Name *"><input value={editingContact.name} onChange={e => setEditingContact(x => ({ ...x, name: e.target.value }))} placeholder="e.g. Priya Sharma" /></Field>
-                <Field label="Role *"><input value={editingContact.role} onChange={e => setEditingContact(x => ({ ...x, role: e.target.value }))} placeholder="e.g. Studio Owner" /></Field>
-                <Field label="Email"><input type="email" value={editingContact.email || ''} onChange={e => setEditingContact(x => ({ ...x, email: e.target.value }))} placeholder="priya@studio.com" /></Field>
-                <Field label="Phone"><input value={editingContact.phone || ''} onChange={e => setEditingContact(x => ({ ...x, phone: e.target.value }))} placeholder="+91 98765 43210" /></Field>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-teal btn-sm" onClick={saveEditContact}>Save Changes</button>
-                <button className="btn btn-ghost btn-sm" onClick={() => setEditingContact(null)}>Cancel</button>
-              </div>
-            </div>
-          ) : (
-            /* ── Read view ── */
-            <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--radius)', marginBottom: 8, border: '1px solid var(--border)' }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{c.name}</div>
-                <div style={{ fontSize: 13, color: 'var(--gold)', marginTop: 2 }}>{c.role}</div>
-                <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 3 }}>
-                  {c.email && <span>{c.email}</span>}
-                  {c.email && c.phone && <span> · </span>}
-                  {c.phone && <span>{c.phone}</span>}
-                </div>
-                {c.is_flagged && !c.flag_resolved && (
-                  <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>{c.flag_reason}</div>
-                )}
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexShrink: 0, marginLeft: 12 }}>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setEditingContact({ id: c.id, name: c.name, role: c.role, email: c.email || '', phone: c.phone || '' })}
-                >
-                  Edit
-                </button>
-                <button className="btn btn-danger btn-sm" onClick={() => delContact(c.id)}>Remove</button>
-              </div>
-            </div>
-          )
-        ))}
-        {addingC ? (
-          <div style={{ padding: 16, border: '1px solid var(--border2)', borderRadius: 'var(--radius)', marginTop: 8, background: 'var(--surface2)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <Field label="Name *"><input value={newContact.name} onChange={e => setNewContact(c => ({ ...c, name: e.target.value }))} placeholder="e.g. Priya Sharma" /></Field>
-              <Field label="Role *"><input value={newContact.role} onChange={e => setNewContact(c => ({ ...c, role: e.target.value }))} placeholder="e.g. Studio Owner" /></Field>
-              <Field label="Email"><input type="email" value={newContact.email} onChange={e => setNewContact(c => ({ ...c, email: e.target.value }))} placeholder="priya@studio.com" /></Field>
-              <Field label="Phone"><input value={newContact.phone} onChange={e => setNewContact(c => ({ ...c, phone: e.target.value }))} placeholder="+91 98765 43210" /></Field>
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-teal btn-sm" onClick={addContact}>Save Contact</button>
-              <button className="btn btn-ghost btn-sm" onClick={() => { setAddingC(false); setNewContact({ name: '', role: '', email: '', phone: '' }); }}>Cancel</button>
-            </div>
-          </div>
-        ) : (
-          <button className="btn btn-outline btn-sm" style={{ marginTop: 8 }} onClick={() => setAddingC(true)}>+ Add Contact</button>
-        )}
-      </CardSection>
-
-      {/* A.7 USPs */}
-      <CardSection title="A.6 — Studio Strengths / USPs">
-        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
-          What makes your studio stand out? List your top strengths (up to 5). These are shown prominently to buyers.
-        </p>
-        {usps.map((u, i) => (
+      <CardSection title="A.5 — Studio Strengths">
+        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>What makes your studio stand out? Exactly 3 required.</p>
+        {usps.slice(0, 3).map((u, i) => (
           <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 10, alignItems: 'center' }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', color: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
-            <input className="input-raw" style={{ flex: 1 }}
-              placeholder={['e.g. 20+ years of hand block printing expertise', 'e.g. GOTS-certified natural dyes only', 'e.g. Exclusively work with heritage weavers from Chanderi'][i] || `Strength #${i + 1}`}
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#CCC', minWidth: 16, flexShrink: 0 }}>{i + 1}</div>
+            <input style={{ ...inputStyle, flex: 1 }}
+              placeholder={['e.g. Fastest sampling turnaround in block printing — 10 days flat', 'e.g. Own natural dye garden, 40+ plant sources', 'e.g. GI-certified artisan cluster'][i]}
               value={u.strength}
               onChange={e => setUsps(arr => arr.map((x, j) => j === i ? { ...x, strength: e.target.value } : x))} />
           </div>
         ))}
-        {usps.length < 5 && (
-          <button className="btn btn-ghost btn-sm" style={{ marginTop: 4 }} onClick={() => setUsps(a => [...a, { order: a.length + 1, strength: '' }])}>+ Add Strength</button>
-        )}
       </CardSection>
 
-      {/* A.8 Hero Image */}
-      <CardSection title="A.7 — Hero / Cover Image">
-        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
-          Upload one hero image that best represents your studio — this is your first impression. It appears at the top of your profile.
-        </p>
-        {heroMedia ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', marginBottom: 12 }}>
+      <CardSection title="A.6 — One-liner">
+        <Field label="Describe your studio in one sentence" hint="Be specific. Avoid premium, unique, passionate.">
+          <textarea style={textareaStyle} rows={2}
+            value={form.short_description}
+            onChange={e => handleField('short_description', e.target.value)}
+            placeholder="Specialists in hand block printing on natural fabrics, based in Kutch for 12 years." />
+        </Field>
+      </CardSection>
+
+      <CardSection title="A.7 — Certifications">
+        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 14 }}>Press Enter to add. e.g. GOTS, Fair Trade, OEKO-TEX, SA8000, Craftmark, GI tag</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+          {certTags.map((tag, i) => (
+            <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', border: '1px solid #E4E0DB', borderRadius: 20, fontSize: 12, color: '#555', background: '#FAFAF8' }}>
+              {tag}
+              <button onClick={() => removeCertTag(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text4)', fontSize: 14, padding: 0, lineHeight: 1 }}>×</button>
+            </span>
+          ))}
+        </div>
+        <input style={{ ...inputStyle, maxWidth: 360 }}
+          value={certInput}
+          onChange={e => setCertInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCertTag(); } }}
+          placeholder="Type a certification and press Enter" />
+      </CardSection>
+
+      <CardSection title="A.8 — Awards & Press Mentions">
+        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>Recognised programmes, press features, industry awards.</p>
+        {awards.map(aw => (
+          <div key={aw.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: 'var(--surface2)', borderRadius: 8, marginBottom: 8, border: '1px solid var(--border)' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>{aw.award_name}</div>
+              {aw.link && <a href={aw.link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--gold)' }}>View →</a>}
+            </div>
+            <TrashBtn label="Remove award" onClick={() => API.delAward(profileId, aw.id).then(() => setAwards(x => x.filter(y => y.id !== aw.id)))} />
+          </div>
+        ))}
+        <div style={{ padding: 16, border: '1px solid var(--border2)', borderRadius: 8, marginTop: 8, background: 'var(--surface2)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10, marginBottom: 10 }}>
+            <Field label="Award / Press Mention">
+              <input style={inputStyle} value={newAward.award_name} onChange={e => setNewAward(a => ({ ...a, award_name: e.target.value }))} placeholder="e.g. Featured in Vogue India — March 2023" />
+            </Field>
+            <Field label="URL (optional)">
+              <input style={inputStyle} type="url" value={newAward.link} onChange={e => setNewAward(a => ({ ...a, link: e.target.value }))} placeholder="https://..." />
+            </Field>
+          </div>
+          <button className="btn btn-outline btn-sm" onClick={async () => {
+            if (!newAward.award_name) return;
+            try { const r = await API.addAward(profileId, { ...newAward, order: awards.length + 1 }); setAwards(x => [...x, r.data]); setNewAward({ award_name: '', link: '' }); } catch {}
+          }}>Save Award / Mention</button>
+        </div>
+      </CardSection>
+
+      <CardSection title="A.9 — Hero / Cover Image">
+        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>Upload one hero image that best represents your studio.</p>
+        {heroMedia && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 12 }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{heroMedia.file_name}</div>
               <div style={{ fontSize: 11, color: 'var(--text3)' }}>{heroMedia.mime_type} · {heroMedia.file_size_kb} KB</div>
             </div>
-            <button className="btn btn-danger btn-sm" onClick={() => delMedia(heroMedia.id, 'hero')}>Remove</button>
+            <TrashBtn label="Remove hero image" onClick={delHero} />
           </div>
-        ) : null}
+        )}
         <label style={{ display: 'inline-block' }}>
-          <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => uploadMedia(e, 'hero')} style={{ display: 'none' }} />
+          <input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadHero} style={{ display: 'none' }} />
           <span className="btn btn-outline btn-sm" style={{ cursor: 'pointer' }}>
             {uploading === 'hero' ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Uploading…</> : heroMedia ? '↺ Replace Hero Image' : '+ Upload Hero Image'}
           </span>
         </label>
-        <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 8 }}>JPG · PNG · WEBP up to 10 MB. Only 1 hero image allowed.</p>
+        <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 8 }}>JPG · PNG · WEBP up to 10 MB.</p>
       </CardSection>
 
-      {/* A.9 Work Dump */}
-      <CardSection title="A.8 — Work Portfolio">
-        <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 16 }}>
-          This is the way for you to showcase your capability: share pictures of the different types of garments you have produced in the past, your signature work. Ideally, 15–20 images across silhouettes and aesthetics.
-        </p>
-        {workMedia.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-            {workMedia.map(m => (
-              <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--surface2)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', fontSize: 12 }}>
-                <span>{m.mime_type?.startsWith('video') ? 'Video' : 'Image'}</span>
-                <span style={{ color: 'var(--text2)' }}>{m.file_name}</span>
-                <button onClick={() => delMedia(m.id, 'work_dump')} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 13, padding: 0 }}>×</button>
-              </div>
-            ))}
-          </div>
-        )}
-        <label style={{ display: 'inline-block' }}>
-          <input type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" onChange={e => uploadMedia(e, 'work_dump')} style={{ display: 'none' }} />
-          <span className="btn btn-outline btn-sm" style={{ cursor: uploading === 'work_dump' ? 'not-allowed' : 'pointer', opacity: uploading === 'work_dump' ? 0.6 : 1 }}>
-            {uploading === 'work_dump'
-              ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Uploading {uploadProgress?.done || 0} / {uploadProgress?.total || 0}…</>
-              : '+ Upload Images / Videos'}
-          </span>
-        </label>
-        {uploadProgress && uploadProgress.failed > 0 && (
-          <span style={{ fontSize: 11, color: 'var(--red)', marginLeft: 10 }}>{uploadProgress.failed} failed</span>
-        )}
-        <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 8 }}>Select multiple files at once · Images: JPG · PNG · WEBP up to 10 MB · Videos: MP4 · MOV up to 100 MB</p>
-      </CardSection>
-
-      <button className="btn btn-primary btn-lg fade-up" onClick={save} disabled={saving}>
-        {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save Section A'}
-      </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <button className="btn btn-primary btn-lg fade-up" onClick={() => save(true)} disabled={saving}>
+          {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save & Next'}
+        </button>
+        <button className="btn btn-ghost fade-up" onClick={() => save(false)} disabled={saving}>Save</button>
+        <SavedPulse show={savedPulse} />
+      </div>
     </div>
   );
 }

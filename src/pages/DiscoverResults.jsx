@@ -442,7 +442,7 @@ export default function DiscoverResults() {
   };
 
   const handleContact = studio => {
-    nav('/studio/' + studio.studio_id);
+    nav(studio.studio_slug ? `/${studio.studio_slug}` : `/studio/${studio.studio_id}`);
   };
 
   const recs = data?.recommendations || [];
@@ -1072,7 +1072,7 @@ export default function DiscoverResults() {
         <AuthGateModal
           studioName={authGate.studio?.studio_name}
           onClose={() => setAuthGate(null)}
-          onSuccess={() => { setAuthGate(null); nav('/studio/' + authGate.studio?.studio_id); }}
+          onSuccess={() => { setAuthGate(null); nav(authGate.studio?.studio_slug ? `/${authGate.studio.studio_slug}` : `/studio/${authGate.studio?.studio_id}`); }}
         />
       )}
     </div>

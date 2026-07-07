@@ -12,6 +12,13 @@ import DiscoverResults from './pages/DiscoverResults';
 import StudioProfile from './pages/StudioProfile';
 import StudioDirectory from './pages/StudioDirectory';
 
+// Reserved paths that must NOT be caught by the /:studioSlug wildcard.
+// Any new top-level route added to AppRoutes must also be listed here.
+export const RESERVED_PATHS = new Set([
+  'login', 'discover', 'directory', 'studio',
+  'buyer', 'dashboard', 'admin',
+]);
+
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -50,7 +57,13 @@ function AppRoutes() {
       <Route path="/discover"         element={<DiscoverV2 />} />        {/* V2 chat */}
       <Route path="/discover/results" element={<DiscoverResults />} />   {/* V1 results — unchanged */}
       <Route path="/directory"        element={<StudioDirectory />} />
+
+      {/* Legacy route — numeric ID. Keep so existing recommendation/directory links don't break. */}
       <Route path="/studio/:id"       element={<StudioProfile />} />
+
+      {/* v3 slug route — e.g. /hindostan-archive */}
+      <Route path="/:studioSlug"      element={<StudioProfile />} />
+
       <Route path="/buyer/*"          element={<Guard role="customer"><BuyerDashboard /></Guard>} />
       <Route path="/dashboard/*"      element={<Guard role="seller"><SellerDashboard /></Guard>} />
       <Route path="/admin/*"          element={<Guard role="admin"><AdminDashboard /></Guard>} />

@@ -113,7 +113,8 @@ function StudioCard({ studio, onClick }) {
           <img
             src={imageUrl}
             alt={studio.studio_name}
-            loading='eager'
+            loading='lazy'
+            decoding='async'
             onError={e => {
               if (imageFallback && e.target.src !== imageFallback) {
                 e.target.src = imageFallback;
@@ -886,7 +887,7 @@ export default function StudioDirectory() {
               <StudioCard
                 key={studio.studio_id}
                 studio={studio}
-                onClick={() => nav(`/studio/${studio.studio_id}`)}
+                onClick={() => nav(studio.studio_slug ? `/${studio.studio_slug}` : `/studio/${studio.studio_id}`)}
               />
             ))}
           </div>

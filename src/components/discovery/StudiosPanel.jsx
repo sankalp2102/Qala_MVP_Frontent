@@ -115,7 +115,7 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
 
   function handleContact(rec) {
     discoveryAPI.saveSession(sessionToken);
-    window.open(`/studio/${rec.studio_id}`, '_blank', 'noopener,noreferrer');
+    navigate(rec.studio_slug ? `/${rec.studio_slug}` : `/studio/${rec.studio_id}`);
   }
 
   // ── Inline mode ───────────────────────────────────────────────────────────
