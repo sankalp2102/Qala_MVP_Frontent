@@ -11,7 +11,7 @@
 //   - No token counter, no nav "View Studios" button
 //   - Brief card appears inside the AI message when matching done
 //   - Studios panel still slides in after matching
-
+ 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -21,25 +21,26 @@ import ImageUpload from '../components/discovery/ImageUpload';
 import StudiosPanel from '../components/discovery/StudiosPanel';
 import qalaLogo   from '../assets/qala-logo.png';
 import UserAvatar from '../components/UserAvatar';
-
+ 
 const CHAT_SESSION_KEY   = 'qala_chat_session_id';
 const LANDING_FIRST_MSG  = 'qala_landing_first_msg';
 const LANDING_FIRST_IMG  = 'qala_landing_first_img';
 const LANDING_FIRST_MIME = 'qala_landing_first_mime';
-
+ 
 // ── Chip parser — reads [CHIPS: A | B | C] from Claude text ─────────────────
 function parseChips(text) {
   if (!text) return [];
   const m = text.match(/\[CHIPS:\s*([^\]]+)\]/);
   return m ? m[1].split('|').map(s => s.trim()).filter(Boolean) : [];
 }
-
+ 
 export default function DiscoverV2() {
   const { user, loginWithAccessKey, loading: authLoading } = useAuth();
   const navigate  = useNavigate();
-  const bottomRef = useRef(null);
+  const bottomRef      = useRef(null);
+  const drawerBottomRef = useRef(null);
   const taRef     = useRef(null);
-
+ 
   // ── State ─────────────────────────────────────────────────────────────────
   // Determine initial phase synchronously — never flash the gate for users
   // who are already authenticated or coming from the landing page.
@@ -57,7 +58,11 @@ export default function DiscoverV2() {
   const [sessionId, setSessionId]       = useState(null);
   const [messages, setMessages]         = useState([]);
   const [input, setInput]               = useState('');
-  const [pendingImages, setPendingImages] = useState([]);   // [{data: base64, mime, name}]
+  const [pendingImages,  setPendingImages]  = useState([]);   // [{data: base64, mime, name}]
+  const [briefImages,    setBriefImages]    = useState([]);   // images from last user msg before brief
+  const [skipContactForm, setSkipContactForm] = useState(
+    () => localStorage.getItem('qala_has_contact') === 'true'
+  );
   const [sending, setSending]           = useState(false);
   const [starting, setStarting]         = useState(false);
   const [sessionToken, setSessionToken] = useState(null);
@@ -66,14 +71,27 @@ export default function DiscoverV2() {
   const [chips, setChips]               = useState([]);
   const [splitView, setSplitView]       = useState(false);
   const [chatOpen, setChatOpen]         = useState(false); // mobile chat drawer
+  const [drawerTranslate, setDrawerTranslate] = useState(0); // swipe-down tracking
+  const touchStartY   = useRef(null);
+  const touchCurrentY = useRef(null);
   const [highlightBrief, setHighlightBrief] = useState(false);
   const [keyUsedEmail, setKeyUsedEmail]       = useState(null); // set when anon key accepted
-
+ 
   // ── Scroll on new messages ────────────────────────────────────────────────
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, sending]);
-
+ 
+  // Scroll drawer to bottom when it opens
+  useEffect(() => {
+    if (chatOpen) {
+      setDrawerTranslate(0);
+      setTimeout(() => {
+        drawerBottomRef.current?.scrollIntoView({ behavior: 'instant' });
+      }, 320); // after drawer slide-up animation
+    }
+  }, [chatOpen]);
+ 
   // ── Auth resolved — decide what to do ──────────────────────────────────────
   // Runs once when AuthContext finishes loading (authLoading flips false).
   // Uses a ref to ensure it only acts once, preventing double-fire from
@@ -83,9 +101,9 @@ export default function DiscoverV2() {
     if (authLoading) return;                  // still loading — wait
     if (authHandledRef.current) return;       // already handled — don't re-run
     if (hasLandingMsg || hasLandingSession) return; // landing flow handles it
-
+ 
     authHandledRef.current = true;
-
+ 
     if (user) {
       sessionStorage.removeItem(CHAT_SESSION_KEY); // clear stale session
       startSession(null);
@@ -93,7 +111,7 @@ export default function DiscoverV2() {
       setPhase('gate');
     }
   }, [authLoading, user]);
-
+ 
   // ── Consume first message pre-loaded from Landing page ───────────────────
   // Landing.jsx saves the session_id + first message to sessionStorage before
   // navigating here. On mount we pick it up, skip the gate, and send it so
@@ -103,24 +121,24 @@ export default function DiscoverV2() {
     const firstImg  = sessionStorage.getItem(LANDING_FIRST_IMG);
     const firstMime = sessionStorage.getItem(LANDING_FIRST_MIME);
     const savedId   = sessionStorage.getItem(CHAT_SESSION_KEY);
-
+ 
     if (!firstMsg && !firstImg) return;  // nothing pre-loaded
-
+ 
     // Clear from storage immediately so it doesn't re-fire on refresh
     sessionStorage.removeItem(LANDING_FIRST_MSG);
     sessionStorage.removeItem(LANDING_FIRST_IMG);
     sessionStorage.removeItem(LANDING_FIRST_MIME);
-
+ 
     if (!savedId) return;
-
+ 
     // Session was already started by Landing — resume it then send first message
     (async () => {
       try {
         const res  = await chatAPI.getSession(savedId);
         const data = res.data;
         setSessionId(savedId);
-        const openingMsg = { role: 'assistant', content: data.messages?.[0]?.content || '' };
-        setMessages(openingMsg.content ? [openingMsg] : []);
+        // Skip welcome message when user sent a first message from Landing
+        setMessages([]);
         setPhase('chat');
         // Now send the first message with optional image
         if (firstMsg || firstImg) {
@@ -148,7 +166,7 @@ export default function DiscoverV2() {
       }
     })();
   }, []);
-
+ 
   // ── Resume session from sessionStorage ───────────────────────────────────
   // Skip if Landing pre-loaded a first message — that effect handles it.
   useEffect(() => {
@@ -157,21 +175,28 @@ export default function DiscoverV2() {
     const saved = sessionStorage.getItem(CHAT_SESSION_KEY);
     if (saved) resumeSession(saved);
   }, []);
-
+ 
   // ── Resume ────────────────────────────────────────────────────────────────
   async function resumeSession(id) {
     try {
       const res  = await chatAPI.getSession(id);
       const data = res.data;
       setSessionId(id);
-      setMessages((data.messages || []).map(m => ({
-        role:     m.role,
-        content:  m.content,
-        // Restore hasBrief by detecting BRIEF_START in the stored content
-        hasBrief: typeof m.content === 'string' &&
-                  m.content.includes('BRIEF_START') &&
-                  m.content.includes('BRIEF_END'),
-      })));
+      const resumed = (data.messages || []).map(m => ({
+        role:           m.role,
+        content:        m.content,
+        // Restore hasBrief by detecting BRIEF_START in stored content
+        hasBrief:       typeof m.content === 'string' &&
+                        m.content.includes('BRIEF_START') &&
+                        m.content.includes('BRIEF_END'),
+        // Restore images stored in DB — survives page refresh
+        attachedImages: m.images || [],
+      }));
+      setMessages(resumed);
+ 
+      // Restore briefImages from the last user message that had images
+      const lastWithImages = [...resumed].reverse().find(m => m.role === 'user' && m.attachedImages?.length);
+      if (lastWithImages) setBriefImages(lastWithImages.attachedImages);
       setExtracted(data.extracted || {});
       if (data.session_token) {
         setSessionToken(data.session_token);
@@ -185,7 +210,7 @@ export default function DiscoverV2() {
       setPhase('gate');
     }
   }
-
+ 
   // ── Start session ─────────────────────────────────────────────────────────
   async function startSession(key) {
     setStarting(true);
@@ -196,10 +221,23 @@ export default function DiscoverV2() {
       const id   = data.session?.session_id;
       setSessionId(id);
       sessionStorage.setItem(CHAT_SESSION_KEY, id);
-
+ 
       // Keys are anonymous — no login. Just open the chat.
       if (key) setKeyUsedEmail(key.trim());
-
+ 
+      // Mark contact as collected if key already has details
+      if (data.has_contact) {
+        localStorage.setItem('qala_has_contact', 'true');
+        setSkipContactForm(true);
+      }
+ 
+      // Resume previous session if one exists for this key
+      if (data.existing_session_id) {
+        sessionStorage.setItem(CHAT_SESSION_KEY, data.existing_session_id);
+        await resumeSession(data.existing_session_id);
+        return;
+      }
+ 
       const openingMsg = { role: 'assistant', content: data.message };
       setMessages([openingMsg]);
       setChips(data.quick_replies || parseChips(data.message));
@@ -219,13 +257,15 @@ export default function DiscoverV2() {
       setStarting(false);
     }
   }
-
+ 
   // ── Send message ──────────────────────────────────────────────────────────
   async function sendMessage(text) {
-    const trimmed = (text || input).trim();
-    if (!trimmed && !pendingImages.length) return;
+    const rawText = (text || input).trim();
+    if (!rawText && !pendingImages.length) return;
+    // Use 'IMAGE' as default message when only images are sent (no text)
+    const trimmed = rawText || (pendingImages.length ? 'IMAGE' : '');
     if (!sessionId || sending) return;
-
+ 
     // Intercept brief-confirmation chips — don't send to Claude,
     // just pulse the Find Studios button to guide the user.
     const confirmPhrases = [
@@ -238,25 +278,28 @@ export default function DiscoverV2() {
       setChips([]);
       return;
     }
-
+ 
     const imgsCopy = pendingImages.slice();
-
+ 
     // Append user message to local state immediately
     const userMsg = {
       role:          'user',
-      content:       trimmed,
+      // Don't show 'IMAGE' placeholder text in the chat bubble
+      content:       trimmed === 'IMAGE' ? '' : trimmed,
       attachedImages: imgsCopy,
     };
+    // Track images for the brief card — kept until a new brief is generated
+    if (imgsCopy.length) setBriefImages(imgsCopy);
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setChips([]);
     setPendingImages([]);
-
+ 
     // Resize textarea
     if (taRef.current) {
       taRef.current.style.height = 'auto';
     }
-
+ 
     setSending(true);
     try {
       const res  = await chatAPI.sendMessage(
@@ -264,20 +307,27 @@ export default function DiscoverV2() {
         imgsCopy.length ? imgsCopy : null
       );
       const data = res.data;
-
+ 
       const aiMsg = {
         role:         'assistant',
         content:      data.message,
-        hasBrief:     data.has_brief || false,
-        sessionToken: data.session_token || null,
+        hasBrief:         data.has_brief || false,
+        sessionToken:     data.session_token || null,
+        // Attach the images from the conversation to the brief card
+        referenceImages:  data.has_brief ? briefImages : [],
       };
       setMessages(prev => [...prev, aiMsg]);
-      setChips(parseChips(data.message) || data.quick_replies || []);
-
+      // Don't show chips when brief card is present — card has its own CTAs
+      if (!data.has_brief) {
+        setChips(parseChips(data.message) || data.quick_replies || []);
+      } else {
+        setChips([]);
+      }
+ 
       if (data.extracted) {
         setExtracted(prev => ({ ...prev, ...data.extracted }));
       }
-
+ 
       if (data.session_token) {
         setSessionToken(data.session_token);
         setPhase('matched');
@@ -292,30 +342,30 @@ export default function DiscoverV2() {
       setTimeout(() => taRef.current?.focus(), 50);
     }
   }
-
+ 
   function handleKey(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
   }
-
+ 
   function handleImageSelected(base64, name, mime) {
     setPendingImages(prev => [
       ...prev,
       { data: base64, mime: mime || 'image/jpeg', name: name || 'image' },
     ]);
   }
-
+ 
   function handleAdjust(text) {
     sendMessage(text || "I'd like to change something in the brief");
   }
-
+ 
   async function handleMatchComplete(token) {
     setSessionToken(token);
     setPhase('matched');
     setSplitView(true);
-
+ 
     // Poll until matching_complete=true (backend returns status:'ok' with data)
     // Retries up to 6 times with 1s between — handles the race where
     // ChatMatchView returns the session_token before run_matching has finished
@@ -337,9 +387,9 @@ export default function DiscoverV2() {
         // network error — keep trying
       }
     }
-
+ 
     if (recs.length === 0) return; // gave up — panel still shows on right
-
+ 
     // Preload hero images in background
     recs.forEach(r => {
       const url = r.hero_images?.[0]?.url;
@@ -349,7 +399,7 @@ export default function DiscoverV2() {
           : `${import.meta.env.VITE_API_URL || 'https://api.qala.studio'}${url}`;
       }
     });
-
+ 
     // Build chat summary message
     const lines = recs.map((r, i) => {
       const why = r.match_reasoning?.product_match
@@ -361,7 +411,7 @@ export default function DiscoverV2() {
       const loc = r.location ? ` — ${r.location}` : '';
       return `**${i + 1}. ${r.studio_name}${loc}**\n${detail}`;
     });
-
+ 
     const summaryMsg = {
       role: 'assistant',
       content:
@@ -372,17 +422,9 @@ export default function DiscoverV2() {
       hasBrief: false,
     };
     setMessages(prev => [...prev, summaryMsg]);
-
-    // Closing message — sent after the studio summary
-    const closingMsg = {
-      role: 'assistant',
-      content: 'I have sent in your request to the Qala team, they will be contacting you in 24-48 hours time. Meanwhile feel free to explore the studios or ask me anything about the collection.',
-      hasBrief: false,
-    };
-    setMessages(prev => [...prev, closingMsg]);
-    setChips(['Help me decide', "I'll browse myself"]);
+    setChips(['Tell me more about these studios', 'I want to connect with one', 'Show me more studios', "I don't see what I'm looking for"]);
   }
-
+ 
   // ── ACCESS KEY GATE ───────────────────────────────────────────────────────
   // Show minimal spinner while auth resolves or session starts
   if (phase === 'loading') return (
@@ -400,7 +442,7 @@ export default function DiscoverV2() {
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
-
+ 
   if (phase === 'error') return (
     <div style={{
       minHeight: '100vh', background: 'var(--bg)',
@@ -422,7 +464,7 @@ export default function DiscoverV2() {
       </button>
     </div>
   );
-
+ 
   if (phase === 'gate') {
     return (
       <div style={{
@@ -441,7 +483,7 @@ export default function DiscoverV2() {
           <div style={{ marginBottom: 28, textAlign: 'center' }}>
             <img src={qalaLogo} alt="Qala" style={{ height: 22, width: 'auto' }} />
           </div>
-
+ 
           <h1 style={{
             fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 500,
             color: 'var(--text)', marginBottom: 8, textAlign: 'center',
@@ -454,7 +496,7 @@ export default function DiscoverV2() {
           }}>
             Tell us what you want to make and we'll match you with the right craft studio.
           </p>
-
+ 
           {/* Key input */}
           <div style={{ marginBottom: 14 }}>
             <input
@@ -480,7 +522,7 @@ export default function DiscoverV2() {
               <p style={{ fontSize: 12, color: 'var(--red)', marginTop: 5 }}>{keyError}</p>
             )}
           </div>
-
+ 
           <button
             onClick={() => startSession(accessKey)}
             disabled={!accessKey.trim() || starting}
@@ -499,7 +541,7 @@ export default function DiscoverV2() {
           >
             {starting ? 'Starting…' : 'Continue →'}
           </button>
-
+ 
           {/* Divider */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: 12,
@@ -509,7 +551,7 @@ export default function DiscoverV2() {
             <span style={{ fontSize: 11, color: 'var(--text4)' }}>or</span>
             <div style={{ flex: 1, height: '0.5px', background: 'var(--border)' }} />
           </div>
-
+ 
           {/* Login path */}
           <button
             onClick={() => navigate('/login?redirect=/discover')}
@@ -527,7 +569,7 @@ export default function DiscoverV2() {
           >
             Log in to your account
           </button>
-
+ 
           <p style={{ fontSize: 11, color: 'var(--text4)', textAlign: 'center', marginTop: 18 }}>
             Don't have a key?{' '}
             <a href="mailto:hello@qala.studio" style={{ color: 'var(--text3)' }}>Contact us</a>
@@ -536,7 +578,7 @@ export default function DiscoverV2() {
       </div>
     );
   }
-
+ 
   // ── CHAT (+ optional 40:60 split) ────────────────────────────────────────
   return (
     <div style={{
@@ -579,7 +621,7 @@ export default function DiscoverV2() {
           .studios-col { width: 100% !important; flex: 1 !important; border-left: none !important; }
         }
       `}</style>
-
+ 
       {/* ── Chat column (always present, 40% when split, 100% otherwise) ── */}
       <div
         className="chat-col"
@@ -606,11 +648,11 @@ export default function DiscoverV2() {
             alt="Qala"
             style={{ height: 18, width: 'auto', flexShrink: 0, opacity: 0.9 }}
           />
-
+ 
           <div style={{ flex: 1 }} />
-
+ 
           <UserAvatar hideWhenLoggedOut />
-
+ 
           {/* View Studios button — shown when matched but split panel is closed */}
           {sessionToken && !splitView && (
             <button
@@ -635,7 +677,7 @@ export default function DiscoverV2() {
             </button>
           )}
         </div>
-
+ 
         {/* ── Messages ── */}
         <div
           className="msgs-scroll"
@@ -657,10 +699,13 @@ export default function DiscoverV2() {
                 onMatchComplete={handleMatchComplete}
                 attachedImage={msg.attachedImage}
                 attachedMime={msg.attachedMime}
+                attachedImages={msg.attachedImages}
+                referenceImages={msg.referenceImages}
+                skipContactForm={skipContactForm}
                 highlightBrief={msg.hasBrief ? highlightBrief : false}
               />
             ))}
-
+ 
             {sending && (
               <div style={{ marginBottom: 14 }}>
                 <div style={{
@@ -676,11 +721,11 @@ export default function DiscoverV2() {
                 </div>
               </div>
             )}
-
+ 
             <div ref={bottomRef} />
           </div>
         </div>
-
+ 
         {/* ── Chips ── */}
         {chips.length > 0 && !sending && (
           <div style={{
@@ -699,7 +744,7 @@ export default function DiscoverV2() {
             ))}
           </div>
         )}
-
+ 
         {/* ── Pending image preview ── */}
         {pendingImages.length > 0 && (
           <div style={{
@@ -736,7 +781,7 @@ export default function DiscoverV2() {
             ))}
           </div>
         )}
-
+ 
         {/* ── Input bar ── */}
         <div style={{
           padding: '10px 14px 14px',
@@ -748,7 +793,6 @@ export default function DiscoverV2() {
           <ImageUpload
             onImage={handleImageSelected}
             disabled={sending}
-            iconOnly
           />
           <textarea
             ref={taRef}
@@ -759,7 +803,7 @@ export default function DiscoverV2() {
               e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
             }}
             onKeyDown={handleKey}
-            placeholder="Tell me what you're looking to make..."
+            placeholder="Reply…"
             rows={1}
             disabled={sending}
             style={{
@@ -797,7 +841,7 @@ export default function DiscoverV2() {
           </button>
         </div>
       </div>
-
+ 
       {/* ── Studios column — desktop: 60% right column, mobile: full screen ── */}
       {splitView && sessionToken && (
         <div
@@ -824,7 +868,7 @@ export default function DiscoverV2() {
           />
         </div>
       )}
-
+ 
       {/* ── Mobile: floating chat bubble + bottom drawer ── */}
       {splitView && sessionToken && (
         <>
@@ -853,7 +897,7 @@ export default function DiscoverV2() {
               }
             `}</style>
           </button>
-
+ 
           {/* Bottom drawer — slides up from bottom on mobile */}
           {chatOpen && (
             <>
@@ -868,6 +912,26 @@ export default function DiscoverV2() {
               />
               <div
                 className="mobile-chat-drawer"
+                onTouchStart={e => {
+                  touchStartY.current   = e.touches[0].clientY;
+                  touchCurrentY.current = e.touches[0].clientY;
+                }}
+                onTouchMove={e => {
+                  const dy = e.touches[0].clientY - touchStartY.current;
+                  touchCurrentY.current = e.touches[0].clientY;
+                  if (dy > 0) setDrawerTranslate(dy);
+                }}
+                onTouchEnd={() => {
+                  const dy = (touchCurrentY.current || 0) - (touchStartY.current || 0);
+                  if (dy > 80) {
+                    setChatOpen(false);
+                    setDrawerTranslate(0);
+                  } else {
+                    setDrawerTranslate(0);
+                  }
+                  touchStartY.current   = null;
+                  touchCurrentY.current = null;
+                }}
                 style={{
                   display: 'none',
                   position: 'fixed', bottom: 0, left: 0, right: 0,
@@ -877,7 +941,9 @@ export default function DiscoverV2() {
                   zIndex: 302,
                   flexDirection: 'column',
                   overflow: 'hidden',
-                  animation: 'drawerUp 0.28s cubic-bezier(0.4,0,0.2,1)',
+                  animation: drawerTranslate > 0 ? 'none' : 'drawerUp 0.28s cubic-bezier(0.4,0,0.2,1)',
+                  transform: drawerTranslate > 0 ? `translateY(${drawerTranslate}px)` : 'none',
+                  transition: drawerTranslate === 0 ? 'transform 0.25s ease' : 'none',
                   boxShadow: '0 -8px 40px rgba(0,0,0,0.2)',
                 }}
               >
@@ -891,12 +957,15 @@ export default function DiscoverV2() {
                     .mobile-chat-drawer     { display: flex !important; }
                   }
                 `}</style>
-
-                {/* Drawer handle */}
-                <div style={{ padding: '10px 0 4px', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+ 
+                {/* Drawer handle — tap to close, swipe down to dismiss */}
+                <div
+                  onClick={() => setChatOpen(false)}
+                  style={{ padding: '12px 0 8px', display: 'flex', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', minHeight: 44 }}
+                >
                   <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border2)' }} />
                 </div>
-
+ 
                 {/* Reuse the chat column content inline */}
                 <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 80px' }}>
                   <div style={{ maxWidth: 600, margin: '0 auto', padding: '8px 16px' }}>
@@ -914,9 +983,10 @@ export default function DiscoverV2() {
                         highlightBrief={msg.hasBrief ? highlightBrief : false}
                       />
                     ))}
+                    <div ref={drawerBottomRef} />
                   </div>
                 </div>
-
+ 
                 {/* Input bar inside drawer */}
                 <div style={{
                   padding: '8px 12px 16px',
@@ -959,7 +1029,7 @@ export default function DiscoverV2() {
           )}
         </>
       )}
-
+ 
       {/* Legacy overlay panel (kept for any other showPanel triggers) */}
       {showPanel && !splitView && sessionToken && (
         <StudiosPanel

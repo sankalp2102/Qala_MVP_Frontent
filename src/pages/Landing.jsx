@@ -11,17 +11,23 @@ import g4 from '../assets/garment-4.jpg';
 import g5 from '../assets/garment-5.jpg';
 
 const CHAT_SESSION_KEY   = 'qala_chat_session_id';
+
+function getGreeting(name) {
+  const h = new Date().getHours();
+  const time = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  return name ? `${time}, ${name.split(' ')[0]}.` : `${time}.`;
+}
 const LANDING_FIRST_MSG  = 'qala_landing_first_msg';
 const LANDING_FIRST_IMG  = 'qala_landing_first_img';
 const LANDING_FIRST_MIME = 'qala_landing_first_mime';
 const ACCENT = '#7A8C6E';
 
 const GARMENTS = [
-  { key: 'g1', src: g1, hideInPhase2: false, style: { top: '2vh',    left: '3vw',  width: 'clamp(220px,27vw,370px)', transform: 'rotate(-6deg)' } },
-  { key: 'g2', src: g2, hideInPhase2: true,  style: { top: '1vh',    left: '50%',  width: 'clamp(80px,9vw,130px)',   transform: 'translateX(-50%) rotate(4deg)' } },
-  { key: 'g3', src: g3, hideInPhase2: false, style: { top: '4vh',    right: '4vw', width: 'clamp(130px,15vw,210px)', transform: 'rotate(3deg)' } },
-  { key: 'g4', src: g4, hideInPhase2: false, style: { bottom: '2vh', left: '5vw',  width: 'clamp(210px,26vw,350px)', transform: 'rotate(5deg)', mixBlendMode: 'multiply' } },
-  { key: 'g5', src: g5, hideInPhase2: false, style: { bottom: '1vh', right: '3vw', width: 'clamp(110px,12vw,165px)', transform: 'rotate(-4deg)', mixBlendMode: 'multiply' } },
+  { key: 'g1', src: g1, hideInPhase2: false, style: { top: '2vh',    left: '3vw',  width: 'clamp(140px,22vw,420px)', transform: 'rotate(-6deg)' } },
+  { key: 'g2', src: g2, hideInPhase2: true,  style: { top: '1vh',    left: '50%',  width: 'clamp(60px,8vw,150px)',   transform: 'translateX(-50%) rotate(4deg)' } },
+  { key: 'g3', src: g3, hideInPhase2: false, style: { top: '4vh',    right: '4vw', width: 'clamp(100px,13vw,240px)', transform: 'rotate(3deg)' } },
+  { key: 'g4', src: g4, hideInPhase2: false, style: { bottom: '2vh', left: '5vw',  width: 'clamp(140px,21vw,400px)', transform: 'rotate(5deg)', mixBlendMode: 'multiply' } },
+  { key: 'g5', src: g5, hideInPhase2: false, style: { bottom: '1vh', right: '3vw', width: 'clamp(80px,10vw,190px)',  transform: 'rotate(-4deg)', mixBlendMode: 'multiply' } },
 ];
 
 export default function Landing() {
@@ -64,11 +70,18 @@ export default function Landing() {
     if (!accessKey.trim() || starting) return;
     setStarting(true); setKeyError('');
     try {
-      const res  = await chatAPI.start(accessKey.trim());
+      const res  = await chatAPI.start(`QALA-${accessKey.trim()}`);
       const data = res.data;
-      const id   = data.session?.session_id;
+      // If a previous session exists for this key, resume it
+      const resumeId = data.existing_session_id || null;
+      const id = resumeId || data.session?.session_id;
       setSessionId(id);
       sessionStorage.setItem(CHAT_SESSION_KEY, id);
+      if (resumeId) sessionStorage.setItem('qala_resume_session', 'true');
+      if (data.has_contact) localStorage.setItem('qala_has_contact', 'true');
+      else localStorage.removeItem('qala_has_contact');
+      // Store the full key code so studio profile can send it with Get Introduced
+      localStorage.setItem('qala_access_key', `QALA-${accessKey.trim()}`);
       if (data.access_token && data.user) loginWithAccessKey(data.access_token, data.user);
       setTransition(true);
       setTimeout(() => { setPhase('message'); setTransition(false); }, 320);
@@ -121,6 +134,7 @@ export default function Landing() {
     if (!accessReqForm.name.trim())  errs.name  = 'Required';
     if (!accessReqForm.email.trim()) errs.email = 'Required';
     else if (!/^[^@]+@[^@]+\.[^@]+$/.test(accessReqForm.email)) errs.email = 'Invalid email';
+    if (!accessReqForm.link.trim())  errs.link  = 'Required';
     if (Object.keys(errs).length) { setAccessReqErr(errs); return; }
     setAccessReqSending(true);
     try {
@@ -141,7 +155,7 @@ export default function Landing() {
     transition: 'opacity 0.5s ease, transform 0.5s ease',
   };
 
-  const canSendKey = accessKey.trim() && !starting;
+  const canSendKey = accessKey.trim().length > 0 && !starting;
   const canSendMsg = (message.trim() || pendingImg) && !sending;
 
   return (
@@ -165,14 +179,30 @@ export default function Landing() {
           pointer-events:none; user-select:none;
           object-fit:contain; position:absolute; z-index:0;
         }
-        @media(max-width:700px){
+        /* ── Tablet: 768–1023px — pull images in, reduce size ── */
+        @media(min-width:768px) and (max-width:1023px){
+          .land-g1 { left:1vw   !important; width:clamp(120px,16vw,220px) !important; }
+          .land-g2 { width:clamp(55px,7vw,100px) !important; }
+          .land-g3 { right:1vw  !important; width:clamp(90px,11vw,160px)  !important; }
+          .land-g4 { left:2vw   !important; width:clamp(120px,16vw,220px) !important; }
+          .land-g5 { right:1vw  !important; width:clamp(70px,9vw,130px)   !important; }
+        }
+        /* ── Large screens: >1600px — allow images to grow ── */
+        @media(min-width:1600px){
+          .land-g1 { width:clamp(280px,20vw,480px) !important; }
+          .land-g2 { width:clamp(90px,7vw,160px)  !important; }
+          .land-g3 { width:clamp(180px,12vw,280px) !important; }
+          .land-g4 { width:clamp(260px,19vw,460px) !important; }
+          .land-g5 { width:clamp(130px,9vw,210px)  !important; }
+        }
+        /* ── Mobile: <768px ── */
+        @media(max-width:767px){
           .land-garment { opacity:0.9 !important; }
-          /* Per-garment mobile overrides — mirrors web layout scaled down */
-          .land-g1 { top:2vh  !important; left:1vw   !important; width:clamp(110px,28vw,160px) !important; }
-          .land-g2 { top:1vh  !important; left:50%   !important; width:clamp(50px,12vw,80px)   !important; }
-          .land-g3 { top:3vh  !important; right:2vw  !important; width:clamp(90px,22vw,130px)  !important; }
-          .land-g4 { bottom:2vh !important; left:4vw !important; width:clamp(110px,27vw,155px) !important; }
-          .land-g5 { bottom:1vh !important; right:3vw !important; width:clamp(80px,19vw,115px) !important; }
+          .land-g1 { top:2vh    !important; left:1vw   !important; width:clamp(90px,24vw,150px)  !important; }
+          .land-g2 { top:1vh    !important; left:50%   !important; width:clamp(44px,11vw,72px)   !important; }
+          .land-g3 { top:3vh    !important; right:1vw  !important; width:clamp(75px,19vw,120px)  !important; }
+          .land-g4 { bottom:2vh !important; left:3vw   !important; width:clamp(90px,23vw,140px)  !important; }
+          .land-g5 { bottom:1vh !important; right:2vw  !important; width:clamp(65px,16vw,100px)  !important; }
         }
       `}</style>
 
@@ -220,23 +250,29 @@ export default function Landing() {
               border: `1.5px solid ${keyError ? '#C94040' : 'rgba(122,140,110,0.5)'}`,
               borderRadius: 14, background: '#F9F9F8',
               display: 'flex', alignItems: 'center',
-              padding: '6px 6px 6px 18px', gap: 8,
+              padding: '6px 6px 6px 18px', gap: 0,
               animation: keyShake ? 'shake 0.5s ease' : 'none',
               transition: 'border-color 0.2s',
               boxSizing: 'border-box',
             }}>
+              {/* Fixed QALA- prefix */}
+              <span style={{
+                fontSize: 14, color: 'rgba(26,22,18,0.4)',
+                fontFamily: 'var(--font-body)', letterSpacing: '0.02em',
+                userSelect: 'none', flexShrink: 0,
+              }}>QALA-</span>
               <input
                 type="text"
                 value={accessKey}
                 onChange={e => { setAccessKey(e.target.value); setKeyError(''); }}
                 onKeyDown={handleKeyDown}
-                placeholder="Enter your access code"
+                placeholder="000000"
                 autoFocus
                 style={{
                   flex: 1, border: 'none', background: 'transparent',
                   fontSize: 14, color: '#1A1612',
                   fontFamily: 'var(--font-body)', outline: 'none',
-                  padding: '9px 0', letterSpacing: '0.02em',
+                  padding: '9px 0', letterSpacing: '0.1em',
                 }}
               />
               <button
@@ -285,34 +321,28 @@ export default function Landing() {
           <>
             <h1 style={{
               fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(18px,2.6vw,28px)',
               fontWeight: 400, color: '#1A1612',
-              textAlign: 'center', lineHeight: 1.22,
-              whiteSpace: 'nowrap',
+              textAlign: 'center', lineHeight: 1.28,
               marginBottom: 12, letterSpacing: '-0.01em',
             }}>
-              What Do You Want To Make?
+              <span style={{ display: 'block', fontSize: 'clamp(22px,3.2vw,36px)', whiteSpace: 'nowrap' }}>
+                {getGreeting(user?.profile?.full_name || user?.name || '')}
+              </span>
+              <span style={{ display: 'block', fontSize: 'clamp(16px,2.2vw,26px)', whiteSpace: 'nowrap', color: 'rgba(26,22,18,0.55)', marginTop: 4 }}>
+                What do you want to make today?
+              </span>
             </h1>
-
-            <p style={{
-              fontSize: 13.5, color: 'rgba(26,22,18,0.52)',
-              textAlign: 'center', lineHeight: 1.68,
-              marginBottom: 26, maxWidth: 560,
-            }}>
-              Share your ideas with us. We&rsquo;ll help you shape them into a clear brief and introduce
-              you to production studios best suited to bring your vision to life.
-            </p>
 
             <div style={{
               width: '100%',
-              border: '1px solid rgba(26,22,18,0.1)',
-              borderRadius: 14, background: '#F9F9F8',
-              padding: '16px 16px 10px',
+              border: '1.5px solid rgba(26,22,18,0.15)',
+              borderRadius: 16, background: '#FFFFFF',
+              padding: '14px 14px 10px',
               boxSizing: 'border-box',
-              boxShadow: '0 2px 20px rgba(26,22,18,0.05)',
-            }}>
-              <div style={{ width:28, height:3, background: ACCENT, borderRadius:2, marginBottom:12 }} />
-
+              boxShadow: '0 4px 24px rgba(26,22,18,0.07)',
+              transition: 'border-color 0.2s, box-shadow 0.2s',
+            }}
+            onFocus={() => {}}>
               {pendingImg && (
                 <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
                   <img
@@ -335,7 +365,7 @@ export default function Landing() {
                   e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px';
                 }}
                 onKeyDown={handleKeyDown}
-                placeholder={"Eg: I'm launching my brand with an 8-piece collection. Mix of linen and cotton, some with block printing. Can you help me build out the specs for each piece?\n\nFeel free to attach any references if you wish."}
+                placeholder="Share your ideas with us. We will help you shape them and find the right production partner."
                 rows={4}
                 autoFocus
                 className="landing-textarea"
@@ -390,7 +420,56 @@ export default function Landing() {
               </div>
             </div>
 
-            <div style={{ marginTop:26, opacity:0.3 }}>
+            {/* Suggestion chips */}
+            <div style={{
+              display: 'flex', flexWrap: 'wrap', gap: 8,
+              justifyContent: 'center', marginTop: 14,
+            }}>
+              {['a new collection', 'samples', 'a few pieces', 'just exploring'].map(chip => (
+                <button
+                  key={chip}
+                  onClick={async () => {
+                    setMessage(chip);
+                    // Small delay so state updates before submit
+                    await new Promise(r => setTimeout(r, 50));
+                    setSending(true);
+                    try {
+                      let sid = sessionId;
+                      if (!sid) {
+                        const res = await chatAPI.start(null);
+                        sid = res.data.session?.session_id;
+                        sessionStorage.setItem(CHAT_SESSION_KEY, sid);
+                      }
+                      sessionStorage.setItem(LANDING_FIRST_MSG, chip);
+                      navigate('/discover');
+                    } catch { setSending(false); }
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 999,
+                    border: '1px solid rgba(26,22,18,0.15)',
+                    background: '#FFFFFF',
+                    fontSize: 13, color: 'rgba(26,22,18,0.7)',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-body)',
+                    transition: 'border-color 0.15s, background 0.15s, color 0.15s',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = ACCENT;
+                    e.currentTarget.style.color = ACCENT;
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = 'rgba(26,22,18,0.15)';
+                    e.currentTarget.style.color = 'rgba(26,22,18,0.7)';
+                  }}
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ marginTop:20, opacity:0.3 }}>
               <img src={qalaLogo} alt="Qala" style={{ height:15, width:'auto' }} />
             </div>
           </>
@@ -452,13 +531,13 @@ export default function Landing() {
                   Request Access
                 </p>
                 <p style={{ margin: '0 0 22px', fontSize: 13, color: 'rgba(26,22,18,0.5)', lineHeight: 1.55 }}>
-                  Tell us a bit about yourself and we'll send you an access code.
+                  Tell us about your business and we shall send you the access code.
                 </p>
 
                 {[
-                  { key: 'name',  label: 'Name',                 placeholder: 'Your name',                           required: true  },
-                  { key: 'email', label: 'Email',                placeholder: 'you@yourbrand.com',                   required: true  },
-                  { key: 'link',  label: 'Website / Instagram',  placeholder: 'https://yourbrand.com or @yourbrand', required: false },
+                  { key: 'name',  label: 'Business Name',        placeholder: '', required: true  },
+                  { key: 'email', label: 'Email',                placeholder: '', required: true  },
+                  { key: 'link',  label: 'Website / Instagram',  placeholder: '', required: true  },
                 ].map(({ key, label, placeholder, required }) => (
                   <div key={key} style={{ marginBottom: 14 }}>
                     <label style={{

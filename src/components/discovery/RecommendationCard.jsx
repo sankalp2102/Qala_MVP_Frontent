@@ -117,16 +117,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
         {isBonus ? '★' : position}
       </div>
 
-      {/* ranking badge */}
-      <div style={{
-        position: 'absolute', top: 14, right: 14, zIndex: 2,
-        padding: '4px 10px', borderRadius: 20,
-        background: rank.bg, color: rank.color,
-        border: `1px solid ${rank.border}`,
-        fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
-      }}>
-        {isBonus ? 'Visual Match' : rank.label}
-      </div>
+      
 
       {/* Hero image/video */}
       <div style={{ height: 220, background: 'var(--surface2)', flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
@@ -289,7 +280,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
             fontFamily: 'var(--font-body)',
             letterSpacing: '0.06em', textTransform: 'uppercase', textAlign: 'center',
             transition: 'transform 0.2s, box-shadow 0.2s, background 0.2s',
-            boxSizing: 'border-box', marginTop: 16,
+            boxSizing: 'border-box', marginTop: 'auto', paddingTop: 14,
           }}
           onMouseEnter={e => { e.currentTarget.style.background = '#8FA083'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 40px rgba(122,140,110,0.3)'; }}
           onMouseLeave={e => { e.currentTarget.style.background = '#1A1612'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}

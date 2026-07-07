@@ -11,38 +11,66 @@
 import Brief from './Brief';
 
 // ── Text renderer — supports **bold** markdown ────────────────────────────────
+function renderMarkdownTable(rows) {
+  const dataRows = rows.filter(r => !/^\|[-:\s|]+\|$/.test(r.trim()));
+  if (dataRows.length < 2) return null;
+  const parse = row => row.trim().split('|').slice(1, -1).map(c => c.trim());
+  const [head, ...body] = dataRows;
+  return (
+    <div style={{ overflowX: 'auto', margin: '4px 0 8px' }}>
+      <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12.5, fontFamily: 'var(--font-body)' }}>
+        <thead>
+          <tr>{parse(head).map((h, i) => <th key={i} style={{ padding: '5px 10px', borderBottom: '1.5px solid var(--border)', textAlign: 'left', color: 'var(--text3)', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>)}</tr>
+        </thead>
+        <tbody>
+          {body.map((row, i) => (
+            <tr key={i} style={{ background: i % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent' }}>
+              {parse(row).map((cell, j) => <td key={j} style={{ padding: '5px 10px', borderBottom: '0.5px solid var(--border)', color: 'var(--text)', verticalAlign: 'top' }}>{cell}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function renderText(text, isUser) {
   if (!text) return null;
   // Strip [CHIPS: ...] from rendered text — chips are shown separately
   const clean = text.replace(/\[CHIPS:[^\]]*\]/g, '').trim();
   if (!clean) return null;
 
-  return clean.split('\n').map((line, i) => {
-    // Render --- as a visual divider
-    if (line.trim() === '---' || line.trim() === '———') {
-      return <hr key={i} style={{ border: 'none', borderTop: '0.5px solid var(--border)', margin: '6px 0' }} />;
+  const lines = clean.split('\n');
+  const result = [];
+  let i = 0;
+  while (i < lines.length) {
+    if (lines[i].trim().startsWith('|')) {
+      // Collect all consecutive table lines
+      let j = i;
+      while (j < lines.length && lines[j].trim().startsWith('|')) j++;
+      const tableEl = renderMarkdownTable(lines.slice(i, j));
+      result.push(tableEl
+        ? <div key={i}>{tableEl}</div>
+        : lines.slice(i, j).map((l, k) => <p key={i+k} style={{ margin:0,fontSize:14,lineHeight:1.65,color:isUser?'#F5F0E8':'var(--text)',fontFamily:'var(--font-body)' }}>{l}</p>)
+      );
+      i = j;
+    } else if (lines[i].trim() === '---' || lines[i].trim() === '———') {
+      result.push(<hr key={i} style={{ border:'none',borderTop:'0.5px solid var(--border)',margin:'6px 0' }} />);
+      i++;
+    } else if (!lines[i].trim()) {
+      result.push(<div key={i} style={{ height: 4 }} />);
+      i++;
+    } else {
+      const parts = lines[i].split(/\*\*([^*]+)\*\*/g);
+      result.push(
+        <p key={i} style={{ margin:0,fontSize:14,lineHeight:1.65,color:isUser?'#F5F0E8':'var(--text)',fontFamily:'var(--font-body)' }}>
+          {parts.map((p, j) => j%2===1 ? <strong key={j} style={{ fontWeight:600 }}>{p}</strong> : p)}
+        </p>
+      );
+      i++;
     }
-    // Empty lines become small spacers
-    if (!line.trim()) {
-      return <div key={i} style={{ height: 4 }} />;
-    }
-    const parts = line.split(/\*\*([^*]+)\*\*/g);
-    return (
-      <p key={i} style={{
-        margin: 0,
-        fontSize: 14,
-        lineHeight: 1.65,
-        color: isUser ? '#F5F0E8' : 'var(--text)',
-        fontFamily: 'var(--font-body)',
-      }}>
-        {parts.map((p, j) =>
-          j % 2 === 1
-            ? <strong key={j} style={{ fontWeight: 600 }}>{p}</strong>
-            : p
-        )}
-      </p>
-    );
-  });
+  }
+  return result;
 }
 
 // ── Strip BRIEF_START...BRIEF_END from the visible text ───────────────────────
@@ -64,11 +92,14 @@ export default function ChatMessage({
   role,
   content,
   hasBrief,
+  referenceImages,
+  skipContactForm,
   sessionToken,
   sessionId,
   onAdjust,
   attachedImage,
   attachedMime,
+  attachedImages,
   onMatchComplete,
   highlightBrief,
 }) {
@@ -85,23 +116,29 @@ export default function ChatMessage({
       alignItems: isAI ? 'flex-start' : 'flex-end',
       marginBottom: 14,
     }}>
-      {/* Image attached — shown above text inside bubble for user messages */}
-      {isUser && attachedImage && (
+      {/* attachedImages array — new format */}
+      {isUser && attachedImages?.length > 0 && (
+        <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:6 }}>
+          {attachedImages.map((img, i) => (
+            <img key={i}
+              src={`data:${img.mime || 'image/jpeg'};base64,${img.data}`}
+              alt="attachment"
+              style={{ maxHeight:180, maxWidth:'100%', borderRadius:10, border:'0.5px solid var(--border)', display:'block', objectFit:'cover' }}
+            />
+          ))}
+        </div>
+      )}
+      {/* Legacy single image — backward compat */}
+      {isUser && !attachedImages?.length && attachedImage && (
         <img
           src={`data:${attachedMime || 'image/jpeg'};base64,${attachedImage}`}
           alt="Reference"
-          style={{
-            maxWidth: 180,
-            borderRadius: 10,
-            marginBottom: 6,
-            border: '0.5px solid var(--border)',
-            display: 'block',
-          }}
+          style={{ maxWidth:180, borderRadius:10, marginBottom:6, border:'0.5px solid var(--border)', display:'block' }}
         />
       )}
 
-      {/* Bubble */}
-      {visibleText && (
+      {/* Bubble — hidden when hasBrief since card replaces it */}
+      {visibleText && !hasBrief && (
         <div style={{
           maxWidth: '84%',
           padding: '9px 13px',
@@ -123,6 +160,8 @@ export default function ChatMessage({
           onAdjust={onAdjust}
           onMatchComplete={onMatchComplete}
           highlightFindStudios={highlightBrief}
+          referenceImages={referenceImages}
+          skipContactForm={skipContactForm}
         />
       )}
     </div>

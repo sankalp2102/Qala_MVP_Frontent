@@ -14,16 +14,15 @@ function parseFields(text) {
 }
 
 function parseBrief(text) {
-  const pieces = [];
+  // Flatten all PIECE blocks — no tabs, everything shown in one list
+  let flat = text;
   const re = /PIECE:\s*([^\n]+)\n([\s\S]*?)PIECE_END/g;
-  let overviewText = text;
   let m;
   while ((m = re.exec(text)) !== null) {
-    pieces.push({ name: m[1].trim(), fields: parseFields(m[2]) });
-    overviewText = overviewText.replace(m[0], '');
+    flat = flat.replace(m[0], `\nPiece: ${m[1].trim()}\n` + m[2]);
   }
-  overviewText = overviewText.replace(/BRIEF_START|BRIEF_END/g, '').trim();
-  return { overview: parseFields(overviewText), pieces };
+  flat = flat.replace(/BRIEF_START|BRIEF_END/g, '').trim();
+  return { fields: parseFields(flat) };
 }
 
 function FieldRows({ fields }) {
@@ -84,16 +83,10 @@ async function pollAndPreload(token) {
   }
 }
 
-export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMatchComplete, highlightFindStudios }) {
-  const [tab, setTab] = useState(0);
-
-  const { overview, pieces } = parseBrief(rawText);
-  const hasPieces = pieces.length > 0;
-  const tabs = hasPieces ? ['Overview', ...pieces.map(p => p.name)] : null;
-  const currentFields = hasPieces ? (tab === 0 ? overview : pieces[tab - 1].fields) : overview;
-  const colField = overview.find(f => /collection|garment/i.test(f.key));
-  const subtitle = [colField?.val, hasPieces ? `${pieces.length} pieces` : null, 'Ready for matching']
-    .filter(Boolean).join(' · ');
+export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMatchComplete, highlightFindStudios, referenceImages, skipContactForm }) {
+  const { fields } = parseBrief(rawText);
+  const colField = fields.find(f => /collection|garment/i.test(f.key));
+  const subtitle = [colField?.val, 'Ready for matching'].filter(Boolean).join(' · ');
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [matching,        setMatching]        = useState(false);
@@ -141,6 +134,12 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
         return res;
       })
       .catch(() => null); // errors handled in proceedToMatch
+
+    if (skipContactForm) {
+      // Contact details already on file — skip form, go straight to match
+      proceedToMatch();
+      return;
+    }
 
     setContactForm({ name: '', email: '', phone: '' });
     setContactErr({});
@@ -201,6 +200,8 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
         email: contactForm.email.trim(),
         phone: contactForm.phone.trim(),
       });
+      // Persist so the form is skipped on future visits with same key
+      localStorage.setItem('qala_has_contact', 'true');
     } catch { /* non-fatal */ }
     finally { setSavingContact(false); }
     proceedToMatch();
@@ -228,30 +229,47 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
         </p>
       </div>
 
-      {/* Tabs */}
-      {hasPieces && (
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', overflowX: 'auto', background: 'var(--surface)' }}>
-          {tabs.map((t, i) => (
-            <button key={i} onClick={() => setTab(i)} style={{
-              padding: '10px 15px', fontSize: 12, whiteSpace: 'nowrap',
-              border: 'none', borderBottom: `2px solid ${tab === i ? SAGE : 'transparent'}`,
-              background: 'none', color: tab === i ? SAGE : 'var(--text3)',
-              cursor: 'pointer', fontFamily: 'var(--font-body)',
-              fontWeight: tab === i ? 500 : 400, transition: 'color 0.15s',
-            }}>{t}</button>
-          ))}
-        </div>
-      )}
-
-      {/* Fields */}
+      {/* Fields — flat list, no tabs */}
       <div style={{ background: 'var(--surface)' }}>
-        <FieldRows fields={currentFields} />
+        <FieldRows fields={fields} />
       </div>
 
       {matchError && !showContact && (
         <p style={{ fontSize: 12, color: 'var(--red)', padding: '8px 18px 0', margin: 0, background: 'var(--surface)', fontFamily: 'var(--font-body)' }}>
           {matchError}
         </p>
+      )}
+
+      {/* Reference images — moodboard / sketches / samples shared in chat */}
+      {referenceImages?.length > 0 && (
+        <div style={{
+          background: 'var(--surface)', borderTop: '0.5px solid var(--border)',
+          padding: '10px 18px 12px',
+        }}>
+          <p style={{
+            fontSize: 10, fontWeight: 600, color: 'var(--text3)',
+            letterSpacing: '0.08em', textTransform: 'uppercase',
+            margin: '0 0 8px', fontFamily: 'var(--font-body)',
+          }}>
+            References
+          </p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {referenceImages.map((img, i) => (
+              <img
+                key={i}
+                src={`data:${img.mime || 'image/jpeg'};base64,${img.data}`}
+                alt={`Reference ${i + 1}`}
+                style={{
+                  height: 72, width: 72,
+                  objectFit: 'cover',
+                  borderRadius: 8,
+                  border: '0.5px solid var(--border)',
+                  flexShrink: 0,
+                }}
+              />
+            ))}
+          </div>
+        </div>
       )}
 
       {/* CTAs */}
@@ -334,10 +352,10 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
             ) : (
               <>
                 <p style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-display)', margin: '0 0 5px' }}>
-                  While we find studios for your vision
+                  While we look for the right studios
                 </p>
                 <p style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 18, lineHeight: 1.55 }}>
-                  Please let us know your contact details.
+                  Please let us know your contact details to get started.
                 </p>
 
                 {[
@@ -389,7 +407,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
                       opacity: savingContact ? 0.7 : 1, transition: 'opacity 0.15s',
                     }}
                   >
-                    {savingContact ? 'Saving…' : 'Find Studios →'}
+                    {savingContact ? 'Saving…' : 'Show Studios →'}
                   </button>
                 </div>
               </>
