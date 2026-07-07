@@ -18,26 +18,22 @@ function SectionHeader({ letter, title, desc }) {
   );
 }
 
-/* ── Open for Collab toggle (sage green, 32×18) ── */
+/* ── Open for Collab toggle (sage green, 32×18) — label-free in card header ── */
 function CollabToggle({ checked, onChange }) {
   return (
-    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none' }}>
-      <div
-        onClick={() => onChange(!checked)}
-        style={{
-          position: 'relative', width: 32, height: 18, borderRadius: 9, flexShrink: 0,
-          background: checked ? '#7A8C6E' : '#CCC', transition: 'background .2s',
-        }}>
-        <div style={{
-          position: 'absolute', top: 2, width: 14, height: 14, borderRadius: '50%',
-          background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
-          left: checked ? 16 : 2, transition: 'left .2s',
-        }} />
-      </div>
-      <span style={{ fontSize: 11, fontWeight: 600, color: checked ? '#7A8C6E' : '#AAA', whiteSpace: 'nowrap' }}>
-        Open for Collab
-      </span>
-    </label>
+    <div
+      onClick={() => onChange(!checked)}
+      title={checked ? 'Open for Collab — click to disable' : 'Click to mark as Open for Collab'}
+      style={{
+        position: 'relative', width: 32, height: 18, borderRadius: 9, flexShrink: 0,
+        background: checked ? '#7A8C6E' : '#CCC', transition: 'background .2s', cursor: 'pointer',
+      }}>
+      <div style={{
+        position: 'absolute', top: 2, width: 14, height: 14, borderRadius: '50%',
+        background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+        left: checked ? 16 : 2, transition: 'left .2s',
+      }} />
+    </div>
   );
 }
 
@@ -131,7 +127,6 @@ function ProjectCard({ project, onPatch, onDelete, onUploadPhoto, onDeletePhoto 
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <CollabToggle checked={!!project.open_for_collab} onChange={v => onPatch({ open_for_collab: v })} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <HideToggle checked={!!project.is_hidden} onChange={v => onPatch({ is_hidden: v })} label="Hide" />
           </div>
@@ -158,23 +153,21 @@ function ProjectCard({ project, onPatch, onDelete, onUploadPhoto, onDeletePhoto 
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {photos.map(p => (
             <div key={p.id} style={{ width: 64, height: 64, borderRadius: 4, overflow: 'hidden', position: 'relative', border: '1px solid #E4E0DB', flexShrink: 0 }}>
-              <img
-                src={mediaUrl(p.file)}
-                alt=""
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                onError={e => { e.target.style.display = 'none'; }}
-              />
-              <button
-                onClick={() => onDeletePhoto(p.id)}
-                style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: 3, width: 16, height: 16, fontSize: 11, cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
-                ×
-              </button>
+              {p.mime_type?.startsWith('video/') ? (
+                <div style={{ width: '100%', height: '100%', background: '#1A1A1A', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                  <span style={{ fontSize: 20 }}>▶</span>
+                  <span style={{ fontSize: 9, color: '#aaa' }}>video</span>
+                </div>
+              ) : (
+                <img src={mediaUrl(p.file)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
+              )}
+              <button onClick={() => onDeletePhoto(p.id)} style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: 3, width: 16, height: 16, fontSize: 11, cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>×</button>
             </div>
           ))}
           {/* + slot to add more photos */}
           <label style={{ width: 64, height: 64, borderRadius: 4, background: '#F0EDE8', border: '1px dashed #C8C4BF', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 18, color: '#CCC', flexShrink: 0 }}>
             +
-            <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={onUploadPhoto} />
+            <input type="file" accept="image/*,video/mp4,video/quicktime,video/x-msvideo" multiple style={{ display: 'none' }} onChange={onUploadPhoto} />
           </label>
         </div>
 
@@ -351,12 +344,19 @@ function AddProjectForm({ onSave, onCancel }) {
 
         {/* Photos */}
         <div>
-          <FieldLabel>Photos</FieldLabel>
+          <FieldLabel>Photos &amp; Videos</FieldLabel>
           {photoFiles.length > 0 && (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
               {photoFiles.map((p, i) => (
                 <div key={i} style={{ width: 64, height: 64, borderRadius: 4, overflow: 'hidden', position: 'relative', border: '1px solid #E4E0DB', flexShrink: 0 }}>
-                  <img src={p.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {p.file.type?.startsWith('video/') ? (
+                    <div style={{ width: '100%', height: '100%', background: '#1A1A1A', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                      <span style={{ fontSize: 20 }}>▶</span>
+                      <span style={{ fontSize: 9, color: '#aaa' }}>video</span>
+                    </div>
+                  ) : (
+                    <img src={p.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  )}
                   <button onClick={() => removeLocalPhoto(i)} style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: 3, width: 16, height: 16, fontSize: 11, cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>×</button>
                 </div>
               ))}
@@ -366,9 +366,9 @@ function AddProjectForm({ onSave, onCancel }) {
             display: 'block', border: '1px dashed #C8C4BF', borderRadius: 6, padding: 20,
             textAlign: 'center', cursor: 'pointer', background: '#FAFAF8',
           }}>
-            <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500, marginBottom: 4 }}>Upload project photos</div>
-            <div style={{ fontSize: 11, color: '#AAA' }}>JPG · PNG · WEBP up to 10 MB each</div>
-            <input type="file" accept="image/jpeg,image/png,image/webp" multiple style={{ display: 'none' }} onChange={handlePhotoSelect} />
+            <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500, marginBottom: 4 }}>Upload photos &amp; videos</div>
+            <div style={{ fontSize: 11, color: '#AAA' }}>JPG · PNG · WEBP up to 10 MB · MP4 · MOV up to 100 MB</div>
+            <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/x-msvideo" multiple style={{ display: 'none' }} onChange={handlePhotoSelect} />
           </label>
         </div>
 

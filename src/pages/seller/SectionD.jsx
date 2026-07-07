@@ -8,9 +8,9 @@ import { mediaUrl } from '../../utils/mediaUrl';
 const API = onboardingAPI;
 
 const TYPES = [
+  { key: 'weaving',  label: 'Weaving Techniques',           desc: 'Does your studio weave, or work closely with weavers? Add any weaving techniques here.', cta: '+ Add Weaving Technique', hint: 'e.g. Plain weave, Ikat, Jamdani, Dobby, Jacquard, Khadi handspun.' },
   { key: 'printing', label: 'Printing & Dyeing Techniques', desc: 'Add each printing and dyeing technique your studio practices. Mark expertise and note any distinctive innovation.', cta: '+ Add Printing / Dyeing Technique' },
   { key: 'surface',  label: 'Surface Techniques',           desc: 'Embroidery, applique, crochet, patchwork, beadwork, mirror work — anything applied to the surface of the fabric.', cta: '+ Add Surface Technique' },
-  { key: 'weaving',  label: 'Weaving Techniques',           desc: 'Does your studio weave, or work closely with weavers? Add any weaving techniques here.', cta: '+ Add Weaving Technique', hint: 'e.g. Plain weave, Ikat, Jamdani, Dobby, Jacquard, Khadi handspun.' },
 ];
 
 const LEVELS_ORDERED = [

@@ -103,6 +103,7 @@ export default function AdminProjectsList() {
     target_landing_price_usd: '',
     target_sample_delivery_date: '', target_bulk_delivery_date: '',
     additional_specs: '',
+    reference_url: '',
   });
 
   const load = () => {
@@ -145,6 +146,7 @@ export default function AdminProjectsList() {
         target_sample_delivery_date: form.target_sample_delivery_date || null,
         target_bulk_delivery_date:   form.target_bulk_delivery_date   || null,
         additional_specs:            form.additional_specs,
+        reference_url:               form.reference_url || null,
       });
       nav(`/admin/projects/${r.data.project.id}`);
     } catch { setCreating(false); }
@@ -277,6 +279,21 @@ export default function AdminProjectsList() {
               <textarea rows={3} value={form.additional_specs} onChange={e => set('additional_specs', e.target.value)}
                 placeholder="Fabrics, techniques, certifications, special requirements…"
                 style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text)', resize: 'vertical' }} />
+            </div>
+
+            {/* Change 2: Reference link */}
+            <div className="field" style={{ gridColumn: '1 / -1' }}>
+              <label style={{ fontSize: 11 }}>Reference Link <span style={{ fontWeight: 400, color: 'var(--text4)' }}>(optional)</span></label>
+              <input
+                type="url"
+                value={form.reference_url}
+                onChange={e => set('reference_url', e.target.value)}
+                placeholder="https://drive.google.com/… or Notion / Dropbox link"
+                style={{ fontSize: 13 }}
+              />
+              <span style={{ fontSize: 11, color: 'var(--text4)', marginTop: 4, display: 'block' }}>
+                A Google Drive folder, Notion brief, or any external reference for the studio. File attachments can be added after the project is created.
+              </span>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>

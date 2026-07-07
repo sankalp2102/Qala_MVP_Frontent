@@ -133,7 +133,7 @@ function ExpertiseButtons({ value, onChange, disabled }) {
   );
 }
 
-function ExpertiseRow({ name, level, checked, onToggle, onLevel, isLast }) {
+function ExpertiseRow({ name, level, checked, onToggle, onLevel, isLast, onDelete }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: isLast ? 'none' : '1px solid #F5F3EF', gap: 12 }}>
       <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', flex: 1 }}>
@@ -141,21 +141,40 @@ function ExpertiseRow({ name, level, checked, onToggle, onLevel, isLast }) {
         <span style={{ fontSize: 14, color: 'var(--text)' }}>{name}</span>
       </label>
       <ExpertiseButtons value={level} onChange={onLevel} disabled={!checked} />
+      {onDelete && (
+        <button
+          onClick={onDelete}
+          title="Remove"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#CCC', fontSize: 16, padding: '2px 4px', lineHeight: 1, flexShrink: 0 }}
+          onMouseEnter={e => e.currentTarget.style.color = '#C0392B'}
+          onMouseLeave={e => e.currentTarget.style.color = '#CCC'}>
+          ×
+        </button>
+      )}
     </div>
   );
 }
 
-function FabricAccordion({ label, fabrics, answers, onToggle, onLevel, defaultOpen }) {
-  const [open, setOpen] = useState(!!defaultOpen);
+function FabricAccordion({ label, fabrics, answers, onToggle, onLevel, defaultOpen, onAddFabric, groupLabel, defaultFabrics, onDeleteFabric }) {
+  const [open, setOpen]       = useState(!!defaultOpen);
   const [hovered, setHovered] = useState(false);
+  const [adding, setAdding]   = useState(false);
+  const [newFabric, setNewFabric] = useState('');
   const count = fabrics.filter(f => answers[f]?.checked).length;
+
+  const commitAdd = () => {
+    const v = newFabric.trim();
+    if (!v) return;
+    onAddFabric(v);
+    setNewFabric('');
+    setAdding(false);
+  };
+
+  const shortLabel = groupLabel
+    ? groupLabel.replace('Based', '').replace('&', '&').replace('/ Cellulosic', '').replace('/ Heritage', '').trim().toLowerCase()
+    : 'fabric';
+
   return (
-    /*
-     * Fix: removed overflow:'hidden' from this wrapper.
-     * That property was clipping the tooltip because tooltips positioned
-     * absolutely inside cannot escape an overflow:hidden ancestor.
-     * The border-radius still renders correctly without overflow:hidden.
-     */
     <div style={{ border: '1px solid #EDE8E2', borderRadius: 7, marginBottom: 8 }}>
       <div onClick={() => setOpen(o => !o)} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 14px', background: hovered ? '#F5F1EB' : '#FAFAF8', cursor: 'pointer', borderRadius: open ? '7px 7px 0 0' : 7, transition: 'background .1s' }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
@@ -165,13 +184,38 @@ function FabricAccordion({ label, fabrics, answers, onToggle, onLevel, defaultOp
         </div>
       </div>
       {open && (
-        <div style={{ padding: '4px 14px 10px', background: '#fff', borderTop: '1px solid #F0EDE8', borderRadius: '0 0 7px 7px' }}>
-          {fabrics.map((f, i) => (
-            <ExpertiseRow key={f} name={f}
-              checked={!!answers[f]?.checked} level={answers[f]?.level || null}
-              onToggle={() => onToggle(f)} onLevel={lvl => onLevel(f, lvl)}
-              isLast={i === fabrics.length - 1} />
-          ))}
+        <div style={{ padding: '4px 14px 12px', background: '#fff', borderTop: '1px solid #F0EDE8', borderRadius: '0 0 7px 7px' }}>
+          {fabrics.map((f, i) => {
+            const isCustom = defaultFabrics ? !defaultFabrics.includes(f) : true;
+            return (
+              <ExpertiseRow key={f} name={f}
+                checked={!!answers[f]?.checked} level={answers[f]?.level || null}
+                onToggle={() => onToggle(f)} onLevel={lvl => onLevel(f, lvl)}
+                isLast={i === fabrics.length - 1 && !adding}
+                onDelete={isCustom && onDeleteFabric ? () => onDeleteFabric(f) : undefined} />
+            );
+          })}
+          {/* Per-group add — matches prototype's addFabricToGroup */}
+          {adding ? (
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <input
+                autoFocus
+                value={newFabric}
+                onChange={e => setNewFabric(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commitAdd(); } if (e.key === 'Escape') { setAdding(false); setNewFabric(''); } }}
+                placeholder={`e.g. add a ${shortLabel} fabric`}
+                style={{ flex: 1, padding: '7px 10px', border: '1px solid #D8D4CF', borderRadius: 5, fontSize: 12, fontFamily: "'DM Sans', sans-serif", outline: 'none', color: '#1A1A1A' }}
+              />
+              <button onClick={commitAdd} style={{ padding: '7px 12px', background: '#D97520', color: '#fff', border: 'none', borderRadius: 5, fontSize: 12, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Add</button>
+              <button onClick={() => { setAdding(false); setNewFabric(''); }} style={{ padding: '7px 12px', background: 'transparent', color: '#888', border: '1px solid #D8D4CF', borderRadius: 5, fontSize: 12, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Cancel</button>
+            </div>
+          ) : (
+            <button
+              onClick={e => { e.stopPropagation(); setAdding(true); }}
+              style={{ marginTop: 10, padding: '5px 0', border: 'none', background: 'none', fontSize: 12, color: '#888', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'left' }}>
+              + Add {shortLabel} fabric
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -254,6 +298,27 @@ export default function SectionC({ profileId, initialData, onSave, onNext }) {
     setNewTypeName(''); setAddingType(false);
   };
 
+  /* Add a single fabric item within an existing group — prototype's addFabricToGroup */
+  const addFabricToGroup = (cat, fabricName) => {
+    setFabricGroups(prev => ({
+      ...prev,
+      [cat]: [...(prev[cat] || []), fabricName],
+    }));
+  };
+
+  /* Delete a user-added fabric from a group — also clear its answer */
+  const deleteFabricFromGroup = (cat, fabricName) => {
+    setFabricGroups(prev => ({
+      ...prev,
+      [cat]: (prev[cat] || []).filter(f => f !== fabricName),
+    }));
+    setFabricAnswers(prev => {
+      const next = { ...prev };
+      delete next[fabricName];
+      return next;
+    });
+  };
+
   const save = async (andNext = false) => {
     setSaving(true);
     try {
@@ -261,7 +326,7 @@ export default function SectionC({ profileId, initialData, onSave, onNext }) {
       Object.entries(fabricGroups).forEach(([cat, names]) => {
         names.forEach(name => {
           const a = fabricAnswers[name];
-          if (a?.checked) fabricPayload.push({ category: FABRIC_GROUPS.find(g => g.cat === cat) ? cat : 'other', fabric_name: name, works_with: true, expertise_level: a.level });
+          if (a?.checked) fabricPayload.push({ category: cat, fabric_name: name, works_with: true, expertise_level: a.level });
         });
       });
       await API.putFabrics(profileId, fabricPayload);
@@ -283,11 +348,17 @@ export default function SectionC({ profileId, initialData, onSave, onNext }) {
       <CardSection title="C.1 — Fabrics You Work With">
         {FABRIC_GROUPS.map(g => (
           <FabricAccordion key={g.cat} label={g.label} fabrics={fabricGroups[g.cat] || g.fabrics}
-            answers={fabricAnswers} onToggle={name => toggleFabric(g.cat, name)} onLevel={setFabricLevel} />
+            answers={fabricAnswers} onToggle={name => toggleFabric(g.cat, name)} onLevel={setFabricLevel}
+            onAddFabric={name => addFabricToGroup(g.cat, name)} groupLabel={g.label}
+            defaultFabrics={g.fabrics}
+            onDeleteFabric={name => deleteFabricFromGroup(g.cat, name)} />
         ))}
-        {Object.keys(fabricGroups).filter(k => !FABRIC_GROUPS.find(g => g.cat === k)).map(cat => (
+        {Object.keys(fabricGroups).filter(k => !FABRIC_GROUPS.find(g => g.cat === k) && k !== 'other').map(cat => (
           <FabricAccordion key={cat} label={cat.replace(/_/g, ' ')} fabrics={fabricGroups[cat]}
-            answers={fabricAnswers} onToggle={name => toggleFabric(cat, name)} onLevel={setFabricLevel} defaultOpen />
+            answers={fabricAnswers} onToggle={name => toggleFabric(cat, name)} onLevel={setFabricLevel}
+            onAddFabric={name => addFabricToGroup(cat, name)} groupLabel={cat.replace(/_/g, ' ')}
+            defaultFabrics={[]}
+            onDeleteFabric={name => deleteFabricFromGroup(cat, name)} defaultOpen />
         ))}
         {addingType ? (
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
@@ -296,7 +367,7 @@ export default function SectionC({ profileId, initialData, onSave, onNext }) {
             <button className="btn btn-ghost btn-sm" onClick={() => { setAddingType(false); setNewTypeName(''); }}>Cancel</button>
           </div>
         ) : (
-          <button className="btn btn-outline btn-sm" style={{ marginTop: 12, borderStyle: 'dashed' }} onClick={() => setAddingType(true)}>+ Add new fabric type</button>
+          <button className="btn btn-outline btn-sm" style={{ marginTop: 12, borderStyle: 'dashed' }} onClick={() => setAddingType(true)}>+ Add new fabric type (e.g. Synthetic, Technical…)</button>
         )}
         <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
           <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>More about the fabrics you work with</label>

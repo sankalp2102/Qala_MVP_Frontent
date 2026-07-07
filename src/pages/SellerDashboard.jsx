@@ -316,7 +316,7 @@ export default function SellerDashboard() {
     { to:'/dashboard/studio',      icon:'', label:'A — Introduction',     badge: status?.section_a_status === 'flagged' ? { type:'red', text:'!' } : null },
     { to:'/dashboard/products',    icon:'', label:'B — Categories',       badge: status?.section_b_status === 'flagged' ? { type:'red', text:'!' } : null },
     { to:'/dashboard/fabrics',     icon:'', label:'C — Fabrics & Dyes',   badge: status?.section_c_status === 'flagged' ? { type:'red', text:'!' } : null },
-    { to:'/dashboard/crafts',      icon:'', label:'D — Crafts',           badge: status?.section_d_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard/crafts',      icon:'', label:'D — Crafts & Techniques', badge: status?.section_d_status === 'flagged' ? { type:'red', text:'!' } : null },
     { to:'/dashboard/collab',      icon:'', label:'E — Collaboration',    badge: status?.section_e_status === 'flagged' ? { type:'red', text:'!' } : null },
     { to:'/dashboard/production',  icon:'', label:'F — Team & Capacity', badge: status?.section_f_status === 'flagged' ? { type:'red', text:'!' } : null },
     { to:'/dashboard/projects',    icon:'', label:'G — Past Projects',   badge: status?.section_g_status === 'flagged' ? { type:'red', text:'!' } : null },
@@ -329,15 +329,15 @@ export default function SellerDashboard() {
   return (
     <DashLayout nav={navItems}>
       <Routes>
-        <Route index             element={<Overview snapshot={snapshot} flags={flags} />}  />
-        <Route path="studio"     element={<SectionA profileId={profileId} initialData={snapshot?.studio_details}  onSave={refresh} onNext={() => { refresh(); nav('/dashboard/products'); }} />} />
-        <Route path="products"   element={<SectionB profileId={profileId} initialData={snapshot?.studio_details}  onSave={refresh} onNext={() => { refresh(); nav('/dashboard/fabrics'); }} />} />
-        <Route path="fabrics"    element={<SectionC profileId={profileId} initialData={{ studio: snapshot?.studio_details, fabrics: snapshot?.fabric_answers, dyes: snapshot?.dye_answers }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/crafts'); }} />} />
-        <Route path="crafts"     element={<SectionD profileId={profileId} initialData={snapshot?.crafts}         onSave={refresh} onNext={() => { refresh(); nav('/dashboard/collab'); }} />} />
-        <Route path="collab"     element={<SectionE profileId={profileId} initialData={snapshot?.collab_design}  onSave={refresh} onNext={() => { refresh(); nav('/dashboard/production'); }} />} />
-        <Route path="production" element={<SectionF profileId={profileId} initialData={{ production: snapshot?.production_scale, collab: snapshot?.collab_design, studio: snapshot?.studio_details }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/projects'); }} />} />
-        <Route path="projects"   element={<SectionG profileId={profileId} initialData={snapshot?.studio_projects} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/process'); }} />} />
-        <Route path="process"    element={<SectionH profileId={profileId} initialData={{ process: snapshot?.process_readiness, studio: snapshot?.studio_details }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard'); }} />} />
+        <Route index             element={<div className="qala-form-theme"><Overview snapshot={snapshot} flags={flags} /></div>}  />
+        <Route path="studio"     element={<div className="qala-form-theme"><SectionA profileId={profileId} initialData={snapshot?.studio_details}  onSave={refresh} onNext={() => { refresh(); nav('/dashboard/products'); }} /></div>} />
+        <Route path="products"   element={<div className="qala-form-theme"><SectionB profileId={profileId} initialData={snapshot?.studio_details}  onSave={refresh} onNext={() => { refresh(); nav('/dashboard/fabrics'); }} /></div>} />
+        <Route path="fabrics"    element={<div className="qala-form-theme"><SectionC profileId={profileId} initialData={{ studio: snapshot?.studio_details, fabrics: snapshot?.fabric_answers, dyes: snapshot?.dye_answers }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/crafts'); }} /></div>} />
+        <Route path="crafts"     element={<div className="qala-form-theme"><SectionD profileId={profileId} initialData={snapshot?.crafts}         onSave={refresh} onNext={() => { refresh(); nav('/dashboard/collab'); }} /></div>} />
+        <Route path="collab"     element={<div className="qala-form-theme"><SectionE profileId={profileId} initialData={snapshot?.collab_design}  onSave={refresh} onNext={() => { refresh(); nav('/dashboard/production'); }} /></div>} />
+        <Route path="production" element={<div className="qala-form-theme"><SectionF profileId={profileId} initialData={{ production: snapshot?.production_scale, collab: snapshot?.collab_design, studio: snapshot?.studio_details }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/projects'); }} /></div>} />
+        <Route path="projects"   element={<div className="qala-form-theme"><SectionG profileId={profileId} initialData={snapshot?.studio_projects} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/process'); }} /></div>} />
+        <Route path="process"    element={<div className="qala-form-theme"><SectionH profileId={profileId} initialData={{ process: snapshot?.process_readiness, studio: snapshot?.studio_details }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard'); }} /></div>} />
         <Route path="inquiries"  element={<SellerInquiries profileId={profileId} />}           />
         <Route path="enquiries"  element={<EnquiriesList />}                                          />
         <Route path="enquiries/:projectId" element={<EnquiryDetail />}                                />

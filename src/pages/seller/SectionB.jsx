@@ -73,26 +73,47 @@ function RankItemRow({ name, rank, onToggle, isLast }) {
   );
 }
 
-function Top5Row({ name, top5, checked, onToggle, disabled, isLast }) {
+function Top5Row({ name, top5, checked, onToggle, capReached, isLast }) {
+  const [showCapTip, setShowCapTip] = useState(false);
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: isLast ? 'none' : '1px solid #F5F3EF' }}>
       <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', flex: 1 }}>
         <input type="checkbox" checked={checked} onChange={() => onToggle(name)} />
         <span style={{ fontSize: 13, color: '#1A1A1A' }}>{name}</span>
       </label>
-      <button
-        onClick={() => checked && onToggle(name, 'top5')}
-        disabled={!checked || (disabled && !top5)}
-        style={{
-          fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 4,
-          background: top5 ? '#EEF3EC' : 'transparent',
-          color: top5 ? '#4A7C4A' : !checked ? '#DDD' : '#AAA',
-          border: `1px solid ${top5 ? '#9EC09E' : checked ? '#D8D4CF' : '#EEE'}`,
-          cursor: (!checked || (disabled && !top5)) ? 'default' : 'pointer',
-          flexShrink: 0,
-        }}>
-        {'★'} Top
-      </button>
+      {/* Always visible — green when top5, grey when checked but cap reached, dim when unchecked */}
+      <div style={{ position: 'relative' }}
+        onMouseEnter={() => capReached && !top5 && setShowCapTip(true)}
+        onMouseLeave={() => setShowCapTip(false)}>
+        <button
+          onClick={() => {
+            if (!checked) return;
+            if (top5) { onToggle(name, 'top5'); return; }           // deselect always allowed
+            if (capReached) return;                                   // cap hit — show tooltip only
+            onToggle(name, 'top5');
+          }}
+          style={{
+            fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 4,
+            background: top5 ? '#EEF3EC' : 'transparent',
+            color: top5 ? '#4A7C4A' : !checked ? '#DDD' : '#AAA',
+            border: `1px solid ${top5 ? '#9EC09E' : checked ? '#D8D4CF' : '#EEE'}`,
+            cursor: !checked ? 'default' : top5 || !capReached ? 'pointer' : 'not-allowed',
+            flexShrink: 0,
+          }}>
+          {'★'} Top
+        </button>
+        {showCapTip && (
+          <div style={{
+            position: 'absolute', bottom: 'calc(100% + 6px)', right: 0,
+            background: '#1A1A1A', color: '#fff', fontSize: 11,
+            padding: '5px 10px', borderRadius: 6, whiteSpace: 'nowrap',
+            zIndex: 200, pointerEvents: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+          }}>
+            Deselect one Top to mark this
+            <div style={{ position: 'absolute', top: '100%', right: 10, width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '5px solid #1A1A1A' }} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -268,13 +289,21 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
       let next = prev;
       const exists = prev.find(g => g.name === name);
       if (mode === 'top5') {
+        // explicit top5 toggle — deselect always works, select only if under cap
         if (!exists) return prev;
         next = exists.top5
           ? prev.map(g => g.name === name ? { ...g, top5: false } : g)
-          : top5Count >= TOP5_MAX ? prev
+          : prev.filter(g => g.top5).length >= TOP5_MAX ? prev
           : prev.map(g => g.name === name ? { ...g, top5: true } : g);
       } else {
-        next = exists ? prev.filter(g => g.name !== name) : [...prev, { name, top5: false }];
+        if (exists) {
+          // unchecking — remove from list entirely
+          next = prev.filter(g => g.name !== name);
+        } else {
+          // checking — auto-mark as top5 if slots remain, otherwise top5:false
+          const currentTop5Count = prev.filter(g => g.top5).length;
+          next = [...prev, { name, top5: currentTop5Count < TOP5_MAX }];
+        }
       }
       triggerAutosave({ garment_types: next });
       return next;
@@ -361,12 +390,12 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
         </CardSection>
 
         <CardSection title="B.3 — Garment Types">
-          <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 6 }}>Select all you produce. Mark your best 5 with the ★ Top button.</p>
-          <p style={{ fontSize: 12, color: 'var(--gold)', marginBottom: 14, fontWeight: 600 }}>Top 5 slots: {TOP5_MAX - top5Count} remaining</p>
+          <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 6 }}>Select all garment types you produce. Your first 5 selections are automatically marked as Top — you can change which are Top by clicking the ★ button.</p>
+          <p style={{ fontSize: 12, color: '#D97520', marginBottom: 14, fontWeight: 600 }}>Top 5 slots: {TOP5_MAX - top5Count} remaining</p>
           {allGarmentNames.map((name, i) => {
             const g = garments.find(x => x.name === name);
             return (
-              <Top5Row key={name} name={name} checked={!!g} top5={!!g?.top5} disabled={top5Count >= TOP5_MAX} onToggle={toggleGarment} isLast={i === allGarmentNames.length - 1} />
+              <Top5Row key={name} name={name} checked={!!g} top5={!!g?.top5} capReached={top5Count >= TOP5_MAX} onToggle={toggleGarment} isLast={i === allGarmentNames.length - 1} />
             );
           })}
           {addingGarment ? (

@@ -454,6 +454,10 @@ export default function ProposalBuilder() {
     <div style={{ display: 'flex', gap: 10, marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--border)', alignItems: 'center' }}>
       {n > 1 && <button onClick={() => goBack(n)} className="btn btn-ghost" style={stepBtn}>← Back</button>}
       {onSkip && <button onClick={onSkip} className="btn btn-ghost" style={{ ...stepBtn, color: 'var(--text3)' }}>{skipLabel || 'Skip for now'}</button>}
+      {/* Change 4: save draft available on every step */}
+      <button onClick={saveDraft} disabled={saving} className="btn btn-ghost" style={{ ...stepBtn, color: 'var(--text3)', fontSize: 12 }}>
+        {saved ? '✓ Saved' : saving ? 'Saving…' : 'Save draft'}
+      </button>
       <div style={{ flex: 1 }} />
       <button onClick={onContinue || (() => goNext(n))} disabled={disableContinue} className="btn btn-primary" style={stepBtn}>
         {continueLabel || 'Continue →'}
@@ -468,15 +472,16 @@ export default function ProposalBuilder() {
       case 1: return (
         <div>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>01 — Buyer's brief</h2>
-          <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 20 }}>Project details from the buyer. Review the buyer's requirements before building your proposal.</div>
+          <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 20 }}>Project details from the buyer. Review carefully before building your proposal.</div>
 
+          {/* Core info */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
             {[
-              ['Project name',    enquiry.name],
-              ['Buyer / Brand',   brief.buyer_brand_name || '—'],
-              ['Location',        brief.buyer_location   || '—'],
-              ['Category',        brief.product_category  || '—'],
-              ['Brief received',  fmtDate(enquiry.created_at)],
+              ['Project name',  enquiry.name],
+              ['Buyer / Brand', brief.buyer_brand_name || '—'],
+              ['Location',      brief.buyer_location   || '—'],
+              ['Category',      brief.product_category  || '—'],
+              ['Brief received', fmtDate(enquiry.created_at)],
             ].map(([l, v]) => (
               <div key={l}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>{l}</div>
@@ -501,11 +506,15 @@ export default function ProposalBuilder() {
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
+          {/* Change 3: qty + delivery in one row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 16 }}>
             {[
-              ['Sample quantity', brief.sample_quantity ? `${brief.sample_quantity} set${brief.sample_quantity > 1 ? 's' : ''} · all pieces` : '—'],
-              ['Bulk quantity',   brief.bulk_quantity   ? `${brief.bulk_quantity} sets` : '—'],
-              ["Buyer's target landing price", brief.target_landing_price_usd
+              ['Sample qty',            brief.sample_quantity != null ? `${brief.sample_quantity} set${brief.sample_quantity !== 1 ? 's' : ''}` : '—'],
+              ['Bulk qty',              brief.bulk_quantity   != null ? `${brief.bulk_quantity} sets` : '—'],
+              ['Budget',                brief.budget_min || brief.budget_max
+                ? `${brief.budget_currency || ''} ${brief.budget_min || '?'} – ${brief.budget_max || '?'}`
+                : '—'],
+              ['Target landing price',  brief.target_landing_price_usd
                 ? `${brief.target_landing_currency || ''} ${brief.target_landing_price_local || ''} ≈ ${fmtUSD(parseFloat(brief.target_landing_price_usd))} per set`
                 : '—'],
               ['Target sample delivery', fmtDate(brief.target_sample_delivery_date)],
@@ -513,7 +522,7 @@ export default function ProposalBuilder() {
             ].map(([l, v]) => (
               <div key={l}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>{l}</div>
-                <div style={{ fontSize: 13, color: 'var(--text)' }}>{v}</div>
+                <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: l.includes('qty') || l.includes('price') ? 600 : 400 }}>{v}</div>
               </div>
             ))}
           </div>
@@ -521,7 +530,37 @@ export default function ProposalBuilder() {
           {brief.additional_specs && (
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Additional notes</div>
-              <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.65 }}>{brief.additional_specs}</div>
+              <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.65, background: 'var(--surface2)', borderRadius: 8, padding: '10px 14px' }}>{brief.additional_specs}</div>
+            </div>
+          )}
+
+          {/* Change 3: reference link */}
+          {brief.reference_url && (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Reference link</div>
+              <a href={brief.reference_url} target="_blank" rel="noreferrer"
+                style={{ fontSize: 13, color: 'var(--gold)', wordBreak: 'break-all', display: 'block' }}>
+                {brief.reference_url}
+              </a>
+            </div>
+          )}
+
+          {/* Change 3: attachments */}
+          {brief.moodboards?.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Attachments from buyer</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {brief.moodboards.map(m => {
+                  const icon = m.mime_type?.startsWith('image/') ? '🖼' : m.mime_type === 'application/pdf' ? '📄' : m.mime_type?.startsWith('video/') ? '🎬' : '📎';
+                  return (
+                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                      <span style={{ fontSize: 16 }}>{icon}</span>
+                      <a href={m.url} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--gold)', textDecoration: 'none', flex: 1 }}>{m.file_name}</a>
+                      <span style={{ fontSize: 11, color: 'var(--text4)' }}>{m.file_size_kb ? (m.file_size_kb < 1024 ? `${m.file_size_kb} KB` : `${(m.file_size_kb/1024).toFixed(1)} MB`) : ''}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -577,9 +616,63 @@ export default function ProposalBuilder() {
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>03 — Past projects</h2>
           <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 24 }}>Show the buyer work closest to this project. Add up to 3 past projects.</div>
 
+          {/* Change 1: import from Section G portfolio */}
+          {enquiry.studio_projects?.length > 0 && pastProjects.length < 3 && (
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Import from your portfolio</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {enquiry.studio_projects.map(sp => {
+                  const alreadyAdded = pastProjects.some(p => p._imported_id === sp.id);
+                  const yr = sp.month_year ? sp.month_year.slice(0, 4) : '';
+                  const desc = [sp.fabrics_used, sp.techniques_used, sp.about].filter(Boolean).join(' · ').slice(0, 120);
+                  return (
+                    <div key={sp.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--surface2)', borderRadius: 8, border: `1px solid ${alreadyAdded ? 'var(--green)' : 'var(--border)'}` }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>{sp.name}</div>
+                        {desc && <div style={{ fontSize: 11, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{desc}</div>}
+                        {yr && <div style={{ fontSize: 11, color: 'var(--text4)', marginTop: 2 }}>{yr}</div>}
+                      </div>
+                      <button
+                        disabled={alreadyAdded || pastProjects.length >= 3}
+                        onClick={() => {
+                          if (alreadyAdded || pastProjects.length >= 3) return;
+                          setPastProjects(prev => [...prev, {
+                            _imported_id: sp.id,
+                            name:        sp.name,
+                            year:        yr,
+                            description: [sp.fabrics_used, sp.techniques_used, sp.about].filter(Boolean).join(' · ').slice(0, 200),
+                          }]);
+                        }}
+                        style={{
+                          fontSize: 12, padding: '6px 14px', borderRadius: 6, cursor: alreadyAdded || pastProjects.length >= 3 ? 'default' : 'pointer',
+                          border: '1px solid var(--border)', fontFamily: 'var(--font-body)',
+                          background: alreadyAdded ? 'var(--green)' : 'var(--surface)',
+                          color: alreadyAdded ? '#fff' : 'var(--text2)',
+                          flexShrink: 0,
+                        }}>
+                        {alreadyAdded ? '✓ Added' : '+ Import'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+              {pastProjects.length < 3 && (
+                <div style={{ fontSize: 11, color: 'var(--text4)', marginTop: 8 }}>
+                  Or add a project manually below.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Manual / imported entries */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
             {pastProjects.map((p, i) => (
               <div key={i} style={{ background: 'var(--surface2)', borderRadius: 10, padding: '16px 18px', border: '1px solid var(--border)', position: 'relative' }}>
+                {p._imported_id && (
+                  <div style={{ fontSize: 10, color: 'var(--green)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+                    Imported from portfolio — editable
+                  </div>
+                )}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 12, marginBottom: 10 }}>
                   <div className="field" style={{ margin: 0 }}>
                     <label style={{ fontSize: 10 }}>Project name</label>
@@ -601,7 +694,7 @@ export default function ProposalBuilder() {
 
           {pastProjects.length < 3 && (
             <button onClick={addPP} style={{ fontSize: 13, color: 'var(--gold)', background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', borderRadius: 8, padding: '8px 18px', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
-              + Add a project
+              + Add a project manually
             </button>
           )}
 
