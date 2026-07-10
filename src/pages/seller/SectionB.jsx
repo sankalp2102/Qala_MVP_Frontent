@@ -2,7 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { onboardingAPI } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
-import { inputStyle } from './SectionA';
+import {
+  SectionHeader, QCard, SectionFooter, RankRow, Top5Row, CheckRow,
+  CategoryAccordion, GroupAccordion, AddButton, inputStyle, TOP5_MAX,
+} from './_ui';
 
 const API = onboardingAPI;
 
@@ -13,180 +16,89 @@ const OCCASIONS_DEFAULT = [
   'Festive / Bridal', 'Workwear / Contemporary', 'Loungewear / Sleepwear', 'Activewear',
 ];
 
+/* B.3 — "Accessories / Scarves / Stoles" intentionally NOT in this default list.
+   Sellers who selected it under the old form still see it (union with saved data),
+   and it also lives on in B.4 as "Scarves / Stoles / Dupattas". */
 const GARMENTS_DEFAULT = [
   'Dresses', 'Coord Sets', 'Tops', 'Kaftans', 'Tunics / Kurtas', 'Skirts',
-  'Accessories / Scarves / Stoles', 'Shirts', 'Trousers / Pants', 'Blazers / Jackets', 'Jumpsuits',
+  'Shirts', 'Trousers / Pants', 'Blazers / Jackets', 'Jumpsuits', 'Sarees / Dupattas',
 ];
 
+/* B.4 — Accessory Types (new card). */
+const ACCESSORIES_DEFAULT = [
+  'Bags / Totes / Clutches', 'Scarves / Stoles / Dupattas', 'Jewellery',
+  'Caps / Hats', 'Belts / Sashes', 'Footwear', 'Pouches / Small Accessories',
+];
+
+/* B.5 — Home Furnishings. Labels track the prototype. HF_LEGACY_ALIASES maps a
+   previously-stored value to its new label so a saved answer still renders,
+   checked, under the new name without rewriting the DB. */
 const HOME_FURNISHINGS_DEFAULT = [
-  { group: 'Bedding', items: ['Bed sheets', 'Duvet covers', 'Pillow covers', 'Quilts / Razais', 'Bed runners'] },
-  { group: 'Table Linen', items: ['Tablecloths', 'Table runners', 'Placemats', 'Napkins'] },
-  { group: 'Kitchen Linen', items: ['Aprons', 'Kitchen towels', 'Oven mitts'] },
-  { group: 'Bath Linen', items: ['Bath towels', 'Hand towels', 'Bathrobes', 'Bath mats'] },
-  { group: 'Living Room Textiles', items: ['Cushion covers', 'Sofa throws / Blankets', 'Poufs'] },
-  { group: 'Curtains & Drapes', items: ['Curtain panels', 'Sheer curtains', 'Tie-backs'] },
-  { group: 'Upholstery', items: ['Chair covers / slipcovers', 'Headboard covers'] },
-  { group: 'Floor Coverings', items: ['Rugs', 'Dhurries', 'Doormats'] },
-  { group: 'Wall Textiles', items: ['Wall hangings', 'Tapestries', 'Macrame panels'] },
-  { group: 'Accessories', items: ['Laundry bags', 'Storage baskets', 'Decorative hangings'] },
+  { group: 'Bedding',              items: ['Bed sheets / Bedcovers', 'Duvet covers / Quilt covers', 'Pillowcases / Pillow covers', 'Bed runners / Bolsters', 'Quilts / Razais'] },
+  { group: 'Table Linen',         items: ['Tablecloths', 'Table runners', 'Napkins / Placemats', 'Tea towels / Bread baskets'] },
+  { group: 'Kitchen Linen',       items: ['Aprons', 'Oven mitts / Pot holders', 'Dish towels / Kitchen cloths'] },
+  { group: 'Bath Linen',          items: ['Bath towels / Hand towels', 'Bath mats / Bath rugs', 'Bathrobes / Wraps', 'Wash cloths / Face cloths'] },
+  { group: 'Living Room Textiles',items: ['Cushion covers / Throw pillows', 'Throw blankets / Sofa throws', 'Pouf covers / Ottoman covers'] },
+  { group: 'Curtains & Drapes',   items: ['Curtain panels', 'Sheer curtains', 'Valances / Pelmets', 'Door curtains / Dividers'] },
+  { group: 'Upholstery',          items: ['Sofa / chair fabric panels', 'Headboard fabric', 'Bench / stool covers'] },
+  { group: 'Floor Coverings',     items: ['Rugs / Carpets', 'Dhurries / Flatweave rugs', 'Doormats / Entry mats', 'Prayer mats / Yoga mats'] },
+  { group: 'Wall Textiles',       items: ['Tapestries', 'Wall hangings / Textile art', 'Macramé / Woven panels'] },
+  { group: 'Accessories & Gift',  items: ['Tote bags / Market bags', 'Gift wrapping fabric / Furoshiki', 'Storage baskets / Organizers', 'Patchwork / Quilted panels'] },
 ];
 
-function SectionHeader({ letter, title, desc }) {
+const HF_LEGACY_ALIASES = {
+  'Bed sheets':               'Bed sheets / Bedcovers',
+  'Duvet covers':             'Duvet covers / Quilt covers',
+  'Pillow covers':            'Pillowcases / Pillow covers',
+  'Bed runners':              'Bed runners / Bolsters',
+  'Napkins':                  'Napkins / Placemats',
+  'Placemats':                'Napkins / Placemats',
+  'Kitchen towels':           'Dish towels / Kitchen cloths',
+  'Oven mitts':               'Oven mitts / Pot holders',
+  'Bath towels':              'Bath towels / Hand towels',
+  'Hand towels':              'Bath towels / Hand towels',
+  'Bathrobes':                'Bathrobes / Wraps',
+  'Bath mats':                'Bath mats / Bath rugs',
+  'Cushion covers':           'Cushion covers / Throw pillows',
+  'Sofa throws / Blankets':   'Throw blankets / Sofa throws',
+  'Poufs':                    'Pouf covers / Ottoman covers',
+  'Rugs':                     'Rugs / Carpets',
+  'Dhurries':                 'Dhurries / Flatweave rugs',
+  'Doormats':                 'Doormats / Entry mats',
+  'Wall hangings':            'Wall hangings / Textile art',
+  'Tapestries':               'Tapestries',
+  'Macrame panels':           'Macramé / Woven panels',
+  'Storage baskets':          'Storage baskets / Organizers',
+};
+
+/* One home-furnishing group: selectable items + inline "add item".
+   Custom groups additionally get a delete button (via onRemoveGroup). */
+function HFGroup({ group, selected, onToggle, onAddItem, onRemoveGroup }) {
+  const [adding, setAdding] = useState(false);
+  const [val, setVal] = useState('');
+  const count = group.items.filter(i => selected.includes(i)).length;
+  const commit = () => { const v = val.trim(); if (!v) return; onAddItem(v); setVal(''); setAdding(false); };
   return (
-    <div className="fade-up" style={{ marginBottom: 36 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Section {letter}</div>
-      <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 500, fontStyle: 'italic', color: 'var(--gold)', lineHeight: 1.1 }}>{title}</h1>
-      <p style={{ color: 'var(--text3)', fontSize: 14, marginTop: 8 }}>{desc}</p>
-    </div>
-  );
-}
-
-function CardSection({ title, children }) {
-  return (
-    <div className="card fade-up" style={{ marginBottom: 16 }}>
-      <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, fontStyle: 'italic', color: 'var(--text)', marginBottom: 18, paddingBottom: 14, borderBottom: '1px solid var(--border)' }}>{title}</div>
-      {children}
-    </div>
-  );
-}
-
-function SavedPulse({ show }) {
-  if (!show) return null;
-  return <span style={{ fontSize: 11, color: 'var(--text4)' }}>Saved</span>;
-}
-
-function RankItemRow({ name, rank, onToggle, isLast }) {
-  const checked = rank != null;
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: isLast ? 'none' : '1px solid #F5F3EF' }}>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', flex: 1 }}>
-        <input type="checkbox" checked={checked} onChange={() => onToggle(name)} />
-        <span style={{ fontSize: 13, color: '#1A1A1A' }}>{name}</span>
-      </label>
-      <div style={{
-        width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: checked ? '#D97520' : 'transparent', color: '#fff', fontSize: 11, fontWeight: 700, flexShrink: 0,
-      }}>
-        {checked ? rank : ''}
-      </div>
-    </div>
-  );
-}
-
-function Top5Row({ name, top5, checked, onToggle, capReached, isLast }) {
-  const [showCapTip, setShowCapTip] = useState(false);
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: isLast ? 'none' : '1px solid #F5F3EF' }}>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', flex: 1 }}>
-        <input type="checkbox" checked={checked} onChange={() => onToggle(name)} />
-        <span style={{ fontSize: 13, color: '#1A1A1A' }}>{name}</span>
-      </label>
-      {/* Always visible — green when top5, grey when checked but cap reached, dim when unchecked */}
-      <div style={{ position: 'relative' }}
-        onMouseEnter={() => capReached && !top5 && setShowCapTip(true)}
-        onMouseLeave={() => setShowCapTip(false)}>
-        <button
-          onClick={() => {
-            if (!checked) return;
-            if (top5) { onToggle(name, 'top5'); return; }           // deselect always allowed
-            if (capReached) return;                                   // cap hit — show tooltip only
-            onToggle(name, 'top5');
-          }}
-          style={{
-            fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 4,
-            background: top5 ? '#EEF3EC' : 'transparent',
-            color: top5 ? '#4A7C4A' : !checked ? '#DDD' : '#AAA',
-            border: `1px solid ${top5 ? '#9EC09E' : checked ? '#D8D4CF' : '#EEE'}`,
-            cursor: !checked ? 'default' : top5 || !capReached ? 'pointer' : 'not-allowed',
-            flexShrink: 0,
-          }}>
-          {'★'} Top
-        </button>
-        {showCapTip && (
-          <div style={{
-            position: 'absolute', bottom: 'calc(100% + 6px)', right: 0,
-            background: '#1A1A1A', color: '#fff', fontSize: 11,
-            padding: '5px 10px', borderRadius: 6, whiteSpace: 'nowrap',
-            zIndex: 200, pointerEvents: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-          }}>
-            Deselect one Top to mark this
-            <div style={{ position: 'absolute', top: '100%', right: 10, width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '5px solid #1A1A1A' }} />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function CategoryAccordion({ name, sub, count, defaultOpen, children }) {
-  const [open, setOpen] = useState(!!defaultOpen);
-  return (
-    <div style={{ border: '1px solid #E0DCDA', borderRadius: 10, marginBottom: 12, overflow: 'hidden' }}>
-      <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 18px', background: '#FAFAF8', cursor: 'pointer' }}>
-        <div>
-          <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{name}</div>
-          <div style={{ fontSize: 11, color: 'var(--text4)' }}>{sub}</div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {count > 0 && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold)', background: 'var(--gold-dim)', padding: '3px 8px', borderRadius: 4 }}>{count}</span>}
-          <span style={{ fontSize: 12, color: 'var(--text4)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
-        </div>
-      </div>
-      {open && <div style={{ padding: '4px 18px 16px', background: '#F9F8F6' }}>{children}</div>}
-    </div>
-  );
-}
-
-/* change 5: HFGroup with + Add other within each group */
-function HFGroup({ group, items, checked, onToggle, onAddItem }) {
-  const [addingItem, setAddingItem] = useState(false);
-  const [newItem, setNewItem]       = useState('');
-  const count = items.filter(i => checked.includes(i)).length;
-
-  const commitItem = () => {
-    const v = newItem.trim();
-    if (!v) return;
-    onAddItem(group, v);
-    setNewItem('');
-    setAddingItem(false);
-  };
-
-  return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{group}</span>
-        {count > 0 && <span style={{ fontSize: 10, color: 'var(--gold)' }}>({count})</span>}
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        {items.map(item => {
-          const isChecked = checked.includes(item);
-          return (
-            <label key={item} style={{
-              display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 6,
-              border: `1px solid ${isChecked ? '#D97520' : '#E4E0DB'}`,
-              background: isChecked ? '#FEF8F0' : '#fff', cursor: 'pointer', fontSize: 12,
-            }}>
-              <input type="checkbox" checked={isChecked} onChange={() => onToggle(item)} style={{ margin: 0 }} />
-              {item}
-            </label>
-          );
-        })}
-      </div>
-      {addingItem ? (
-        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-          <input style={{ ...inputStyle, flex: 1, height: 32, fontSize: 12 }} value={newItem} onChange={e => setNewItem(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commitItem(); } }}
-            placeholder={`Add to ${group}`} autoFocus />
-          <button className="btn btn-teal btn-sm" onClick={commitItem}>Add</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => { setAddingItem(false); setNewItem(''); }}>Cancel</button>
+    <GroupAccordion label={group.group} count={count}
+      onDelete={onRemoveGroup} deleteLabel={`Remove ${group.group} category`}>
+      {group.items.map((item, i) => (
+        <CheckRow key={item} name={item} checked={selected.includes(item)} onToggle={onToggle} isLast={i === group.items.length - 1 && !adding} />
+      ))}
+      {group.items.length === 0 && !adding && (
+        <div style={{ fontSize: 12, color: '#BBB', fontStyle: 'italic', padding: '8px 0' }}>No items yet — add one below.</div>
+      )}
+      {adding ? (
+        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          <input style={{ ...inputStyle, flex: 1 }} value={val} onChange={e => setVal(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commit(); } if (e.key === 'Escape') { setAdding(false); setVal(''); } }}
+            placeholder="e.g. add a product type" autoFocus />
+          <button className="btn btn-primary btn-sm" onClick={commit}>Add</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setAdding(false); setVal(''); }}>Cancel</button>
         </div>
       ) : (
-        <button onClick={() => setAddingItem(true)}
-          style={{ marginTop: 6, fontSize: 11, color: 'var(--text4)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
-          + Add other
-        </button>
+        <AddButton onClick={() => setAdding(true)}>+ Add other</AddButton>
       )}
-    </div>
+    </GroupAccordion>
   );
 }
 
@@ -198,18 +110,22 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
   const [occasions, setOccasions] = useState([]);
   const [customOcc, setCustomOcc] = useState('');
   const [addingOcc, setAddingOcc] = useState(false);
+  const [allOccasionNames, setAllOccasionNames] = useState(OCCASIONS_DEFAULT);
 
-  const [garments, setGarments]         = useState([]);
+  const [garments, setGarments]           = useState([]);
   const [customGarment, setCustomGarment] = useState('');
   const [addingGarment, setAddingGarment] = useState(false);
   const [allGarmentNames, setAllGarmentNames] = useState(GARMENTS_DEFAULT);
-  const [allOccasionNames, setAllOccasionNames] = useState(OCCASIONS_DEFAULT);
+
+  const [accessories, setAccessories]         = useState([]);
+  const [customAcc, setCustomAcc]             = useState('');
+  const [addingAcc, setAddingAcc]             = useState(false);
+  const [allAccessoryNames, setAllAccessoryNames] = useState(ACCESSORIES_DEFAULT);
 
   const [homeFurnishings, setHomeFurnishings] = useState([]);
-  /* change 5: custom items per group + custom categories */
-  const [hfGroups, setHfGroups] = useState(HOME_FURNISHINGS_DEFAULT);
-  const [addingCategory, setAddingCategory] = useState(false);
-  const [newCatName, setNewCatName]         = useState('');
+  const [hfGroups, setHfGroups]               = useState(HOME_FURNISHINGS_DEFAULT);
+  const [addingHFGroup, setAddingHFGroup]     = useState(false);
+  const [newHFGroup, setNewHFGroup]           = useState('');
 
   const [saving, setSaving] = useState(false);
   const debounceRef         = useRef(null);
@@ -217,27 +133,71 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
   const populateFromData = (d) => {
     if (!d) return;
     setGenders(d.gender_focus || []);
+
     const occ = d.occasions || [];
     setOccasions(occ);
     const customOccNames = occ.map(o => o.name).filter(n => !OCCASIONS_DEFAULT.includes(n));
     setAllOccasionNames([...OCCASIONS_DEFAULT, ...customOccNames]);
+
     const gar = d.garment_types || [];
     setGarments(gar);
     const customGarNames = gar.map(g => g.name).filter(n => !GARMENTS_DEFAULT.includes(n));
     setAllGarmentNames([...GARMENTS_DEFAULT, ...customGarNames]);
-    setHomeFurnishings(d.home_furnishings || []);
+
+    const acc = d.accessory_types || [];
+    setAccessories(acc);
+    const customAccNames = acc.filter(n => !ACCESSORIES_DEFAULT.includes(n));
+    setAllAccessoryNames([...ACCESSORIES_DEFAULT, ...customAccNames]);
+
+    // Home furnishings: alias legacy values to new labels for display; any value
+    // we don't recognise is a seller custom item — collect it into an "Other"
+    // group at the bottom rather than force-fitting it into a named category.
+    const hf = d.home_furnishings || [];
+    const aliased = hf.map(v => HF_LEGACY_ALIASES[v] || v);
+    setHomeFurnishings(aliased);
+    const known = new Set(HOME_FURNISHINGS_DEFAULT.flatMap(g => g.items));
+    const extras = aliased.filter(v => !known.has(v));
+    if (extras.length) {
+      setHfGroups(prev => {
+        const next = prev.map(g => ({ ...g, items: [...g.items] }));
+        let other = next.find(g => g.group === 'Other');
+        if (!other) { other = { group: 'Other', items: [], custom: true }; next.push(other); }
+        extras.forEach(v => { if (!other.items.includes(v)) other.items.push(v); });
+        return next;
+      });
+    }
   };
 
-  /* Use snapshot data immediately when available */
+  /* ── Home-furnishing editing: add item within a group, add a new group ── */
+  const addHFItem = (groupName, itemName) => {
+    const v = itemName.trim(); if (!v) return;
+    setHfGroups(prev => prev.map(g => g.group === groupName && !g.items.includes(v) ? { ...g, items: [...g.items, v] } : g));
+    // Adding an item also selects it, so it persists in home_furnishings.
+    setHomeFurnishings(prev => { const next = prev.includes(v) ? prev : [...prev, v]; triggerAutosave({ home_furnishings: next }); return next; });
+  };
+
+  const addHFGroup = (groupName) => {
+    const v = groupName.trim(); if (!v) return;
+    setHfGroups(prev => prev.some(g => g.group.toLowerCase() === v.toLowerCase()) ? prev : [...prev, { group: v, items: [], custom: true }]);
+  };
+
+  const removeHFGroup = (groupName) => {
+    setHfGroups(prev => {
+      const grp = prev.find(g => g.group === groupName);
+      if (grp) {
+        setHomeFurnishings(hfPrev => { const next = hfPrev.filter(x => !grp.items.includes(x)); triggerAutosave({ home_furnishings: next }); return next; });
+      }
+      return prev.filter(g => g.group !== groupName);
+    });
+  };
+
   useEffect(() => { if (initialData) populateFromData(initialData); }, [initialData]);
 
-  /* Fallback: only fetch if no snapshot data */
   useEffect(() => {
     if (!profileId || initialData) return;
     API.getStudio(profileId).then(r => populateFromData(r.data)).catch(() => {});
   }, [profileId]);
 
-  /* change 3: debounced autosave */
   const triggerAutosave = useCallback((payload) => {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
@@ -255,7 +215,7 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
     setGenders(prev => {
       const exists = prev.find(g => g.name === name);
       const next = exists
-        ? prev.filter(g => g.name !== name).sort((a,b) => a.rank - b.rank).map((g,i) => ({ ...g, rank: i+1 }))
+        ? prev.filter(g => g.name !== name).sort((a, b) => a.rank - b.rank).map((g, i) => ({ ...g, rank: i + 1 }))
         : [...prev, { name, rank: nextRank(prev) }];
       triggerAutosave({ gender_focus: next });
       return next;
@@ -266,7 +226,7 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
     setOccasions(prev => {
       const exists = prev.find(o => o.name === name);
       const next = exists
-        ? prev.filter(o => o.name !== name).sort((a,b) => a.rank - b.rank).map((o,i) => ({ ...o, rank: i+1 }))
+        ? prev.filter(o => o.name !== name).sort((a, b) => a.rank - b.rank).map((o, i) => ({ ...o, rank: i + 1 }))
         : [...prev, { name, rank: nextRank(prev) }];
       triggerAutosave({ occasions: next });
       return next;
@@ -274,14 +234,12 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
   };
 
   const addCustomOccasion = () => {
-    const v = customOcc.trim();
-    if (!v) return;
+    const v = customOcc.trim(); if (!v) return;
     setAllOccasionNames(prev => [...prev, v]);
     setOccasions(prev => { const next = [...prev, { name: v, rank: nextRank(prev) }]; triggerAutosave({ occasions: next }); return next; });
     setCustomOcc(''); setAddingOcc(false);
   };
 
-  const TOP5_MAX = 5;
   const top5Count = garments.filter(g => g.top5).length;
 
   const toggleGarment = (name, mode) => {
@@ -289,21 +247,16 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
       let next = prev;
       const exists = prev.find(g => g.name === name);
       if (mode === 'top5') {
-        // explicit top5 toggle — deselect always works, select only if under cap
         if (!exists) return prev;
         next = exists.top5
           ? prev.map(g => g.name === name ? { ...g, top5: false } : g)
           : prev.filter(g => g.top5).length >= TOP5_MAX ? prev
           : prev.map(g => g.name === name ? { ...g, top5: true } : g);
+      } else if (exists) {
+        next = prev.filter(g => g.name !== name);
       } else {
-        if (exists) {
-          // unchecking — remove from list entirely
-          next = prev.filter(g => g.name !== name);
-        } else {
-          // checking — auto-mark as top5 if slots remain, otherwise top5:false
-          const currentTop5Count = prev.filter(g => g.top5).length;
-          next = [...prev, { name, top5: currentTop5Count < TOP5_MAX }];
-        }
+        const currentTop5 = prev.filter(g => g.top5).length;
+        next = [...prev, { name, top5: currentTop5 < TOP5_MAX }];
       }
       triggerAutosave({ garment_types: next });
       return next;
@@ -311,11 +264,25 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
   };
 
   const addCustomGarment = () => {
-    const v = customGarment.trim();
-    if (!v) return;
+    const v = customGarment.trim(); if (!v) return;
     setAllGarmentNames(p => [...p, v]);
     setGarments(prev => { const next = [...prev, { name: v, top5: false }]; triggerAutosave({ garment_types: next }); return next; });
     setCustomGarment(''); setAddingGarment(false);
+  };
+
+  const toggleAccessory = name => {
+    setAccessories(prev => {
+      const next = prev.includes(name) ? prev.filter(x => x !== name) : [...prev, name];
+      triggerAutosave({ accessory_types: next });
+      return next;
+    });
+  };
+
+  const addCustomAccessory = () => {
+    const v = customAcc.trim(); if (!v) return;
+    setAllAccessoryNames(p => [...p, v]);
+    setAccessories(prev => { const next = [...prev, v]; triggerAutosave({ accessory_types: next }); return next; });
+    setCustomAcc(''); setAddingAcc(false);
   };
 
   const toggleHF = item => {
@@ -326,30 +293,13 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
     });
   };
 
-  /* change 5: add item to an existing HF group */
-  const addHFItem = (groupName, itemName) => {
-    setHfGroups(prev => prev.map(g => g.group === groupName ? { ...g, items: [...g.items, itemName] } : g));
-    setHomeFurnishings(prev => {
-      const next = [...prev, itemName];
-      triggerAutosave({ home_furnishings: next });
-      return next;
-    });
-  };
-
-  /* change 5: add a whole new HF category */
-  const addHFCategory = () => {
-    const v = newCatName.trim();
-    if (!v) return;
-    setHfGroups(prev => [...prev, { group: v, items: [] }]);
-    setNewCatName(''); setAddingCategory(false);
-  };
-
   const save = async (andNext = false) => {
     setSaving(true);
     try {
       await API.putStudio(profileId, {
         gender_focus: genders, occasions,
-        garment_types: garments, home_furnishings: homeFurnishings,
+        garment_types: garments, accessory_types: accessories,
+        home_furnishings: homeFurnishings,
       });
       success('Section B saved!');
       onSave?.();
@@ -359,85 +309,115 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
     } finally { setSaving(false); }
   };
 
+  const fashionCount = genders.length + occasions.length + garments.length + accessories.length;
+
   return (
-    <div style={{ padding: '40px 48px', maxWidth: 760 }}>
+    <div style={{ padding: '40px 48px 80px', maxWidth: 760 }}>
       <Toast toasts={toasts} />
-      <SectionHeader letter="B" title="Categories" desc="Which buyers you dress, what you make, and how well. These are the primary matching signals for Qalawati." />
+      <SectionHeader letter="B" title="Categories" desc="What categories you work with and have expertise in." />
 
-      <CategoryAccordion name="Apparel" sub="Clothing, garments, accessories" defaultOpen count={genders.length + occasions.length + garments.length}>
+      {/* ── Fashion ── */}
+      <CategoryAccordion icon="👗" name="Fashion" sub="Clothing and Accessories" defaultOpen count={fashionCount}>
 
-        <CardSection title="B.1 — Gender">
-          <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 14 }}>Check the categories you produce for. Order of checking becomes your ranking.</p>
+        <QCard qref="B.1" title="Gender" desc="Select who you produce for — check in order of strength. First checked = your primary market.">
           {GENDERS.map((name, i) => (
-            <RankItemRow key={name} name={name} rank={genders.find(g => g.name === name)?.rank ?? null} onToggle={toggleGender} isLast={i === GENDERS.length - 1} />
+            <RankRow key={name} name={name} rank={genders.find(g => g.name === name)?.rank ?? null} onToggle={toggleGender} isLast={i === GENDERS.length - 1} />
           ))}
-        </CardSection>
+        </QCard>
 
-        <CardSection title="B.2 — Occasions">
-          <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 14 }}>Rank by strength — first check = strongest occasion.</p>
+        <QCard qref="B.2" title="Occasions" desc="Select the occasions you produce for — check in order of strength. First checked = best at, and so on.">
           {allOccasionNames.map((name, i) => (
-            <RankItemRow key={name} name={name} rank={occasions.find(o => o.name === name)?.rank ?? null} onToggle={toggleOccasion} isLast={i === allOccasionNames.length - 1} />
+            <RankRow key={name} name={name} rank={occasions.find(o => o.name === name)?.rank ?? null} onToggle={toggleOccasion} isLast={i === allOccasionNames.length - 1} />
           ))}
           {addingOcc ? (
-            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <input style={{ ...inputStyle, flex: 1 }} value={customOcc} onChange={e => setCustomOcc(e.target.value)} placeholder="e.g. Maternity wear" />
-              <button className="btn btn-teal btn-sm" onClick={addCustomOccasion}>Add</button>
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <input style={{ ...inputStyle, flex: 1 }} value={customOcc} onChange={e => setCustomOcc(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomOccasion(); } }}
+                placeholder="e.g. Swimwear, Sportswear, Uniform…" autoFocus />
+              <button className="btn btn-primary btn-sm" onClick={addCustomOccasion}>Add</button>
               <button className="btn btn-ghost btn-sm" onClick={() => { setAddingOcc(false); setCustomOcc(''); }}>Cancel</button>
             </div>
           ) : (
-            <button className="btn btn-outline btn-sm" style={{ marginTop: 12 }} onClick={() => setAddingOcc(true)}>+ Add occasion</button>
+            <AddButton onClick={() => setAddingOcc(true)}>+ Add occasion</AddButton>
           )}
-        </CardSection>
+        </QCard>
 
-        <CardSection title="B.3 — Garment Types">
-          <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 6 }}>Select all garment types you produce. Your first 5 selections are automatically marked as Top — you can change which are Top by clicking the ★ button.</p>
-          <p style={{ fontSize: 12, color: '#D97520', marginBottom: 14, fontWeight: 600 }}>Top 5 slots: {TOP5_MAX - top5Count} remaining</p>
+        <QCard qref="B.3" title="Garment Types" desc="Select all garment types you produce. Check your best 5 first — they'll be highlighted as your top garment types on your profile.">
+          <div style={{
+            fontSize: 11, borderRadius: 5, padding: '6px 12px', marginBottom: 12, display: 'inline-block',
+            background: top5Count >= TOP5_MAX ? '#FEF0EC' : '#EEF3EC',
+            color: top5Count >= TOP5_MAX ? '#C0392B' : '#4A7C4A',
+          }}>
+            Top 5 slots: <strong>{Math.max(0, TOP5_MAX - top5Count)}</strong> remaining
+          </div>
           {allGarmentNames.map((name, i) => {
             const g = garments.find(x => x.name === name);
             return (
-              <Top5Row key={name} name={name} checked={!!g} top5={!!g?.top5} capReached={top5Count >= TOP5_MAX} onToggle={toggleGarment} isLast={i === allGarmentNames.length - 1} />
+              <Top5Row key={name} name={name} checked={!!g} top5={!!g?.top5}
+                capReached={top5Count >= TOP5_MAX} onToggle={toggleGarment}
+                isLast={i === allGarmentNames.length - 1} />
             );
           })}
           {addingGarment ? (
-            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <input style={{ ...inputStyle, flex: 1 }} value={customGarment} onChange={e => setCustomGarment(e.target.value)} placeholder="e.g. Sarees" />
-              <button className="btn btn-teal btn-sm" onClick={addCustomGarment}>Add</button>
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <input style={{ ...inputStyle, flex: 1 }} value={customGarment} onChange={e => setCustomGarment(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomGarment(); } }}
+                placeholder="e.g. Swimwear, Sherwani, Dhoti sets…" autoFocus />
+              <button className="btn btn-primary btn-sm" onClick={addCustomGarment}>Add</button>
               <button className="btn btn-ghost btn-sm" onClick={() => { setAddingGarment(false); setCustomGarment(''); }}>Cancel</button>
             </div>
           ) : (
-            <button className="btn btn-outline btn-sm" style={{ marginTop: 12, borderStyle: 'dashed' }} onClick={() => setAddingGarment(true)}>+ Add garment type not in list</button>
+            <AddButton inline onClick={() => setAddingGarment(true)}>+ Add garment type not in list</AddButton>
           )}
-        </CardSection>
-      </CategoryAccordion>
+        </QCard>
 
-      {/* change 5: HF groups with per-group "Add other" + "Add category" at bottom */}
-      <CategoryAccordion name="Home Furnishings" sub="Textiles for the home" count={homeFurnishings.length}>
-        {hfGroups.map(g => (
-          <HFGroup key={g.group} group={g.group} items={g.items} checked={homeFurnishings} onToggle={toggleHF} onAddItem={addHFItem} />
-        ))}
-
-        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-          {addingCategory ? (
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input style={{ ...inputStyle, flex: 1, height: 34 }} value={newCatName} onChange={e => setNewCatName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addHFCategory(); } }}
-                placeholder="New category name, e.g. Outdoor / Garden" autoFocus />
-              <button className="btn btn-teal btn-sm" onClick={addHFCategory}>Add Category</button>
-              <button className="btn btn-ghost btn-sm" onClick={() => { setAddingCategory(false); setNewCatName(''); }}>Cancel</button>
+        <QCard qref="B.4" title="Accessory Types" desc="Select all accessory types your studio produces.">
+          {allAccessoryNames.map((name, i) => (
+            <CheckRow key={name} name={name} checked={accessories.includes(name)} onToggle={toggleAccessory} isLast={i === allAccessoryNames.length - 1} />
+          ))}
+          {addingAcc ? (
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <input style={{ ...inputStyle, flex: 1 }} value={customAcc} onChange={e => setCustomAcc(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomAccessory(); } }}
+                placeholder="e.g. Sunglasses, Hair accessories…" autoFocus />
+              <button className="btn btn-primary btn-sm" onClick={addCustomAccessory}>Add</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setAddingAcc(false); setCustomAcc(''); }}>Cancel</button>
             </div>
           ) : (
-            <button className="btn btn-outline btn-sm" style={{ borderStyle: 'dashed' }} onClick={() => setAddingCategory(true)}>+ Add category</button>
+            <AddButton inline onClick={() => setAddingAcc(true)}>+ Add accessory type not in list</AddButton>
           )}
-        </div>
+        </QCard>
+
       </CategoryAccordion>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 8 }}>
-        <button className="btn btn-primary btn-lg fade-up" onClick={() => save(true)} disabled={saving}>
-          {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save & Next'}
-        </button>
-        <button className="btn btn-ghost fade-up" onClick={() => save(false)} disabled={saving}>Save</button>
-        <SavedPulse show={savedPulse} />
-      </div>
+      {/* ── Home Furnishings ── */}
+      <CategoryAccordion icon="🏠" name="Home Furnishings" sub="Bedding, table linen, soft furnishings, décor" count={homeFurnishings.length}>
+        <QCard qref="B.5" title="Home Furnishing Categories" desc="Select the home furnishing categories your studio produces. Open each to select specific product types.">
+          {hfGroups.map(g => (
+            <HFGroup
+              key={g.group}
+              group={g}
+              selected={homeFurnishings}
+              onToggle={toggleHF}
+              onAddItem={name => addHFItem(g.group, name)}
+              onRemoveGroup={g.custom ? () => removeHFGroup(g.group) : undefined}
+            />
+          ))}
+          {addingHFGroup ? (
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <input style={{ ...inputStyle, flex: 1 }} value={newHFGroup} onChange={e => setNewHFGroup(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addHFGroup(newHFGroup); setNewHFGroup(''); setAddingHFGroup(false); } }}
+                placeholder="e.g. Outdoor / Garden, Pet Textiles, Nursery…" autoFocus />
+              <button className="btn btn-primary btn-sm" onClick={() => { addHFGroup(newHFGroup); setNewHFGroup(''); setAddingHFGroup(false); }}>Add Category</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setAddingHFGroup(false); setNewHFGroup(''); }}>Cancel</button>
+            </div>
+          ) : (
+            <AddButton inline onClick={() => setAddingHFGroup(true)}>+ Add category not in list</AddButton>
+          )}
+        </QCard>
+      </CategoryAccordion>
+
+      <SectionFooter onNext={() => save(true)} onSave={() => save(false)} saving={saving} savedPulse={savedPulse} />
     </div>
   );
 }

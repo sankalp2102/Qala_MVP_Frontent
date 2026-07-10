@@ -355,26 +355,147 @@ textarea:focus-visible, select:focus-visible {
 .fade-up-4 { animation-delay: 0.4s; }
 .fade-up-5 { animation-delay: 0.5s; }
 
+/* ── DASH SIDEBAR NAVLINK ──
+   Colours pulled out of DashLayout's inline styles so the seller theme can
+   override them without touching the admin sidebar's structure. */
+.dash-navlink {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: var(--radius);
+  font-size: 13.5px; font-weight: 400;
+  color: var(--text2); background: transparent;
+  border: 1px solid transparent;
+  text-decoration: none; margin-bottom: 2px;
+  transition: all 0.15s;
+}
+.dash-navlink:hover { background: var(--surface2); }
+.dash-navlink.active {
+  font-weight: 600; color: var(--gold);
+  background: var(--gold-dim);
+  border-color: rgba(200,165,90,0.15);
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
-   STUDIO ONBOARDING FORM THEME — scoped terracotta accent
-   Applies ONLY inside .qala-form-theme (the seller Overview + Section A–H).
-   Redefines the accent variable locally so every var(--gold) usage in those
-   pages turns terracotta, matching the prototype. Rest of the app is unaffected.
+   STUDIO DASHBOARD THEME — terracotta + warm cream
+   ──────────────────────────────────────────────────────────────────────────
+   Scoped to .qala-form-theme, which now wraps the ENTIRE seller DashLayout
+   (Overview, Sections A–H, Inquiries, Project Enquiries, Active Projects,
+   Proposal Builder). Buyer and admin dashboards are untouched.
+
+   Where the prototype pins an exact hex, we use the hex. Where it doesn't,
+   we fall through to the existing design tokens.
    ══════════════════════════════════════════════════════════════════════════ */
 .qala-form-theme {
+  --bg:       #F5F3EF;                    /* warm cream page background */
   --gold:     #D97520;                    /* terracotta accent (was sage #7A8C6E) */
-  --gold-l:   #E08A3C;                    /* lighter — hover/light */
-  --gold-d:   #C06818;                    /* darker — active */
-  --gold-dim: rgba(217, 117, 32, 0.08);   /* faint terracotta tint */
+  --gold-l:   #E08A3C;
+  --gold-d:   #C06818;
+  --gold-dim: rgba(217, 117, 32, 0.08);
+  background: #F5F3EF;
+  color: #1A1A1A;
+  font-size: 14px;
 }
 
-/* Primary CTA (Save & Continue) — solid terracotta like the prototype's .btn-primary */
-.qala-form-theme .btn-primary {
-  background: #D97520;
-  color: #fff;
+/* ── Sidebar: colour only. Width, logo, nav items, footer all unchanged. ── */
+.qala-form-theme .dash-sidebar {
+  background: #fff;
+  border-right-color: #E8E4DF;
 }
-.qala-form-theme .btn-primary:hover { background: #C06818; }
+.qala-form-theme .dash-navlink { color: #555; border-color: transparent; }
+.qala-form-theme .dash-navlink:hover { background: #F5F3EF; }
+.qala-form-theme .dash-navlink.active {
+  background: #D97520; color: #fff;
+  border-color: #D97520; border-radius: 4px; font-weight: 500;
+}
+
+/* ── Section header ── */
+.qala-form-theme .section-tag {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+  color: #999; font-weight: 600; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 6px;
+}
+.qala-form-theme .section-title {
+  font-family: var(--font-display);
+  font-size: 36px; font-weight: 500; font-style: italic;
+  color: #D97520; margin-bottom: 6px; line-height: 1.1;
+}
+.qala-form-theme .section-desc {
+  font-size: 13px; color: #888; margin-bottom: 32px; line-height: 1.5;
+}
+
+/* ── Question card ── */
+.qala-form-theme .q-card {
+  background: #fff; border: 1px solid #E4E0DB; border-radius: 8px;
+  margin-bottom: 16px; overflow: hidden; box-shadow: none;
+}
+.qala-form-theme .q-card-inner { padding: 22px 24px 24px; }
+.qala-form-theme .q-title {
+  font-family: var(--font-display);
+  font-size: 18px; font-weight: 500; font-style: italic;
+  color: #1A1A1A; margin-bottom: 2px;
+}
+.qala-form-theme .q-ref {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: #CCCCCC; font-weight: 500; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.qala-form-theme .q-desc {
+  font-size: 12px; color: #888; margin-bottom: 14px; line-height: 1.55;
+}
+
+/* ── Form primitives ── */
+.qala-form-theme .field-label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: #999; font-weight: 600; margin-bottom: 6px; display: block;
+}
+.qala-form-theme .field-hint {
+  font-size: 11px; color: #AAAAAA; margin-top: 4px; line-height: 1.4;
+}
+.qala-form-theme input:focus,
+.qala-form-theme textarea:focus,
+.qala-form-theme select:focus { border-color: #1A1A1A; outline: none; }
+.qala-form-theme input[type="checkbox"],
+.qala-form-theme input[type="radio"] { accent-color: #D97520; }
+
+/* ── Buttons: prototype geometry (11px 24px / r5 / 13px) ── */
+.qala-form-theme .btn {
+  padding: 11px 24px; border-radius: 5px;
+  font-size: 13px; font-weight: 500; letter-spacing: 0;
+}
+.qala-form-theme .btn-sm { padding: 6px 12px; font-size: 11px; }
+.qala-form-theme .btn-lg { padding: 11px 24px; font-size: 13px; }
+
+.qala-form-theme .btn-primary { background: #D97520; color: #fff; border: none; }
+.qala-form-theme .btn-primary:hover  { background: #C06818; }
 .qala-form-theme .btn-primary:active { background: #C06818; }
 
-/* Text-link buttons hover to terracotta instead of sage */
+/* "Add" affordances in the prototype are solid terracotta, not sage. */
+.qala-form-theme .btn-teal { background: #D97520; color: #fff; border: none; }
+.qala-form-theme .btn-teal:hover { background: #C06818; }
+
+.qala-form-theme .btn-ghost,
+.qala-form-theme .btn-outline,
+.qala-form-theme .btn-secondary {
+  background: #fff; color: #555; border: 1px solid #D8D4CF;
+}
+.qala-form-theme .btn-ghost:hover,
+.qala-form-theme .btn-outline:hover,
+.qala-form-theme .btn-secondary:hover {
+  background: #FAFAF8; color: #1A1A1A; border-color: #888;
+}
 .qala-form-theme .btn-tertiary:hover { color: #D97520; }
+
+/* ── Overview status badges ── */
+.qala-form-theme .ov-badge {
+  font-size: 11px; padding: 3px 10px; border-radius: 10px; font-weight: 600;
+  white-space: nowrap;
+}
+.qala-form-theme .ov-badge-done    { background: #E8F5E2; color: #4A8A4A; }
+.qala-form-theme .ov-badge-todo    { background: #FEF0EC; color: #C0392B; }
+.qala-form-theme .ov-badge-partial { background: #FEF3E2; color: #B07820; }
+.qala-form-theme .ov-badge-flagged { background: #FEF0EC; color: #C0392B; }
+
+/* ── Responsive: the prototype's 760px column collapses cleanly ── */
+@media (max-width: 720px) {
+  .qala-form-theme .q-card-inner { padding: 18px 16px 20px; }
+  .qala-form-theme .section-title { font-size: 30px; }
+}

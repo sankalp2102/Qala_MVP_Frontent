@@ -3,14 +3,19 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, NavLink } from 'react-router-dom';
 import qalaLogo from '../assets/qala-logo.png';
 
-export function DashLayout({ children, nav: navItems }) {
+/*
+ * `theme` — optional class applied to the layout root. The seller dashboard
+ * passes "qala-form-theme", which recolours the sidebar and the page surface.
+ * Structure, width, logo and nav items are identical across all roles.
+ */
+export function DashLayout({ children, nav: navItems, theme = '' }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const doLogout = async () => { await logout(); navigate('/'); };
 
   return (
-    <div style={{ display:'flex', minHeight:'100vh', background:'var(--bg)' }}>
+    <div className={theme} style={{ display:'flex', minHeight:'100vh', background:'var(--bg)' }}>
       <style>{`
         .dash-sidebar {
           width: 240px; flex-shrink: 0;
@@ -67,17 +72,8 @@ export function DashLayout({ children, nav: navItems }) {
           {navItems.map(item => (
             <NavLink key={item.to} to={item.to} end={item.end ?? false}
               onClick={() => setSidebarOpen(false)}
-              style={({ isActive }) => ({
-                display:'flex', alignItems:'center', gap:10,
-                padding:'9px 12px', borderRadius:'var(--radius)',
-                fontSize:13.5, fontWeight: isActive ? 600 : 400,
-                color: isActive ? 'var(--gold)' : 'var(--text2)',
-                background: isActive ? 'var(--gold-dim)' : 'transparent',
-                border: isActive ? '1px solid rgba(200,165,90,0.15)' : '1px solid transparent',
-                transition:'all 0.15s', textDecoration:'none',
-                marginBottom:2,
-              })}>
-              <span style={{ fontSize:15, width:20, textAlign:'center' }}>{item.icon}</span>
+              className={({ isActive }) => `dash-navlink${isActive ? ' active' : ''}`}>
+              {item.icon && <span style={{ fontSize:15, width:20, textAlign:'center' }}>{item.icon}</span>}
               <span style={{ flex:1 }}>{item.label}</span>
               {item.badge && (
                 <span className={`badge badge-${item.badge.type}`} style={{ fontSize:10, padding:'2px 7px' }}>

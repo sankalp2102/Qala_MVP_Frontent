@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { onboardingAPI } from '../api/client';
@@ -18,12 +18,6 @@ import EnquiriesList from './seller/EnquiriesList';
 import ProposalBuilder from './seller/ProposalBuilder';
 import ActiveProjects from './seller/ActiveProjects';
 
-function statusBadge(s) {
-  const map    = { submitted:'badge-green', in_progress:'badge-orange', not_started:'badge-gray', flagged:'badge-red', approved:'badge-teal' };
-  const labels = { submitted:'Submitted', in_progress:'In Progress', not_started:'Not Started', flagged:'Flagged', approved:'Approved' };
-  return <span className={`badge ${map[s]||'badge-gray'}`}>{labels[s]||s}</span>;
-}
-
 // v3: 8 sections A–H
 const SECTIONS = [
   { key:'a', label:'Introduction',          path:'studio',      icon:'', desc:'Studio identity, location, contacts, strengths, recognition' },
@@ -37,6 +31,12 @@ const SECTIONS = [
 ];
 
 /* ── OVERVIEW ── */
+function statusBadge(s) {
+  const map    = { submitted:'badge-green', in_progress:'badge-orange', not_started:'badge-gray', flagged:'badge-red', approved:'badge-teal' };
+  const labels = { submitted:'Submitted', in_progress:'In Progress', not_started:'Not Started', flagged:'Flagged', approved:'Approved' };
+  return <span className={`badge ${map[s]||'badge-gray'}`}>{labels[s]||s}</span>;
+}
+
 function Overview({ snapshot, flags }) {
   const nav = useNavigate();
   if (!snapshot) return <Spinner full />;
@@ -327,17 +327,17 @@ export default function SellerDashboard() {
   ].filter(n => n.badge !== null || true).map(n => ({ ...n, badge: n.badge || undefined }));
 
   return (
-    <DashLayout nav={navItems}>
+    <DashLayout nav={navItems} theme="qala-form-theme">
       <Routes>
-        <Route index             element={<div className="qala-form-theme"><Overview snapshot={snapshot} flags={flags} /></div>}  />
-        <Route path="studio"     element={<div className="qala-form-theme"><SectionA profileId={profileId} initialData={snapshot?.studio_details}  onSave={refresh} onNext={() => { refresh(); nav('/dashboard/products'); }} /></div>} />
-        <Route path="products"   element={<div className="qala-form-theme"><SectionB profileId={profileId} initialData={snapshot?.studio_details}  onSave={refresh} onNext={() => { refresh(); nav('/dashboard/fabrics'); }} /></div>} />
-        <Route path="fabrics"    element={<div className="qala-form-theme"><SectionC profileId={profileId} initialData={{ studio: snapshot?.studio_details, fabrics: snapshot?.fabric_answers, dyes: snapshot?.dye_answers }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/crafts'); }} /></div>} />
-        <Route path="crafts"     element={<div className="qala-form-theme"><SectionD profileId={profileId} initialData={snapshot?.crafts}         onSave={refresh} onNext={() => { refresh(); nav('/dashboard/collab'); }} /></div>} />
-        <Route path="collab"     element={<div className="qala-form-theme"><SectionE profileId={profileId} initialData={snapshot?.collab_design}  onSave={refresh} onNext={() => { refresh(); nav('/dashboard/production'); }} /></div>} />
-        <Route path="production" element={<div className="qala-form-theme"><SectionF profileId={profileId} initialData={{ production: snapshot?.production_scale, collab: snapshot?.collab_design, studio: snapshot?.studio_details }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/projects'); }} /></div>} />
-        <Route path="projects"   element={<div className="qala-form-theme"><SectionG profileId={profileId} initialData={snapshot?.studio_projects} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/process'); }} /></div>} />
-        <Route path="process"    element={<div className="qala-form-theme"><SectionH profileId={profileId} initialData={{ process: snapshot?.process_readiness, studio: snapshot?.studio_details }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard'); }} /></div>} />
+        <Route index             element={<Overview snapshot={snapshot} flags={flags} />}  />
+        <Route path="studio"     element={<SectionA profileId={profileId} initialData={snapshot?.studio_details}  onSave={refresh} onNext={() => { refresh(); nav('/dashboard/products'); }} />} />
+        <Route path="products"   element={<SectionB profileId={profileId} initialData={snapshot?.studio_details}  onSave={refresh} onNext={() => { refresh(); nav('/dashboard/fabrics'); }} />} />
+        <Route path="fabrics"    element={<SectionC profileId={profileId} initialData={{ studio: snapshot?.studio_details, fabrics: snapshot?.fabric_answers, dyes: snapshot?.dye_answers }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/crafts'); }} />} />
+        <Route path="crafts"     element={<SectionD profileId={profileId} initialData={snapshot?.crafts}         onSave={refresh} onNext={() => { refresh(); nav('/dashboard/collab'); }} />} />
+        <Route path="collab"     element={<SectionE profileId={profileId} initialData={snapshot?.collab_design}  onSave={refresh} onNext={() => { refresh(); nav('/dashboard/production'); }} />} />
+        <Route path="production" element={<SectionF profileId={profileId} initialData={{ production: snapshot?.production_scale, collab: snapshot?.collab_design, studio: snapshot?.studio_details }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/projects'); }} />} />
+        <Route path="projects"   element={<SectionG profileId={profileId} initialData={snapshot?.studio_projects} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/process'); }} />} />
+        <Route path="process"    element={<SectionH profileId={profileId} initialData={{ process: snapshot?.process_readiness, studio: snapshot?.studio_details }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard'); }} />} />
         <Route path="inquiries"  element={<SellerInquiries profileId={profileId} />}           />
         <Route path="enquiries"  element={<EnquiriesList />}                                          />
         <Route path="enquiries/:projectId" element={<EnquiryDetail />}                                />

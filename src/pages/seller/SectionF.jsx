@@ -2,55 +2,19 @@ import { useState, useEffect, useCallback } from 'react';
 import { onboardingAPI } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
-import { inputStyle, textareaStyle, TrashIcon } from './SectionA';
+import {
+  SectionHeader, QCard, Field, SectionFooter, InfoBox, TrashBtn,
+  inputStyle, textareaStyle,
+} from './_ui';
 
 const API = onboardingAPI;
-
-function SectionHeader({ letter, title, desc }) {
-  return (
-    <div className="fade-up" style={{ marginBottom: 36 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Section {letter}</div>
-      <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 500, fontStyle: 'italic', color: 'var(--gold)', lineHeight: 1.1 }}>{title}</h1>
-      <p style={{ color: 'var(--text3)', fontSize: 14, marginTop: 8 }}>{desc}</p>
-    </div>
-  );
-}
-
-function CardSection({ title, desc, children }) {
-  return (
-    <div className="card fade-up" style={{ marginBottom: 16 }}>
-      <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, fontStyle: 'italic', color: 'var(--text)', marginBottom: 6 }}>{title}</div>
-      {desc && <p style={{ fontSize: 12.5, color: 'var(--text3)', marginBottom: 16, lineHeight: 1.7 }}>{desc}</p>}
-      {children}
-    </div>
-  );
-}
-
-function Field({ label, hint, children }) {
-  return (
-    <div style={{ marginBottom: 14 }}>
-      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>{label}</label>
-      {children}
-      {hint && <span style={{ fontSize: 11, color: 'var(--text4)', marginTop: 4, display: 'block' }}>{hint}</span>}
-    </div>
-  );
-}
-
-function TrashBtn({ onClick, label = 'Remove' }) {
-  return (
-    <button aria-label={label} onClick={onClick}
-      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text4)', padding: 4, display: 'flex', alignItems: 'center', borderRadius: 4 }}>
-      <TrashIcon size={16} />
-    </button>
-  );
-}
 
 export default function SectionF({ profileId, initialData, onSave, onNext }) {
   const { toasts, success, error } = useToast();
 
-  const [contacts, setContacts]         = useState([]);
-  const [addingC, setAddingC]           = useState(false);
-  const [newContact, setNewContact]     = useState({ name: '', role: '', email: '', phone: '' });
+  const [contacts, setContacts]             = useState([]);
+  const [addingC, setAddingC]               = useState(false);
+  const [newContact, setNewContact]         = useState({ name: '', role: '', email: '', phone: '' });
   const [editingContact, setEditingContact] = useState(null);
 
   const [coordinator, setCoordinator] = useState({ name: '', position: '', writeup: '' });
@@ -63,7 +27,6 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
   });
   const [saving, setSaving] = useState(false);
 
-  /* Populate from snapshot slices: { production, collab, studio } */
   useEffect(() => {
     if (!initialData) return;
     const { production: d, collab, studio } = initialData;
@@ -77,6 +40,8 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
         ...f,
         artisan_count: d.artisan_count ?? '',
         monthly_capacity_units: d.monthly_capacity_units ?? '',
+        // v4: sampling_time_weeks now lives on ProductionScale and round-trips.
+        sampling_time_weeks: d.sampling_time_weeks ?? '',
         production_time_weeks: d.production_time_weeks ?? '',
         moq_per_batch: d.moq_per_batch ?? '',
         moq_flexible: !!d.moq_flexible,
@@ -84,7 +49,6 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
     }
   }, [initialData]);
 
-  /* Fallback: only fetch if no snapshot data */
   useEffect(() => {
     if (!profileId || initialData) return;
     API.getStudio(profileId).then(r => { if (r.data?.contacts) setContacts(r.data.contacts); }).catch(() => {});
@@ -98,14 +62,11 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
         ...f,
         artisan_count: d.artisan_count ?? '',
         monthly_capacity_units: d.monthly_capacity_units ?? '',
+        sampling_time_weeks: d.sampling_time_weeks ?? '',
         production_time_weeks: d.production_time_weeks ?? '',
         moq_per_batch: d.moq_per_batch ?? '',
         moq_flexible: !!d.moq_flexible,
       }));
-    }).catch(() => {});
-    API.getCrafts(profileId).then(r => {
-      const first = (r.data || []).find(c => c.sampling_time_weeks != null);
-      if (first) setForm(f => ({ ...f, sampling_time_weeks: first.sampling_time_weeks }));
     }).catch(() => {});
   }, [profileId]);
 
@@ -171,6 +132,7 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
       await API.putProduction(profileId, {
         artisan_count: form.artisan_count || null,
         monthly_capacity_units: form.monthly_capacity_units || null,
+        sampling_time_weeks: form.sampling_time_weeks || null,   // v4: now persisted
         production_time_weeks: form.production_time_weeks || null,
         moq_per_batch: form.moq_per_batch || null,
         moq_flexible: form.moq_flexible,
@@ -184,14 +146,15 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
   };
 
   return (
-    <div style={{ padding: '40px 48px', maxWidth: 760 }}>
+    <div style={{ padding: '40px 48px 80px', maxWidth: 760 }}>
       <Toast toasts={toasts} />
-      <SectionHeader letter="F" title="Team & Capacity" desc="Who is in your studio, how many people, and what you can realistically deliver — and when." />
+      <SectionHeader letter="F" title="Team & Capacity" desc="Who's in your studio, how many people, and what you can realistically deliver — and when." />
 
-      <CardSection title="F.1 — Key Team Members" desc="Add the key people — whoever runs design, production, and client communication.">
+      {/* F.1 — Key Team Members */}
+      <QCard qref="F.1" title="Key Team Members" desc="Add the key people — whoever runs design, production, and client communication.">
         {contacts.map(c => (
           editingContact?.id === c.id ? (
-            <div key={c.id} style={{ padding: 16, border: '1px solid rgba(200,165,90,0.35)', borderRadius: 8, marginBottom: 8, background: 'var(--gold-dim)' }}>
+            <div key={c.id} style={{ padding: 16, border: '1px solid #E4E0DB', borderRadius: 6, marginBottom: 8, background: '#FAFAF8' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <Field label="Name *"><input style={inputStyle} value={editingContact.name} onChange={e => setEditingContact(x => ({ ...x, name: e.target.value }))} /></Field>
                 <Field label="Role *"><input style={inputStyle} value={editingContact.role} onChange={e => setEditingContact(x => ({ ...x, role: e.target.value }))} /></Field>
@@ -199,20 +162,25 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
                 <Field label="Phone"><input style={inputStyle} value={editingContact.phone || ''} onChange={e => setEditingContact(x => ({ ...x, phone: e.target.value }))} /></Field>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-teal btn-sm" onClick={saveEditContact}>Save</button>
+                <button className="btn btn-primary btn-sm" onClick={saveEditContact}>Save</button>
                 <button className="btn btn-ghost btn-sm" onClick={() => setEditingContact(null)}>Cancel</button>
               </div>
             </div>
           ) : (
-            <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: '#FAFAF8', borderRadius: 6, marginBottom: 8, border: '1px solid #E4E0DB' }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{c.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--text3)' }}>{c.role}{c.email && ` · ${c.email}`}</div>
+            <div key={c.id} style={{ border: '1px solid #E4E0DB', borderRadius: 6, padding: '14px 16px', marginBottom: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{c.name}</div>
+                  <div style={{ fontSize: 12, color: '#888' }}>{c.role}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setEditingContact({ id: c.id, name: c.name, role: c.role, email: c.email || '', phone: c.phone || '' })}>Edit</button>
+                  <TrashBtn label="Remove team member" size={13} danger onClick={() => delContact(c.id)} />
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <button className="btn btn-ghost btn-sm" onClick={() => setEditingContact({ id: c.id, name: c.name, role: c.role, email: c.email || '', phone: c.phone || '' })}>Edit</button>
-                <TrashBtn label="Remove team member" onClick={() => delContact(c.id)} />
-              </div>
+              {(c.email || c.phone) && (
+                <div style={{ fontSize: 12, color: '#888' }}>{[c.email, c.phone].filter(Boolean).join(' · ')}</div>
+              )}
             </div>
           )
         ))}
@@ -225,99 +193,94 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
               <Field label="Phone"><input style={inputStyle} value={newContact.phone} onChange={e => setNewContact(c => ({ ...c, phone: e.target.value }))} /></Field>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-teal btn-sm" onClick={addContact}>Save</button>
+              <button className="btn btn-primary btn-sm" onClick={addContact}>Save</button>
               <button className="btn btn-ghost btn-sm" onClick={() => setAddingC(false)}>Cancel</button>
             </div>
           </div>
         ) : (
           <button className="btn btn-outline btn-sm" onClick={() => setAddingC(true)}>+ Add Team Member</button>
         )}
-      </CardSection>
+      </QCard>
 
-      <CardSection title="F.2 — Buyer Coordinator" desc="Who typically coordinates with buyers?">
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4, minHeight: 18 }}>
-          {coordSaved && <span style={{ fontSize: 11, color: 'var(--text4)' }}>Saved</span>}
+      {/* F.2 — Buyer Coordinator */}
+      <QCard qref="F.2" title="Buyer Coordinator">
+        <div className="q-desc">
+          Who typically coordinates with buyers — takes requirements, sends proposals, manages the relationship?{' '}
+          <span style={{ fontSize: 11, color: '#7A8C6E', fontWeight: 500 }}>This will be shown to buyers on your studio page.</span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          <Field label="Name">
-            <input style={inputStyle} value={coordinator.name}
-              onChange={e => setCoordinator(c => ({ ...c, name: e.target.value }))}
-              onBlur={handleCoordBlur} />
-          </Field>
-          <Field label="Position">
-            <input style={inputStyle} value={coordinator.position}
-              onChange={e => setCoordinator(c => ({ ...c, position: e.target.value }))}
-              onBlur={handleCoordBlur} />
-          </Field>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', minHeight: 16 }}>
+          {coordSaved && <span style={{ fontSize: 11, color: '#AAA' }}>Saved</span>}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <Field label="Name *"><input style={inputStyle} value={coordinator.name} onChange={e => setCoordinator(c => ({ ...c, name: e.target.value }))} onBlur={handleCoordBlur} placeholder="e.g. Priya Sharma" /></Field>
+          <Field label="Position"><input style={inputStyle} value={coordinator.position} onChange={e => setCoordinator(c => ({ ...c, position: e.target.value }))} onBlur={handleCoordBlur} placeholder="e.g. Studio Manager / Founder" /></Field>
         </div>
         <Field label="About Them">
-          <textarea style={textareaStyle} rows={3}
-            value={coordinator.writeup}
-            onChange={e => setCoordinator(c => ({ ...c, writeup: e.target.value }))}
-            onBlur={handleCoordBlur} />
+          <textarea style={textareaStyle} rows={3} value={coordinator.writeup} onChange={e => setCoordinator(c => ({ ...c, writeup: e.target.value }))} onBlur={handleCoordBlur}
+            placeholder="e.g. Priya has 12 years in textile production. She manages all buyer relationships from brief to delivery. Prefers WhatsApp for quick updates." />
         </Field>
-        <label style={{ display: 'inline-block', marginTop: 8, cursor: 'pointer' }}>
-          <input type="file" accept="image/*" onChange={uploadCoordPhoto} style={{ display: 'none' }} />
-          <span className="btn btn-outline btn-sm">+ Upload Photo</span>
-        </label>
-      </CardSection>
-
-      <CardSection title="F.3 — Total Artisan / Worker Count">
-        <Field label="How many people work on production?" hint="Include everyone on production — artisans, tailors, embroiderers, helpers.">
-          <input style={{ ...inputStyle, maxWidth: 160 }} type="text" inputMode="numeric" pattern="[0-9]*"
-            value={form.artisan_count}
-            onChange={e => setForm(f => ({ ...f, artisan_count: e.target.value.replace(/\D/g, '') }))}
-            placeholder="e.g. 24" />
+        <Field label="Photo" style={{ marginBottom: 0 }}>
+          <label style={{ display: 'inline-block', cursor: 'pointer' }}>
+            <input type="file" accept="image/*" onChange={uploadCoordPhoto} style={{ display: 'none' }} />
+            <span className="btn btn-outline btn-sm">+ Upload Photo</span>
+          </label>
         </Field>
-      </CardSection>
+      </QCard>
 
-      <CardSection title="F.4 — Monthly Production Capacity">
-        <Field label="Total units per month" hint="Total units across all crafts and product types combined.">
-          <input style={{ ...inputStyle, maxWidth: 200 }} type="text" inputMode="numeric" pattern="[0-9]*"
-            value={form.monthly_capacity_units}
-            onChange={e => setForm(f => ({ ...f, monthly_capacity_units: e.target.value.replace(/\D/g, '') }))}
-            placeholder="e.g. 500 units" />
-        </Field>
-      </CardSection>
+      {/* F.3 — Total Production Team Size */}
+      <QCard qref="F.3" title="Total Production Team Size" desc="How many people work in your studio in total?">
+        <input style={{ ...inputStyle, maxWidth: 160 }} type="text" inputMode="numeric" pattern="[0-9]*"
+          value={form.artisan_count}
+          onChange={e => setForm(f => ({ ...f, artisan_count: e.target.value.replace(/\D/g, '') }))}
+          placeholder="e.g. 24" />
+        <div className="field-hint" style={{ marginTop: 4 }}>Include everyone — artisans, tailors, embroiderers, helpers.</div>
+      </QCard>
 
-      <CardSection title="F.5 — Timelines">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          <Field label="Sampling Time (weeks)" hint="From brief to sample in buyer's hands">
+      {/* F.4 — Monthly Production Capacity */}
+      <QCard qref="F.4" title="Monthly Production Capacity">
+        <input style={{ ...inputStyle, maxWidth: 200 }} type="text" inputMode="numeric" pattern="[0-9]*"
+          value={form.monthly_capacity_units}
+          onChange={e => setForm(f => ({ ...f, monthly_capacity_units: e.target.value.replace(/\D/g, '') }))}
+          placeholder="e.g. 500 units" />
+        <div className="field-hint" style={{ marginTop: 4 }}>Total units across all crafts and product types combined.</div>
+      </QCard>
+
+      {/* F.5 — Timelines */}
+      <QCard qref="F.5" title="Timelines" desc="Typical timelines buyers can expect — assuming fabric is available and sourcing is not required.">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <Field label="Sampling Time (weeks)" hint="From brief or reference to sample in buyer's hands">
             <input style={inputStyle} type="text" inputMode="numeric"
               value={form.sampling_time_weeks}
-              onChange={e => setForm(f => ({ ...f, sampling_time_weeks: e.target.value.replace(/\D/g, '') }))}
+              onChange={e => setForm(f => ({ ...f, sampling_time_weeks: e.target.value.replace(/[^\d.]/g, '') }))}
               placeholder="e.g. 3" />
           </Field>
-          <Field label="Production Time for 100 pcs (weeks)" hint="From approved sample to goods dispatched">
+          <Field label="Production Time for 100 pcs (weeks)" hint="From approved sample to finished goods dispatched">
             <input style={inputStyle} type="text" inputMode="numeric"
               value={form.production_time_weeks}
-              onChange={e => setForm(f => ({ ...f, production_time_weeks: e.target.value.replace(/\D/g, '') }))}
+              onChange={e => setForm(f => ({ ...f, production_time_weeks: e.target.value.replace(/[^\d.]/g, '') }))}
               placeholder="e.g. 6" />
           </Field>
         </div>
-      </CardSection>
+        <InfoBox>💡 These are your baseline timelines. If a buyer has a custom brief or complex requirements, you can share revised timelines in the proposal.</InfoBox>
+      </QCard>
 
-      <CardSection title="F.6 — Minimum Order Quantity">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+      {/* F.6 — Minimum Order Quantity */}
+      <QCard qref="F.6" title="Minimum Order Quantity" desc="What is the minimum number of pieces you typically take — given fabric is available?">
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
           <input style={{ ...inputStyle, width: 140 }} type="text" inputMode="numeric"
             value={form.moq_per_batch}
             onChange={e => setForm(f => ({ ...f, moq_per_batch: e.target.value.replace(/\D/g, '') }))}
             placeholder="e.g. 50" />
-          <span style={{ fontSize: 13, color: 'var(--text3)' }}>pieces per batch</span>
+          <span style={{ fontSize: 13, color: '#888' }}>pieces per batch</span>
         </div>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-          <input type="checkbox" checked={form.moq_flexible} onChange={e => setForm(f => ({ ...f, moq_flexible: e.target.checked }))} />
-          <span style={{ fontSize: 13, color: 'var(--text2)' }}>I am flexible with this MOQ — buyers can discuss quantities with me in the proposal.</span>
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 12, cursor: 'pointer' }}>
+          <input type="checkbox" checked={form.moq_flexible} onChange={e => setForm(f => ({ ...f, moq_flexible: e.target.checked }))} style={{ marginTop: 2, width: 'auto' }} />
+          <span style={{ fontSize: 13, color: '#555', lineHeight: 1.5 }}>I'm flexible with this MOQ — buyers can discuss quantities with me in the proposal</span>
         </label>
-        <p style={{ fontSize: 11, color: 'var(--text4)', marginTop: 10 }}>This number is a baseline shown on your profile.</p>
-      </CardSection>
+        <InfoBox>💡 If a buyer requests customisation or has special requirements, you can quote your MOQ in the proposal — this number is just a general baseline shown on your profile.</InfoBox>
+      </QCard>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <button className="btn btn-primary btn-lg fade-up" onClick={() => save(true)} disabled={saving}>
-          {saving ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Saving…</> : 'Save & Next'}
-        </button>
-        <button className="btn btn-ghost fade-up" onClick={() => save(false)} disabled={saving}>Save</button>
-      </div>
+      <SectionFooter onNext={() => save(true)} onSave={() => save(false)} saving={saving} />
     </div>
   );
 }
