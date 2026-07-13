@@ -53,6 +53,7 @@ function BriefTab({ project, onRefresh }) {
   const [form,    setForm]    = useState({});
   const [saving,  setSaving]  = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [errors,  setErrors]  = useState({});
   const fileRef = useRef();
 
   const canEdit = ['draft','brief_submitted'].includes(project.stage);
@@ -63,31 +64,36 @@ function BriefTab({ project, onRefresh }) {
       buyer_location:             brief.buyer_location              || '',
       product_category:           brief.product_category            || '',
       product_description:        brief.product_description         || '',
-      sample_quantity:            brief.sample_quantity             || '',
       bulk_quantity:              brief.bulk_quantity               || '',
-      budget_min:                 brief.budget_min                  || '',
-      budget_max:                 brief.budget_max                  || '',
       budget_currency:            brief.budget_currency             || 'USD',
-      target_landing_price_local: brief.target_landing_price_local  || '',
-      target_landing_currency:    brief.target_landing_currency     || 'EUR',
       target_landing_price_usd:   brief.target_landing_price_usd   || '',
       target_sample_delivery_date: brief.target_sample_delivery_date || '',
       target_bulk_delivery_date:   brief.target_bulk_delivery_date  || '',
       additional_specs:           brief.additional_specs            || '',
     });
+    setErrors({});
     setEditing(true);
   };
 
+  const REQUIRED = [
+    'buyer_brand_name', 'buyer_location', 'product_category', 'product_description',
+    'bulk_quantity', 'budget_currency', 'target_landing_price_usd',
+    'target_sample_delivery_date', 'target_bulk_delivery_date', 'additional_specs',
+  ];
+  const validate = () => {
+    const e = {};
+    REQUIRED.forEach(k => { if (!String(form[k] ?? '').trim()) e[k] = true; });
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
   const saveBrief = async () => {
+    if (!validate()) return;
     setSaving(true);
     try {
       await projectsAPI.updateBrief(project.id, {
         ...form,
-        sample_quantity: form.sample_quantity ? parseInt(form.sample_quantity) : null,
         bulk_quantity:   form.bulk_quantity   ? parseInt(form.bulk_quantity)   : null,
-        budget_min:      form.budget_min      || null,
-        budget_max:      form.budget_max      || null,
-        target_landing_price_local: form.target_landing_price_local || null,
         target_landing_price_usd:   form.target_landing_price_usd   || null,
         target_sample_delivery_date: form.target_sample_delivery_date || null,
         target_bulk_delivery_date:   form.target_bulk_delivery_date   || null,
@@ -136,53 +142,51 @@ function BriefTab({ project, onRefresh }) {
         {editing ? (
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
             {[
-              ['buyer_brand_name',  'Brand / Buyer',      'text',   'Maison Éclat'],
+              ['buyer_brand_name',  'Buyer Name',         'text',   'Maison Éclat'],
               ['buyer_location',    'Location',           'text',   'Paris, France'],
-              ['product_category',  'Product Category',   'text',   "Women's RTW"],
-              ['sample_quantity',   'Sample Qty',         'number', '1'],
+              ['product_category',  'Product Type',       'text',   "Women's RTW"],
               ['bulk_quantity',     'Bulk Qty',           'number', '100'],
-              ['budget_min',        'Budget Min',         'number', '5000'],
-              ['budget_max',        'Budget Max',         'number', '15000'],
-              ['budget_currency',   'Currency',           'text',   'USD'],
-              ['target_landing_price_local', 'Target Landing Price', 'number', '480'],
-              ['target_landing_currency',    'Landing Currency',    'text',   'EUR'],
-              ['target_landing_price_usd',   'Landing Price (USD)', 'number', '519'],
+              ['budget_currency',   'Buyer Currency',     'text',   'USD'],
+              ['target_landing_price_usd',   'Target Landing Price', 'number', '519'],
               ['target_sample_delivery_date','Sample Delivery',     'date',   ''],
               ['target_bulk_delivery_date',  'Bulk Delivery',       'date',   ''],
             ].map(([key, label, type, ph]) => (
               <div key={key} className="field">
-                <label style={{ fontSize:11 }}>{label}</label>
+                <label style={{ fontSize:11 }}>{label} <span style={{ color:'var(--red)' }}>*</span></label>
                 <input type={type} value={form[key] || ''} placeholder={ph}
-                  onChange={e => setForm(f => ({...f, [key]: e.target.value}))} style={{ fontSize:13 }} />
+                  onChange={e => { setForm(f => ({...f, [key]: e.target.value})); setErrors(er => ({...er, [key]: false})); }}
+                  style={{ fontSize:13, ...(errors[key] ? { borderColor:'var(--red)' } : {}) }} />
               </div>
             ))}
             <div className="field" style={{ gridColumn:'1 / -1' }}>
-              <label style={{ fontSize:11 }}>Product Description</label>
+              <label style={{ fontSize:11 }}>Product Description <span style={{ color:'var(--red)' }}>*</span></label>
               <textarea rows={3} value={form.product_description || ''}
-                onChange={e => setForm(f => ({...f, product_description: e.target.value}))}
-                style={{ fontSize:13, resize:'vertical', width:'100%', padding:'9px 12px', borderRadius:8, border:'1px solid var(--border)', background:'var(--surface2)', fontFamily:'var(--font-body)', color:'var(--text)' }} />
+                onChange={e => { setForm(f => ({...f, product_description: e.target.value})); setErrors(er => ({...er, product_description: false})); }}
+                style={{ fontSize:13, resize:'vertical', width:'100%', padding:'9px 12px', borderRadius:8, border:`1px solid ${errors.product_description ? 'var(--red)' : 'var(--border)'}`, background:'var(--surface2)', fontFamily:'var(--font-body)', color:'var(--text)' }} />
             </div>
             <div className="field" style={{ gridColumn:'1 / -1' }}>
-              <label style={{ fontSize:11 }}>Additional Notes</label>
+              <label style={{ fontSize:11 }}>Additional Notes <span style={{ color:'var(--red)' }}>*</span></label>
               <textarea rows={3} value={form.additional_specs || ''}
-                onChange={e => setForm(f => ({...f, additional_specs: e.target.value}))}
-                style={{ fontSize:13, resize:'vertical', width:'100%', padding:'9px 12px', borderRadius:8, border:'1px solid var(--border)', background:'var(--surface2)', fontFamily:'var(--font-body)', color:'var(--text)' }} />
+                onChange={e => { setForm(f => ({...f, additional_specs: e.target.value})); setErrors(er => ({...er, additional_specs: false})); }}
+                style={{ fontSize:13, resize:'vertical', width:'100%', padding:'9px 12px', borderRadius:8, border:`1px solid ${errors.additional_specs ? 'var(--red)' : 'var(--border)'}`, background:'var(--surface2)', fontFamily:'var(--font-body)', color:'var(--text)' }} />
             </div>
-            <div style={{ gridColumn:'1 / -1', display:'flex', gap:10 }}>
+            <div style={{ gridColumn:'1 / -1', display:'flex', gap:10, alignItems:'center' }}>
               <button onClick={saveBrief} disabled={saving} className="btn btn-primary" style={{ fontSize:13 }}>{saving ? 'Saving…' : 'Save Brief'}</button>
               <button onClick={() => setEditing(false)} className="btn btn-ghost" style={{ fontSize:13 }}>Cancel</button>
+              {Object.keys(errors).some(k => errors[k]) && (
+                <span style={{ fontSize:12, color:'var(--red)' }}>Please fill all required fields.</span>
+              )}
             </div>
           </div>
         ) : (
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
             {[
-              ['Brand / Buyer',       brief.buyer_brand_name || '—'],
+              ['Buyer Name',          brief.buyer_brand_name || '—'],
               ['Location',            brief.buyer_location   || '—'],
-              ['Product Category',    brief.product_category  || '—'],
-              ['Sample Qty',          brief.sample_quantity ? `${brief.sample_quantity} sets` : '—'],
+              ['Product Type',        brief.product_category  || '—'],
               ['Bulk Qty',            brief.bulk_quantity    ? `${brief.bulk_quantity} sets`  : '—'],
-              ['Budget',              brief.budget_min && brief.budget_max ? `${brief.budget_currency} ${Number(brief.budget_min).toLocaleString()} – ${Number(brief.budget_max).toLocaleString()}` : '—'],
-              ['Target Landing Price', brief.target_landing_price_usd ? `$${Number(brief.target_landing_price_usd).toLocaleString()}${brief.target_landing_currency ? ` (${brief.target_landing_currency} ${brief.target_landing_price_local})` : ''}` : '—'],
+              ['Buyer Currency',      brief.budget_currency  || '—'],
+              ['Target Landing Price', brief.target_landing_price_usd ? `$${Number(brief.target_landing_price_usd).toLocaleString()}` : '—'],
               ['Sample Delivery',     brief.target_sample_delivery_date || '—'],
               ['Bulk Delivery',       brief.target_bulk_delivery_date   || '—'],
             ].map(([label, val]) => (

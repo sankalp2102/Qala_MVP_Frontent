@@ -2,23 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { projectsAPI } from '../../api/client';
 import {
-  calcLandingCost, fetchForex, getCats,
-  GENDERS, TECHNIQUES, MATERIALS, GST_OPTIONS,
-  JEW_MATERIALS, ACC_MATERIALS,
+  calcLandingCost, fetchForex,
   fmtUSD, fmtINR, fmtPct,
 } from '../../utils/calculator';
+import LineItemCards, { normalizeItems, summarize } from '../../components/proposals/LineItemCards';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function mkItem(domain) {
-  return {
-    _id: Date.now() + Math.random(),
-    name: '', category: getCats(domain)[0],
-    gender: 'Women', material: domain === 'jewellery' ? 'Fashion / Imitation' : 'Cotton',
-    technique: 'Woven', weight_per_pc: '', qty: '',
-    cost_per_pc_inr: '', gst_rate: '0.12', declared_value_usd: '',
-  };
-}
 
 function mkBox() {
   return { _id: Date.now() + Math.random(), label: 'Custom', length_cm: '', width_cm: '', height_cm: '', qty: 1 };
@@ -31,8 +20,6 @@ const STD_BOXES = [
   { label: 'L',  length_cm: 60, width_cm: 40, height_cm: 40, vol: 19.2, box: 1.4 },
 ];
 
-const DOMAIN_OPTIONS  = [['apparel','Apparel'],['home_furnishings','Home Furnishings'],['jewellery','Jewellery'],['accessories','Accessories']];
-const ORDER_TYPES     = [['designing','Designing'],['sampling','Sampling'],['production','Production']];
 const SHIP_OPTIONS    = [['dhl','DHL Express'],['shipglobal','ShipGlobal (Economical)']];
 
 function fmtDate(iso) {
@@ -175,56 +162,6 @@ function CalcPanel({ result, forex, brief, pfPct }) {
 
 // ── LINE ITEMS TABLE ──────────────────────────────────────────────────────────
 
-function LineItemsTable({ items, domain, orderType, onChange, onAdd, onRemove }) {
-  const cats      = getCats(domain);
-  const isApparel = domain === 'apparel';
-  const isJew     = domain === 'jewellery';
-  const isAcc     = domain === 'accessories';
-  const mats      = isJew ? JEW_MATERIALS : isAcc ? ACC_MATERIALS : MATERIALS;
-
-  const upd = (id, k, v) => onChange(items.map(it => it._id === id ? {...it, [k]: v} : it));
-  const inp = (w) => ({ padding: '5px 6px', borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 11, color: 'var(--text)', fontFamily: 'var(--font-body)', width: w });
-
-  return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, minWidth: 680 }}>
-        <thead>
-          <tr style={{ background: 'var(--surface2)', borderRadius: 6 }}>
-            {['Item name','Category',...(isApparel?['Gender','Technique']:['Material']),'Wt/pc (kg)','Qty','Cost/pc (₹)','GST',...(orderType==='sampling'?['Decl. val ($)']:[]),''].map(h => (
-              <th key={h} style={{ padding: '7px 6px', textAlign: 'left', fontWeight: 600, color: 'var(--text3)', whiteSpace: 'nowrap', fontSize: 10 }}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {items.map(it => (
-            <tr key={it._id} style={{ borderBottom: '1px solid var(--border)' }}>
-              <td style={{ padding: '5px 4px' }}><input value={it.name} onChange={e => upd(it._id,'name',e.target.value)} placeholder="Item name" style={inp(110)} /></td>
-              <td style={{ padding: '5px 4px' }}><select value={it.category} onChange={e => upd(it._id,'category',e.target.value)} style={inp(120)}>{cats.map(c=><option key={c}>{c}</option>)}</select></td>
-              {isApparel && <td style={{ padding: '5px 4px' }}><select value={it.gender} onChange={e => upd(it._id,'gender',e.target.value)} style={inp(68)}>{GENDERS.map(g=><option key={g}>{g}</option>)}</select></td>}
-              {isApparel && <td style={{ padding: '5px 4px' }}><select value={it.technique} onChange={e => upd(it._id,'technique',e.target.value)} style={inp(90)}>{TECHNIQUES.map(t=><option key={t}>{t}</option>)}</select></td>}
-              {!isApparel && <td style={{ padding: '5px 4px' }}><select value={it.material} onChange={e => upd(it._id,'material',e.target.value)} style={inp(110)}>{mats.map(m=><option key={m}>{m}</option>)}</select></td>}
-              <td style={{ padding: '5px 4px' }}><input type="number" value={it.weight_per_pc} onChange={e => upd(it._id,'weight_per_pc',e.target.value)} placeholder="0.00" min="0" step="0.01" style={inp(60)} /></td>
-              <td style={{ padding: '5px 4px' }}><input type="number" value={it.qty} onChange={e => upd(it._id,'qty',e.target.value)} placeholder="0" min="1" style={inp(50)} /></td>
-              <td style={{ padding: '5px 4px' }}><input type="number" value={it.cost_per_pc_inr} onChange={e => upd(it._id,'cost_per_pc_inr',e.target.value)} placeholder="0" min="0" style={inp(72)} /></td>
-              <td style={{ padding: '5px 4px' }}><select value={it.gst_rate} onChange={e => upd(it._id,'gst_rate',e.target.value)} style={inp(58)}>{GST_OPTIONS.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></td>
-              {orderType === 'sampling' && (
-                <td style={{ padding: '5px 4px' }}><input type="number" value={it.declared_value_usd} onChange={e => upd(it._id,'declared_value_usd',e.target.value)} placeholder="0" min="0" step="0.01" style={inp(70)} /></td>
-              )}
-              <td style={{ padding: '5px 4px' }}><button onClick={() => onRemove(it._id)} style={{ background:'none',border:'none',color:'var(--red)',cursor:'pointer',fontSize:16,lineHeight:1 }}>×</button></td>
-            </tr>
-          ))}
-          {items.length === 0 && (
-            <tr><td colSpan={isApparel?10:9} style={{ textAlign:'center',padding:'16px',color:'var(--text4)',fontStyle:'italic',fontSize:12 }}>No items yet — click + Add item below</td></tr>
-          )}
-        </tbody>
-      </table>
-      <button onClick={onAdd} style={{ marginTop:8,fontSize:12,color:'var(--gold)',background:'var(--gold-dim)',border:'1px solid rgba(200,165,90,0.2)',borderRadius:6,padding:'6px 14px',cursor:'pointer',fontFamily:'var(--font-body)' }}>
-        + Add item
-      </button>
-    </div>
-  );
-}
-
 // ── BOXES TABLE ───────────────────────────────────────────────────────────────
 
 function BoxesTable({ boxes, onChange }) {
@@ -337,6 +274,13 @@ export default function ProposalBuilder() {
   }));
   const result = calcLandingCost({ lineItems: numItems, boxes: numBoxes, domain, orderType, shipping, forex, pfPct: 0.15, advancePct: 0.5 });
 
+  // Which order types are present across configured items — drives which
+  // sections (boxes, timelines) show.
+  const configuredTypes = lineItems.filter(it => it._configured).map(it => it.order_type);
+  const hasShippable = configuredTypes.some(t => t && t !== 'designing');
+  const hasDesigning = configuredTypes.some(t => t === 'designing');
+  const hasProduction = configuredTypes.some(t => t === 'production');
+
   useEffect(() => {
     fetchForex().then(setForex);
     projectsAPI.getEnquiry(projectId).then(r => {
@@ -344,10 +288,12 @@ export default function ProposalBuilder() {
       setEnquiry(e);
       const p = (e.my_proposals || []).find(x => x.id === proposalId);
       if (p) {
-        setOrderType(p.order_type         || 'production');
-        setDomain(p.product_domain        || 'apparel');
+        const legacyType   = p.order_type    && p.order_type    !== 'mixed' ? p.order_type    : 'production';
+        const legacyDomain = p.product_domain && p.product_domain !== 'mixed' ? p.product_domain : 'apparel';
+        setOrderType(legacyType);
+        setDomain(legacyDomain);
         setShipping(p.shipping_method     || 'dhl');
-        setLineItems(p.line_items         || []);
+        setLineItems(normalizeItems(p.line_items, legacyType, legacyDomain));
         setBoxes(p.boxes                  || []);
         setDesignDate(p.design_handover_date || '');
         setSampleDate(p.sample_dispatch_date || '');
@@ -368,8 +314,8 @@ export default function ProposalBuilder() {
   const r2 = (v) => v != null ? Math.round(v * 100) / 100 : null;
 
   const buildPayload = () => ({
-    order_type:           orderType,
-    product_domain:       domain,
+    order_type:           summarize(lineItems, 'order_type', orderType),
+    product_domain:       summarize(lineItems, 'product_domain', domain),
     shipping_method:      shipping,
     line_items:           lineItems,
     boxes,
@@ -509,13 +455,10 @@ export default function ProposalBuilder() {
           {/* Change 3: qty + delivery in one row */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 16 }}>
             {[
-              ['Sample qty',            brief.sample_quantity != null ? `${brief.sample_quantity} set${brief.sample_quantity !== 1 ? 's' : ''}` : '—'],
               ['Bulk qty',              brief.bulk_quantity   != null ? `${brief.bulk_quantity} sets` : '—'],
-              ['Budget',                brief.budget_min || brief.budget_max
-                ? `${brief.budget_currency || ''} ${brief.budget_min || '?'} – ${brief.budget_max || '?'}`
-                : '—'],
+              ['Buyer currency',        brief.budget_currency || '—'],
               ['Target landing price',  brief.target_landing_price_usd
-                ? `${brief.target_landing_currency || ''} ${brief.target_landing_price_local || ''} ≈ ${fmtUSD(parseFloat(brief.target_landing_price_usd))} per set`
+                ? `${fmtUSD(parseFloat(brief.target_landing_price_usd))} per set`
                 : '—'],
               ['Target sample delivery', fmtDate(brief.target_sample_delivery_date)],
               ['Target bulk delivery',   fmtDate(brief.target_bulk_delivery_date)],
@@ -710,44 +653,27 @@ export default function ProposalBuilder() {
             <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 4 }}>Add the items you'll produce and your costs. The buyer's landing cost updates live on the right.</div>
             {brief.target_landing_price_usd && (
               <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 20 }}>
-                Buyer's target landing price <strong>{brief.target_landing_currency} {brief.target_landing_price_local}</strong> per set ≈ <strong>{fmtINR(parseFloat(brief.target_landing_price_usd) * forex)}</strong> at current rate
+                Buyer's target landing price <strong>{fmtUSD(parseFloat(brief.target_landing_price_usd))}</strong> per set ≈ <strong>{fmtINR(parseFloat(brief.target_landing_price_usd) * forex)}</strong> at current rate
               </div>
             )}
 
-            {/* Order config */}
+            {/* Order config — only shipping is global now */}
             <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '18px 20px', marginBottom: 16 }}>
-              <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
-                <div>
-                  <SLabel>Order type</SLabel>
-                  <Toggle opts={ORDER_TYPES} val={orderType} onChange={v => { setOrderType(v); setLineItems([]); }} />
-                  <div style={{ fontSize:10, color:'var(--text4)', marginTop:6 }}>
-                    {orderType === 'designing' && 'No shipping required — handover date only'}
-                    {orderType === 'sampling' && 'Declared value per item required for customs'}
-                    {orderType === 'production' && 'Full bulk production run'}
-                  </div>
-                </div>
-                <div><SLabel>Product domain</SLabel><Toggle opts={DOMAIN_OPTIONS} val={domain}    onChange={v => { setDomain(v);    setLineItems([]); }} /></div>
-                <div><SLabel>Shipping method</SLabel><Toggle opts={SHIP_OPTIONS}  val={shipping}  onChange={setShipping} /></div>
-              </div>
+              <div><SLabel>Shipping method</SLabel><Toggle opts={SHIP_OPTIONS} val={shipping} onChange={setShipping} /></div>
               <div style={{ marginTop: 12, fontSize: 11, color: 'var(--text4)', background: 'var(--surface2)', borderRadius: 7, padding: '8px 12px' }}>
-                ℹ Shipping, import duties, and insurance are handled end-to-end by Qala. Enter your studio costs only — the calculator adds everything else automatically.
+                ℹ Shipping, import duties, and insurance are handled end-to-end by Qala. Enter your studio costs only — the calculator adds everything else automatically. Order type and product domain are set per item below.
               </div>
             </div>
 
             {/* Line items */}
             <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '18px 20px', marginBottom: 16 }}>
               <SLabel required>Items & costing</SLabel>
-              <div style={{ fontSize: 11, color: 'var(--text4)', marginBottom: 12 }}>Enter each product you'll be making, with weight and cost per piece. Weight is used to calculate shipping.</div>
-              <LineItemsTable
-                items={lineItems} domain={domain} orderType={orderType}
-                onChange={setLineItems}
-                onAdd={() => setLineItems(li => [...li, mkItem(domain)])}
-                onRemove={id => setLineItems(li => li.filter(it => it._id !== id))}
-              />
+              <div style={{ fontSize: 11, color: 'var(--text4)', marginBottom: 12 }}>Add each product. For every item, pick its order type and domain first, then fill the details. You can mix types and domains in one proposal.</div>
+              <LineItemCards items={lineItems} onChange={setLineItems} />
             </div>
 
-            {/* Boxes */}
-            {orderType !== 'designing' && (
+            {/* Boxes — shown when any item ships (i.e. not all designing) */}
+            {hasShippable && (
               <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '18px 20px', marginBottom: 16 }}>
                 <SLabel>Shipping box details</SLabel>
                 <div style={{ fontSize: 11, color: 'var(--text4)', marginBottom: 12 }}>Box dimensions determine volumetric weight, which affects shipping cost.</div>
@@ -756,7 +682,7 @@ export default function ProposalBuilder() {
             )}
 
             <NavBtns n={4}
-              disableContinue={!lineItems.some(it => it.qty && it.cost_per_pc_inr)}
+              disableContinue={!lineItems.some(it => it._configured && it.qty && it.cost_per_pc_inr)}
               continueLabel="Continue →"
             />
           </div>
@@ -776,7 +702,7 @@ export default function ProposalBuilder() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {orderType !== 'sampling' && orderType !== 'production' && (
+            {hasDesigning && (
               <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '18px 20px' }}>
                 <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}>Designing</div>
                 <div className="field">
@@ -786,10 +712,11 @@ export default function ProposalBuilder() {
               </div>
             )}
 
+            {hasShippable && (
             <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '18px 20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                 <div style={{ fontWeight: 600, color: 'var(--text)' }}>
-                  Sampling ({brief.sample_quantity ? `${brief.sample_quantity} set · ` : ''}all pieces)
+                  Sampling (all pieces)
                 </div>
                 {brief.target_sample_delivery_date && (
                   <div style={{ fontSize: 11, color: 'var(--text4)' }}>Buyer's target delivery: {fmtDate(brief.target_sample_delivery_date)}</div>
@@ -805,8 +732,9 @@ export default function ProposalBuilder() {
                 </div>
               )}
             </div>
+            )}
 
-            {(orderType === 'production' || orderType === 'sampling') && (
+            {hasProduction && (
               <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '18px 20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                   <div style={{ fontWeight: 600, color: 'var(--text)' }}>

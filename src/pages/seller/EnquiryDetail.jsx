@@ -80,20 +80,50 @@ export default function EnquiryDetail() {
             <div style={{ fontFamily:'var(--font-display)', fontSize:18, fontWeight:600, color:'var(--text)', marginBottom:20 }}>Brief</div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
               {[
-                ['Product Category',  brief.product_category     || '—'],
-                ['Quantity',          brief.quantity_estimate    || '—'],
-                ['Budget',            brief.budget_min && brief.budget_max ? `${brief.budget_currency || 'USD'} ${Number(brief.budget_min).toLocaleString()} – ${Number(brief.budget_max).toLocaleString()}` : '—'],
-                ['Target Delivery',   fmt(brief.target_delivery_date)],
+                ['Buyer Name',          brief.buyer_brand_name || '—'],
+                ['Location',            brief.buyer_location   || '—'],
+                ['Product Type',        brief.product_category || '—'],
+                ['Bulk Quantity',       brief.bulk_quantity ? `${Number(brief.bulk_quantity).toLocaleString()} sets` : '—'],
+                ['Buyer Currency',      brief.budget_currency  || '—'],
+                ['Target Landing Price', brief.target_landing_price_usd ? `$${Number(brief.target_landing_price_usd).toLocaleString()} / set` : '—'],
+                ['Sample Delivery',     fmt(brief.target_sample_delivery_date)],
+                ['Bulk Delivery',       fmt(brief.target_bulk_delivery_date)],
               ].map(([label, val]) => (
                 <div key={label}>
                   <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>{label}</div>
                   <div style={{ fontSize:14, color:'var(--text)' }}>{val}</div>
                 </div>
               ))}
+
+              {brief.product_description && (
+                <div style={{ gridColumn:'1 / -1' }}>
+                  <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>Product Description</div>
+                  <div style={{ fontSize:14, color:'var(--text)', lineHeight:1.65, whiteSpace:'pre-wrap' }}>{brief.product_description}</div>
+                </div>
+              )}
+
+              {(brief.materials_keywords || []).length > 0 && (
+                <div style={{ gridColumn:'1 / -1' }}>
+                  <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:6 }}>Materials / Keywords</div>
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                    {brief.materials_keywords.map((kw, i) => (
+                      <span key={i} style={{ fontSize:12, color:'var(--text2)', background:'var(--surface2)', border:'1px solid var(--border)', borderRadius:20, padding:'3px 10px' }}>{kw}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {brief.additional_specs && (
                 <div style={{ gridColumn:'1 / -1' }}>
-                  <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>Additional Specs</div>
+                  <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>Additional Notes</div>
                   <div style={{ fontSize:14, color:'var(--text)', lineHeight:1.65, whiteSpace:'pre-wrap' }}>{brief.additional_specs}</div>
+                </div>
+              )}
+
+              {brief.reference_url && (
+                <div style={{ gridColumn:'1 / -1' }}>
+                  <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>Reference Link</div>
+                  <a href={brief.reference_url} target="_blank" rel="noreferrer" style={{ fontSize:14, color:'var(--gold)', textDecoration:'none', wordBreak:'break-all' }}>{brief.reference_url} ↗</a>
                 </div>
               )}
             </div>

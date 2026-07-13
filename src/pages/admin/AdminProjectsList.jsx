@@ -97,9 +97,8 @@ export default function AdminProjectsList() {
     name: '', buyer_user_id: '',
     buyer_brand_name: '', buyer_location: '',
     product_category: '',
-    sample_quantity: '', bulk_quantity: '',
-    budget_min: '', budget_max: '', budget_currency: 'USD',
-    target_landing_price_local: '', target_landing_currency: 'EUR',
+    bulk_quantity: '',
+    budget_currency: 'USD',
     target_landing_price_usd: '',
     target_sample_delivery_date: '', target_bulk_delivery_date: '',
     additional_specs: '',
@@ -135,13 +134,8 @@ export default function AdminProjectsList() {
         buyer_brand_name:            form.buyer_brand_name,
         buyer_location:              form.buyer_location,
         product_category:            form.product_category,
-        sample_quantity:             form.sample_quantity   ? parseInt(form.sample_quantity)   : null,
         bulk_quantity:               form.bulk_quantity     ? parseInt(form.bulk_quantity)     : null,
-        budget_min:                  form.budget_min        || null,
-        budget_max:                  form.budget_max        || null,
         budget_currency:             form.budget_currency,
-        target_landing_price_local:  form.target_landing_price_local || null,
-        target_landing_currency:     form.target_landing_currency    || null,
         target_landing_price_usd:    form.target_landing_price_usd   || null,
         target_sample_delivery_date: form.target_sample_delivery_date || null,
         target_bulk_delivery_date:   form.target_bulk_delivery_date   || null,
@@ -217,7 +211,7 @@ export default function AdminProjectsList() {
 
             {/* Brief fields */}
             <div className="field">
-              <label style={{ fontSize: 11 }}>Brand / Buyer Name</label>
+              <label style={{ fontSize: 11 }}>Buyer Name</label>
               <input value={form.buyer_brand_name} onChange={e => set('buyer_brand_name', e.target.value)} placeholder="Maison Éclat" style={{ fontSize: 13 }} />
             </div>
             <div className="field">
@@ -225,45 +219,22 @@ export default function AdminProjectsList() {
               <input value={form.buyer_location} onChange={e => set('buyer_location', e.target.value)} placeholder="Paris, France" style={{ fontSize: 13 }} />
             </div>
             <div className="field">
-              <label style={{ fontSize: 11 }}>Product Category</label>
+              <label style={{ fontSize: 11 }}>Product Type</label>
               <input value={form.product_category} onChange={e => set('product_category', e.target.value)} placeholder="Women's RTW" style={{ fontSize: 13 }} />
             </div>
             <div className="field">
-              <label style={{ fontSize: 11 }}>Budget Currency</label>
+              <label style={{ fontSize: 11 }}>Buyer Currency</label>
               <select value={form.budget_currency} onChange={e => set('budget_currency', e.target.value)}
                 style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)' }}>
                 {['USD','EUR','GBP','INR','AED'].map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
             <div className="field">
-              <label style={{ fontSize: 11 }}>Sample Quantity</label>
-              <input type="number" value={form.sample_quantity} onChange={e => set('sample_quantity', e.target.value)} placeholder="1" style={{ fontSize: 13 }} />
-            </div>
-            <div className="field">
               <label style={{ fontSize: 11 }}>Bulk Quantity</label>
               <input type="number" value={form.bulk_quantity} onChange={e => set('bulk_quantity', e.target.value)} placeholder="100" style={{ fontSize: 13 }} />
             </div>
             <div className="field">
-              <label style={{ fontSize: 11 }}>Budget Min</label>
-              <input type="number" value={form.budget_min} onChange={e => set('budget_min', e.target.value)} placeholder="5000" style={{ fontSize: 13 }} />
-            </div>
-            <div className="field">
-              <label style={{ fontSize: 11 }}>Budget Max</label>
-              <input type="number" value={form.budget_max} onChange={e => set('budget_max', e.target.value)} placeholder="15000" style={{ fontSize: 13 }} />
-            </div>
-            <div className="field">
-              <label style={{ fontSize: 11 }}>Target Landing Price (local)</label>
-              <input type="number" value={form.target_landing_price_local} onChange={e => set('target_landing_price_local', e.target.value)} placeholder="480" style={{ fontSize: 13 }} />
-            </div>
-            <div className="field">
-              <label style={{ fontSize: 11 }}>Landing Price Currency</label>
-              <select value={form.target_landing_currency} onChange={e => set('target_landing_currency', e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)' }}>
-                {['EUR','USD','GBP','AED'].map(c => <option key={c}>{c}</option>)}
-              </select>
-            </div>
-            <div className="field">
-              <label style={{ fontSize: 11 }}>Target Landing Price (USD)</label>
+              <label style={{ fontSize: 11 }}>Target Landing Price</label>
               <input type="number" value={form.target_landing_price_usd} onChange={e => set('target_landing_price_usd', e.target.value)} placeholder="519" style={{ fontSize: 13 }} />
             </div>
             <div className="field">

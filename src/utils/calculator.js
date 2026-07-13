@@ -197,19 +197,35 @@ export function calcLandingCost({
   pfPct     = 0.15,
   advancePct = 0.5,
 }) {
-  const isProd = orderType === 'production';
-  const isSG   = shipping  === 'shipglobal';
+  const isSG = shipping === 'shipglobal';
 
   // ── Process line items ──────────────────────────────────────────────────────
+  // order_type / product_domain are now per item. `orderType` / `domain` remain
+  // as fallbacks so proposals saved before the per-item change still calculate.
   const items = lineItems
     .filter(it => it.qty > 0 && it.cost_per_pc_inr > 0)
     .map(it => {
+      const itemType    = it.order_type    || orderType;
+      const itemDomain  = it.product_domain || domain;
+      const isDesigning = itemType === 'designing';
+      const isItemProd  = itemType === 'production';
+      const shippable   = !isDesigning;   // designing = a service line, never ships
+
       const prodUSD  = it.cost_per_pc_inr * it.qty / forex;
-      const dutyPct  = getDuty(domain, it.gender || 'Women', it.technique || 'Woven', it.category || getCats(domain)[0], it.material || '');
-      const dutyBase = isProd ? prodUSD : (it.declared_value_usd || 0);
+      const dutyPct  = shippable
+        ? getDuty(itemDomain, it.gender || 'Women', it.technique || 'Woven', it.category || getCats(itemDomain)[0], it.material || '')
+        : 0;
+      const dutyBase = !shippable ? 0 : (isItemProd ? prodUSD : (it.declared_value_usd || 0));
+      const actWt    = shippable ? (it.weight_per_pc || 0) * it.qty : 0;
       const gstRate  = parseFloat(it.gst_rate) || 0;
-      return { ...it, prodUSD, dutyPct, dutyBase, gstRate };
+
+      return { ...it, itemType, itemDomain, isDesigning, shippable, prodUSD, dutyPct, dutyBase, actWt, gstRate };
     });
+
+  const anyShippable = items.some(it => it.shippable);
+  // Shipment rate tier: production pricing if any shippable item is production,
+  // otherwise sample pricing.
+  const shipIsProd   = items.some(it => it.shippable && it.itemType === 'production');
 
   // ── Weight calculation ──────────────────────────────────────────────────────
   let cartWt = 0, volWt = 0;
@@ -217,7 +233,7 @@ export function calcLandingCost({
     cartWt += cartonWeight(b.length_cm, b.width_cm, b.height_cm) * b.qty;
     volWt  += (b.length_cm * b.width_cm * b.height_cm / 5000) * b.qty;
   }
-  const itemsActWt = items.reduce((s, it) => s + (it.weight_per_pc || 0) * it.qty, 0);
+  const itemsActWt = items.reduce((s, it) => s + it.actWt, 0);
   const totalActWt = itemsActWt + cartWt;
   const chargeBase = Math.max(totalActWt, volWt);
   const chargeMgn  = chargeBase * 0.10;
@@ -226,13 +242,13 @@ export function calcLandingCost({
   // ── Shipping ────────────────────────────────────────────────────────────────
   let shippingUSD = 0;
   let shippingINR = 0;
-  if (chargeBase > 0) {
+  if (chargeBase > 0 && anyShippable) {
     if (isSG) {
-      shippingINR = sgRate(chargeFin, isProd);
+      shippingINR = sgRate(chargeFin, shipIsProd);
       shippingUSD = shippingINR / forex;
     } else {
       // DHL: multiply by 1.10 for fuel/surcharge
-      shippingUSD = dhlRate(chargeFin, isProd) * 1.10;
+      shippingUSD = dhlRate(chargeFin, shipIsProd) * 1.10;
       shippingINR = shippingUSD * forex;
     }
   }
