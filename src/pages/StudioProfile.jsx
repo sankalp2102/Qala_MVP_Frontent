@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { discoveryAPI, chatAPI, buyerAPI } from '../api/client';
@@ -204,82 +204,127 @@ function Lightbox({ images, startIndex, onClose }) {
 }
 
 // ─── Portfolio Grid ───────────────────────────────────────────────────────────
-// v3: replaces flat Gallery — shows product_name, crafts_used, fabrics_used per item
-function PortfolioGrid({ items }) {
-  const [lb, setLb] = useState(null);
+// v3.1: hover overlay (name + tags), See-more toggle, and a brief-gated match
+// layer (banner / match dots / "other work" divider) that only renders when a
+// buyer brief is present. No brief is wired yet (matching is a later module), so
+// today this renders as a plain, match-free grid.
+const PORTFOLIO_VISIBLE = 9;
+
+function scoreWork(item, brief) {
+  if (!brief) return 0;
+  let score = 0;
+  const crafts  = (item.crafts_used || []).map(x => String(x).toLowerCase());
+  const fabrics = (item.fabrics_used || []).map(x => String(x).toLowerCase());
+  const has = (arr, needle) => arr.some(x => x.includes(needle) || needle.includes(x));
+  (brief.crafts   || []).forEach(c => { if (has(crafts,  String(c).toLowerCase())) score += 8; });
+  (brief.fabrics  || []).forEach(f => { if (has(fabrics, String(f).toLowerCase())) score += 4; });
+  return score;
+}
+
+function PortfolioCard({ item, topMatch, onClick }) {
+  const isVideo = item?.mime_type?.startsWith('video/') || /\.(mp4|mov|avi|webm|mkv)$/i.test(item?.url || '');
+  const cardSrc      = !isVideo ? (item.thumbnail_url || item.url) : item.url;
+  const cardVideoSrc = isVideo ? (item.compressed_video_url || item.url) : null;
+  const tags = [...(item.crafts_used || []), ...(item.fabrics_used || [])].slice(0, 4);
+
+  return (
+    <div onClick={onClick}
+      style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--surface2)', cursor: 'pointer', aspectRatio: '4/3' }}
+      onMouseEnter={e => { const o = e.currentTarget.querySelector('.pf-hover'); if (o) o.style.opacity = 1; const v = e.currentTarget.querySelector('video'); if (v) v.play().catch(() => {}); }}
+      onMouseLeave={e => { const o = e.currentTarget.querySelector('.pf-hover'); if (o) o.style.opacity = 0; const v = e.currentTarget.querySelector('video'); if (v) { v.pause(); v.currentTime = 0; } }}
+    >
+      {isVideo ? (
+        <video src={mediaUrl(cardVideoSrc)} muted playsInline preload="metadata" loop
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      ) : (
+        <img src={mediaUrl(cardSrc)} alt={item.product_name || ''} loading="lazy"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      )}
+
+      {topMatch && (
+        <div title="Strong match for your brief" style={{ position: 'absolute', top: 10, right: 10, width: 10, height: 10, borderRadius: '50%', background: 'var(--gold)', boxShadow: '0 0 0 3px rgba(122,140,110,0.3)' }} />
+      )}
+
+      {(item.product_name || tags.length > 0) && (
+        <div className="pf-hover" style={{
+          position: 'absolute', inset: 0, opacity: 0, transition: 'opacity 0.2s ease',
+          background: 'linear-gradient(to top, rgba(15,10,8,0.9) 0%, rgba(15,10,8,0.35) 55%, transparent 100%)',
+          display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '14px 14px 12px',
+        }}>
+          {item.product_name && (
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', lineHeight: 1.3, marginBottom: tags.length ? 8 : 0 }}>{item.product_name}</div>
+          )}
+          {tags.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+              {tags.map((t, i) => (
+                <span key={i} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: 'rgba(255,255,255,0.16)', color: '#fff', backdropFilter: 'blur(4px)' }}>{t}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PortfolioGrid({ items, brief = null }) {
+  const [lb, setLb]     = useState(null);
+  const [open, setOpen] = useState(false);
   if (!items?.length) return null;
 
-  const capped = items.slice(0, 20);
+  // Score + split only when a brief is present; otherwise keep upload order.
+  let matched = items, other = [];
+  if (brief) {
+    const scored = items.map((it, i) => ({ it, i, score: scoreWork(it, brief) }))
+      .sort((a, b) => b.score - a.score);
+    matched = scored.filter(x => x.score > 0).map(x => x.it);
+    other   = scored.filter(x => x.score === 0).map(x => x.it);
+  }
+  const ordered = brief ? [...matched, ...other] : items;
+  const dividerAt = brief && matched.length > 0 && other.length > 0 ? matched.length : -1;
+  const visibleCount = open ? ordered.length : PORTFOLIO_VISIBLE;
+
+  const gridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 };
 
   return (
     <>
-      {lb !== null && <Lightbox images={capped} startIndex={lb} onClose={() => setLb(null)} />}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-        gap: 12,
-      }}>
-        {capped.map((item, i) => {
-          const isVideo = item?.mime_type?.startsWith('video/') || /\.(mp4|mov|avi|webm|mkv)$/i.test(item?.url || '');
-          const hasMeta = !!item.product_name || item.crafts_used?.length > 0 || item.fabrics_used?.length > 0;
-          // Images: use compressed thumbnail; Videos: use compressed mp4; Lightbox uses compressed too
-          const cardSrc    = !isVideo ? (item.thumbnail_url || item.url) : item.url;
-          const cardVideoSrc = isVideo ? (item.compressed_video_url || item.url) : null;
-          return (
-            <div key={i} style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--surface)', cursor: 'pointer' }}
-              onClick={() => setLb(i)}>
-              {/* Image */}
-              <div style={{ width: '100%', aspectRatio: '4/3', overflow: 'hidden', position: 'relative', background: 'var(--surface2)' }}>
-                {isVideo ? (
-                  <video src={mediaUrl(cardVideoSrc)} muted playsInline preload="metadata" loop
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                    onMouseEnter={e => e.target.play().catch(() => {})}
-                    onMouseLeave={e => { e.target.pause(); e.target.currentTime = 0; }}
-                  />
-                ) : (
-                  <img src={mediaUrl(cardSrc)} alt={item.product_name || ''} loading="lazy"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.3s ease' }}
-                    onMouseEnter={e => e.target.style.transform = 'scale(1.05)'}
-                    onMouseLeave={e => e.target.style.transform = 'scale(1)'}
-                  />
-                )}
+      {lb !== null && <Lightbox images={ordered} startIndex={lb} onClose={() => setLb(null)} />}
+
+      {/* Brief context — only when a brief is present */}
+      {brief && (brief.crafts?.length || brief.fabrics?.length) > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Matched to your brief</span>
+          {[...(brief.crafts || []), ...(brief.fabrics || [])].map((p, i) => (
+            <span key={i} style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, background: 'var(--gold-dim)', border: '1px solid rgba(122,140,110,0.25)', color: 'var(--gold)' }}>{p}</span>
+          ))}
+        </div>
+      )}
+
+      <div style={gridStyle}>
+        {ordered.slice(0, visibleCount).map((item, i) => (
+          <Fragment key={i}>
+            {i === dividerAt && (
+              <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0 2px' }}>
+                <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                <span style={{ fontSize: 11, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Other work from this studio</span>
+                <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
               </div>
-              {/* Metadata — only shown if any field is set */}
-              {hasMeta && (
-                <div style={{ padding: '10px 12px' }}>
-                  {item.product_name && (
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 6, lineHeight: 1.3 }}>
-                      {item.product_name}
-                    </div>
-                  )}
-                  {item.crafts_used?.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: item.fabrics_used?.length ? 4 : 0 }}>
-                      {item.crafts_used.map((c, ci) => (
-                        <span key={ci} style={{
-                          fontSize: 10, padding: '2px 7px', borderRadius: 20,
-                          background: 'var(--gold-dim)', border: '1px solid rgba(122,140,110,0.2)',
-                          color: 'var(--gold)', fontWeight: 500,
-                        }}>{c}</span>
-                      ))}
-                    </div>
-                  )}
-                  {item.fabrics_used?.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                      {item.fabrics_used.map((f, fi) => (
-                        <span key={fi} style={{
-                          fontSize: 10, padding: '2px 7px', borderRadius: 20,
-                          background: 'var(--surface2)', border: '1px solid var(--border)',
-                          color: 'var(--text3)',
-                        }}>{f}</span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+            )}
+            <PortfolioCard item={item} topMatch={brief && i < 3 && i < matched.length} onClick={() => setLb(i)} />
+          </Fragment>
+        ))}
       </div>
+
+      {ordered.length > PORTFOLIO_VISIBLE && (
+        <button onClick={() => setOpen(o => !o)} style={{
+          display: 'flex', alignItems: 'center', gap: 6, margin: '18px auto 0',
+          background: 'none', border: '1px solid var(--border)', borderRadius: 20, padding: '8px 18px',
+          cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text2)',
+        }}>
+          {open ? 'See less' : `See ${ordered.length - PORTFOLIO_VISIBLE} more`}
+          <span style={{ display: 'inline-block', transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none' }}>▾</span>
+        </button>
+      )}
     </>
   );
 }
@@ -340,182 +385,143 @@ function BrandCard({ brand }) {
   );
 }
 
-// ─── Fabric Tabs ──────────────────────────────────────────────────────────────
-// v3: horizontal tab UI grouped by fibre category
-function FabricTabs({ fabrics }) {
-  if (!fabrics?.length) return null;
+// ─── Fabric & Dye Tabs ────────────────────────────────────────────────────────
+// v3.1: horizontal fibre tabs + a Dyes tab appended at the end
+function FabricTabs({ fabrics, dyes }) {
+  const hasFabrics = fabrics?.length > 0;
+  const hasDyes    = dyes?.length > 0;
+  if (!hasFabrics && !hasDyes) return null;
 
   // Build category → fabrics map (preserve order of first appearance)
   const categoryOrder = [];
   const categoryMap   = {};
-  fabrics.forEach(f => {
+  (fabrics || []).forEach(f => {
     const cat = f.category || 'other';
     if (!categoryMap[cat]) { categoryMap[cat] = []; categoryOrder.push(cat); }
     categoryMap[cat].push(f);
   });
 
-  const [activeTab, setActiveTab] = useState(categoryOrder[0] || 'other');
+  const tabs = [...categoryOrder];
+  if (hasDyes) tabs.push('dyes');
+
+  const [activeTab, setActiveTab] = useState(tabs[0] || 'other');
 
   return (
     <div>
       {/* Tab bar */}
-      <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', marginBottom: 16, overflowX: 'auto', scrollbarWidth: 'none' }}>
-        {categoryOrder.map(cat => (
+      <div className="fabric-tabs-bar" style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', marginBottom: 16, overflowX: 'auto', scrollbarWidth: 'none' }}>
+        {tabs.map(cat => (
           <button
             key={cat}
             onClick={() => setActiveTab(cat)}
             style={{
-              flexShrink: 0,
-              padding: '8px 16px',
-              border: 'none',
+              flexShrink: 0, padding: '8px 16px', border: 'none',
               borderBottom: activeTab === cat ? '2px solid var(--gold)' : '2px solid transparent',
-              background: 'none',
-              cursor: 'pointer',
-              fontFamily: 'var(--font-body)',
-              fontSize: 12,
-              fontWeight: activeTab === cat ? 600 : 400,
+              background: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)',
+              fontSize: 12, fontWeight: activeTab === cat ? 600 : 400,
               color: activeTab === cat ? 'var(--gold)' : 'var(--text3)',
-              transition: 'all 0.15s',
-              marginBottom: -1,
+              transition: 'all 0.15s', marginBottom: -1,
             }}
           >
-            {FABRIC_CATEGORY_LABELS[cat] || cat}
+            {cat === 'dyes' ? 'Dyes' : (FABRIC_CATEGORY_LABELS[cat] || cat)}
           </button>
         ))}
       </div>
-      {/* Fabric chips for active tab */}
+      {/* Chips for active tab */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        {(categoryMap[activeTab] || []).map(f => (
-          <Tag key={f.fabric_name} gold={f.is_primary}>{f.fabric_name}</Tag>
-        ))}
+        {activeTab === 'dyes'
+          ? dyes.map(d => <Tag key={d.dye_name}>{d.dye_name}</Tag>)
+          : (categoryMap[activeTab] || []).map(f => <Tag key={f.fabric_name} gold={f.is_primary}>{f.fabric_name}</Tag>)
+        }
       </div>
     </div>
   );
 }
 
-// ─── Craft Carousel ───────────────────────────────────────────────────────────
-// v3 changes: remove limitations + delay_likelihood, rename Approach → Innovation,
-//             rename 50 units → 100 units, add badge chip per craft
+// ─── Craft Widget ─────────────────────────────────────────────────────────────
+// v3.1: horizontal group tabs (Printing & Dyeing / Surface Work / Weaving),
+// detail = image + name + approach. Stats row removed per prototype.
+const CRAFT_GROUPS = [
+  { key: 'printing', label: 'Printing & Dyeing', types: ['printing', 'dyeing'] },
+  { key: 'surface',  label: 'Surface Work',      types: ['surface'] },
+  { key: 'weaving',  label: 'Weaving',           types: ['weaving', 'spinning'] },
+];
+
 function CraftCarousel({ crafts }) {
-  const [active, setActive] = useState(0);
+  // Build only the groups that actually have crafts, in prototype order.
+  const groups = CRAFT_GROUPS
+    .map(g => ({ ...g, items: crafts.filter(c => g.types.includes(c.technique_type)) }))
+    .filter(g => g.items.length > 0);
 
-  useEffect(() => {
-    const handler = e => {
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown')
-        setActive(i => Math.min(i + 1, crafts.length - 1));
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp')
-        setActive(i => Math.max(i - 1, 0));
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [crafts.length]);
+  // Any craft whose technique_type doesn't map to a known group goes into a
+  // fallback "Other" group so nothing is silently dropped.
+  const known = new Set(CRAFT_GROUPS.flatMap(g => g.types));
+  const leftover = crafts.filter(c => !known.has(c.technique_type));
+  if (leftover.length) groups.push({ key: 'other', label: 'Other', items: leftover });
 
-  const c        = crafts[active];
-  // Use thumbnail (600px WebP) for carousel display, full image_url available if needed later
+  const [gIdx, setGIdx] = useState(0);
+  const [cIdx, setCIdx] = useState(0);
+
+  if (groups.length === 0) return null;
+  const group = groups[Math.min(gIdx, groups.length - 1)];
+  const c     = group.items[Math.min(cIdx, group.items.length - 1)];
   const imageUrl = mediaUrl(c.thumbnail_url || c.image_url);
   const badge    = resolveBadge(c);
 
   return (
-    <>
-      {/* Mobile pill tabs */}
-      {crafts.length > 1 && (
-        <div className="craft-tab-pills">
-          {crafts.map((craft, i) => {
-            const b = resolveBadge(craft);
-            return (
-              <button key={i} onClick={() => setActive(i)} style={{
-                flexShrink: 0, padding: '6px 14px', borderRadius: 100,
-                border: `1.5px solid ${active === i ? '#8FA083' : 'var(--border)'}`,
-                background: active === i ? 'rgba(122,140,110,0.08)' : 'transparent',
-                color: active === i ? '#8FA083' : 'var(--text3)',
-                fontFamily: 'var(--font-body)', fontSize: 12,
-                fontWeight: active === i ? 600 : 400,
-                cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s',
-                display: 'flex', alignItems: 'center', gap: 6,
-              }}>
-                {craft.craft_name}
-                {b && <CraftBadge badge={b} small />}
-              </button>
-            );
-          })}
+    <div>
+      {/* Group tabs — only if more than one group */}
+      {groups.length > 1 && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+          {groups.map((g, i) => (
+            <button key={g.key} onClick={() => { setGIdx(i); setCIdx(0); }} style={{
+              padding: '7px 15px', borderRadius: 20, cursor: 'pointer',
+              border: `1.5px solid ${gIdx === i ? '#8FA083' : 'var(--border)'}`,
+              background: gIdx === i ? 'rgba(122,140,110,0.08)' : 'transparent',
+              color: gIdx === i ? '#8FA083' : 'var(--text3)',
+              fontFamily: 'var(--font-body)', fontSize: 12.5, fontWeight: gIdx === i ? 600 : 400,
+              transition: 'all 0.15s',
+            }}>{g.label}</button>
+          ))}
         </div>
       )}
 
       <div className="craft-carousel-wrap" style={{ display: 'flex', gap: 0, border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'var(--surface)' }}>
-
-        {/* LEFT — large image + details */}
+        {/* LEFT — image + name + approach */}
         <div style={{ flex: 1, minWidth: 0 }}>
-
-          {/* Image */}
-          <div style={{ width: '100%', aspectRatio: '16/9', background: 'var(--surface2)', overflow: 'hidden', position: 'relative' }}>
-            {imageUrl ? (
+          <div style={{ width: '100%', aspectRatio: '16/9', background: 'linear-gradient(160deg,#2C4A3A,#1A3028,#3A5C48)', overflow: 'hidden', position: 'relative' }}>
+            {imageUrl && (
               <img key={imageUrl} src={imageUrl} alt={c.craft_name} loading="eager"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'opacity 0.3s ease' }}
-              />
-            ) : (
-              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, opacity: 0.15 }}>🧵</div>
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             )}
           </div>
-
-          {/* Details */}
           <div style={{ padding: '22px 24px' }}>
-            {/* Craft name + badge */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 400, color: 'var(--text)' }}>
-                {c.craft_name}
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 400, color: 'var(--text)' }}>{c.craft_name}</div>
               {badge && <CraftBadge badge={badge} />}
             </div>
-
             {c.specialization && (
-              <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.7, marginBottom: 16 }}>{c.specialization}</p>
+              <p style={{ fontSize: 13.5, color: 'var(--text2)', lineHeight: 1.7, margin: 0 }}>{c.specialization}</p>
             )}
-
-            {/* Stats row — v3: removed delay_likelihood, renamed Approach→Innovation, 50→100 units */}
-            <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-              {c.sampling_time_weeks && (
-                <div>
-                  <div style={{ fontSize: 10, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>Sampling</div>
-                  <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500 }}>{c.sampling_time_weeks} {c.sampling_time_weeks == 1 ? 'week' : 'weeks'}</div>
-                </div>
-              )}
-              {c.production_timeline_months_100units && (
-                <div>
-                  <div style={{ fontSize: 10, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>100 units</div>
-                  <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500 }}>{c.production_timeline_months_100units} mo</div>
-                </div>
-              )}
-              {c.innovation_level && (
-                <div>
-                  <div style={{ fontSize: 10, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>Innovation</div>
-                  <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500, textTransform: 'capitalize' }}>{c.innovation_level}</div>
-                </div>
-              )}
-            </div>
-            {/* limitations and delay_likelihood removed in v3 */}
           </div>
         </div>
 
-        {/* RIGHT — vertical craft list */}
-        {crafts.length > 1 && (
-          <div className="craft-sidebar" style={{ width: 180, flexShrink: 0, borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
-            <div style={{ padding: '14px 16px 10px', fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.1em', borderBottom: '1px solid var(--border)' }}>
-              All Crafts
-            </div>
-            {crafts.map((craft, i) => {
+        {/* RIGHT — craft list for the active group */}
+        {group.items.length > 1 && (
+          <div className="craft-sidebar" style={{ width: 190, flexShrink: 0, borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+            {group.items.map((craft, i) => {
               const b = resolveBadge(craft);
               return (
-                <button key={i} onClick={() => setActive(i)} style={{
-                  padding: '12px 16px', textAlign: 'left', border: 'none',
-                  borderBottom: i < crafts.length - 1 ? '1px solid var(--border)' : 'none',
-                  background: active === i ? 'var(--gold-dim)' : 'transparent',
-                  cursor: 'pointer', transition: 'background 0.15s',
-                  fontFamily: 'var(--font-body)',
+                <button key={i} onClick={() => setCIdx(i)} style={{
+                  padding: '13px 16px', textAlign: 'left', border: 'none',
+                  borderBottom: i < group.items.length - 1 ? '1px solid var(--border)' : 'none',
+                  background: cIdx === i ? 'var(--gold-dim)' : 'transparent',
+                  cursor: 'pointer', transition: 'background 0.15s', fontFamily: 'var(--font-body)',
                 }}
-                  onMouseEnter={e => { if (active !== i) e.currentTarget.style.background = 'var(--surface2)'; }}
-                  onMouseLeave={e => { if (active !== i) e.currentTarget.style.background = 'transparent'; }}
+                  onMouseEnter={e => { if (cIdx !== i) e.currentTarget.style.background = 'var(--surface2)'; }}
+                  onMouseLeave={e => { if (cIdx !== i) e.currentTarget.style.background = 'transparent'; }}
                 >
-                  <div style={{ fontSize: 13, fontWeight: active === i ? 500 : 400, color: active === i ? 'var(--gold)' : 'var(--text2)', lineHeight: 1.4, marginBottom: b ? 4 : 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: cIdx === i ? 500 : 400, color: cIdx === i ? 'var(--gold)' : 'var(--text2)', lineHeight: 1.4, marginBottom: b ? 4 : 0 }}>
                     {craft.craft_name}
                   </div>
                   {b && <CraftBadge badge={b} small />}
@@ -525,7 +531,7 @@ function CraftCarousel({ crafts }) {
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -784,10 +790,59 @@ export default function StudioProfile() {
   const hasWork = s.work_images?.length > 0;
   const hasBts  = s.bts_images?.length  > 0;
 
-  // Categories — show section only if occasions or gender_focus have data
+  // Categories — show section if any category group has data
   const hasOccasions   = s.occasions?.length   > 0;
   const hasGenderFocus = s.gender_focus?.length > 0;
-  const hasCategories  = hasOccasions || hasGenderFocus;
+  const hasGarments    = s.garment_types?.length    > 0;
+  const hasAccessories = s.accessory_types?.length   > 0;
+  const hasHomeFurn    = s.home_furnishings?.length  > 0;
+  const hasCategories  = hasOccasions || hasGenderFocus || hasGarments || hasAccessories || hasHomeFurn;
+
+  const catRows = [
+    ['Occasions',        s.occasions],
+    ['Gender',           s.gender_focus],
+    ['Garment Styles',   s.garment_types],
+    ['Accessories',      s.accessory_types],
+    ['Home Furnishings', s.home_furnishings],
+  ].filter(([, arr]) => arr?.length > 0);
+
+  const hasFabricsOrDyes = s.fabrics?.length > 0 || s.dyes?.length > 0;
+
+  // How They Work — collaboration modes + design capabilities
+  const cd = s.collab_design;
+  const collabModes = cd ? [
+    ['Catalog',          cd.catalogue_collab, 'Browse existing designs and adapt colourway, fabric, or detail for your label.'],
+    ['Co-creation',      cd.co_creation,      'Bring a direction or moodboard — they co-develop the design with their material expertise.'],
+    ['Production House', cd.production_house, 'Execute from a ready tech pack or physical samples.'],
+  ] : [];
+  const designCaps = cd ? [
+    ['In-house fashion designer', cd.has_fashion_designer],
+    ['Textile design expertise',  cd.has_textile_design],
+    ['Design from scratch',       cd.has_design_from_scratch],
+  ].filter(([, on]) => on) : [];
+  const hasHowTheyWork = collabModes.some(([, on]) => on != null) || designCaps.length > 0;
+
+  // Certifications — stored as JSON array text or comma string
+  const certs = (() => {
+    const raw = s.production?.certifications;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    try { const p = JSON.parse(raw); return Array.isArray(p) ? p : [String(raw)]; }
+    catch { return String(raw).split(',').map(x => x.trim()).filter(Boolean); }
+  })();
+
+  const hasRecognition = s.awards?.length > 0 || certs.length > 0;
+
+  // Sidebar "at a glance" derived values
+  const prod = s.production || {};
+  const weeksRange = (min, max, fallback) => {
+    if (min && max) return min === max ? `${min} weeks` : `${min}–${max} weeks`;
+    if (min) return `${min}+ weeks`;
+    return fallback || null;
+  };
+  const samplingLabel   = weeksRange(prod.sampling_time_weeks_min, prod.sampling_time_weeks_max, prod.avg_sampling_time_range);
+  const productionLabel = weeksRange(prod.production_time_weeks_min, prod.production_time_weeks_max, null);
+  const pricingFilled   = prod.pricing_tier ? (String(prod.pricing_tier).match(/\$/g) || []).length : 0;
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
@@ -919,63 +974,65 @@ export default function StudioProfile() {
             </div>
           )}
 
-          {/* Categories — v3: replaces Garment Categories with Occasions + Gender */}
-          {hasCategories && (
-            <div className="profile-fade profile-fade-4" style={{ marginBottom: 44 }}>
-              <Section title="Categories">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                  {hasOccasions && (
-                    <div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Occasions</div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {s.occasions.map(o => <Tag key={o}>{o}</Tag>)}
-                      </div>
-                    </div>
-                  )}
-                  {hasGenderFocus && (
-                    <div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Gender</div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {s.gender_focus.map(g => <Tag key={g}>{g}</Tag>)}
-                      </div>
-                    </div>
-                  )}
-                </div>
+          {/* Fabrics & Dyes — v3.1: fibre tabs + Dyes tab */}
+          {hasFabricsOrDyes && (
+            <div className="profile-fade" style={{ marginBottom: 44 }}>
+              <Section title="Fabrics & Dyes">
+                <FabricTabs fabrics={s.fabrics} dyes={s.dyes} />
               </Section>
             </div>
           )}
 
-          {/* Fabrics — v3: horizontal tab UI grouped by fibre category */}
-          {s.fabrics?.length > 0 && (
-            <div className="profile-fade" style={{ marginBottom: 44 }}>
-              <Section title="Fabrics">
-                <FabricTabs fabrics={s.fabrics} />
+          {/* Categories — v3.1: Occasions, Gender, Garment Styles, Accessories, Home Furnishings */}
+          {hasCategories && (
+            <div className="profile-fade profile-fade-4" style={{ marginBottom: 44 }}>
+              <Section title="Categories">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {catRows.map(([label, arr]) => (
+                    <div key={label} style={{ display: 'flex', gap: 16, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                      <div style={{ width: 120, flexShrink: 0, fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', paddingTop: 4 }}>{label}</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, flex: 1, minWidth: 200 }}>
+                        {arr.map((x, i) => <Tag key={i}>{x}</Tag>)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </Section>
             </div>
           )}
 
           {/* Brands section REMOVED in v3 — BrandCard kept in file for future use */}
 
-          {/* Recognition / Press — unchanged */}
-          {s.awards?.length > 0 && (
+          {/* Recognition / Press — v3.1: certification tags + press list */}
+          {hasRecognition && (
             <div className="profile-fade" style={{ marginBottom: 44 }}>
               <Section title="Recognition">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {s.awards.map((a, i) => (
-                    <div key={i} style={{
-                      display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '10px 16px',
-                      background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8,
-                      fontSize: 13, color: 'var(--text2)',
-                    }}>
-                      <span style={{ color: 'var(--gold)', fontSize: 16 }}>★</span>
-                      {a.link
-                        ? <a href={a.link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gold)', textDecoration: 'underline', textDecorationColor: 'rgba(196,110,73,0.4)' }}>{a.award_name}</a>
-                        : <span>{a.award_name}</span>
-                      }
-                    </div>
-                  ))}
-                </div>
+                {certs.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: s.awards?.length ? 14 : 0 }}>
+                    {certs.map((cert, i) => (
+                      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, padding: '5px 12px', borderRadius: 20, background: 'var(--gold-dim)', border: '1px solid rgba(122,140,110,0.25)', color: 'var(--gold)' }}>
+                        <span style={{ fontSize: 11 }}>✦</span>{cert}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {s.awards?.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {s.awards.map((a, i) => (
+                      <div key={i} style={{
+                        display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px',
+                        background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8,
+                        fontSize: 13, color: 'var(--text2)',
+                      }}>
+                        <span style={{ color: 'var(--gold)', fontSize: 16 }}>★</span>
+                        {a.link
+                          ? <a href={a.link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gold)', textDecoration: 'underline', textDecorationColor: 'rgba(196,110,73,0.4)' }}>{a.award_name}</a>
+                          : <span>{a.award_name}</span>
+                        }
+                      </div>
+                    ))}
+                  </div>
+                )}
               </Section>
             </div>
           )}
@@ -1016,6 +1073,68 @@ export default function StudioProfile() {
             </div>
           )}
 
+
+          {/* How They Work — v3.1: collaboration modes + design capabilities + QC */}
+          {hasHowTheyWork && (
+            <div className="profile-fade" style={{ marginBottom: 44 }}>
+              <Section title="How They Work">
+
+                {collabModes.some(([, on]) => on != null) && (
+                  <>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Collaboration Modes</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: designCaps.length ? 28 : 0 }}>
+                      {collabModes.map(([title, on, desc]) => (
+                        <div key={title} style={{
+                          border: `1px solid ${on ? 'rgba(122,140,110,0.3)' : 'var(--border)'}`, borderRadius: 12,
+                          padding: '16px 18px', background: on ? 'rgba(122,140,110,0.04)' : 'var(--surface)',
+                          opacity: on ? 1 : 0.55,
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
+                            {on && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#7A8C6E', flexShrink: 0 }} />}
+                            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{title}</span>
+                          </div>
+                          <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.6 }}>
+                            {desc}{!on && <span style={{ fontStyle: 'italic' }}> Not currently available.</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {designCaps.length > 0 && (
+                  <>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Design Capabilities</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 28 }}>
+                      {designCaps.map(([label]) => (
+                        <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, padding: '7px 14px', borderRadius: 20, background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--text2)' }}>
+                          <span style={{ color: 'var(--gold)' }}>✓</span>{label}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Quality Control</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {[
+                    ['Pre-production check', 'Fabric, trims, and colour verified against the approved sample before cutting begins.'],
+                    ['In-line inspection', 'Technique, stitching, and placement checked at key stages of production.'],
+                    ['Final check before dispatch', 'Every piece measured and finished against the approved sample before packing.'],
+                  ].map(([title, desc]) => (
+                    <div key={title} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                      <span style={{ color: 'var(--gold)', flexShrink: 0, marginTop: 1, fontSize: 14 }}>✓</span>
+                      <div style={{ fontSize: 13, lineHeight: 1.6 }}>
+                        <span style={{ fontWeight: 600, color: 'var(--text)' }}>{title}</span>
+                        <span style={{ color: 'var(--text3)' }}> — {desc}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Section>
+            </div>
+          )}
+
           {/* Who You'll Be Working With */}
           {s.coordinator && (
             <div className="profile-fade" style={{ marginBottom: 44 }}>
@@ -1032,17 +1151,6 @@ export default function StudioProfile() {
                     {s.coordinator.writeup && <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.75, margin: 0 }}>{s.coordinator.writeup}</p>}
                   </div>
                 </div>
-              </Section>
-            </div>
-          )}
-
-          {/* Working Style */}
-          {s.poc_working_style && (
-            <div className="profile-fade" style={{ marginBottom: 44 }}>
-              <Section title="Working Style">
-                <p style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.75, fontStyle: 'italic' }}>
-                  "{s.poc_working_style}"
-                </p>
               </Section>
             </div>
           )}
@@ -1066,7 +1174,7 @@ export default function StudioProfile() {
                 Found them interesting?
               </div>
               <p style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6, marginBottom: 18 }}>
-                Let us introduce you.
+                Let's get you introduced.
               </p>
             </div>
             <button
@@ -1084,63 +1192,48 @@ export default function StudioProfile() {
             </button>
           </div>
 
-          {/* Studio at a Glance — v3 sidebar */}
+          {/* Studio at a Glance — v3.1 sidebar */}
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '22px 24px' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 16 }}>Studio at a Glance</div>
+
+            {/* Two-stat block: capacity + artisans */}
+            {(prod.monthly_capacity_units || prod.artisan_count) && (
+              <div style={{ display: 'flex', alignItems: 'stretch', marginBottom: 18 }}>
+                {prod.monthly_capacity_units != null && (
+                  <div style={{ flex: 1, textAlign: 'center' }}>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 600, color: 'var(--text)', lineHeight: 1 }}>{prod.monthly_capacity_units.toLocaleString()}</div>
+                    <div style={{ fontSize: 10, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 4 }}>Units / mo</div>
+                  </div>
+                )}
+                {prod.monthly_capacity_units != null && prod.artisan_count != null && (
+                  <div style={{ width: 1, background: 'var(--border)', margin: '2px 0' }} />
+                )}
+                {prod.artisan_count != null && (
+                  <div style={{ flex: 1, textAlign: 'center' }}>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 600, color: 'var(--text)', lineHeight: 1 }}>{prod.artisan_count}</div>
+                    <div style={{ fontSize: 10, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 4 }}>Artisans</div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-              {/* Location — v3: city only (state removed) */}
-              {s.location_city && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, color: 'var(--text4)' }}>Location</span>
-                  <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500 }}>
-                    {s.location_city}
-                  </span>
-                </div>
-              )}
-
-              {/* Est. — v3: only shown if backend returns it (≥5 yrs old) */}
-              {s.establishment_year && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, color: 'var(--text4)' }}>Est.</span>
-                  <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500 }}>{s.establishment_year}</span>
-                </div>
-              )}
-
-              {/* Monthly capacity */}
-              {s.production?.monthly_capacity_units && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, color: 'var(--text4)' }}>Monthly Capacity</span>
-                  <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500 }}>{s.production.monthly_capacity_units.toLocaleString()} units</span>
-                </div>
-              )}
-
-              {/* Minimums — v3: replaces MOQ, with accordion expand */}
-              {s.production?.has_strict_minimums !== null && s.production?.has_strict_minimums !== undefined && (
+              {/* Minimums — with accordion */}
+              {prod.has_strict_minimums !== null && prod.has_strict_minimums !== undefined && (
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: 12, color: 'var(--text4)' }}>Minimums</span>
-                    <button
-                      onClick={() => setMoqExpanded(x => !x)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 4,
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        fontFamily: 'var(--font-body)', padding: 0,
-                      }}
-                    >
-                      <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500 }}>
-                        {s.production.has_strict_minimums ? 'Fixed' : 'Flexible'}
-                      </span>
+                    <button onClick={() => setMoqExpanded(x => !x)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)', padding: 0 }}>
+                      <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500 }}>{prod.has_strict_minimums ? 'Fixed' : 'Flexible'}</span>
                       <span style={{ fontSize: 10, color: 'var(--text4)', transition: 'transform 0.2s', display: 'inline-block', transform: moqExpanded ? 'rotate(180deg)' : 'none' }}>▾</span>
                     </button>
                   </div>
-
-                  {/* Expandable MOQ details */}
                   {moqExpanded && (
                     <div style={{ marginTop: 10, padding: '12px 14px', background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--border)' }}>
-                      {s.production.moq_entries?.length > 0 ? (
-                        s.production.moq_entries.map((m, i) => (
-                          <div key={i} style={{ fontSize: 12, color: 'var(--text3)', marginBottom: i < s.production.moq_entries.length - 1 ? 6 : 10 }}>
+                      {prod.moq_entries?.length > 0 ? (
+                        prod.moq_entries.map((m, i) => (
+                          <div key={i} style={{ fontSize: 12, color: 'var(--text3)', marginBottom: i < prod.moq_entries.length - 1 ? 6 : 10 }}>
                             <span style={{ color: 'var(--text2)', fontWeight: 500 }}>{m.craft_or_category}</span>
                             {m.moq_condition && <span style={{ color: 'var(--text4)' }}> — {m.moq_condition}</span>}
                           </div>
@@ -1148,36 +1241,40 @@ export default function StudioProfile() {
                       ) : (
                         <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 10 }}>No specific minimums listed.</div>
                       )}
-                      <div style={{ fontSize: 11, color: 'var(--text4)', fontStyle: 'italic', borderTop: '1px solid var(--border)', paddingTop: 8 }}>
-                        *minimums are flexible as per availability
-                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text4)', fontStyle: 'italic', borderTop: '1px solid var(--border)', paddingTop: 8 }}>*minimums are flexible as per availability</div>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Avg. Sampling Time — v3 new row */}
-              {s.production?.avg_sampling_time_range && (
+              {samplingLabel && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, color: 'var(--text4)' }}>Avg. Sampling Time</span>
-                  <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500 }}>{s.production.avg_sampling_time_range}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text4)' }}>Avg. sampling time</span>
+                  <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500 }}>{samplingLabel}</span>
                 </div>
               )}
 
-              {/* Certifications — v3 new row, hidden if empty */}
-              {s.production?.certifications && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                  <span style={{ fontSize: 12, color: 'var(--text4)', flexShrink: 0 }}>Certifications</span>
-                  <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500, textAlign: 'right' }}>{s.production.certifications}</span>
+              {productionLabel && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 12, color: 'var(--text4)' }}>Production (100 pcs)</span>
+                  <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500 }}>{productionLabel}</span>
                 </div>
               )}
 
-              {/* Pricing — v3 new row, Qala-assigned, hidden if not set */}
-              {s.production?.pricing_tier && (
+              {s.establishment_year && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 12, color: 'var(--text4)' }}>Established</span>
+                  <span style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500 }}>{s.establishment_year}</span>
+                </div>
+              )}
+
+              {prod.pricing_tier && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 12, color: 'var(--text4)' }}>Pricing</span>
-                  <span style={{ fontSize: 14, color: 'var(--gold)', fontWeight: 700, letterSpacing: '0.04em' }}>
-                    {s.production.pricing_tier}
+                  <span style={{ letterSpacing: '1px' }}>
+                    {[0,1,2,3].map(i => (
+                      <span key={i} style={{ fontSize: 15, fontWeight: 700, color: i < pricingFilled ? 'var(--gold)' : 'var(--border)' }}>$</span>
+                    ))}
                   </span>
                 </div>
               )}
