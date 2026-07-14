@@ -16,8 +16,42 @@
  * Layout/colour constants come from the prototype, not from index.css vars,
  * wherever the prototype pins an exact hex.
  */
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+
+/**
+ * Debounced autosave. Persists `persistFn` a short time after `deps` change,
+ * skips the initial mount, serializes concurrent saves with an in-flight lock
+ * (and re-runs once if a change landed mid-save). Returns an `autoSaving` flag
+ * for the footer indicator so it can show "Saving…" vs "Changes saved".
+ */
+export function useAutosave(persistFn, deps, delay = 900) {
+  const [autoSaving, setAutoSaving] = useState(false);
+  const first    = useRef(true);
+  const timer    = useRef(null);
+  const inflight  = useRef(false);
+  const pending  = useRef(false);
+  const fnRef    = useRef(persistFn);
+  fnRef.current  = persistFn;
+
+  const run = async () => {
+    if (inflight.current) { pending.current = true; return; }
+    inflight.current = true; setAutoSaving(true);
+    try { await fnRef.current(); } catch {}
+    inflight.current = false; setAutoSaving(false);
+    if (pending.current) { pending.current = false; run(); }
+  };
+
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    clearTimeout(timer.current);
+    timer.current = setTimeout(run, delay);
+    return () => clearTimeout(timer.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+
+  return autoSaving;
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    SHARED INPUT STYLES
@@ -160,18 +194,38 @@ export function SavedPulse({ show }) {
   return <span style={{ fontSize: 11, color: '#AAA' }}>Saved</span>;
 }
 
-/**
- * Section footer: "Save & Next →" + "Save".
- * Section H overrides nextLabel to "Submit Profile ✓".
- */
-export function SectionFooter({ onNext, onSave, saving, savedPulse, nextLabel = 'Save & Next →' }) {
+/** Passive autosave indicator — replaces the manual Save button. */
+export function AutosaveIndicator({ saving }) {
   return (
-    <div style={{ display: 'flex', gap: 10, marginTop: 8, alignItems: 'center' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: saving ? '#AAA' : '#4A8A4A' }}>
+      {saving ? (
+        <><span className="spinner" style={{ width: 12, height: 12 }} /> Saving…</>
+      ) : (
+        <>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: 15, height: 15, borderRadius: '50%', background: '#E8F5E2', color: '#4A8A4A',
+            fontSize: 10, fontWeight: 700,
+          }}>✓</span>
+          Changes saved automatically
+        </>
+      )}
+    </span>
+  );
+}
+
+/**
+ * Section footer. The standalone "Save" button was removed — every section
+ * autosaves as you type, so the footer keeps only the navigation button and a
+ * passive autosave indicator. Section H overrides nextLabel to "Submit Profile ✓".
+ */
+export function SectionFooter({ onNext, saving, autoSaving, nextLabel = 'Save & Next →' }) {
+  return (
+    <div style={{ display: 'flex', gap: 14, marginTop: 8, alignItems: 'center' }}>
       <button className="btn btn-primary fade-up" onClick={onNext} disabled={saving}>
         {saving ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Saving…</> : nextLabel}
       </button>
-      <button className="btn btn-ghost fade-up" onClick={onSave} disabled={saving}>Save</button>
-      <SavedPulse show={savedPulse} />
+      <AutosaveIndicator saving={autoSaving} />
     </div>
   );
 }

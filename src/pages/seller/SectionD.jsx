@@ -4,7 +4,7 @@ import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 import {
   SectionHeader, QCard, SectionFooter, ExpertiseButtons,
-  TrashIcon, AddButton, EXPERTISE_TOOLTIPS,
+  TrashIcon, AddButton, EXPERTISE_TOOLTIPS, useAutosave, textareaStyle,
 } from './_ui';
 import { mediaUrl } from '../../utils/mediaUrl';
 
@@ -13,7 +13,7 @@ const API = onboardingAPI;
 /* Five technique buckets, in prototype order. `key` maps to CraftDetail.technique_type. */
 const TYPES = [
   { key: 'spinning', ref: 'D.1', label: 'Spinning', desc: 'Hand spinning, charkha, ring spinning, yarn-making — any yarn or thread preparation your studio does.', cta: '+ Add Spinning Technique', empty: 'No spinning techniques added yet.' },
-  { key: 'weaving',  ref: 'D.2', label: 'Weaving',  desc: 'Does your studio weave, or work closely with weavers? Add any weaving techniques here.', cta: '+ Add Weaving Technique', empty: 'No weaving techniques added yet.', hint: 'e.g. Plain weave, Ikat, Jamdani, Dobby, Jacquard, Khadi handspun, Patola, Kanjivaram…' },
+  { key: 'weaving',  ref: 'D.2', label: 'Weaving / Knitting',  desc: 'Does your studio weave or knit, or work closely with weavers and knitters? Add any weaving or knitting techniques here.', cta: '+ Add Weaving / Knitting Technique', empty: 'No weaving / knitting techniques added yet.', hint: 'e.g. Plain weave, Ikat, Jamdani, Dobby, Jacquard, Khadi handspun, Patola, Kanjivaram, hand-knit, machine-knit…' },
   { key: 'dyeing',   ref: 'D.3', label: 'Dyeing',   desc: 'Add each dyeing technique your studio practises. Mark expertise and note any distinctive innovation.', cta: '+ Add Dyeing Technique', empty: 'No dyeing techniques added yet.' },
   { key: 'printing', ref: 'D.4', label: 'Printing', desc: 'Block printing, screen printing, digital printing — any technique used to apply pattern or colour to fabric.', cta: '+ Add Printing Technique', empty: 'No printing techniques added yet.' },
   { key: 'surface',  ref: 'D.5', label: 'Surface Work', desc: 'Embroidery, appliqué, crochet, patchwork, beadwork, mirror work — anything applied to the surface of the fabric.', cta: '+ Add Surface Technique', empty: 'No surface techniques added yet.' },
@@ -45,11 +45,11 @@ function TechniqueCard({ craft, onUpdate, onDelete, onImageUpload, onImageRemove
       </div>
 
       <div style={{ marginBottom: 10 }}>
-        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#CCCCCC', fontWeight: 600, marginBottom: 4 }}>Innovation / distinctive approach (optional)</div>
+        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#CCCCCC', fontWeight: 600, marginBottom: 4 }}>About this technique — specialities, innovations, or what makes your approach unique (optional)</div>
         <input
           value={craft.specialization || ''}
           onChange={e => onUpdate({ specialization: e.target.value })}
-          placeholder="e.g. Any specific innovation or distinctive approach?"
+          placeholder="e.g. What's distinctive about how your studio does this — a speciality, a signature method, or an innovation"
           style={{ width: '100%', padding: '7px 10px', border: '1px solid #D8D4CF', borderRadius: 5, background: '#fff', color: '#1A1A1A', fontSize: 12, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
         />
       </div>
@@ -80,6 +80,7 @@ function TechniqueCard({ craft, onUpdate, onDelete, onImageUpload, onImageRemove
 export default function SectionD({ profileId, initialData, onSave, onNext }) {
   const { toasts, success, error } = useToast();
   const [crafts, setCrafts] = useState({ spinning: [], weaving: [], dyeing: [], printing: [], surface: [] });
+  const [craftNotes, setCraftNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
   const populateCrafts = (rows) => {
@@ -97,6 +98,13 @@ export default function SectionD({ profileId, initialData, onSave, onNext }) {
   useEffect(() => {
     if (!profileId || initialData) return;
     API.getCrafts(profileId).then(r => populateCrafts(r.data)).catch(() => {});
+  }, [profileId]);
+
+  // craft_notes (D.6) lives on StudioDetails; this section only receives the
+  // crafts array, so fetch the note separately.
+  useEffect(() => {
+    if (!profileId) return;
+    API.getStudio(profileId).then(r => setCraftNotes(r.data?.craft_notes || '')).catch(() => {});
   }, [profileId]);
 
   const addCard = type => {
@@ -146,31 +154,38 @@ export default function SectionD({ profileId, initialData, onSave, onNext }) {
     updateCard(type, idx, { image: null, _images: [] });
   };
 
+  const persist = async () => {
+    for (const type of Object.keys(crafts)) {
+      for (let i = 0; i < crafts[type].length; i++) {
+        const card = crafts[type][i];
+        if (!card.craft_name?.trim()) continue;
+        if (card.id) {
+          await API.patchCraft(profileId, card.id, {
+            craft_name: card.craft_name, technique_type: type,
+            expertise_level: card.expertise_level, specialization: card.specialization,
+          });
+        } else {
+          const fd = new FormData();
+          fd.append('craft_name', card.craft_name);
+          fd.append('technique_type', type);
+          if (card.expertise_level) fd.append('expertise_level', card.expertise_level);
+          fd.append('specialization', card.specialization || '');
+          fd.append('is_primary', true);
+          fd.append('order', i + 1);
+          const r = await API.addCraft(profileId, fd);
+          updateCard(type, i, r.data);
+        }
+      }
+    }
+    await API.patchStudio(profileId, { craft_notes: craftNotes });
+  };
+
+  const autoSaving = useAutosave(persist, [crafts, craftNotes]);
+
   const saveAll = async (andNext = false) => {
     setSaving(true);
     try {
-      for (const type of Object.keys(crafts)) {
-        for (let i = 0; i < crafts[type].length; i++) {
-          const card = crafts[type][i];
-          if (!card.craft_name?.trim()) continue;
-          if (card.id) {
-            await API.patchCraft(profileId, card.id, {
-              craft_name: card.craft_name, technique_type: type,
-              expertise_level: card.expertise_level, specialization: card.specialization,
-            });
-          } else {
-            const fd = new FormData();
-            fd.append('craft_name', card.craft_name);
-            fd.append('technique_type', type);
-            if (card.expertise_level) fd.append('expertise_level', card.expertise_level);
-            fd.append('specialization', card.specialization || '');
-            fd.append('is_primary', true);
-            fd.append('order', i + 1);
-            const r = await API.addCraft(profileId, fd);
-            updateCard(type, i, r.data);
-          }
-        }
-      }
+      await persist();
       success('Section D saved!');
       onSave?.();
       if (andNext) onNext?.();
@@ -207,7 +222,12 @@ export default function SectionD({ profileId, initialData, onSave, onNext }) {
         </QCard>
       ))}
 
-      <SectionFooter onNext={() => saveAll(true)} onSave={() => saveAll(false)} saving={saving} />
+      <QCard qref="D.6" title="More About Crafts & Techniques" desc="Context that the cards above don't capture — traditions you work in, methods passed down, regional specialities, or how you combine techniques.">
+        <textarea rows={3} style={textareaStyle} value={craftNotes} onChange={e => setCraftNotes(e.target.value)}
+          placeholder="e.g. Our block printing follows a four-generation family tradition from Bagru, using hand-carved teak blocks and fermented natural dyes. We often combine it with our own hand embroidery for layered surface work." />
+      </QCard>
+
+      <SectionFooter onNext={() => saveAll(true)} saving={saving} autoSaving={autoSaving} />
     </div>
   );
 }

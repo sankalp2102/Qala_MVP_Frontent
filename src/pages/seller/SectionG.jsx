@@ -339,7 +339,7 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
         </button>
       )}
 
-      <SectionFooter onNext={() => finish(true)} onSave={() => finish(false)} saving={saving} />
+      <SectionFooter onNext={() => finish(true)} saving={saving} />
     </div>
   );
 }

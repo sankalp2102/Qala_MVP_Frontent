@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { onboardingAPI } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
-import { SectionHeader, QCard, SectionFooter, YNToggle } from './_ui';
+import { SectionHeader, QCard, SectionFooter, YNToggle, useAutosave } from './_ui';
 
 const API = onboardingAPI;
 
@@ -89,6 +89,8 @@ export default function SectionE({ profileId, initialData, onSave, onNext }) {
     API.getCollab(profileId).then(r => populateFromData(r.data)).catch(() => {});
   }, [profileId]);
 
+  const autoSaving = useAutosave(() => API.putCollab(profileId, form), [form]);
+
   const save = async (andNext = false) => {
     setSaving(true);
     try {
@@ -121,7 +123,7 @@ export default function SectionE({ profileId, initialData, onSave, onNext }) {
         ))}
       </QCard>
 
-      <SectionFooter onNext={() => save(true)} onSave={() => save(false)} saving={saving} />
+      <SectionFooter onNext={() => save(true)} saving={saving} autoSaving={autoSaving} />
     </div>
   );
 }

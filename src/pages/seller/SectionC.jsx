@@ -4,7 +4,7 @@ import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 import {
   SectionHeader, QCard, SectionFooter, GroupAccordion, ExpertiseRow,
-  AddButton, EXPERTISE_TOOLTIPS, inputStyle, textareaStyle,
+  AddButton, EXPERTISE_TOOLTIPS, useAutosave, inputStyle, textareaStyle,
 } from './_ui';
 
 const API = onboardingAPI;
@@ -27,9 +27,13 @@ const FABRIC_GROUPS = [
 ];
 
 const DYES_DEFAULT = [
-  'Natural / plant-based dyes', 'Vegetable dyes', 'Chemical / reactive dyes',
-  'Low-impact / azo-free dyes', 'Indigo (natural)', 'Vat dyes',
+  'Plant-based Dyes', 'Vegetable dyes', 'Low-impact / azo-free dyes', 'Chemical / reactive dyes',
 ];
+
+/* Old default "Natural / plant-based dyes" was renamed to "Plant-based Dyes".
+   Alias any saved value so an existing selection stays checked under the new
+   name (and gets rewritten to the new name on the next save). */
+const DYE_ALIASES = { 'Natural / plant-based dyes': 'Plant-based Dyes' };
 
 export default function SectionC({ profileId, initialData, onSave, onNext }) {
   const { toasts, success, error } = useToast();
@@ -68,8 +72,9 @@ export default function SectionC({ profileId, initialData, onSave, onNext }) {
     const answers = {};
     const custom = [];
     (rows || []).forEach(row => {
-      answers[row.dye_name] = row.expertise_level;
-      if (!DYES_DEFAULT.includes(row.dye_name)) custom.push(row.dye_name);
+      const name = DYE_ALIASES[row.dye_name] || row.dye_name;
+      answers[name] = row.expertise_level;
+      if (!DYES_DEFAULT.includes(name)) custom.push(name);
     });
     setDyeAnswers(answers);
     if (custom.length) setAllDyeNames([...DYES_DEFAULT, ...custom]);
@@ -130,19 +135,25 @@ export default function SectionC({ profileId, initialData, onSave, onNext }) {
     setNewDyeName(''); setAddingDye(false);
   };
 
+  const persist = async () => {
+    const fabricPayload = [];
+    Object.entries(fabricGroups).forEach(([cat, names]) => {
+      names.forEach(name => {
+        const a = fabricAnswers[name];
+        if (a?.checked) fabricPayload.push({ category: cat, fabric_name: name, works_with: true, expertise_level: a.level });
+      });
+    });
+    await API.putFabrics(profileId, fabricPayload);
+    await API.putDyes(profileId, Object.entries(dyeAnswers).map(([dye_name, expertise_level]) => ({ dye_name, expertise_level })));
+    await API.patchStudio(profileId, { fabric_notes: fabricNotes, dye_notes: dyeNotes });
+  };
+
+  const autoSaving = useAutosave(persist, [fabricAnswers, dyeAnswers, fabricNotes, dyeNotes, fabricGroups]);
+
   const save = async (andNext = false) => {
     setSaving(true);
     try {
-      const fabricPayload = [];
-      Object.entries(fabricGroups).forEach(([cat, names]) => {
-        names.forEach(name => {
-          const a = fabricAnswers[name];
-          if (a?.checked) fabricPayload.push({ category: cat, fabric_name: name, works_with: true, expertise_level: a.level });
-        });
-      });
-      await API.putFabrics(profileId, fabricPayload);
-      await API.putDyes(profileId, Object.entries(dyeAnswers).map(([dye_name, expertise_level]) => ({ dye_name, expertise_level })));
-      await API.patchStudio(profileId, { fabric_notes: fabricNotes, dye_notes: dyeNotes });
+      await persist();
       success('Section C saved!');
       onSave?.();
       if (andNext) onNext?.();
@@ -247,7 +258,7 @@ export default function SectionC({ profileId, initialData, onSave, onNext }) {
         </div>
       </QCard>
 
-      <SectionFooter onNext={() => save(true)} onSave={() => save(false)} saving={saving} />
+      <SectionFooter onNext={() => save(true)} saving={saving} autoSaving={autoSaving} />
     </div>
   );
 }

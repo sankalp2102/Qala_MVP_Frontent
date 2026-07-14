@@ -4,10 +4,25 @@ import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 import {
   SectionHeader, QCard, Field, SectionFooter, InfoBox, TrashBtn,
-  inputStyle, textareaStyle,
+  useAutosave, inputStyle, textareaStyle,
 } from './_ui';
 
 const API = onboardingAPI;
+
+/** Two numeric inputs with a dash — a min–max week range (F.5). */
+function RangeInput({ min, max, onMin, onMax, phMin, phMax }) {
+  const num = v => v.replace(/[^\d.]/g, '');
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <input style={{ ...inputStyle, textAlign: 'center' }} type="text" inputMode="numeric"
+        value={min} onChange={e => onMin(num(e.target.value))} placeholder={phMin} />
+      <span style={{ color: '#999', fontSize: 15 }}>–</span>
+      <input style={{ ...inputStyle, textAlign: 'center' }} type="text" inputMode="numeric"
+        value={max} onChange={e => onMax(num(e.target.value))} placeholder={phMax} />
+      <span style={{ color: '#888', fontSize: 12, whiteSpace: 'nowrap' }}>weeks</span>
+    </div>
+  );
+}
 
 export default function SectionF({ profileId, initialData, onSave, onNext }) {
   const { toasts, success, error } = useToast();
@@ -22,7 +37,8 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
 
   const [form, setForm] = useState({
     artisan_count: '', monthly_capacity_units: '',
-    sampling_time_weeks: '', production_time_weeks: '',
+    sampling_time_weeks_min: '', sampling_time_weeks_max: '',
+    production_time_weeks_min: '', production_time_weeks_max: '',
     moq_per_batch: '', moq_flexible: false,
   });
   const [saving, setSaving] = useState(false);
@@ -41,8 +57,11 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
         artisan_count: d.artisan_count ?? '',
         monthly_capacity_units: d.monthly_capacity_units ?? '',
         // v4: sampling_time_weeks now lives on ProductionScale and round-trips.
-        sampling_time_weeks: d.sampling_time_weeks ?? '',
-        production_time_weeks: d.production_time_weeks ?? '',
+        // v5: ranges — seed min from the old single value for back-compat
+        sampling_time_weeks_min: d.sampling_time_weeks_min ?? d.sampling_time_weeks ?? '',
+        sampling_time_weeks_max: d.sampling_time_weeks_max ?? '',
+        production_time_weeks_min: d.production_time_weeks_min ?? d.production_time_weeks ?? '',
+        production_time_weeks_max: d.production_time_weeks_max ?? '',
         moq_per_batch: d.moq_per_batch ?? '',
         moq_flexible: !!d.moq_flexible,
       }));
@@ -62,8 +81,11 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
         ...f,
         artisan_count: d.artisan_count ?? '',
         monthly_capacity_units: d.monthly_capacity_units ?? '',
-        sampling_time_weeks: d.sampling_time_weeks ?? '',
-        production_time_weeks: d.production_time_weeks ?? '',
+        // v5: ranges — seed min from the old single value for back-compat
+        sampling_time_weeks_min: d.sampling_time_weeks_min ?? d.sampling_time_weeks ?? '',
+        sampling_time_weeks_max: d.sampling_time_weeks_max ?? '',
+        production_time_weeks_min: d.production_time_weeks_min ?? d.production_time_weeks ?? '',
+        production_time_weeks_max: d.production_time_weeks_max ?? '',
         moq_per_batch: d.moq_per_batch ?? '',
         moq_flexible: !!d.moq_flexible,
       }));
@@ -126,17 +148,26 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
     catch { error('Failed'); }
   };
 
+  const persist = () => API.putProduction(profileId, {
+    artisan_count: form.artisan_count || null,
+    monthly_capacity_units: form.monthly_capacity_units || null,
+    // v5: timeline ranges (single fields kept in sync = min, for back-compat)
+    sampling_time_weeks_min: form.sampling_time_weeks_min || null,
+    sampling_time_weeks_max: form.sampling_time_weeks_max || null,
+    production_time_weeks_min: form.production_time_weeks_min || null,
+    production_time_weeks_max: form.production_time_weeks_max || null,
+    sampling_time_weeks: form.sampling_time_weeks_min || null,
+    production_time_weeks: form.production_time_weeks_min || null,
+    moq_per_batch: form.moq_per_batch || null,
+    moq_flexible: form.moq_flexible,
+  });
+
+  const autoSaving = useAutosave(persist, [form]);
+
   const save = async (andNext = false) => {
     setSaving(true);
     try {
-      await API.putProduction(profileId, {
-        artisan_count: form.artisan_count || null,
-        monthly_capacity_units: form.monthly_capacity_units || null,
-        sampling_time_weeks: form.sampling_time_weeks || null,   // v4: now persisted
-        production_time_weeks: form.production_time_weeks || null,
-        moq_per_batch: form.moq_per_batch || null,
-        moq_flexible: form.moq_flexible,
-      });
+      await persist();
       success('Section F saved!');
       onSave?.();
       if (andNext) onNext?.();
@@ -245,20 +276,22 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
         <div className="field-hint" style={{ marginTop: 4 }}>Total units across all crafts and product types combined.</div>
       </QCard>
 
-      {/* F.5 — Timelines */}
-      <QCard qref="F.5" title="Timelines" desc="Typical timelines buyers can expect — assuming fabric is available and sourcing is not required.">
+      {/* F.5 — Timelines (ranges) */}
+      <QCard qref="F.5" title="Timelines" desc="Typical timelines buyers can expect — assuming fabric is available and sourcing is not required. Give a range.">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <Field label="Sampling Time (weeks)" hint="From brief or reference to sample in buyer's hands">
-            <input style={inputStyle} type="text" inputMode="numeric"
-              value={form.sampling_time_weeks}
-              onChange={e => setForm(f => ({ ...f, sampling_time_weeks: e.target.value.replace(/[^\d.]/g, '') }))}
-              placeholder="e.g. 3" />
+            <RangeInput
+              min={form.sampling_time_weeks_min} max={form.sampling_time_weeks_max}
+              onMin={v => setForm(f => ({ ...f, sampling_time_weeks_min: v }))}
+              onMax={v => setForm(f => ({ ...f, sampling_time_weeks_max: v }))}
+              phMin="2" phMax="4" />
           </Field>
           <Field label="Production Time for 100 pcs (weeks)" hint="From approved sample to finished goods dispatched">
-            <input style={inputStyle} type="text" inputMode="numeric"
-              value={form.production_time_weeks}
-              onChange={e => setForm(f => ({ ...f, production_time_weeks: e.target.value.replace(/[^\d.]/g, '') }))}
-              placeholder="e.g. 6" />
+            <RangeInput
+              min={form.production_time_weeks_min} max={form.production_time_weeks_max}
+              onMin={v => setForm(f => ({ ...f, production_time_weeks_min: v }))}
+              onMax={v => setForm(f => ({ ...f, production_time_weeks_max: v }))}
+              phMin="4" phMax="6" />
           </Field>
         </div>
         <InfoBox>💡 These are your baseline timelines. If a buyer has a custom brief or complex requirements, you can share revised timelines in the proposal.</InfoBox>
@@ -270,7 +303,7 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
           <input style={{ ...inputStyle, width: 140 }} type="text" inputMode="numeric"
             value={form.moq_per_batch}
             onChange={e => setForm(f => ({ ...f, moq_per_batch: e.target.value.replace(/\D/g, '') }))}
-            placeholder="e.g. 50" />
+            placeholder="e.g. 25" />
           <span style={{ fontSize: 13, color: '#888' }}>pieces per batch</span>
         </div>
         <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 12, cursor: 'pointer' }}>
@@ -280,7 +313,7 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
         <InfoBox>💡 If a buyer requests customisation or has special requirements, you can quote your MOQ in the proposal — this number is just a general baseline shown on your profile.</InfoBox>
       </QCard>
 
-      <SectionFooter onNext={() => save(true)} onSave={() => save(false)} saving={saving} />
+      <SectionFooter onNext={() => save(true)} saving={saving} autoSaving={autoSaving} />
     </div>
   );
 }

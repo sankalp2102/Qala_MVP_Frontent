@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { onboardingAPI } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
-import { SectionHeader, QCard, SectionFooter, MediaDropzone, MediaThumb, textareaStyle } from './_ui';
+import { SectionHeader, QCard, SectionFooter, MediaDropzone, MediaThumb, useAutosave, textareaStyle } from './_ui';
 import { mediaUrl } from '../../utils/mediaUrl';
 
 const API = onboardingAPI;
@@ -62,6 +62,8 @@ export default function SectionH({ profileId, initialData, onSave, onNext }) {
     catch { error('Failed'); }
   };
 
+  const autoSaving = useAutosave(() => API.patchStudio(profileId, { studio_notes: studioNotes }), [studioNotes]);
+
   const doSave = async (thenNav) => {
     setSaving(true);
     try {
@@ -106,8 +108,8 @@ export default function SectionH({ profileId, initialData, onSave, onNext }) {
 
       <SectionFooter
         onNext={() => doSave(true)}
-        onSave={() => doSave(false)}
         saving={saving}
+        autoSaving={autoSaving}
         nextLabel="Submit Profile ✓" />
     </div>
   );

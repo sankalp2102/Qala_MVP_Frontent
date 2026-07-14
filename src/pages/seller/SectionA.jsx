@@ -11,7 +11,6 @@ const API = onboardingAPI;
 
 export default function SectionA({ profileId, initialData, onSave, onNext }) {
   const { toasts, success, error } = useToast();
-  const [savedPulse, setSavedPulse] = useState(false);
 
   const [form, setForm] = useState({
     studio_name: '', studio_slug: '',
@@ -76,8 +75,6 @@ export default function SectionA({ profileId, initialData, onSave, onNext }) {
     debounceRef.current[field] = setTimeout(async () => {
       try {
         await API.patchStudio(profileId, { [field]: val });
-        setSavedPulse(true);
-        setTimeout(() => setSavedPulse(false), 1500);
       } catch {}
     }, 600);
   }, [profileId]);
@@ -281,7 +278,7 @@ export default function SectionA({ profileId, initialData, onSave, onNext }) {
         </label>
       </QCard>
 
-      <SectionFooter onNext={() => save(true)} onSave={() => save(false)} saving={saving} savedPulse={savedPulse} />
+      <SectionFooter onNext={() => save(true)} saving={saving} />
     </div>
   );
 }

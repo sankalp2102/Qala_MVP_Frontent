@@ -4,7 +4,7 @@ import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 import {
   SectionHeader, QCard, SectionFooter, RankRow, Top5Row, CheckRow,
-  CategoryAccordion, GroupAccordion, AddButton, inputStyle, TOP5_MAX,
+  CategoryAccordion, GroupAccordion, AddButton, useAutosave, inputStyle, textareaStyle, TOP5_MAX,
 } from './_ui';
 
 const API = onboardingAPI;
@@ -21,7 +21,7 @@ const OCCASIONS_DEFAULT = [
    and it also lives on in B.4 as "Scarves / Stoles / Dupattas". */
 const GARMENTS_DEFAULT = [
   'Dresses', 'Coord Sets', 'Tops', 'Kaftans', 'Tunics / Kurtas', 'Skirts',
-  'Shirts', 'Trousers / Pants', 'Blazers / Jackets', 'Jumpsuits', 'Sarees / Dupattas',
+  'Shirts', 'Trousers / Pants', 'Blazers / Jackets', 'Jumpsuits',
 ];
 
 /* B.4 — Accessory Types (new card). */
@@ -104,7 +104,6 @@ function HFGroup({ group, selected, onToggle, onAddItem, onRemoveGroup }) {
 
 export default function SectionB({ profileId, initialData, onSave, onNext }) {
   const { toasts, success, error } = useToast();
-  const [savedPulse, setSavedPulse] = useState(false);
 
   const [genders, setGenders]     = useState([]);
   const [occasions, setOccasions] = useState([]);
@@ -124,6 +123,7 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
 
   const [homeFurnishings, setHomeFurnishings] = useState([]);
   const [hfGroups, setHfGroups]               = useState(HOME_FURNISHINGS_DEFAULT);
+  const [categoryNotes, setCategoryNotes]     = useState('');
   const [addingHFGroup, setAddingHFGroup]     = useState(false);
   const [newHFGroup, setNewHFGroup]           = useState('');
 
@@ -133,6 +133,7 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
   const populateFromData = (d) => {
     if (!d) return;
     setGenders(d.gender_focus || []);
+    setCategoryNotes(d.category_notes || '');
 
     const occ = d.occasions || [];
     setOccasions(occ);
@@ -203,8 +204,6 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
     debounceRef.current = setTimeout(async () => {
       try {
         await API.patchStudio(profileId, payload);
-        setSavedPulse(true);
-        setTimeout(() => setSavedPulse(false), 1500);
       } catch {}
     }, 800);
   }, [profileId]);
@@ -293,6 +292,11 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
     });
   };
 
+  const autoSaving = useAutosave(
+    () => API.patchStudio(profileId, { category_notes: categoryNotes }),
+    [categoryNotes]
+  );
+
   const save = async (andNext = false) => {
     setSaving(true);
     try {
@@ -300,6 +304,7 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
         gender_focus: genders, occasions,
         garment_types: garments, accessory_types: accessories,
         home_furnishings: homeFurnishings,
+        category_notes: categoryNotes,
       });
       success('Section B saved!');
       onSave?.();
@@ -417,7 +422,12 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
         </QCard>
       </CategoryAccordion>
 
-      <SectionFooter onNext={() => save(true)} onSave={() => save(false)} saving={saving} savedPulse={savedPulse} />
+      <QCard qref="B.6" title="More About the Categories" desc="Anything about what you make that the options above don't capture — signature product types, combinations you specialise in, or categories you're expanding into.">
+        <textarea rows={3} style={textareaStyle} value={categoryNotes} onChange={e => setCategoryNotes(e.target.value)}
+          placeholder="e.g. We're known for our co-ord sets and resortwear, and we're starting to take on structured tailoring. We also do a small line of hand-embroidered kidswear on request." />
+      </QCard>
+
+      <SectionFooter onNext={() => save(true)} saving={saving} autoSaving={autoSaving} />
     </div>
   );
 }

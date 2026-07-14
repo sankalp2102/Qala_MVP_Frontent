@@ -499,3 +499,12 @@ textarea:focus-visible, select:focus-visible {
   .qala-form-theme .q-card-inner { padding: 18px 16px 20px; }
   .qala-form-theme .section-title { font-size: 30px; }
 }
+
+/* v5 — lighten placeholder + hint text across the studio form.
+   "More about" labels stay dark grey (#777) — set inline in NotesField. */
+.qala-form-theme input::placeholder,
+.qala-form-theme textarea::placeholder {
+  color: #DEDEDE;
+  opacity: 1;               /* Firefox dims placeholders by default */
+}
+.qala-form-theme .field-hint { color: #C4C4C4; }
