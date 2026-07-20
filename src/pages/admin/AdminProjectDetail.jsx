@@ -743,14 +743,32 @@ export default function AdminProjectDetail() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <select value={project.buyer_user || ''} onChange={e => updateProject({ buyer_user: e.target.value || null })}
+          {/* Phase 4 fix: this dropdown is fed by AdminDiscoveryBuyerListView,
+             which returns discovery.BuyerProfile records (see `name`/`user_email`
+             fields below) — but it was previously wired to update `buyer_user`,
+             a different field (core.User FK) that this data was never a valid
+             value for, and read `b.first_name`/`b.last_name`/`b.email`, none of
+             which exist on this endpoint's response (only `b.name`, already
+             joined server-side, and `b.user_email`). Net effect in production:
+             every option in this dropdown rendered with a blank label, and
+             selecting one silently failed to link anything useful.
+             Fixed to target `buyer_profile` (writable as of the Phase 3 backend
+             change) and to build a useful label from fields that actually exist
+             — falling back to product/batch/date context since many chat buyers
+             are anonymous and have no name on file. */}
+          <select value={project.buyer_profile || ''} onChange={e => updateProject({ buyer_profile: e.target.value || null })}
             style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)' }}>
-            <option value="">Assign buyer…</option>
-            {buyers.map(b => (
-              <option key={b.id || b.user_id} value={b.id || b.user_id}>
-                {[b.first_name, b.last_name].filter(Boolean).join(' ') || b.email}
-              </option>
-            ))}
+            <option value="">Link chat buyer…</option>
+            {buyers.map(b => {
+              const label = b.name || b.user_email
+                || [b.product_types?.[0], b.batch_size].filter(Boolean).join(' · ')
+                || `Chat ${new Date(b.created_at).toLocaleDateString()}`;
+              return (
+                <option key={b.id} value={b.id}>
+                  {label}{b.matching_complete ? '' : ' (in progress)'}
+                </option>
+              );
+            })}
           </select>
           <select value={project.stage} onChange={e => updateProject({ stage: e.target.value })}
             style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)' }}>
