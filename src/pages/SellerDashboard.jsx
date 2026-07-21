@@ -26,7 +26,7 @@ const SECTIONS = [
   { key:'d', label:'Crafts & Techniques',   path:'crafts',      icon:'', desc:'Printing, surface, and weaving techniques' },
   { key:'e', label:'Collaboration',         path:'collab',      icon:'', desc:'Collaboration modes and design capabilities' },
   { key:'f', label:'Team & Capacity',       path:'production',  icon:'', desc:'Team, capacity, timelines, MOQ' },
-  { key:'g', label:'Past Projects',         path:'projects',    icon:'', desc:'Collections, collaborations, and notable work' },
+  { key:'g', label:'Past Work',             path:'projects',    icon:'', desc:'Your product library and collections' },
   { key:'h', label:'Behind the Scenes',     path:'process',     icon:'', desc:'Studio media and final notes' },
 ];
 
@@ -319,7 +319,7 @@ export default function SellerDashboard() {
     { to:'/dashboard/crafts',      icon:'', label:'D — Crafts & Techniques', badge: status?.section_d_status === 'flagged' ? { type:'red', text:'!' } : null },
     { to:'/dashboard/collab',      icon:'', label:'E — Collaboration',    badge: status?.section_e_status === 'flagged' ? { type:'red', text:'!' } : null },
     { to:'/dashboard/production',  icon:'', label:'F — Team & Capacity', badge: status?.section_f_status === 'flagged' ? { type:'red', text:'!' } : null },
-    { to:'/dashboard/projects',    icon:'', label:'G — Past Projects',   badge: status?.section_g_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard/projects',    icon:'', label:'G — Past Work',   badge: status?.section_g_status === 'flagged' ? { type:'red', text:'!' } : null },
     { to:'/dashboard/process',     icon:'', label:'H — Behind the Scenes', badge: status?.section_h_status === 'flagged' ? { type:'red', text:'!' } : null },
     { to:'/dashboard/inquiries',   icon:'', label:'Inquiries'                                                                                      },
     { to:'/dashboard/enquiries',   icon:'', label:'Project Enquiries'                                                                                  },
@@ -336,7 +336,7 @@ export default function SellerDashboard() {
         <Route path="crafts"     element={<SectionD profileId={profileId} initialData={snapshot?.crafts}         onSave={refresh} onNext={() => { refresh(); nav('/dashboard/collab'); }} />} />
         <Route path="collab"     element={<SectionE profileId={profileId} initialData={snapshot?.collab_design}  onSave={refresh} onNext={() => { refresh(); nav('/dashboard/production'); }} />} />
         <Route path="production" element={<SectionF profileId={profileId} initialData={{ production: snapshot?.production_scale, collab: snapshot?.collab_design, studio: snapshot?.studio_details }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/projects'); }} />} />
-        <Route path="projects"   element={<SectionG profileId={profileId} initialData={snapshot?.studio_projects} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/process'); }} />} />
+        <Route path="projects"   element={<SectionG profileId={profileId} initialData={{ studio_products: snapshot?.studio_products, studio_collections: snapshot?.studio_collections }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/process'); }} />} />
         <Route path="process"    element={<SectionH profileId={profileId} initialData={{ process: snapshot?.process_readiness, studio: snapshot?.studio_details }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard'); }} />} />
         <Route path="inquiries"  element={<SellerInquiries profileId={profileId} />}           />
         <Route path="enquiries"  element={<EnquiriesList />}                                          />

@@ -1,311 +1,461 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { onboardingAPI } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
-import {
-  SectionHeader, QCard, SectionFooter, CollabToggle, HideToggle,
-  TrashIcon, inputStyle, textareaStyle,
-} from './_ui';
+import { SectionHeader, SectionFooter, CollabToggle, HideToggle, inputStyle, textareaStyle } from './_ui';
 import { mediaUrl } from '../../utils/mediaUrl';
 
 const API = onboardingAPI;
 
-function FieldLabel({ children }) {
-  return <div style={{ fontSize: 10, fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>{children}</div>;
-}
+const GENDER_OPTIONS = ['Womenswear', 'Menswear', 'Gender Neutral / Unisex', 'Kidswear', 'Home / Non-apparel'];
 
-/* Client-type radio cards. */
-function ClientTypeRadio({ value, onChange }) {
-  const opts = [
-    { value: 'own',   label: 'Own brand' },
-    { value: 'named', label: 'Brand / Buyer' },
-    { value: 'anon',  label: 'Prefer not to name' },
-  ];
+/* Sand/terracotta placeholder tints used when a product has no photo (per prototype). */
+const PLACEHOLDER_COLORS = ['#C8B898', '#D4C4A8', '#B8A880', '#C0A876', '#E0DAD0', '#CDBBA0'];
+const tintFor = id => PLACEHOLDER_COLORS[Math.abs(String(id).split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % PLACEHOLDER_COLORS.length];
+
+const EMPTY_PRODUCT = {
+  name: '', garment_type: '', gender: '', silhouette: '', occasion: '',
+  season_suitable_for: '', fabrics_used: '', dyes_used: '', craft_techniques_used: '',
+  sustainability_parameters: '', care_instructions: '',
+  open_for_collab: false, is_hidden: false,
+};
+
+const BULK_COLUMNS = [
+  { label: 'Product Name', req: true }, { label: 'Garment Type' }, { label: 'Gender' },
+  { label: 'Silhouette' }, { label: 'Occasion' }, { label: 'Season' }, { label: 'Fabrics Used' },
+  { label: 'Dyes Used' }, { label: 'Craft Techniques' }, { label: 'Sustainability Parameters' },
+  { label: 'Care Instructions' }, { label: 'Image Links' },
+  { label: 'Product Page Link', faded: true }, { label: 'India MRP', faded: true },
+];
+
+/* ── shared style atoms (mirrors the prototype's .pw-* CSS) ───────────────── */
+const S = {
+  label:    { fontSize: 10, fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6, display: 'block' },
+  form:     { border: '1px solid #E4E0DB', borderRadius: 10, background: '#fff', overflow: 'hidden', marginBottom: 16 },
+  formHead: { padding: '12px 16px', background: '#FAFAF8', borderBottom: '1px solid #F0EDE8', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  formTitle:{ fontSize: 13, fontWeight: 600, color: '#1A1A1A' },
+  formBody: { padding: 16 },
+  row2:     { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 },
+  greenBox: { background: '#F2F6F0', border: '1px solid #C8D9C4', borderRadius: 8, padding: '11px 14px', display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 },
+  ptag:     { fontSize: 9, padding: '2px 6px', borderRadius: 4, background: '#F5F3EF', color: '#777' },
+  ptagColl: { fontSize: 9, padding: '2px 6px', borderRadius: 4, background: '#EEF3EC', color: '#4A7C4A' },
+  ptagNone: { fontSize: 9, padding: '2px 6px', borderRadius: 4, background: '#F5F5F5', color: '#BBB', fontStyle: 'italic' },
+  hiddenBadge: { display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#888', background: '#F5F3EF', border: '1px solid #E4E0DB', padding: '2px 8px', borderRadius: 10 },
+};
+
+function XClose({ onClick }) {
   return (
-    <div style={{ display: 'flex', gap: 8 }}>
-      {opts.map(o => (
-        <label key={o.value} onClick={() => onChange(o.value)}
-          style={{
-            flex: o.value === 'anon' ? 1.2 : 1, display: 'flex', alignItems: 'center', gap: 8,
-            padding: '10px 12px', borderRadius: 5, cursor: 'pointer',
-            border: `1px solid ${value === o.value ? '#1A1A1A' : '#E4E0DB'}`,
-            background: value === o.value ? '#F5F3EF' : '#fff',
-          }}>
-          <input type="radio" checked={value === o.value} onChange={() => onChange(o.value)} style={{ accentColor: '#1A1A1A', width: 'auto', flexShrink: 0 }} />
-          <span style={{ fontSize: 13, fontWeight: 500, color: '#1A1A1A' }}>{o.label}</span>
-        </label>
-      ))}
-    </div>
+    <button onClick={onClick} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#AAA', padding: 2, lineHeight: 1 }}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+    </button>
   );
 }
-
-/* Saved project card. */
-function ProjectCard({ project, onPatch, onDelete, onUploadPhoto, onDeletePhoto }) {
-  const [editing, setEditing] = useState(false);
-
-  const clientLabel = project.client_type === 'named' && project.client_name
-    ? project.client_name
-    : project.client_type === 'anon' ? 'Client undisclosed' : 'Own brand';
-
-  const monthLabel = project.month_year
-    ? new Date(project.month_year + '-01').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
-    : null;
-
-  const photos = project.photos || [];
-
-  return (
-    <div style={{
-      border: '1px solid #D8D4CF', borderRadius: 10, background: '#fff', marginBottom: 14,
-      boxShadow: '0 2px 10px rgba(0,0,0,0.07)', opacity: project.is_hidden ? 0.65 : 1, overflow: 'hidden',
-    }}>
-      {/* Header */}
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #F0EDE8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <strong style={{ fontSize: 14, color: '#1A1A1A' }}>{project.name || 'Untitled project'}</strong>
-            {project.is_hidden && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#888', background: '#F5F3EF', border: '1px solid #E4E0DB', padding: '2px 8px', borderRadius: 10 }}>🔒 Hidden</span>
-            )}
-          </div>
-          <span style={{ fontSize: 12, color: '#888' }}>{clientLabel}{monthLabel ? ` · ${monthLabel}` : ''}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {/* Open-for-Collab toggle — now on the saved card, wired to the API */}
-          <CollabToggle checked={!!project.open_for_collab} onChange={v => onPatch({ open_for_collab: v })} label="Open for Collab" />
-          <HideToggle checked={!!project.is_hidden} onChange={v => onPatch({ is_hidden: v })} label="Hide" />
-          <button onClick={() => setEditing(e => !e)} style={{ padding: '5px 12px', fontSize: 11, background: '#fff', border: '1px solid #E4E0DB', borderRadius: 5, cursor: 'pointer', color: '#555' }}>
-            {editing ? 'Done' : 'Edit'}
-          </button>
-          <button aria-label="Delete project" onClick={onDelete}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C0392B', padding: '4px 6px', lineHeight: 1, display: 'inline-flex', alignItems: 'center' }}>
-            <TrashIcon size={13} />
-          </button>
-        </div>
-      </div>
-
-      {/* Body */}
-      <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {project.is_hidden && !editing ? (
-          <div style={{ fontSize: 12, color: '#888', fontStyle: 'italic' }}>
-            This project is hidden from your public profile. You can share it directly with specific buyers.
-          </div>
-        ) : (
-          <>
-            {/* Photos */}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {photos.map(p => (
-                <div key={p.id} style={{ width: 64, height: 64, borderRadius: 4, overflow: 'hidden', position: 'relative', border: '1px solid #E4E0DB', flexShrink: 0 }}>
-                  {p.mime_type?.startsWith('video/') ? (
-                    <div style={{ width: '100%', height: '100%', background: '#1A1A1A', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 18 }}>▶</div>
-                  ) : (
-                    <img src={mediaUrl(p.file)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
-                  )}
-                  <button onClick={() => onDeletePhoto(p.id)} style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: 3, width: 16, height: 16, fontSize: 11, cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>×</button>
-                </div>
-              ))}
-              <label style={{ width: 64, height: 64, borderRadius: 4, background: '#F0EDE8', border: '1px dashed #C8C4BF', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 18, color: '#CCC', flexShrink: 0 }}>
-                +
-                <input type="file" accept="image/*,video/mp4,video/quicktime,video/x-msvideo" multiple style={{ display: 'none' }} onChange={onUploadPhoto} />
-              </label>
-            </div>
-
-            {!editing && (
-              <div style={{ display: 'grid', gap: 6 }}>
-                {project.fabrics_used && <div style={{ display: 'flex', gap: 8, fontSize: 12 }}><span style={{ color: '#999', minWidth: 80 }}>Fabrics</span><span>{project.fabrics_used}</span></div>}
-                {project.techniques_used && <div style={{ display: 'flex', gap: 8, fontSize: 12 }}><span style={{ color: '#999', minWidth: 80 }}>Techniques</span><span>{project.techniques_used}</span></div>}
-                {project.about && <div style={{ display: 'flex', gap: 8, fontSize: 12 }}><span style={{ color: '#999', minWidth: 80 }}>About</span><span style={{ color: '#555', lineHeight: 1.5 }}>{project.about}</span></div>}
-                {!project.fabrics_used && !project.techniques_used && !project.about && (
-                  <p style={{ fontSize: 12, color: '#AAA', fontStyle: 'italic', margin: 0 }}>No details added yet — click Edit to fill in.</p>
-                )}
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Edit form */}
-        {editing && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 4 }}>
-            <div><FieldLabel>Project / Collection Name *</FieldLabel><input style={inputStyle} value={project.name} onChange={e => onPatch({ name: e.target.value })} placeholder="e.g. Earth Tones Capsule" /></div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div><FieldLabel>Month &amp; Year</FieldLabel><input style={inputStyle} type="month" value={project.month_year || ''} onChange={e => onPatch({ month_year: e.target.value })} /></div>
-            </div>
-            <div><FieldLabel>Client</FieldLabel><ClientTypeRadio value={project.client_type} onChange={v => onPatch({ client_type: v })} /></div>
-            {project.client_type === 'named' && (
-              <div><FieldLabel>Brand / Buyer Name</FieldLabel><input style={inputStyle} value={project.client_name || ''} onChange={e => onPatch({ client_name: e.target.value })} placeholder="e.g. Doodlage" /></div>
-            )}
-            {project.client_type === 'anon' && (
-              <div style={{ fontSize: 12, color: '#888', padding: '8px 12px', background: '#F5F3EF', borderRadius: 5 }}>Client name will not appear on your profile. The project will be listed as a collaboration without naming the brand.</div>
-            )}
-            <div><FieldLabel>Fabrics Used</FieldLabel><input style={inputStyle} value={project.fabrics_used || ''} onChange={e => onPatch({ fabrics_used: e.target.value })} placeholder="e.g. Linen blend, organic cotton" /></div>
-            <div><FieldLabel>Techniques Used</FieldLabel><input style={inputStyle} value={project.techniques_used || ''} onChange={e => onPatch({ techniques_used: e.target.value })} placeholder="e.g. Natural dye, appliqué, crochet detailing" /></div>
-            <div><FieldLabel>About This Project</FieldLabel><textarea style={textareaStyle} rows={3} value={project.about || ''} onChange={e => onPatch({ about: e.target.value })} placeholder="What was the brief? What did you create? What made it notable?" /></div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+function TrashSvg() {
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2" /></svg>;
 }
 
-/* Add-new-project form — dashed terracotta card. */
-function AddProjectForm({ onSave, onCancel }) {
-  const [form, setForm] = useState({
-    name: '', month_year: '', client_type: 'own', client_name: '',
-    fabrics_used: '', techniques_used: '', about: '',
-    open_for_collab: false, is_hidden: false,
-  });
+/* ── Product add / edit form ─────────────────────────────────────────────── */
+function ProductForm({ initial, onSave, onCancel }) {
+  const [form, setForm] = useState(initial || EMPTY_PRODUCT);
   const [photoFiles, setPhotoFiles] = useState([]);
   const [saving, setSaving] = useState(false);
+  const set = p => setForm(f => ({ ...f, ...p }));
 
-  const set = (field, val) => setForm(f => ({ ...f, [field]: val }));
-
-  const handlePhotoSelect = e => {
+  const pickPhotos = e => {
     const files = Array.from(e.target.files || []);
     e.target.value = '';
     setPhotoFiles(prev => [...prev, ...files.map(f => ({ file: f, preview: URL.createObjectURL(f) }))]);
   };
-  const removeLocalPhoto = i => setPhotoFiles(prev => { URL.revokeObjectURL(prev[i].preview); return prev.filter((_, j) => j !== i); });
+  const rmLocal = i => setPhotoFiles(prev => { URL.revokeObjectURL(prev[i].preview); return prev.filter((_, j) => j !== i); });
 
-  const handleSave = async () => {
+  const submit = async () => {
     if (!form.name.trim()) return;
     setSaving(true);
     try { await onSave(form, photoFiles.map(p => p.file)); } finally { setSaving(false); }
   };
 
+  const existingPhotos = form.photos || [];
+
   return (
-    <div style={{ border: '1px dashed #D97520', borderRadius: 10, marginBottom: 14, background: '#fff', overflow: 'hidden' }}>
-      <div style={{ padding: '16px 18px', borderBottom: '1px solid #F0EDE8' }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500, fontStyle: 'italic', color: '#1A1A1A' }}>Add New Project</div>
+    <div style={S.form}>
+      <div style={S.formHead}>
+        <div style={S.formTitle}>{initial?.id ? 'Edit Product' : 'New Product'}</div>
+        <XClose onClick={onCancel} />
       </div>
-      <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div><FieldLabel>Project / Collection Name *</FieldLabel><input style={inputStyle} value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Earth Tones Capsule" /></div>
-          <div><FieldLabel>Month &amp; Year</FieldLabel><input style={inputStyle} type="month" value={form.month_year} onChange={e => set('month_year', e.target.value)} /></div>
+      <div style={S.formBody}>
+        <div style={S.row2}>
+          <div><label style={S.label}>Product Name *</label><input style={inputStyle} value={form.name} onChange={e => set({ name: e.target.value })} placeholder="e.g. Indigo Shift Dress" /></div>
+          <div><label style={S.label}>Garment Type</label><input style={inputStyle} value={form.garment_type || ''} onChange={e => set({ garment_type: e.target.value })} placeholder="e.g. Dress, Kurta, Blouse, Scarf" /></div>
         </div>
+        <div style={S.row2}>
+          <div><label style={S.label}>Gender</label>
+            <select style={inputStyle} value={form.gender || ''} onChange={e => set({ gender: e.target.value })}>
+              <option value="">Select</option>
+              {GENDER_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </div>
+          <div><label style={S.label}>Silhouette</label><input style={inputStyle} value={form.silhouette || ''} onChange={e => set({ silhouette: e.target.value })} placeholder="e.g. A-line, Straight, Relaxed fit, Draped" /></div>
+        </div>
+        <div style={S.row2}>
+          <div><label style={S.label}>Occasion</label><input style={inputStyle} value={form.occasion || ''} onChange={e => set({ occasion: e.target.value })} placeholder="e.g. Resortwear, Festive, Everyday, Bridal" /></div>
+          <div><label style={S.label}>Season Suitable For</label><input style={inputStyle} value={form.season_suitable_for || ''} onChange={e => set({ season_suitable_for: e.target.value })} placeholder="e.g. Summer, All-season, Winter" /></div>
+        </div>
+        <div style={S.row2}>
+          <div><label style={S.label}>Fabrics Used</label><input style={inputStyle} value={form.fabrics_used || ''} onChange={e => set({ fabrics_used: e.target.value })} placeholder="e.g. Cotton mulmul, Chanderi silk" /></div>
+          <div><label style={S.label}>Dyes Used</label><input style={inputStyle} value={form.dyes_used || ''} onChange={e => set({ dyes_used: e.target.value })} placeholder="e.g. Natural indigo, Azo-free reactive, Plant-based" /></div>
+        </div>
+        <div style={{ marginBottom: 12 }}><label style={S.label}>Craft Techniques Used</label><input style={inputStyle} value={form.craft_techniques_used || ''} onChange={e => set({ craft_techniques_used: e.target.value })} placeholder="e.g. Hand block print, Shibori, Kantha embroidery, Ajrakh" /></div>
+        <div style={{ marginBottom: 12 }}><label style={S.label}>Sustainability Parameters</label><input style={inputStyle} value={form.sustainability_parameters || ''} onChange={e => set({ sustainability_parameters: e.target.value })} placeholder="e.g. Natural dyes only, Cutting waste upcycled, Rain-fed cotton" /></div>
+        <div style={{ marginBottom: 14 }}><label style={S.label}>Care Instructions</label><input style={inputStyle} value={form.care_instructions || ''} onChange={e => set({ care_instructions: e.target.value })} placeholder="e.g. Hand wash cold, dry in shade, do not wring" /></div>
 
-        <div><FieldLabel>Client</FieldLabel><ClientTypeRadio value={form.client_type} onChange={v => set('client_type', v)} /></div>
-        {form.client_type === 'named' && (
-          <div><FieldLabel>Brand / Buyer Name</FieldLabel><input style={inputStyle} value={form.client_name} onChange={e => set('client_name', e.target.value)} placeholder="e.g. Doodlage" /></div>
-        )}
-        {form.client_type === 'anon' && (
-          <div style={{ fontSize: 12, color: '#888', padding: '8px 12px', background: '#F5F3EF', borderRadius: 5, lineHeight: 1.6 }}>Client name will not appear on your profile. The project will be listed as a collaboration without naming the brand.</div>
-        )}
-
-        <div><FieldLabel>Fabrics Used</FieldLabel><input style={inputStyle} value={form.fabrics_used} onChange={e => set('fabrics_used', e.target.value)} placeholder="e.g. Linen blend, organic cotton" /></div>
-        <div><FieldLabel>Techniques Used</FieldLabel><input style={inputStyle} value={form.techniques_used} onChange={e => set('techniques_used', e.target.value)} placeholder="e.g. Natural dye, appliqué, crochet detailing" /></div>
-        <div><FieldLabel>About This Project</FieldLabel><textarea style={textareaStyle} rows={3} value={form.about} onChange={e => set('about', e.target.value)} placeholder="What was the brief? What did you create? What made it notable?" /></div>
-
-        <div>
-          <FieldLabel>Photos &amp; Videos</FieldLabel>
-          {photoFiles.length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <label style={S.label}>Photos</label>
+          {(existingPhotos.length > 0 || photoFiles.length > 0) && (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+              {existingPhotos.map(p => (
+                <div key={p.id} style={{ width: 64, height: 64, borderRadius: 4, overflow: 'hidden', border: '1px solid #E4E0DB' }}>
+                  <img src={mediaUrl(p.thumbnail || p.file)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
+                </div>
+              ))}
               {photoFiles.map((p, i) => (
-                <div key={i} style={{ width: 64, height: 64, borderRadius: 4, overflow: 'hidden', position: 'relative', border: '1px solid #E4E0DB', flexShrink: 0 }}>
-                  {p.file.type?.startsWith('video/') ? (
-                    <div style={{ width: '100%', height: '100%', background: '#1A1A1A', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 18 }}>▶</div>
-                  ) : (
-                    <img src={p.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  )}
-                  <button onClick={() => removeLocalPhoto(i)} style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: 3, width: 16, height: 16, fontSize: 11, cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>×</button>
+                <div key={i} style={{ width: 64, height: 64, borderRadius: 4, overflow: 'hidden', position: 'relative', border: '1px solid #E4E0DB' }}>
+                  <img src={p.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button onClick={() => rmLocal(i)} style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: 3, width: 16, height: 16, fontSize: 11, cursor: 'pointer', lineHeight: 1 }}>×</button>
                 </div>
               ))}
             </div>
           )}
-          <label style={{ display: 'block', border: '1px dashed #C8C4BF', borderRadius: 6, padding: 20, textAlign: 'center', cursor: 'pointer', background: '#FAFAF8' }}>
-            <div style={{ fontSize: 20, color: '#CCC', marginBottom: 4 }}>🎬</div>
-            <div style={{ fontSize: 13, color: '#888' }}>Upload photos &amp; videos</div>
-            <div style={{ fontSize: 11, color: '#BBBBBB', marginTop: 2 }}>Images: JPG · PNG · WEBP up to 10 MB · Videos: MP4 · MOV · AVI up to 100 MB</div>
-            <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/x-msvideo" multiple style={{ display: 'none' }} onChange={handlePhotoSelect} />
+          <label style={{ display: 'block', border: '1px dashed #C8C4BF', borderRadius: 6, padding: 18, textAlign: 'center', cursor: 'pointer' }}>
+            <div style={{ fontSize: 18, color: '#CCC' }}>📸</div>
+            <div style={{ fontSize: 13, color: '#888' }}>Upload product photos</div>
+            <div style={{ fontSize: 11, color: '#BBB', marginTop: 4 }}>JPG · PNG · WEBP · up to 10 MB each · multiple allowed</div>
+            <input type="file" accept="image/jpeg,image/png,image/webp" multiple style={{ display: 'none' }} onChange={pickPhotos} />
           </label>
         </div>
 
-        {/* Open for Collaboration — green callout */}
-        <div style={{ background: '#F2F6F0', border: '1px solid #C8D9C4', borderRadius: 8, padding: '12px 14px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-          <div style={{ marginTop: 2, flexShrink: 0 }}><CollabToggle checked={form.open_for_collab} onChange={v => set('open_for_collab', v)} /></div>
+        <div style={S.greenBox}>
+          <div style={{ marginTop: 2 }}><CollabToggle checked={!!form.open_for_collab} onChange={v => set({ open_for_collab: v })} /></div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#3A6B3A', marginBottom: 4 }}>Open for Collaboration</div>
-            <div style={{ fontSize: 11, color: '#666', lineHeight: 1.5 }}>Buyers can select products from your catalogue and request their own version — adapted to their fabrics, colours, or silhouettes. Turning this on adds it to your Catalogue Collaboration offering.</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#3A6B3A', marginBottom: 2 }}>Open for Collaboration</div>
+            <div style={{ fontSize: 11, color: '#666', lineHeight: 1.5 }}>Buyers can request their own version of this piece — adapted to their fabrics, colours, or silhouettes.</div>
           </div>
         </div>
-
-        {/* Hide toggle */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-          <div style={{ marginTop: 2, flexShrink: 0 }}><HideToggle checked={form.is_hidden} onChange={v => set('is_hidden', v)} /></div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16 }}>
+          <div style={{ marginTop: 2 }}><HideToggle checked={!!form.is_hidden} onChange={v => set({ is_hidden: v })} /></div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 500, color: '#555' }}>Hide this project from public profile</div>
-            <div style={{ fontSize: 11, color: '#888', marginTop: 3, lineHeight: 1.5 }}>Hidden projects won't appear on your public profile. You can share them directly with specific buyers you choose.</div>
+            <div style={{ fontSize: 12, color: '#555' }}>Hide from public profile</div>
+            <div style={{ fontSize: 11, color: '#AAA', marginTop: 4, lineHeight: 1.4 }}>Share directly with specific buyers instead.</div>
           </div>
         </div>
-
-        <div style={{ display: 'flex', gap: 10, paddingTop: 4 }}>
-          <button onClick={handleSave} disabled={!form.name.trim() || saving} className="btn btn-primary">{saving ? 'Saving…' : 'Save Project'}</button>
-          <button onClick={onCancel} className="btn btn-ghost">Cancel</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-primary" onClick={submit} disabled={!form.name.trim() || saving}>{saving ? 'Saving…' : 'Save Product'}</button>
+          <button className="btn btn-ghost" onClick={onCancel}>Cancel</button>
         </div>
       </div>
     </div>
   );
 }
 
+/* ── Bulk import zone ─────────────────────────────────────────────────────── */
+function BulkZone({ onImport, onDownloadTemplate, onCancel }) {
+  const [busy, setBusy] = useState(false);
+  const inputRef = useRef(null);
+  const handle = async e => {
+    const file = e.target.files?.[0]; e.target.value = '';
+    if (!file) return;
+    setBusy(true);
+    try { await onImport(file); } finally { setBusy(false); }
+  };
+  return (
+    <div onClick={() => !busy && inputRef.current?.click()}
+      style={{ border: '2px dashed #C8D9C4', borderRadius: 10, background: '#F4F7F3', padding: '32px 24px', textAlign: 'center', cursor: busy ? 'default' : 'pointer', marginBottom: 14 }}>
+      <input ref={inputRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={handle} disabled={busy} />
+      <div style={{ fontSize: 28, marginBottom: 10 }}>📋</div>
+      <div style={{ fontSize: 14, fontWeight: 600, color: '#3A6B3A', marginBottom: 4 }}>{busy ? 'Importing…' : 'Upload your product list'}</div>
+      <div style={{ fontSize: 12, color: '#777', marginBottom: 14 }}>Drop an Excel or CSV file here, or click to browse</div>
+      <div style={{ fontSize: 10, color: '#AAA', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em' }}>Expected columns</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, justifyContent: 'center' }}>
+        {BULK_COLUMNS.map(c => (
+          <span key={c.label} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 5, background: c.req ? '#FEF0EC' : '#fff', border: `1px solid ${c.req ? '#F0C8B0' : '#D8D4CF'}`, color: c.req ? '#C06818' : '#777', opacity: c.faded ? 0.5 : 1 }}>{c.label}</span>
+        ))}
+      </div>
+      <div style={{ marginTop: 14, display: 'flex', gap: 8, justifyContent: 'center' }}>
+        <button type="button" className="btn btn-ghost" style={{ fontSize: 12, padding: '7px 14px' }} onClick={e => { e.stopPropagation(); onDownloadTemplate?.(); }}>Download template</button>
+        <button className="btn btn-ghost" style={{ fontSize: 12, padding: '7px 14px', color: '#888' }} onClick={e => { e.stopPropagation(); onCancel(); }}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Product grid card ────────────────────────────────────────────────────── */
+function ProductCard({ product, collectionName, onEdit, onDelete }) {
+  const [hover, setHover] = useState(false);
+  const photo = (product.photos || [])[0];
+  const extraTags = [product.fabrics_used, product.craft_techniques_used].filter(Boolean).slice(0, 2);
+  return (
+    <div onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{ border: '1px solid #E4E0DB', borderRadius: 10, overflow: 'hidden', background: '#fff', position: 'relative', boxShadow: hover ? '0 4px 16px rgba(0,0,0,.1)' : 'none', opacity: product.is_hidden ? 0.7 : 1 }}>
+      <div style={{ height: 110, position: 'relative', overflow: 'hidden', background: photo ? '#F0EDE8' : tintFor(product.id) }}>
+        {photo && <img src={mediaUrl(photo.thumbnail || photo.file)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />}
+        <div style={{ position: 'absolute', inset: 0, background: hover ? 'rgba(0,0,0,.05)' : 'transparent', display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start', padding: 7, gap: 4, opacity: hover ? 1 : 0, transition: 'opacity .15s' }}>
+          <button onClick={onEdit} style={{ background: 'rgba(255,255,255,.95)', border: '1px solid rgba(0,0,0,.1)', borderRadius: 5, padding: '3px 8px', fontSize: 10, cursor: 'pointer', color: '#555' }}>Edit</button>
+          <button onClick={onDelete} style={{ background: 'rgba(255,255,255,.95)', border: '1px solid rgba(0,0,0,.1)', borderRadius: 5, padding: '3px 8px', fontSize: 10, cursor: 'pointer', color: '#C0392B' }}>×</button>
+        </div>
+      </div>
+      <div style={{ padding: '10px 12px 12px' }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: '#1A1A1A', lineHeight: 1.3, marginBottom: 2 }}>{product.name || 'Untitled product'}</div>
+        <div style={{ fontSize: 10, color: '#999', marginBottom: 7 }}>{[product.garment_type, product.gender].filter(Boolean).join(' · ') || '—'}</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+          <span style={collectionName ? S.ptagColl : S.ptagNone}>{collectionName || 'No collection'}</span>
+          {extraTags.map((t, i) => <span key={i} style={S.ptag}>{t}</span>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Collection create / edit form ───────────────────────────────────────── */
+function CollectionForm({ initial, products, onSave, onCancel }) {
+  const [form, setForm] = useState(initial || { name: '', about: '', is_hidden: false, open_for_collab: false, product_ids: [] });
+  const [saving, setSaving] = useState(false);
+  const ids = new Set(form.product_ids);
+  const toggle = id => setForm(f => {
+    const next = new Set(f.product_ids);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return { ...f, product_ids: [...next] };
+  });
+  const submit = async () => {
+    if (!form.name.trim()) return;
+    setSaving(true);
+    try { await onSave(form); } finally { setSaving(false); }
+  };
+  return (
+    <div style={S.form}>
+      <div style={S.formHead}>
+        <div style={S.formTitle}>{initial?.id ? 'Edit Collection' : 'New Collection'}</div>
+        <XClose onClick={onCancel} />
+      </div>
+      <div style={S.formBody}>
+        <div style={{ marginBottom: 12 }}><label style={S.label}>Collection Name *</label><input style={inputStyle} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Colour Studies SS23, Festive Capsule" /></div>
+        <div style={{ marginBottom: 16 }}><label style={S.label}>About <span style={{ color: '#BBB', fontWeight: 400 }}>(optional)</span></label><textarea rows={2} style={textareaStyle} value={form.about || ''} onChange={e => setForm(f => ({ ...f, about: e.target.value }))} placeholder="What was the theme or brief behind this collection?" /></div>
+
+        <div style={{ borderTop: '1px solid #F0EDE8', paddingTop: 16, marginBottom: 16 }}>
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#1A1A1A' }}>Pick products for this collection</div>
+            <div style={{ fontSize: 11, color: '#AAA', marginTop: 2 }}>Select from your product library. <span style={{ color: '#7A8C6E', fontWeight: 500 }}>{form.product_ids.length} selected</span></div>
+          </div>
+          {products.length === 0 ? (
+            <div style={{ fontSize: 12, color: '#AAA', fontStyle: 'italic' }}>Add a product first, then group it here.</div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(130px,1fr))', gap: 8 }}>
+              {products.map(p => {
+                const sel = ids.has(p.id);
+                const photo = (p.photos || [])[0];
+                return (
+                  <div key={p.id} onClick={() => toggle(p.id)}
+                    style={{ border: `2px solid ${sel ? '#7A8C6E' : '#E4E0DB'}`, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', position: 'relative', background: sel ? '#F4F7F3' : '#fff' }}>
+                    <div style={{ height: 72, background: photo ? '#F0EDE8' : tintFor(p.id) }}>
+                      {photo && <img src={mediaUrl(photo.thumbnail || photo.file)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />}
+                    </div>
+                    <div style={{ padding: '7px 9px 9px' }}>
+                      <div style={{ fontSize: 11, fontWeight: 500, color: '#1A1A1A', lineHeight: 1.3 }}>{p.name || 'Untitled'}</div>
+                      <div style={{ fontSize: 9, color: '#AAA', marginTop: 2 }}>{[p.garment_type, p.gender].filter(Boolean).join(' · ') || '—'}</div>
+                    </div>
+                    <div style={{ position: 'absolute', top: 5, right: 5, width: 18, height: 18, borderRadius: '50%', border: `2px solid ${sel ? '#7A8C6E' : '#D8D4CF'}`, background: sel ? '#7A8C6E' : '#fff', color: sel ? '#fff' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>✓</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div style={S.greenBox}>
+          <div style={{ marginTop: 2 }}><CollabToggle checked={!!form.open_for_collab} onChange={v => setForm(f => ({ ...f, open_for_collab: v }))} /></div>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#3A6B3A', marginBottom: 2 }}>Open for Collaboration</div>
+            <div style={{ fontSize: 11, color: '#666', lineHeight: 1.5 }}>Buyers can request their own version of pieces in this collection.</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16 }}>
+          <div style={{ marginTop: 2 }}><HideToggle checked={!!form.is_hidden} onChange={v => setForm(f => ({ ...f, is_hidden: v }))} /></div>
+          <div>
+            <div style={{ fontSize: 12, color: '#555' }}>Hide from public profile</div>
+            <div style={{ fontSize: 11, color: '#AAA', marginTop: 4, lineHeight: 1.4 }}>Share directly with specific buyers instead.</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-primary" onClick={submit} disabled={!form.name.trim() || saving}>{saving ? 'Saving…' : 'Save Collection'}</button>
+          <button className="btn btn-ghost" onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Collection card ─────────────────────────────────────────────────────── */
+function CollectionCard({ collection, onPatch, onEdit, onDelete, onViewProducts }) {
+  const members = collection.products || [];
+  return (
+    <div style={{ border: '1px solid #E4E0DB', borderRadius: 10, background: '#fff', marginBottom: 12, overflow: 'hidden', opacity: collection.is_hidden ? 0.65 : 1 }}>
+      <div style={{ padding: '13px 16px', borderBottom: '1px solid #F5F3EF', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#1A1A1A', display: 'flex', alignItems: 'center', gap: 8 }}>
+            {collection.name || 'Untitled collection'}
+            {collection.is_hidden && <span style={S.hiddenBadge}>🔒 Hidden</span>}
+          </div>
+          <div style={{ fontSize: 11, color: '#AAA', marginTop: 2 }}>{members.length} product{members.length === 1 ? '' : 's'}</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {!collection.is_hidden && <CollabToggle checked={!!collection.open_for_collab} onChange={v => onPatch({ open_for_collab: v })} label="Open for Collab" />}
+          <HideToggle checked={!!collection.is_hidden} onChange={v => onPatch({ is_hidden: v })} label="Hide" />
+          <button className="btn btn-ghost" style={{ padding: '5px 12px', fontSize: 11 }} onClick={onEdit}>Edit</button>
+          <button aria-label="Delete collection" onClick={onDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C0392B', padding: '4px 6px', display: 'inline-flex' }}><TrashSvg /></button>
+        </div>
+      </div>
+      {collection.is_hidden ? (
+        <div style={{ padding: '10px 16px 14px', fontSize: 12, color: '#888', fontStyle: 'italic' }}>Collection is hidden. Products still in your library.</div>
+      ) : (
+        <>
+          {collection.about && <div style={{ fontSize: 11, color: '#888', padding: '0 16px 12px', lineHeight: 1.5 }}>{collection.about}</div>}
+          <div style={{ padding: '12px 16px', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            {members.slice(0, 4).map(p => {
+              const photo = (p.photos || [])[0];
+              return <div key={p.id} style={{ width: 56, height: 56, borderRadius: 6, background: photo ? '#F0EDE8' : tintFor(p.id), overflow: 'hidden', flexShrink: 0 }}>
+                {photo && <img src={mediaUrl(photo.thumbnail || photo.file)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />}
+              </div>;
+            })}
+            {members.length > 0
+              ? <button onClick={onViewProducts} style={{ background: 'none', border: 'none', color: '#7A8C6E', fontSize: 11, cursor: 'pointer', paddingLeft: 6 }}>View all {members.length} product{members.length === 1 ? '' : 's'} →</button>
+              : <span style={{ fontSize: 11, color: '#BBB', fontStyle: 'italic' }}>No products yet — Edit to add some.</span>}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ── Section ─────────────────────────────────────────────────────────────── */
 export default function SectionG({ profileId, initialData, onSave, onNext }) {
   const { toasts, success, error } = useToast();
-  const [projects, setProjects] = useState([]);
-  const [adding, setAdding]     = useState(false);
-  const [saving, setSaving]     = useState(false);
+  const [products, setProducts]       = useState([]);
+  const [collections, setCollections] = useState([]);
+  const [tab, setTab]                 = useState('products');
+  const [prodMode, setProdMode]       = useState(null);   // 'single' | 'bulk' | null
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [collFormOpen, setCollFormOpen]     = useState(false);
+  const [editingCollection, setEditingCollection] = useState(null);
+  const [ddOpen, setDdOpen]           = useState(false);
+  const [saving, setSaving]           = useState(false);
+  const [busy, setBusy]               = useState(false);
+  const pending = useRef(0);
+  const ddRef = useRef(null);
 
-  useEffect(() => { if (initialData) setProjects(initialData || []); }, [initialData]);
+  // Wrap any persisting action so the footer indicator shows live save state.
+  const track = async fn => {
+    pending.current += 1; setBusy(true);
+    try { return await fn(); }
+    finally { pending.current -= 1; if (pending.current <= 0) { pending.current = 0; setBusy(false); } }
+  };
+
+  useEffect(() => {
+    if (!initialData) return;
+    if (initialData.studio_products)    setProducts(initialData.studio_products);
+    if (initialData.studio_collections) setCollections(initialData.studio_collections);
+  }, [initialData]);
 
   useEffect(() => {
     if (!profileId || initialData) return;
-    API.getProjects(profileId).then(r => setProjects(r.data || [])).catch(() => {});
+    API.getStudioProducts(profileId).then(r => setProducts(r.data || [])).catch(() => {});
+    API.getCollections(profileId).then(r => setCollections(r.data || [])).catch(() => {});
   }, [profileId]);
 
-  const patchProject = async (idx, patch) => {
-    setProjects(prev => prev.map((p, i) => i === idx ? { ...p, ...patch } : p));
-    const project = projects[idx];
-    if (project?.id) { try { await API.patchProject(profileId, project.id, patch); } catch {} }
-  };
+  useEffect(() => {
+    if (!ddOpen) return;
+    const h = e => { if (ddRef.current && !ddRef.current.contains(e.target)) setDdOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [ddOpen]);
 
-  const deleteProject = async idx => {
-    const project = projects[idx];
-    if (project.id) { try { await API.delProject(profileId, project.id); } catch {} }
-    setProjects(prev => prev.filter((_, i) => i !== idx));
-  };
+  const collectionNameFor = useMemo(() => {
+    const m = {};
+    collections.forEach(c => (c.products || []).forEach(p => { if (!m[p.id]) m[p.id] = c.name; }));
+    return m;
+  }, [collections]);
 
-  const uploadPhoto = async (idx, e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-    e.target.value = '';
-    const project = projects[idx];
-    if (!project.id) { error('Save the project first before adding photos'); return; }
-    for (const file of files) {
-      try {
-        const fd = new FormData(); fd.append('file', file);
-        const r = await API.uploadProjectPhoto(profileId, project.id, fd);
-        setProjects(prev => prev.map((p, i) => i === idx ? { ...p, photos: [...(p.photos || []), r.data] } : p));
-      } catch { error('Photo upload failed'); }
-    }
-  };
-
-  const deletePhoto = async (idx, photoId) => {
-    const project = projects[idx];
+  // ── Products ──
+  const addProduct = (form, photoFiles) => track(async () => {
     try {
-      await API.delProjectPhoto(profileId, project.id, photoId);
-      setProjects(prev => prev.map((p, i) => i === idx ? { ...p, photos: p.photos.filter(ph => ph.id !== photoId) } : p));
-    } catch { error('Failed to remove photo'); }
-  };
-
-  const handleAddSave = async (form, photoFiles) => {
-    if (!form.name?.trim()) { error('Project name is required'); return; }
-    try {
-      const r = await API.addProject(profileId, form);
-      const saved = r.data;
+      const r = await API.addStudioProduct(profileId, form);
+      let saved = r.data;
       const uploaded = [];
       for (const file of photoFiles) {
-        try { const fd = new FormData(); fd.append('file', file); const pr = await API.uploadProjectPhoto(profileId, saved.id, fd); uploaded.push(pr.data); } catch {}
+        try { const fd = new FormData(); fd.append('file', file); const pr = await API.uploadProductPhoto(profileId, saved.id, fd); uploaded.push(pr.data); } catch {}
       }
-      setProjects(prev => [...prev, { ...saved, photos: uploaded }]);
-      setAdding(false); success('Project saved');
-    } catch { error('Failed to save project'); }
+      setProducts(prev => [...prev, { ...saved, photos: uploaded }]);
+      setProdMode(null); success('Product added');
+    } catch { error('Failed to save product'); }
+  });
+  const saveEditedProduct = (form, photoFiles) => track(async () => {
+    try {
+      const { photos, id, ...body } = form;
+      const r = await API.patchStudioProduct(profileId, id, body);
+      let updated = r.data;
+      const uploaded = [];
+      for (const file of photoFiles) {
+        try { const fd = new FormData(); fd.append('file', file); const pr = await API.uploadProductPhoto(profileId, id, fd); uploaded.push(pr.data); } catch {}
+      }
+      setProducts(prev => prev.map(p => p.id === id ? { ...updated, photos: [...(photos || []), ...uploaded] } : p));
+      setEditingProduct(null); success('Product updated');
+    } catch { error('Failed to update product'); }
+  });
+  const deleteProduct = id => track(async () => {
+    try { await API.delStudioProduct(profileId, id); } catch { error('Failed to delete product'); return; }
+    setProducts(prev => prev.filter(p => p.id !== id));
+    setCollections(prev => prev.map(c => ({ ...c, products: (c.products || []).filter(p => p.id !== id) })));
+  });
+  const bulkImport = file => track(async () => {
+    try {
+      const fd = new FormData(); fd.append('file', file);
+      const r = await API.bulkImportProducts(profileId, fd);
+      const created = r.data?.products || [];
+      setProducts(prev => [...prev, ...created]);
+      setProdMode(null); success(`Imported ${r.data?.created ?? created.length} product${created.length === 1 ? '' : 's'}`);
+    } catch (e) { error(e.response?.data?.error || 'Import failed'); }
+  });
+  const downloadTemplate = async () => {
+    try {
+      const r = await API.downloadProductTemplate(profileId);
+      const url = URL.createObjectURL(new Blob([r.data], { type: 'text/csv' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = 'qala-product-template.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    } catch { error('Could not download template'); }
   };
+
+  // ── Collections ──
+  const saveCollection = form => track(async () => {
+    try {
+      if (form.id) {
+        const r = await API.patchCollection(profileId, form.id, form);
+        setCollections(prev => prev.map(c => c.id === form.id ? r.data : c));
+        setEditingCollection(null); success('Collection updated');
+      } else {
+        const r = await API.addCollection(profileId, form);
+        setCollections(prev => [...prev, r.data]);
+        setCollFormOpen(false); success('Collection created');
+      }
+    } catch { error('Failed to save collection'); }
+  });
+  const patchCollection = (id, patch) => track(async () => {
+    setCollections(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c));
+    try { const r = await API.patchCollection(profileId, id, patch); setCollections(prev => prev.map(c => c.id === id ? r.data : c)); }
+    catch { error('Failed to save change'); }
+  });
+  const deleteCollection = id => track(async () => {
+    try { await API.delCollection(profileId, id); } catch { error('Failed to delete collection'); return; }
+    setCollections(prev => prev.filter(c => c.id !== id));
+  });
 
   const finish = async (andNext = false) => {
     setSaving(true);
@@ -313,33 +463,110 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
     finally { setSaving(false); }
   };
 
+  const tabBtn = (key, label, count) => (
+    <button onClick={() => { setTab(key); setDdOpen(false); }}
+      style={{ background: tab === key ? '#fff' : 'transparent', border: 'none', padding: '7px 20px', borderRadius: 6, fontSize: 13, cursor: 'pointer', color: tab === key ? '#1A1A1A' : '#888', fontWeight: 500, boxShadow: tab === key ? '0 1px 4px rgba(0,0,0,.1)' : 'none', whiteSpace: 'nowrap' }}>
+      {label}
+      <span style={{ fontSize: 10, background: tab === key ? '#EEF3EC' : '#E4E0DB', color: tab === key ? '#4A7C4A' : '#777', borderRadius: 8, padding: '1px 6px', marginLeft: 4 }}>{count}</span>
+    </button>
+  );
+
   return (
     <div style={{ padding: '40px 48px 80px', maxWidth: 760 }}>
       <Toast toasts={toasts} />
-      <SectionHeader letter="G" title="Past Projects"
-        desc="Walk buyers through your work — collections, collaborations, and any past work you're proud of. Add photos and short videos; this is what serious buyers read carefully." />
+      <SectionHeader letter="G" title="Past Work"
+        desc="Build your product library — every piece your studio has made. Then group them into collections to give buyers context. Start by adding products, then organise as you go." />
 
-      {projects.map((project, idx) => (
-        <ProjectCard
-          key={project.id || idx}
-          project={project}
-          onPatch={patch => patchProject(idx, patch)}
-          onDelete={() => deleteProject(idx)}
-          onUploadPhoto={e => uploadPhoto(idx, e)}
-          onDeletePhoto={photoId => deletePhoto(idx, photoId)}
-        />
-      ))}
+      {/* Top bar: tabs + primary action */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', background: '#F5F3EF', borderRadius: 8, padding: 3, gap: 2 }}>
+          {tabBtn('products', 'Products', products.length)}
+          {tabBtn('collections', 'Collections', collections.length)}
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 'auto', flexWrap: 'wrap' }}>
+          {tab === 'products' ? (
+            <div ref={ddRef} style={{ position: 'relative' }}>
+              <button className="btn btn-primary" onClick={() => setDdOpen(o => !o)}>+ Add Product ▾</button>
+              {ddOpen && (
+                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, background: '#fff', border: '1px solid #D8D4CF', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,.14)', minWidth: 230, zIndex: 200, overflow: 'hidden' }}>
+                  <div onClick={() => { setProdMode('single'); setEditingProduct(null); setDdOpen(false); }} style={{ padding: '11px 14px', cursor: 'pointer', display: 'flex', gap: 11, alignItems: 'flex-start' }}>
+                    <div style={{ fontSize: 18 }}>✏️</div>
+                    <div><div style={{ fontSize: 12, fontWeight: 600, color: '#1A1A1A' }}>Add one product</div><div style={{ fontSize: 10, color: '#AAA', marginTop: 2, lineHeight: 1.4 }}>Fill in a quick form — name, type, fabrics, photos</div></div>
+                  </div>
+                  <div style={{ height: 1, background: '#F0EDE8' }} />
+                  <div onClick={() => { setProdMode('bulk'); setDdOpen(false); }} style={{ padding: '11px 14px', cursor: 'pointer', display: 'flex', gap: 11, alignItems: 'flex-start' }}>
+                    <div style={{ fontSize: 18 }}>📋</div>
+                    <div><div style={{ fontSize: 12, fontWeight: 600, color: '#1A1A1A' }}>Import via Excel</div><div style={{ fontSize: 10, color: '#AAA', marginTop: 2, lineHeight: 1.4 }}>Add many products at once from a spreadsheet</div></div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button className="btn btn-primary" onClick={() => { setEditingCollection(null); setCollFormOpen(true); }}>+ Create Collection</button>
+          )}
+        </div>
+      </div>
 
-      {adding ? (
-        <AddProjectForm onSave={handleAddSave} onCancel={() => setAdding(false)} />
-      ) : (
-        <button onClick={() => setAdding(true)}
-          style={{ width: '100%', padding: 14, marginBottom: 20, border: '1px dashed #D97520', borderRadius: 10, background: 'transparent', cursor: 'pointer', fontSize: 13, fontWeight: 500, color: '#D97520', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-          + Add New Project
-        </button>
+      {/* ══ PRODUCTS VIEW ══ */}
+      {tab === 'products' && (
+        <div>
+          {editingProduct
+            ? <ProductForm initial={editingProduct} onSave={saveEditedProduct} onCancel={() => setEditingProduct(null)} />
+            : prodMode === 'single' && <ProductForm onSave={addProduct} onCancel={() => setProdMode(null)} />}
+          {prodMode === 'bulk' && !editingProduct && <BulkZone onImport={bulkImport} onDownloadTemplate={downloadTemplate} onCancel={() => setProdMode(null)} />}
+
+          {products.length === 0 && !prodMode && !editingProduct ? (
+            <div style={{ border: '1px dashed #D8D4CF', borderRadius: 10, padding: '32px', textAlign: 'center', color: '#AAA', fontSize: 13 }}>
+              No products yet. Use <strong style={{ color: '#D97520' }}>+ Add Product</strong> to start your library.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12, marginBottom: 16 }}>
+              {products.map(p => (
+                <ProductCard key={p.id} product={p} collectionName={collectionNameFor[p.id]}
+                  onEdit={() => { setProdMode(null); setEditingProduct(p); }}
+                  onDelete={() => deleteProduct(p.id)} />
+              ))}
+            </div>
+          )}
+
+          {products.length > 0 && (
+            <div style={{ fontSize: 11, color: '#AAA', textAlign: 'center', padding: '8px 0' }}>
+              {products.length} product{products.length === 1 ? '' : 's'} &nbsp;·&nbsp;
+              <button onClick={() => { setEditingProduct(null); setProdMode('single'); }} style={{ background: 'none', border: 'none', color: '#7A8C6E', cursor: 'pointer', fontSize: 11, padding: 0 }}>+ Add product</button>
+            </div>
+          )}
+        </div>
       )}
 
-      <SectionFooter onNext={() => finish(true)} saving={saving} />
+      {/* ══ COLLECTIONS VIEW ══ */}
+      {tab === 'collections' && (
+        <div>
+          <div style={{ fontSize: 12, color: '#AAA', marginBottom: 16, lineHeight: 1.6 }}>
+            Collections are how you present your work — group related products together to give buyers context. A product can belong to more than one collection.
+          </div>
+
+          {editingCollection
+            ? <CollectionForm initial={editingCollection} products={products} onSave={saveCollection} onCancel={() => setEditingCollection(null)} />
+            : collFormOpen && <CollectionForm products={products} onSave={saveCollection} onCancel={() => setCollFormOpen(false)} />}
+
+          {collections.map(c => (
+            <CollectionCard key={c.id} collection={c}
+              onPatch={patch => patchCollection(c.id, patch)}
+              onEdit={() => { setCollFormOpen(false); setEditingCollection({ ...c, product_ids: (c.products || []).map(p => p.id) }); }}
+              onDelete={() => deleteCollection(c.id)}
+              onViewProducts={() => setTab('products')} />
+          ))}
+
+          {!collFormOpen && !editingCollection && (
+            <button onClick={() => { setEditingCollection(null); setCollFormOpen(true); }}
+              style={{ width: '100%', padding: 14, border: '2px dashed #D8D4CF', borderRadius: 10, background: 'transparent', fontSize: 13, color: '#999', cursor: 'pointer' }}>
+              {collections.length ? '+ Create another collection' : '+ Create Collection'}
+            </button>
+          )}
+        </div>
+      )}
+
+      <SectionFooter onNext={() => finish(true)} saving={saving} autoSaving={busy} />
     </div>
   );
 }

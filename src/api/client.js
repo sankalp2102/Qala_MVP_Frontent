@@ -167,6 +167,20 @@ export const onboardingAPI = {
   delProject:         (pid,id) => api.delete(`/api/seller/onboarding/projects/${id}/`, { headers: ph(pid) }),
   uploadProjectPhoto: (pid,projectId,f) => api.post(`/api/seller/onboarding/projects/${projectId}/photos/`, f, { headers: ph(pid) }),
   delProjectPhoto:    (pid,projectId,photoId) => api.delete(`/api/seller/onboarding/projects/${projectId}/photos/${photoId}/`, { headers: ph(pid) }),
+
+  // ── Section G (v6) — product library + collections ──
+  getStudioProducts:  pid => api.get('/api/seller/onboarding/product-library/', { headers: ph(pid) }),
+  addStudioProduct:   (pid,d) => api.post('/api/seller/onboarding/product-library/', d, { headers: ph(pid) }),
+  patchStudioProduct: (pid,id,d) => api.patch(`/api/seller/onboarding/product-library/${id}/`, d, { headers: ph(pid) }),
+  delStudioProduct:   (pid,id) => api.delete(`/api/seller/onboarding/product-library/${id}/`, { headers: ph(pid) }),
+  uploadProductPhoto: (pid,productId,f) => api.post(`/api/seller/onboarding/product-library/${productId}/photos/`, f, { headers: ph(pid) }),
+  delProductPhoto:    (pid,productId,photoId) => api.delete(`/api/seller/onboarding/product-library/${productId}/photos/${photoId}/`, { headers: ph(pid) }),
+  bulkImportProducts: (pid,f) => api.post('/api/seller/onboarding/product-library/bulk-import/', f, { headers: ph(pid) }),
+  downloadProductTemplate: pid => api.get('/api/seller/onboarding/product-library/import-template/', { headers: ph(pid), responseType: 'blob' }),
+  getCollections:     pid => api.get('/api/seller/onboarding/collections/', { headers: ph(pid) }),
+  addCollection:      (pid,d) => api.post('/api/seller/onboarding/collections/', d, { headers: ph(pid) }),
+  patchCollection:    (pid,id,d) => api.patch(`/api/seller/onboarding/collections/${id}/`, d, { headers: ph(pid) }),
+  delCollection:      (pid,id) => api.delete(`/api/seller/onboarding/collections/${id}/`, { headers: ph(pid) }),
   getStudioInquiries: pid => api.get('/api/seller/studio-inquiries/', { headers: ph(pid) }),
 };
 
