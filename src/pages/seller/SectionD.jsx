@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { onboardingAPI } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
@@ -83,6 +83,14 @@ export default function SectionD({ profileId, initialData, onSave, onNext }) {
   const [craftNotes, setCraftNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Hydrate local state from the server exactly ONCE. Re-populating on every
+  // initialData change (e.g. after a refresh triggered by Save/Next) would
+  // overwrite edits typed since the last load — the "data gets erased" bug.
+  const hydrated = useRef(false);
+  // Per-card creation registry: a new craft is POSTed only once even when
+  // autosave and an image upload race to create the same card.
+  const creating = useRef({});
+
   const populateCrafts = (rows) => {
     const grouped = { spinning: [], weaving: [], dyeing: [], printing: [], surface: [] };
     (rows || []).forEach(c => {
@@ -91,12 +99,13 @@ export default function SectionD({ profileId, initialData, onSave, onNext }) {
       else grouped.printing.push(c);
     });
     setCrafts(grouped);
+    hydrated.current = true;
   };
 
-  useEffect(() => { if (initialData) populateCrafts(initialData); }, [initialData]);
+  useEffect(() => { if (initialData && !hydrated.current) populateCrafts(initialData); }, [initialData]);
 
   useEffect(() => {
-    if (!profileId || initialData) return;
+    if (!profileId || hydrated.current || initialData) return;
     API.getCrafts(profileId).then(r => populateCrafts(r.data)).catch(() => {});
   }, [profileId]);
 
@@ -124,57 +133,84 @@ export default function SectionD({ profileId, initialData, onSave, onNext }) {
     setCrafts(prev => ({ ...prev, [type]: prev[type].filter((_, i) => i !== idx) }));
   };
 
+  // Patch a single card matched by a STABLE key (_tempId or id), never by array
+  // index — async write-backs must not depend on position, which can shift while
+  // a request is in flight.
+  const patchCardByKey = (type, { tempId, id }, patch) => {
+    setCrafts(prev => ({
+      ...prev,
+      [type]: prev[type].map(c =>
+        (tempId != null && c._tempId === tempId) || (id != null && c.id === id)
+          ? { ...c, ...patch } : c
+      ),
+    }));
+  };
+
+  // Ensure a craft row exists on the server and return its id. De-duplicated by
+  // _tempId so concurrent callers (autosave + image upload) share ONE POST and
+  // can't create duplicate rows. Only the new id is written back to state — never
+  // the server response over the user's in-progress text.
+  const ensureCraftId = (type, card) => {
+    if (card.id) return Promise.resolve(card.id);
+    const tempId = card._tempId;
+    if (!creating.current[tempId]) {
+      creating.current[tempId] = (async () => {
+        const fd = new FormData();
+        fd.append('craft_name', card.craft_name?.trim() || 'Untitled');
+        fd.append('technique_type', type);
+        if (card.expertise_level) fd.append('expertise_level', card.expertise_level);
+        fd.append('specialization', card.specialization || '');
+        fd.append('is_primary', true);
+        const r = await API.addCraft(profileId, fd);
+        const id = r.data?.id;
+        patchCardByKey(type, { tempId }, { id });   // write back ONLY the id
+        return id;
+      })().finally(() => { delete creating.current[tempId]; });
+    }
+    return creating.current[tempId];
+  };
+
   const uploadImage = async (type, idx, e) => {
     const file = e.target.files?.[0]; if (!file) return;
     e.target.value = '';
     const card = crafts[type][idx];
     try {
-      let saved;
-      if (card.id) {
-        const fd = new FormData(); fd.append('image', file);
-        const r = await API.patchCraft(profileId, card.id, fd); saved = r.data;
-      } else {
-        const fd = new FormData();
-        fd.append('craft_name', card.craft_name || 'Untitled');
-        fd.append('technique_type', type);
-        if (card.expertise_level) fd.append('expertise_level', card.expertise_level);
-        fd.append('specialization', card.specialization || '');
-        fd.append('is_primary', true);
-        fd.append('image', file);
-        const r = await API.addCraft(profileId, fd); saved = r.data;
-      }
-      updateCard(type, idx, { ...saved, _images: [{ url: saved.image }] });
+      // Create the craft once (shared with autosave via ensureCraftId), then
+      // attach the image to that single row — no duplicate craft is created.
+      const id = await ensureCraftId(type, card);
+      const fd = new FormData(); fd.append('image', file);
+      const r = await API.patchCraft(profileId, id, fd);
+      // Update ONLY the image fields, keyed by id/_tempId — never overwrite the
+      // craft_name / specialization the user may still be typing.
+      patchCardByKey(type, { tempId: card._tempId, id }, { id, image: r.data?.image, _images: [{ url: r.data?.image }] });
       success('Image uploaded');
-    } catch { error('Image upload failed'); }
+    } catch { error('Image upload failed — please try again.'); }
   };
 
   const removeImage = async (type, idx) => {
     const card = crafts[type][idx];
-    if (card.id) { try { await API.patchCraft(profileId, card.id, { image: null }); } catch {} }
-    updateCard(type, idx, { image: null, _images: [] });
+    if (card.id) { try { await API.patchCraft(profileId, card.id, { image: null }); } catch { error('Could not remove image — please try again.'); return; } }
+    patchCardByKey(type, { tempId: card._tempId, id: card.id }, { image: null, _images: [] });
   };
 
   const persist = async () => {
-    for (const type of Object.keys(crafts)) {
-      for (let i = 0; i < crafts[type].length; i++) {
-        const card = crafts[type][i];
+    // Snapshot up-front; ids are written back by key, so index shifts during the
+    // async loop are harmless.
+    const snapshot = Object.keys(crafts).map(type => [type, crafts[type]]);
+    for (const [type, list] of snapshot) {
+      for (let i = 0; i < list.length; i++) {
+        const card = list[i];
         if (!card.craft_name?.trim()) continue;
-        if (card.id) {
-          await API.patchCraft(profileId, card.id, {
-            craft_name: card.craft_name, technique_type: type,
-            expertise_level: card.expertise_level, specialization: card.specialization,
-          });
-        } else {
-          const fd = new FormData();
-          fd.append('craft_name', card.craft_name);
-          fd.append('technique_type', type);
-          if (card.expertise_level) fd.append('expertise_level', card.expertise_level);
-          fd.append('specialization', card.specialization || '');
-          fd.append('is_primary', true);
-          fd.append('order', i + 1);
-          const r = await API.addCraft(profileId, fd);
-          updateCard(type, i, r.data);
-        }
+        // Ensure the row exists (de-duplicated), then PATCH its fields. We never
+        // push the server response back into state, so text typed during the
+        // request survives; the next autosave pass reconciles any later edits.
+        const id = card.id || await ensureCraftId(type, card);
+        if (!id) continue;
+        await API.patchCraft(profileId, id, {
+          craft_name: card.craft_name, technique_type: type,
+          expertise_level: card.expertise_level, specialization: card.specialization,
+          order: i + 1,
+        });
       }
     }
     await API.patchStudio(profileId, { craft_notes: craftNotes });

@@ -154,7 +154,9 @@ function StudioCard({ studio, onClick }) {
         }}>
           {[
             studio.location,
-            studio.years_in_operation && `${Math.round(studio.years_in_operation)} yrs`,
+            // years_in_operation stores the 4-digit establishment year (A.3),
+            // so show it directly as "Est. YYYY". Legacy duration rows (< 1900) hidden.
+            studio.years_in_operation >= 1900 && `Est. ${Math.round(studio.years_in_operation)}`,
           ].filter(Boolean).join(' • ')}
         </div>
 

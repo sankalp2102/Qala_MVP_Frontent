@@ -388,11 +388,14 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
       const r = await API.addStudioProduct(profileId, form);
       let saved = r.data;
       const uploaded = [];
+      let failed = 0;
       for (const file of photoFiles) {
-        try { const fd = new FormData(); fd.append('file', file); const pr = await API.uploadProductPhoto(profileId, saved.id, fd); uploaded.push(pr.data); } catch {}
+        try { const fd = new FormData(); fd.append('file', file); const pr = await API.uploadProductPhoto(profileId, saved.id, fd); uploaded.push(pr.data); } catch { failed++; }
       }
       setProducts(prev => [...prev, { ...saved, photos: uploaded }]);
-      setProdMode(null); success('Product added');
+      setProdMode(null);
+      if (failed) error(`Product saved, but ${failed} photo${failed === 1 ? '' : 's'} didn't upload — edit the product to retry.`);
+      else success('Product added');
     } catch { error('Failed to save product'); }
   });
   const saveEditedProduct = (form, photoFiles) => track(async () => {
@@ -401,11 +404,14 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
       const r = await API.patchStudioProduct(profileId, id, body);
       let updated = r.data;
       const uploaded = [];
+      let failed = 0;
       for (const file of photoFiles) {
-        try { const fd = new FormData(); fd.append('file', file); const pr = await API.uploadProductPhoto(profileId, id, fd); uploaded.push(pr.data); } catch {}
+        try { const fd = new FormData(); fd.append('file', file); const pr = await API.uploadProductPhoto(profileId, id, fd); uploaded.push(pr.data); } catch { failed++; }
       }
       setProducts(prev => prev.map(p => p.id === id ? { ...updated, photos: [...(photos || []), ...uploaded] } : p));
-      setEditingProduct(null); success('Product updated');
+      setEditingProduct(null);
+      if (failed) error(`Product updated, but ${failed} photo${failed === 1 ? '' : 's'} didn't upload — try adding ${failed === 1 ? 'it' : 'them'} again.`);
+      else success('Product updated');
     } catch { error('Failed to update product'); }
   });
   const deleteProduct = id => track(async () => {
