@@ -833,6 +833,14 @@ export default function StudioProfile() {
 
   const hasRecognition = s.awards?.length > 0 || certs.length > 0;
 
+  // Sustainability & Ethics — v3: two Qala-authored questions, studio answers.
+  // Fixed labels; render a row only when that answer has content.
+  const sustainRows = [
+    ['How they approach sustainable production', s.sustainability],
+    ['How they take care of their team',         s.team_care],
+  ].filter(([, a]) => a && String(a).trim());
+  const hasSustainability = sustainRows.length > 0;
+
   // Sidebar "at a glance" derived values
   const prod = s.production || {};
   const weeksRange = (min, max, fallback) => {
@@ -1033,6 +1041,22 @@ export default function StudioProfile() {
                     ))}
                   </div>
                 )}
+              </Section>
+            </div>
+          )}
+
+          {/* Sustainability & Ethics — v3: fixed questions, studio-authored answers */}
+          {hasSustainability && (
+            <div className="profile-fade" style={{ marginBottom: 44 }}>
+              <Section title="Sustainability & Ethics">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+                  {sustainRows.map(([label, answer], i) => (
+                    <div key={i}>
+                      <div style={{ fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: 7 }}>{label}</div>
+                      <div style={{ fontSize: 14, color: 'var(--text2)', lineHeight: 1.7, whiteSpace: 'pre-line' }}>{answer}</div>
+                    </div>
+                  ))}
+                </div>
               </Section>
             </div>
           )}
