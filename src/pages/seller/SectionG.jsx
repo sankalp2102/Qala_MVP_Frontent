@@ -24,8 +24,8 @@ const BULK_COLUMNS = [
   { label: 'Product Name', req: true }, { label: 'Garment Type' }, { label: 'Gender' },
   { label: 'Silhouette' }, { label: 'Occasion' }, { label: 'Season' }, { label: 'Fabrics Used' },
   { label: 'Dyes Used' }, { label: 'Craft Techniques' }, { label: 'Sustainability Parameters' },
-  { label: 'Care Instructions' }, { label: 'Image Links' },
-  { label: 'Product Page Link', faded: true }, { label: 'India MRP', faded: true },
+  { label: 'Care Instructions' }, { label: 'Image 1…6' },
+  { label: 'Product Page Link' }, { label: 'Price' }, { label: 'Currency' },
 ];
 
 /* ── shared style atoms (mirrors the prototype's .pw-* CSS) ───────────────── */
@@ -157,14 +157,22 @@ function ProductForm({ initial, onSave, onCancel }) {
 }
 
 /* ── Bulk import zone ─────────────────────────────────────────────────────── */
+const IMPORT_MODES = [
+  { key: 'append',  label: 'Add to library',  hint: 'Keep existing products and add these' },
+  { key: 'update',  label: 'Update matching', hint: 'Update products with the same name, add the rest' },
+  { key: 'replace', label: 'Replace all',     hint: 'Delete existing products first — use for a clean re-import' },
+];
+
 function BulkZone({ onImport, onDownloadTemplate, onCancel }) {
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState('append');
   const inputRef = useRef(null);
   const handle = async e => {
     const file = e.target.files?.[0]; e.target.value = '';
     if (!file) return;
+    if (mode === 'replace' && !window.confirm('This deletes all existing products in your library before importing. Continue?')) return;
     setBusy(true);
-    try { await onImport(file); } finally { setBusy(false); }
+    try { await onImport(file, mode); } finally { setBusy(false); }
   };
   return (
     <div onClick={() => !busy && inputRef.current?.click()}
@@ -173,11 +181,32 @@ function BulkZone({ onImport, onDownloadTemplate, onCancel }) {
       <div style={{ fontSize: 28, marginBottom: 10 }}>📋</div>
       <div style={{ fontSize: 14, fontWeight: 600, color: '#3A6B3A', marginBottom: 4 }}>{busy ? 'Importing…' : 'Upload your product list'}</div>
       <div style={{ fontSize: 12, color: '#777', marginBottom: 14 }}>Drop an Excel or CSV file here, or click to browse</div>
+
+      {/* Import mode — prevents a re-import silently duplicating the library */}
+      <div onClick={e => e.stopPropagation()} style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
+        {IMPORT_MODES.map(m => (
+          <button key={m.key} type="button" title={m.hint} onClick={() => setMode(m.key)}
+            style={{ fontSize: 11, padding: '5px 11px', borderRadius: 6, cursor: 'pointer',
+              border: `1px solid ${mode === m.key ? '#7A8C6E' : '#D8D4CF'}`,
+              background: mode === m.key ? '#EEF3EC' : '#fff',
+              color: mode === m.key ? '#3A6B3A' : '#777', fontWeight: mode === m.key ? 600 : 400 }}>
+            {m.label}
+          </button>
+        ))}
+      </div>
+      <div style={{ fontSize: 10, color: '#999', marginBottom: 12 }}>
+        {IMPORT_MODES.find(m => m.key === mode)?.hint}
+      </div>
+
       <div style={{ fontSize: 10, color: '#AAA', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em' }}>Expected columns</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, justifyContent: 'center' }}>
         {BULK_COLUMNS.map(c => (
           <span key={c.label} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 5, background: c.req ? '#FEF0EC' : '#fff', border: `1px solid ${c.req ? '#F0C8B0' : '#D8D4CF'}`, color: c.req ? '#C06818' : '#777', opacity: c.faded ? 0.5 : 1 }}>{c.label}</span>
         ))}
+      </div>
+      <div style={{ fontSize: 10, color: '#999', marginTop: 10 }}>
+        Column names are matched flexibly — “Fabric”, “Fabrics” and “Fabrics Used” all work.
+        Add <strong>Image 1…6</strong> columns (links or pasted URLs) and we’ll download the photos for you.
       </div>
       <div style={{ marginTop: 14, display: 'flex', gap: 8, justifyContent: 'center' }}>
         <button type="button" className="btn btn-ghost" style={{ fontSize: 12, padding: '7px 14px' }} onClick={e => { e.stopPropagation(); onDownloadTemplate?.(); }}>Download template</button>
@@ -187,20 +216,88 @@ function BulkZone({ onImport, onDownloadTemplate, onCancel }) {
   );
 }
 
+/* ── Image import progress (background queue) ─────────────────────────────── */
+function ImageJobBanner({ job, onRetry }) {
+  if (!job) return null;
+  const done    = job.status === 'completed';
+  const failed  = job.status === 'failed';
+  const queued  = job.status === 'queued';
+  const running = job.status === 'running';
+  if (done && !job.failed) return null;   // fully successful — nothing to report
+  // A job can be retried whenever it failed outright, or finished with failures.
+  // A dispatch failure leaves failed === 0, so don't gate retry on that count.
+  const canRetry = failed || (done && job.failed > 0);
+
+  const tone = failed ? '#C0392B' : done ? '#B5822A' : queued ? '#8A8278' : '#3A6B3A';
+  const bg   = failed ? '#FDF0EE' : done ? '#FEF5E8' : queued ? '#FAFAF8' : '#F4F7F3';
+  const bd   = failed ? '#F0C0B8' : done ? '#F0D4A4' : queued ? '#E4E0DB' : '#C8D9C4';
+
+  return (
+    <div style={{ border: `1px solid ${bd}`, background: bg, borderRadius: 8, padding: '12px 14px', marginBottom: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: tone }}>
+          {queued  && `Queued — waiting for the image worker (${job.total_images} images)`}
+          {running && `Downloading product images… ${job.processed_images}/${job.total_images}`}
+          {done    && `Images finished — ${job.succeeded} added, ${job.failed} could not be downloaded`}
+          {failed  && 'Image download failed'}
+        </div>
+        {canRetry && (
+          <button type="button" className="btn btn-ghost" style={{ fontSize: 11, padding: '5px 12px' }} onClick={onRetry}>
+            Retry failed
+          </button>
+        )}
+      </div>
+      {running && (
+        <div style={{ height: 5, background: '#E4E9E2', borderRadius: 3, marginTop: 9, overflow: 'hidden' }}>
+          <div style={{ width: `${job.progress_percent}%`, height: '100%', background: '#7A8C6E', transition: 'width .4s' }} />
+        </div>
+      )}
+      {(job.errors || []).length > 0 && (
+        <details style={{ marginTop: 8 }}>
+          <summary style={{ fontSize: 11, color: '#777', cursor: 'pointer' }}>
+            View {job.errors.length} problem{job.errors.length === 1 ? '' : 's'}
+          </summary>
+          <div style={{ maxHeight: 150, overflowY: 'auto', marginTop: 6 }}>
+            {job.errors.slice(0, 50).map((e, i) => (
+              <div key={i} style={{ fontSize: 11, color: '#8A8278', padding: '3px 0', borderBottom: '1px solid #EFEBE6' }}>
+                <strong>{e.product || '—'}</strong>: {e.error}
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
+
 /* ── Product grid card ────────────────────────────────────────────────────── */
-function ProductCard({ product, collectionName, onEdit, onDelete }) {
+function ProductCard({ product, collectionName, onEdit, onDelete, selectable = false, selected = false, onToggleSelect }) {
   const [hover, setHover] = useState(false);
   const photo = (product.photos || [])[0];
   const extraTags = [product.fabrics_used, product.craft_techniques_used].filter(Boolean).slice(0, 2);
   return (
     <div onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-      style={{ border: '1px solid #E4E0DB', borderRadius: 10, overflow: 'hidden', background: '#fff', position: 'relative', boxShadow: hover ? '0 4px 16px rgba(0,0,0,.1)' : 'none', opacity: product.is_hidden ? 0.7 : 1 }}>
+      // In select mode the whole card is the hit target — clicking anywhere toggles.
+      onClick={selectable ? onToggleSelect : undefined}
+      style={{ border: `1px solid ${selected ? '#7A8C6E' : '#E4E0DB'}`, borderRadius: 10, overflow: 'hidden', background: '#fff', position: 'relative', boxShadow: selected ? '0 0 0 2px #C8D9C4' : hover ? '0 4px 16px rgba(0,0,0,.1)' : 'none', opacity: product.is_hidden ? 0.7 : 1, cursor: selectable ? 'pointer' : 'default' }}>
       <div style={{ height: 110, position: 'relative', overflow: 'hidden', background: photo ? '#F0EDE8' : tintFor(product.id) }}>
         {photo && <img src={mediaUrl(photo.thumbnail || photo.file)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />}
-        <div style={{ position: 'absolute', inset: 0, background: hover ? 'rgba(0,0,0,.05)' : 'transparent', display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start', padding: 7, gap: 4, opacity: hover ? 1 : 0, transition: 'opacity .15s' }}>
-          <button onClick={onEdit} style={{ background: 'rgba(255,255,255,.95)', border: '1px solid rgba(0,0,0,.1)', borderRadius: 5, padding: '3px 8px', fontSize: 10, cursor: 'pointer', color: '#555' }}>Edit</button>
-          <button onClick={onDelete} style={{ background: 'rgba(255,255,255,.95)', border: '1px solid rgba(0,0,0,.1)', borderRadius: 5, padding: '3px 8px', fontSize: 10, cursor: 'pointer', color: '#C0392B' }}>×</button>
-        </div>
+
+        {selectable && (
+          <div style={{ position: 'absolute', top: 7, left: 7, width: 20, height: 20, borderRadius: 5, border: `1.5px solid ${selected ? '#7A8C6E' : 'rgba(0,0,0,.25)'}`, background: selected ? '#7A8C6E' : 'rgba(255,255,255,.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+            {selected && (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            )}
+          </div>
+        )}
+
+        {/* Edit / delete are hidden in select mode so a stray click can't destroy a row */}
+        {!selectable && (
+          <div style={{ position: 'absolute', inset: 0, background: hover ? 'rgba(0,0,0,.05)' : 'transparent', display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start', padding: 7, gap: 4, opacity: hover ? 1 : 0, transition: 'opacity .15s' }}>
+            <button onClick={onEdit} style={{ background: 'rgba(255,255,255,.95)', border: '1px solid rgba(0,0,0,.1)', borderRadius: 5, padding: '3px 8px', fontSize: 10, cursor: 'pointer', color: '#555' }}>Edit</button>
+            <button onClick={onDelete} style={{ background: 'rgba(255,255,255,.95)', border: '1px solid rgba(0,0,0,.1)', borderRadius: 5, padding: '3px 8px', fontSize: 10, cursor: 'pointer', color: '#C0392B' }}>×</button>
+          </div>
+        )}
       </div>
       <div style={{ padding: '10px 12px 12px' }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: '#1A1A1A', lineHeight: 1.3, marginBottom: 2 }}>{product.name || 'Untitled product'}</div>
@@ -341,6 +438,10 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
   const [collections, setCollections] = useState([]);
   const [tab, setTab]                 = useState('products');
   const [prodMode, setProdMode]       = useState(null);   // 'single' | 'bulk' | null
+  const [imageJob, setImageJob]       = useState(null);   // background image-import progress
+  const pollRef                       = useRef(null);
+  const [selectMode, setSelectMode]   = useState(false);  // bulk-select for deletion
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [editingProduct, setEditingProduct] = useState(null);
   const [collFormOpen, setCollFormOpen]     = useState(false);
   const [editingCollection, setEditingCollection] = useState(null);
@@ -375,6 +476,21 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
     document.addEventListener('mousedown', h);
     return () => document.removeEventListener('mousedown', h);
   }, [ddOpen]);
+
+  // Pick up an image-import job still running from an earlier visit, so progress
+  // survives a page reload. Always clear the interval on unmount.
+  useEffect(() => {
+    if (!profileId) return;
+    API.getImageImportJob(profileId)
+      .then(r => {
+        const job = r.data?.job;
+        if (!job) return;
+        setImageJob(job);
+        if (job.status === 'queued' || job.status === 'running') pollImageJob(job.id);
+      })
+      .catch(() => {});
+    return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
+  }, [profileId]);
 
   const collectionNameFor = useMemo(() => {
     const m = {};
@@ -419,15 +535,92 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
     setProducts(prev => prev.filter(p => p.id !== id));
     setCollections(prev => prev.map(c => ({ ...c, products: (c.products || []).filter(p => p.id !== id) })));
   });
-  const bulkImport = file => track(async () => {
+  /* ── Bulk selection + delete ─────────────────────────────────────────── */
+  const toggleSelect = id => setSelectedIds(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+  const selectAll  = () => setSelectedIds(new Set(products.map(p => p.id)));
+  const clearSel   = () => setSelectedIds(new Set());
+  const exitSelect = () => { setSelectMode(false); clearSel(); };
+
+  const deleteSelected = () => track(async () => {
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+    const all = ids.length === products.length;
+    const msg = all
+      ? `Delete all ${ids.length} products? This also removes their photos and cannot be undone.`
+      : `Delete ${ids.length} selected product${ids.length === 1 ? '' : 's'}? This also removes their photos and cannot be undone.`;
+    if (!window.confirm(msg)) return;
     try {
-      const fd = new FormData(); fd.append('file', file);
+      // One request rather than N — deleting a large library one-by-one is slow
+      // and can half-finish. The backend also clears each photo from storage.
+      const r = await API.bulkDeleteProducts(profileId, all ? { all: true } : { product_ids: ids });
+      const removed = new Set(r.data?.deleted_ids || ids);
+      setProducts(prev => prev.filter(p => !removed.has(p.id)));
+      setCollections(prev => prev.map(c => ({ ...c, products: (c.products || []).filter(p => !removed.has(p.id)) })));
+      exitSelect();
+      success(`Deleted ${r.data?.deleted ?? ids.length} product${(r.data?.deleted ?? ids.length) === 1 ? '' : 's'}`);
+    } catch (e) { error(e.response?.data?.error || 'Could not delete the selected products'); }
+  });
+
+  const bulkImport = (file, mode = 'append') => track(async () => {
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('mode', mode);
       const r = await API.bulkImportProducts(profileId, fd);
-      const created = r.data?.products || [];
-      setProducts(prev => [...prev, ...created]);
-      setProdMode(null); success(`Imported ${r.data?.created ?? created.length} product${created.length === 1 ? '' : 's'}`);
+      const d = r.data || {};
+      const returned = d.products || [];
+
+      // 'replace'/'update' change existing rows, so re-read rather than append.
+      if (mode === 'append') setProducts(prev => [...prev, ...returned]);
+      else {
+        try { const fresh = await API.getStudioProducts(profileId); setProducts(fresh.data || []); }
+        catch { setProducts(returned); }
+      }
+
+      setProdMode(null);
+
+      const bits = [];
+      if (d.created) bits.push(`${d.created} added`);
+      if (d.updated) bits.push(`${d.updated} updated`);
+      if (d.deleted) bits.push(`${d.deleted} replaced`);
+      success(`Import complete — ${bits.join(', ') || 'no changes'}`);
+
+      // Surface skipped columns / bad values instead of failing silently.
+      (d.warnings || []).slice(0, 4).forEach(w => error(w));
+
+      if (d.job) { setImageJob(d.job); pollImageJob(d.job.id); }
     } catch (e) { error(e.response?.data?.error || 'Import failed'); }
   });
+
+  // Poll the background image-import job until it finishes.
+  const pollImageJob = (jobId) => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(async () => {
+      try {
+        const r = await API.getImageImportJob(profileId, jobId);
+        const job = r.data?.job;
+        if (!job) return;
+        setImageJob(job);
+        if (job.status === 'completed' || job.status === 'failed') {
+          clearInterval(pollRef.current); pollRef.current = null;
+          // Photos now exist on the server — refresh so they appear in the grid.
+          try { const fresh = await API.getStudioProducts(profileId); setProducts(fresh.data || []); } catch { /* non-fatal */ }
+        }
+      } catch { /* transient — keep polling */ }
+    }, 3000);
+  };
+
+  const retryImages = async () => {
+    try {
+      const r = await API.retryImageImport(profileId);
+      if (r.data?.job) { setImageJob(r.data.job); pollImageJob(r.data.job.id); success('Retrying image download'); }
+      else success(r.data?.message || 'No images pending');
+    } catch { error('Could not start retry'); }
+  };
   const downloadTemplate = async () => {
     try {
       const r = await API.downloadProductTemplate(profileId);
@@ -519,6 +712,7 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
           {editingProduct
             ? <ProductForm initial={editingProduct} onSave={saveEditedProduct} onCancel={() => setEditingProduct(null)} />
             : prodMode === 'single' && <ProductForm onSave={addProduct} onCancel={() => setProdMode(null)} />}
+          <ImageJobBanner job={imageJob} onRetry={retryImages} />
           {prodMode === 'bulk' && !editingProduct && <BulkZone onImport={bulkImport} onDownloadTemplate={downloadTemplate} onCancel={() => setProdMode(null)} />}
 
           {products.length === 0 && !prodMode && !editingProduct ? (
@@ -526,13 +720,51 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
               No products yet. Use <strong style={{ color: '#D97520' }}>+ Add Product</strong> to start your library.
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12, marginBottom: 16 }}>
-              {products.map(p => (
-                <ProductCard key={p.id} product={p} collectionName={collectionNameFor[p.id]}
-                  onEdit={() => { setProdMode(null); setEditingProduct(p); }}
-                  onDelete={() => deleteProduct(p.id)} />
-              ))}
-            </div>
+            <>
+              {/* Selection toolbar — only shown when there's something to select */}
+              {products.length > 0 && !prodMode && !editingProduct && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap',
+                  padding: selectMode ? '9px 12px' : 0, borderRadius: 8,
+                  background: selectMode ? '#F4F7F3' : 'transparent',
+                  border: selectMode ? '1px solid #C8D9C4' : 'none' }}>
+                  {!selectMode ? (
+                    <button type="button" onClick={() => setSelectMode(true)}
+                      style={{ background: 'none', border: '1px solid #D8D4CF', borderRadius: 6, padding: '5px 12px', fontSize: 11, color: '#666', cursor: 'pointer' }}>
+                      Select
+                    </button>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#3A6B3A' }}>
+                        {selectedIds.size} selected
+                      </span>
+                      <button type="button" onClick={selectedIds.size === products.length ? clearSel : selectAll}
+                        style={{ background: 'none', border: '1px solid #C8D9C4', borderRadius: 6, padding: '5px 11px', fontSize: 11, color: '#3A6B3A', cursor: 'pointer' }}>
+                        {selectedIds.size === products.length ? 'Clear all' : `Select all (${products.length})`}
+                      </button>
+                      <button type="button" disabled={!selectedIds.size} onClick={deleteSelected}
+                        style={{ background: selectedIds.size ? '#C0392B' : '#E4E0DB', border: 'none', borderRadius: 6, padding: '5px 13px', fontSize: 11, color: '#fff', cursor: selectedIds.size ? 'pointer' : 'default', fontWeight: 500 }}>
+                        Delete selected
+                      </button>
+                      <button type="button" onClick={exitSelect}
+                        style={{ background: 'none', border: 'none', fontSize: 11, color: '#888', cursor: 'pointer', marginLeft: 'auto' }}>
+                        Cancel
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12, marginBottom: 16 }}>
+                {products.map(p => (
+                  <ProductCard key={p.id} product={p} collectionName={collectionNameFor[p.id]}
+                    selectable={selectMode}
+                    selected={selectedIds.has(p.id)}
+                    onToggleSelect={() => toggleSelect(p.id)}
+                    onEdit={() => { setProdMode(null); setEditingProduct(p); }}
+                    onDelete={() => deleteProduct(p.id)} />
+                ))}
+              </div>
+            </>
           )}
 
           {products.length > 0 && (

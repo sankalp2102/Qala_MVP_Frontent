@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { onboardingAPI } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
@@ -82,11 +82,17 @@ export default function SectionE({ profileId, initialData, onSave, onNext }) {
     });
   };
 
-  useEffect(() => { if (initialData) populateFromData(initialData); }, [initialData]);
+  // Hydrate from the server exactly ONCE — see SectionB/SectionD. Re-populating
+  // on every initialData change would overwrite toggles made since the last load.
+  const hydrated = useRef(false);
 
   useEffect(() => {
-    if (!profileId || initialData) return;
-    API.getCollab(profileId).then(r => populateFromData(r.data)).catch(() => {});
+    if (initialData && !hydrated.current) { populateFromData(initialData); hydrated.current = true; }
+  }, [initialData]);
+
+  useEffect(() => {
+    if (!profileId || hydrated.current || initialData) return;
+    API.getCollab(profileId).then(r => { populateFromData(r.data); hydrated.current = true; }).catch(() => {});
   }, [profileId]);
 
   const autoSaving = useAutosave(() => API.putCollab(profileId, form), [form]);

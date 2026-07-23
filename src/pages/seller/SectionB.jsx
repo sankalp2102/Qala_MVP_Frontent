@@ -129,6 +129,8 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
 
   const [saving, setSaving] = useState(false);
   const debounceRef         = useRef(null);
+  const pendingRef          = useRef({});   // merged autosave payload awaiting send
+  const hydrated            = useRef(false); // hydrate from server only once
 
   const populateFromData = (d) => {
     if (!d) return;
@@ -192,20 +194,49 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
     });
   };
 
-  useEffect(() => { if (initialData) populateFromData(initialData); }, [initialData]);
+  // Hydrate from the server exactly ONCE. Re-populating on every initialData
+  // change (which the parent produces after each Save/Next) would overwrite
+  // selections made since the last load.
+  useEffect(() => {
+    if (initialData && !hydrated.current) { populateFromData(initialData); hydrated.current = true; }
+  }, [initialData]);
 
   useEffect(() => {
-    if (!profileId || initialData) return;
-    API.getStudio(profileId).then(r => populateFromData(r.data)).catch(() => {});
+    if (!profileId || hydrated.current || initialData) return;
+    API.getStudio(profileId).then(r => { populateFromData(r.data); hydrated.current = true; }).catch(() => {});
   }, [profileId]);
 
+  // Accumulate field groups between debounce ticks. Previously each call did
+  // clearTimeout() and captured only its OWN payload, so editing gender then
+  // occasions within the debounce window cancelled the gender PATCH entirely —
+  // that edit was never sent and silently disappeared on the next refresh.
+  // We now merge every payload into pendingRef and send them together.
   const triggerAutosave = useCallback((payload) => {
+    pendingRef.current = { ...pendingRef.current, ...payload };
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
+      const body = pendingRef.current;
+      pendingRef.current = {};
+      if (!Object.keys(body).length) return;
       try {
-        await API.patchStudio(profileId, payload);
-      } catch {}
+        await API.patchStudio(profileId, body);
+      } catch {
+        // Put the fields back so the next tick (or the unmount flush) retries
+        // them rather than dropping the edit.
+        pendingRef.current = { ...body, ...pendingRef.current };
+      }
     }, 800);
+  }, [profileId]);
+
+  // Flush anything still pending when leaving the section, so navigating away
+  // within the debounce window doesn't lose the last edit.
+  useEffect(() => () => {
+    clearTimeout(debounceRef.current);
+    const body = pendingRef.current;
+    pendingRef.current = {};
+    if (profileId && Object.keys(body).length) {
+      API.patchStudio(profileId, body).catch(() => {});
+    }
   }, [profileId]);
 
   const nextRank = list => list.length ? Math.max(...list.map(x => x.rank)) + 1 : 1;
