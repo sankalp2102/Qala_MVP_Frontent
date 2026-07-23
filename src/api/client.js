@@ -1,115 +1,165 @@
 import axios from 'axios';
 const BASE = import.meta.env.VITE_API_URL || 'https://api.qala.studio';
-const api = axios.create({ baseURL: BASE, withCredentials: true });
 
-// Track if a refresh is already in-flight to prevent duplicate refreshes
-let isRefreshing = false;
-let refreshQueue = []; // queued requests waiting for refresh to finish
+/* ════════════════════════════════════════════════════════════════════════════
+   Auth token transport — HEADER-BASED (st-auth-mode: header)
+   ────────────────────────────────────────────────────────────────────────────
+   SuperTokens sessions are carried in headers, not cookies:
+     • login / refresh return the access + refresh tokens in the
+       `st-access-token` / `st-refresh-token` response headers,
+     • both are held in localStorage,
+     • requests send the access token as `Authorization: Bearer <token>`,
+     • refresh sends the refresh token as `Authorization: Bearer <token>`.
+   Nothing depends on cookies, so this behaves identically same-origin and
+   cross-origin (localhost dev and the qala.studio → api.qala.studio split in
+   production), avoiding the SameSite / cookie-vs-Bearer drift that expired
+   sessions mid-session. The buyer "access_key" flow is a separate Django-signed
+   token and is deliberately left untouched by the refresh machinery below.
+   ════════════════════════════════════════════════════════════════════════════ */
+const ACCESS_KEY  = 'qala_token';          // access token (or access-key token)
+const REFRESH_KEY = 'qala_refresh_token';  // SuperTokens refresh token
+const TYPE_KEY    = 'qala_token_type';      // 'session' | 'access_key'
 
-function onRefreshDone(newToken) {
-  refreshQueue.forEach(cb => cb(newToken));
-  refreshQueue = [];
-}
+export const authTokens = {
+  access:      () => localStorage.getItem(ACCESS_KEY),
+  refresh:     () => localStorage.getItem(REFRESH_KEY),
+  isAccessKey: () => localStorage.getItem(TYPE_KEY) === 'access_key',
 
-// ── Request interceptor: attach auth token + rid header ──
+  // Persist rotated tokens SuperTokens returns on a response. Never touches
+  // access-key sessions (those aren't SuperTokens tokens and don't rotate).
+  capture(headers) {
+    if (this.isAccessKey()) return;
+    const at = headers?.['st-access-token'];
+    const rt = headers?.['st-refresh-token'];
+    if (at) localStorage.setItem(ACCESS_KEY, at);
+    if (rt) localStorage.setItem(REFRESH_KEY, rt);
+  },
+
+  // Store a fresh SuperTokens session (login / refresh). No-op without an access
+  // token, so a failed login response can't leave a half-written session.
+  setSession(accessToken, refreshToken) {
+    if (!accessToken) return;
+    localStorage.setItem(ACCESS_KEY, accessToken);
+    if (refreshToken) localStorage.setItem(REFRESH_KEY, refreshToken);
+    localStorage.setItem(TYPE_KEY, 'session');
+  },
+
+  clear() {
+    localStorage.removeItem(ACCESS_KEY);
+    localStorage.removeItem(REFRESH_KEY);
+    localStorage.removeItem(TYPE_KEY);
+  },
+};
+
+// Header-based auth needs no cookies. Not sending them also prevents a stale
+// session cookie from being validated ahead of the Bearer token.
+const api = axios.create({ baseURL: BASE, withCredentials: false });
+
+// ── Request interceptor: attach token + transfer-mode headers ──
 api.interceptors.request.use(cfg => {
-  const token     = localStorage.getItem('qala_token');
-  const tokenType = localStorage.getItem('qala_token_type');
+  const token = authTokens.access();
   if (token) {
-    cfg.headers.authorization = tokenType === 'access_key'
+    cfg.headers.authorization = authTokens.isAccessKey()
       ? `AccessKey ${token}`
       : `Bearer ${token}`;
   }
   cfg.headers['rid'] = cfg.headers['rid'] || 'session';
+  cfg.headers['st-auth-mode'] = 'header';
   return cfg;
 });
 
-// ── Response interceptor: capture rotated access tokens + handle 401 refresh ──
+// ── Single-flight refresh: one refresh at a time; queued retries wait for it ──
+let isRefreshing = false;
+let refreshQueue = [];
+function flushQueue(token, error) {
+  refreshQueue.forEach(cb => cb(token, error));
+  refreshQueue = [];
+}
+
+function forceLogin() {
+  authTokens.clear();
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.href = '/login?reason=session_expired';
+  }
+}
+
+// ── Response interceptor: capture rotated tokens + refresh once on 401 ──
 api.interceptors.response.use(
-  res => {
-    const newToken = res.headers['st-access-token'];
-    if (newToken && localStorage.getItem('qala_token_type') !== 'access_key') {
-      localStorage.setItem('qala_token', newToken);
-    }
-    return res;
-  },
+  res => { authTokens.capture(res.headers); return res; },
   async err => {
     const originalRequest = err.config;
-
-    if (err.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      if (localStorage.getItem('qala_token_type') === 'access_key') {
-        localStorage.removeItem('qala_token');
-        localStorage.removeItem('qala_token_type');
-        if (!window.location.pathname.startsWith('/login')) {
-          window.location.href = '/login?reason=session_expired';
-        }
-        return Promise.reject(err);
-      }
-
-      if (isRefreshing) {
-        return new Promise(resolve => {
-          refreshQueue.push(token => {
-            if (token) originalRequest.headers.authorization = `Bearer ${token}`;
-            resolve(api.request(originalRequest));
-          });
-        });
-      }
-
-      isRefreshing = true;
-      try {
-        const res = await axios.post(`${BASE}/auth/session/refresh`, {}, {
-          headers: { 'rid': 'session', 'st-auth-mode': 'cookie' },
-          withCredentials: true,
-        });
-        const t = res.headers['st-access-token'];
-        if (t) {
-          localStorage.setItem('qala_token', t);
-          originalRequest.headers.authorization = `Bearer ${t}`;
-        }
-        onRefreshDone(t || null);
-        return api.request(originalRequest);
-      } catch {
-        onRefreshDone(null);
-        const wasLoggedIn = !!localStorage.getItem('qala_token');
-        const isAccessKey = localStorage.getItem('qala_token_type') === 'access_key';
-        if (!isAccessKey) {
-          localStorage.removeItem('qala_token');
-          if (wasLoggedIn && !window.location.pathname.startsWith('/login')) {
-            window.location.href = '/login?reason=session_expired';
-          }
-        }
-        return Promise.reject(err);
-      } finally {
-        isRefreshing = false;
-      }
+    if (err.response?.status !== 401 || !originalRequest || originalRequest._retry) {
+      return Promise.reject(err);
     }
-    return Promise.reject(err);
-  }
+    originalRequest._retry = true;
+
+    // Access-key sessions can't be refreshed — go straight to login.
+    if (authTokens.isAccessKey()) {
+      forceLogin();
+      return Promise.reject(err);
+    }
+
+    // A refresh is already running — wait for it, then retry with the new token.
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        refreshQueue.push((token, qErr) => {
+          if (qErr || !token) return reject(qErr || err);
+          originalRequest.headers.authorization = `Bearer ${token}`;
+          resolve(api.request(originalRequest));
+        });
+      });
+    }
+
+    const refreshToken = authTokens.refresh();
+    if (!refreshToken) {
+      // No refresh token (e.g. a legacy cookie-based session) — needs one re-login.
+      forceLogin();
+      return Promise.reject(err);
+    }
+
+    isRefreshing = true;
+    try {
+      // Header-mode refresh: the refresh token travels as a Bearer token, so the
+      // call succeeds cross-origin without any cookie.
+      const res = await axios.post(`${BASE}/auth/session/refresh`, {}, {
+        headers: {
+          'rid': 'session',
+          'st-auth-mode': 'header',
+          'authorization': `Bearer ${refreshToken}`,
+        },
+      });
+      const newAccess  = res.headers['st-access-token'];
+      const newRefresh = res.headers['st-refresh-token'];
+      if (!newAccess) throw new Error('Refresh succeeded but returned no access token');
+      authTokens.setSession(newAccess, newRefresh || refreshToken);
+      flushQueue(newAccess, null);
+      originalRequest.headers.authorization = `Bearer ${newAccess}`;
+      return api.request(originalRequest);
+    } catch (refreshErr) {
+      flushQueue(null, refreshErr);
+      forceLogin();
+      return Promise.reject(refreshErr);
+    } finally {
+      isRefreshing = false;
+    }
+  },
 );
 
 export const authAPI = {
   signin: (email, password) => {
     const p = axios.post(`${BASE}/auth/signin`,
       { formFields: [{ id:'email', value:email }, { id:'password', value:password }] },
-      { headers: { 'Content-Type':'application/json', 'rid':'emailpassword', 'st-auth-mode':'cookie' }, withCredentials: true },
+      { headers: { 'Content-Type':'application/json', 'rid':'emailpassword', 'st-auth-mode':'header' } },
     );
-    p.then(r => {
-      const t = r.headers['st-access-token'];
-      if (t) localStorage.setItem('qala_token', t);
-    }).catch(() => {});
+    p.then(r => authTokens.setSession(r.headers['st-access-token'], r.headers['st-refresh-token'])).catch(() => {});
     return p;
   },
   signup: (email, password) => {
     const p = axios.post(`${BASE}/auth/signup`,
       { formFields: [{ id:'email', value:email }, { id:'password', value:password }] },
-      { headers: { 'Content-Type':'application/json', 'rid':'emailpassword', 'st-auth-mode':'cookie' }, withCredentials: true },
+      { headers: { 'Content-Type':'application/json', 'rid':'emailpassword', 'st-auth-mode':'header' } },
     );
-    p.then(r => {
-      const t = r.headers['st-access-token'];
-      if (t) localStorage.setItem('qala_token', t);
-    }).catch(() => {});
+    p.then(r => authTokens.setSession(r.headers['st-access-token'], r.headers['st-refresh-token'])).catch(() => {});
     return p;
   },
   signout: () => api.post('/auth/signout'),

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { authAPI, discoveryAPI } from '../api/client';
+import { authAPI, authTokens, discoveryAPI } from '../api/client';
 
 const SESSION_KEY = 'qala_session_token';
 
@@ -32,7 +32,7 @@ export function AuthProvider({ children }) {
         // Access-key tokens are long-lived (30 days) and don't refresh —
         // a failed me() here is a transient error, not session expiry.
         if (localStorage.getItem('qala_token_type') !== 'access_key') {
-          localStorage.removeItem('qala_token');
+          authTokens.clear();
         }
       })
       .finally(() => setLoading(false));
@@ -71,8 +71,7 @@ export function AuthProvider({ children }) {
     if (tokenType !== 'access_key') {
       try { await authAPI.signout(); } catch {}
     }
-    localStorage.removeItem('qala_token');
-    localStorage.removeItem('qala_token_type');
+    authTokens.clear();
     setUser(null);
   };
 
