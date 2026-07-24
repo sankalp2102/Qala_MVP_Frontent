@@ -16,8 +16,9 @@
  * Layout/colour constants come from the prototype, not from index.css vars,
  * wherever the prototype pins an exact hex.
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { registerAutosave } from '../../utils/autosaveRegistry';
 
 /**
  * Debounced autosave. Persists `persistFn` a short time after `deps` change,
@@ -31,24 +32,86 @@ export function useAutosave(persistFn, deps, delay = 900) {
   const timer    = useRef(null);
   const inflight  = useRef(false);
   const pending  = useRef(false);
+  const dirty    = useRef(false);   // edits waiting for the debounce to fire
+  const mounted  = useRef(true);    // avoid setState after unmount
   const fnRef    = useRef(persistFn);
   fnRef.current  = persistFn;
 
   const run = async () => {
     if (inflight.current) { pending.current = true; return; }
-    inflight.current = true; setAutoSaving(true);
+    inflight.current = true;
+    dirty.current = false;
+    if (mounted.current) setAutoSaving(true);
     try { await fnRef.current(); } catch {}
-    inflight.current = false; setAutoSaving(false);
+    inflight.current = false;
+    if (mounted.current) setAutoSaving(false);
     if (pending.current) { pending.current = false; run(); }
   };
 
   useEffect(() => {
     if (first.current) { first.current = false; return; }
+    dirty.current = true;
     clearTimeout(timer.current);
     timer.current = setTimeout(run, delay);
     return () => clearTimeout(timer.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
+
+  // Flush on unmount. Each onboarding section is its own route, so moving
+  // between sections in the sidebar unmounts the component — and the effect
+  // cleanup above would clear the pending timer, silently dropping anything
+  // typed in the last `delay` ms while the footer still read
+  // "Changes saved automatically". Fire the save instead of discarding it; the
+  // request completes even though the component is gone.
+  useEffect(() => () => {
+    mounted.current = false;
+    clearTimeout(timer.current);
+    if (dirty.current) { dirty.current = false; fnRef.current?.(); }
+  }, []);
+
+  // Run the pending save immediately (no-op when there's nothing waiting).
+  // Returns the persist promise so callers — logout, in particular — can await it.
+  const flush = useCallback(() => {
+    clearTimeout(timer.current);
+    if (!dirty.current) return null;
+    dirty.current = false;
+    try { return fnRef.current?.(); } catch { return null; }
+  }, []);
+
+  // Make this section's pending save reachable from outside React, so logout can
+  // await it before the auth tokens are cleared.
+  useEffect(() => {
+    flush.isDirty = () => dirty.current;
+    return registerAutosave(flush);
+  }, [flush]);
+
+  // Page lifecycle — the cases in-app navigation doesn't cover.
+  //
+  // visibilitychange/pagehide are the reliable signals: they fire while the page
+  // is still alive (tab switch, minimise, mobile backgrounding, and usually tab
+  // close), so a normal request still completes.
+  //
+  // beforeunload cannot reliably finish an async request, so we do both things
+  // that are possible: fire the save as a best effort, and ask the browser to
+  // show its "Leave site?" prompt so the seller isn't silently losing work.
+  useEffect(() => {
+    const onHide = () => { if (document.visibilityState === 'hidden') flush(); };
+    const onPageHide = () => flush();
+    const onBeforeUnload = (e) => {
+      if (!dirty.current) return;
+      flush();
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('pagehide', onPageHide);
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => {
+      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('pagehide', onPageHide);
+      window.removeEventListener('beforeunload', onBeforeUnload);
+    };
+  }, [flush]);
 
   return autoSaving;
 }
@@ -360,7 +423,7 @@ export function ExpertiseRow({ name, level, checked, onToggle, onLevel, onDelete
  * B.1 / B.2. The rank badge sits to the LEFT of the checkbox, per the
  * prototype's .rank-item-left ordering.
  */
-export function RankRow({ name, rank, onToggle, isLast }) {
+export function RankRow({ name, rank, onToggle, isLast, onRemove }) {
   const checked = rank != null;
   return (
     <div style={{
@@ -379,6 +442,8 @@ export function RankRow({ name, rank, onToggle, isLast }) {
         <input type="checkbox" checked={checked} onChange={() => onToggle(name)} style={{ width: 'auto', cursor: 'pointer' }} />
         <span style={{ fontSize: 13, color: '#1A1A1A' }}>{name}</span>
       </label>
+      {/* Only passed for studio-added entries — built-in options aren't removable */}
+      {onRemove && <TrashBtn label={`Remove ${name}`} size={13} onClick={onRemove} />}
     </div>
   );
 }
@@ -389,7 +454,7 @@ export function RankRow({ name, rank, onToggle, isLast }) {
  */
 export const TOP5_MAX = 5;
 
-export function Top5Row({ name, checked, top5, capReached, onToggle, isLast }) {
+export function Top5Row({ name, checked, top5, capReached, onToggle, isLast, onRemove }) {
   const [capTip, setCapTip] = useState(false);
   const canPromote = checked && (top5 || !capReached);
 
@@ -431,13 +496,15 @@ export function Top5Row({ name, checked, top5, capReached, onToggle, isLast }) {
           <input type="checkbox" checked={checked} onChange={() => onToggle(name)} style={{ width: 'auto', cursor: 'pointer' }} />
           <span style={{ fontSize: 13, color: '#1A1A1A' }}>{name}</span>
         </label>
+        {/* Only passed for studio-added entries — built-in options aren't removable */}
+        {onRemove && <TrashBtn label={`Remove ${name}`} size={13} onClick={onRemove} />}
       </div>
     </div>
   );
 }
 
 /** Simple checkbox row — B.4 accessories, B.5 home furnishings. */
-export function CheckRow({ name, checked, onToggle, isLast }) {
+export function CheckRow({ name, checked, onToggle, isLast, onRemove }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', padding: '9px 0',
@@ -447,6 +514,8 @@ export function CheckRow({ name, checked, onToggle, isLast }) {
         <input type="checkbox" checked={checked} onChange={() => onToggle(name)} style={{ width: 'auto', cursor: 'pointer' }} />
         <span>{name}</span>
       </label>
+      {/* Only passed for studio-added entries — built-in options aren't removable */}
+      {onRemove && <TrashBtn label={`Remove ${name}`} size={13} onClick={onRemove} />}
     </div>
   );
 }

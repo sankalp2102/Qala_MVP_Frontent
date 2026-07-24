@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI, authTokens, discoveryAPI } from '../api/client';
+import { flushAllAutosaves } from '../utils/autosaveRegistry';
 
 const SESSION_KEY = 'qala_session_token';
 
@@ -66,6 +67,12 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
+    // Write any pending onboarding edits FIRST. Ordering is load-bearing: the
+    // save needs a valid session, so it has to finish before signout kills it
+    // server-side and before the tokens are cleared locally. Failures here are
+    // swallowed — a save problem must never trap someone in a logged-in state.
+    try { await flushAllAutosaves(); } catch { /* best effort */ }
+
     const tokenType = localStorage.getItem('qala_token_type');
     // Only call SuperTokens signout if this was a SuperTokens session
     if (tokenType !== 'access_key') {

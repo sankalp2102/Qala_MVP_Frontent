@@ -73,7 +73,7 @@ const HF_LEGACY_ALIASES = {
 
 /* One home-furnishing group: selectable items + inline "add item".
    Custom groups additionally get a delete button (via onRemoveGroup). */
-function HFGroup({ group, selected, onToggle, onAddItem, onRemoveGroup }) {
+function HFGroup({ group, selected, onToggle, onAddItem, onRemoveGroup, onRemoveItem, isCustomItem }) {
   const [adding, setAdding] = useState(false);
   const [val, setVal] = useState('');
   const count = group.items.filter(i => selected.includes(i)).length;
@@ -82,7 +82,8 @@ function HFGroup({ group, selected, onToggle, onAddItem, onRemoveGroup }) {
     <GroupAccordion label={group.group} count={count}
       onDelete={onRemoveGroup} deleteLabel={`Remove ${group.group} category`}>
       {group.items.map((item, i) => (
-        <CheckRow key={item} name={item} checked={selected.includes(item)} onToggle={onToggle} isLast={i === group.items.length - 1 && !adding} />
+        <CheckRow key={item} name={item} checked={selected.includes(item)} onToggle={onToggle} isLast={i === group.items.length - 1 && !adding}
+          onRemove={onRemoveItem && isCustomItem?.(group.group, item) ? () => onRemoveItem(group.group, item) : undefined} />
       ))}
       {group.items.length === 0 && !adding && (
         <div style={{ fontSize: 12, color: '#BBB', fontStyle: 'italic', padding: '8px 0' }}>No items yet — add one below.</div>
@@ -179,6 +180,18 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
     setHomeFurnishings(prev => { const next = prev.includes(v) ? prev : [...prev, v]; triggerAutosave({ home_furnishings: next }); return next; });
   };
 
+  // Remove a studio-added item from a home-furnishings group (built-ins stay).
+  const removeHFItem = (groupName, itemName) => {
+    setHfGroups(prev => prev.map(g => g.group === groupName ? { ...g, items: g.items.filter(i => i !== itemName) } : g));
+    setHomeFurnishings(prev => { const next = prev.filter(x => x !== itemName); triggerAutosave({ home_furnishings: next }); return next; });
+  };
+
+  // An item is studio-added if it isn't in the built-in list for that group.
+  const isCustomHFItem = (groupName, item) => {
+    const base = HOME_FURNISHINGS_DEFAULT.find(g => g.group === groupName);
+    return !base || !base.items.includes(item);
+  };
+
   const addHFGroup = (groupName) => {
     const v = groupName.trim(); if (!v) return;
     setHfGroups(prev => prev.some(g => g.group.toLowerCase() === v.toLowerCase()) ? prev : [...prev, { group: v, items: [], custom: true }]);
@@ -268,6 +281,39 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
     setAllOccasionNames(prev => [...prev, v]);
     setOccasions(prev => { const next = [...prev, { name: v, rank: nextRank(prev) }]; triggerAutosave({ occasions: next }); return next; });
     setCustomOcc(''); setAddingOcc(false);
+  };
+
+  /* ── Removing studio-added entries ───────────────────────────────────────
+     Only names the studio typed in are removable — the built-in options stay.
+     Removing clears the name from the picker AND from the saved selection, then
+     autosaves so the deletion sticks. */
+  const isCustom = (name, defaults) => !defaults.includes(name);
+
+  const removeCustomOccasion = (name) => {
+    setAllOccasionNames(prev => prev.filter(n => n !== name));
+    setOccasions(prev => {
+      const next = prev.filter(o => o.name !== name).map((o, i) => ({ ...o, rank: i + 1 }));
+      triggerAutosave({ occasions: next });
+      return next;
+    });
+  };
+
+  const removeCustomGarment = (name) => {
+    setAllGarmentNames(prev => prev.filter(n => n !== name));
+    setGarments(prev => {
+      const next = prev.filter(g => g.name !== name);
+      triggerAutosave({ garment_types: next });
+      return next;
+    });
+  };
+
+  const removeCustomAccessory = (name) => {
+    setAllAccessoryNames(prev => prev.filter(n => n !== name));
+    setAccessories(prev => {
+      const next = prev.filter(a => a !== name);
+      triggerAutosave({ accessory_types: next });
+      return next;
+    });
   };
 
   const top5Count = garments.filter(g => g.top5).length;
@@ -363,7 +409,8 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
 
         <QCard qref="B.2" title="Occasions" desc="Select the occasions you produce for — check in order of strength. First checked = best at, and so on.">
           {allOccasionNames.map((name, i) => (
-            <RankRow key={name} name={name} rank={occasions.find(o => o.name === name)?.rank ?? null} onToggle={toggleOccasion} isLast={i === allOccasionNames.length - 1} />
+            <RankRow key={name} name={name} rank={occasions.find(o => o.name === name)?.rank ?? null} onToggle={toggleOccasion} isLast={i === allOccasionNames.length - 1}
+              onRemove={isCustom(name, OCCASIONS_DEFAULT) ? () => removeCustomOccasion(name) : undefined} />
           ))}
           {addingOcc ? (
             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
@@ -391,7 +438,8 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
             return (
               <Top5Row key={name} name={name} checked={!!g} top5={!!g?.top5}
                 capReached={top5Count >= TOP5_MAX} onToggle={toggleGarment}
-                isLast={i === allGarmentNames.length - 1} />
+                isLast={i === allGarmentNames.length - 1}
+                onRemove={isCustom(name, GARMENTS_DEFAULT) ? () => removeCustomGarment(name) : undefined} />
             );
           })}
           {addingGarment ? (
@@ -409,7 +457,8 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
 
         <QCard qref="B.4" title="Accessory Types" desc="Select all accessory types your studio produces.">
           {allAccessoryNames.map((name, i) => (
-            <CheckRow key={name} name={name} checked={accessories.includes(name)} onToggle={toggleAccessory} isLast={i === allAccessoryNames.length - 1} />
+            <CheckRow key={name} name={name} checked={accessories.includes(name)} onToggle={toggleAccessory} isLast={i === allAccessoryNames.length - 1}
+              onRemove={isCustom(name, ACCESSORIES_DEFAULT) ? () => removeCustomAccessory(name) : undefined} />
           ))}
           {addingAcc ? (
             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
@@ -437,6 +486,8 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
               onToggle={toggleHF}
               onAddItem={name => addHFItem(g.group, name)}
               onRemoveGroup={g.custom ? () => removeHFGroup(g.group) : undefined}
+              onRemoveItem={removeHFItem}
+              isCustomItem={isCustomHFItem}
             />
           ))}
           {addingHFGroup ? (

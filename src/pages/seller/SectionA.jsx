@@ -4,7 +4,7 @@ import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 import {
   SectionHeader, QCard, Field, FlagBanner, SectionFooter,
-  CertTag, MediaDropzone, TrashBtn, inputStyle, textareaStyle,
+  CertTag, MediaDropzone, TrashBtn, inputStyle, textareaStyle, useAutosave,
 } from './_ui';
 
 const API = onboardingAPI;
@@ -58,11 +58,18 @@ export default function SectionA({ profileId, initialData, onSave, onNext }) {
     setHeroMedia((d.media_files || []).find(m => m.media_type === 'hero') || null);
   };
 
-  useEffect(() => { if (initialData) populateFromData(initialData); }, [initialData]);
+  // Hydrate from the server exactly ONCE. Now that this section autosaves, a
+  // re-populate mid-edit would both overwrite what's typed and persist the
+  // stale values on the next debounce tick.
+  const hydrated = useRef(false);
 
   useEffect(() => {
-    if (!profileId || initialData) return;
-    API.getStudio(profileId).then(r => populateFromData(r.data)).catch(() => {});
+    if (initialData && !hydrated.current) { populateFromData(initialData); hydrated.current = true; }
+  }, [initialData]);
+
+  useEffect(() => {
+    if (!profileId || hydrated.current || initialData) return;
+    API.getStudio(profileId).then(r => { populateFromData(r.data); hydrated.current = true; }).catch(() => {});
   }, [profileId]);
 
   useEffect(() => {
@@ -106,8 +113,7 @@ export default function SectionA({ profileId, initialData, onSave, onNext }) {
   const save = async (andNext = false) => {
     setSaving(true);
     try {
-      await API.putStudio(profileId, { ...form, certifications: JSON.stringify(certTags) });
-      await API.putUSPs(profileId, usps.slice(0, 3).map((u, i) => ({ order: i + 1, strength: u.strength })));
+      await persist();
       success('Section A saved!');
       onSave?.();
       if (andNext) onNext?.();
@@ -115,6 +121,23 @@ export default function SectionA({ profileId, initialData, onSave, onNext }) {
       error(e.response?.data ? JSON.stringify(e.response.data) : 'Save failed');
     } finally { setSaving(false); }
   };
+
+  // Shared by the explicit Save button and the debounced autosave below.
+  const persist = async () => {
+    await API.putStudio(profileId, { ...form, certifications: JSON.stringify(certTags) });
+    // Only send USPs that actually have text. The three rows start empty, and
+    // StudioUSP.strength is non-blank on the backend — sending untouched rows
+    // made every autosave fail with "This field may not be blank."
+    await API.putUSPs(profileId, usps.slice(0, 3)
+      .filter(u => (u.strength || '').trim())
+      .map((u, i) => ({ order: i + 1, strength: u.strength.trim() })));
+  };
+
+  // Section A previously had NO autosave at all, while its footer still showed
+  // "Changes saved automatically" — anything typed here was lost unless the
+  // seller clicked Save & Next. Autosave silently (no toast); the explicit
+  // save above keeps its confirmation.
+  const autoSaving = useAutosave(persist, [form, certTags, usps]);
 
   const uploadHero = async e => {
     const file = e.target.files?.[0]; if (!file) return;
@@ -278,7 +301,7 @@ export default function SectionA({ profileId, initialData, onSave, onNext }) {
         </label>
       </QCard>
 
-      <SectionFooter onNext={() => save(true)} saving={saving} />
+      <SectionFooter onNext={() => save(true)} saving={saving} autoSaving={autoSaving} />
     </div>
   );
 }

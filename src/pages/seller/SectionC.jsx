@@ -107,7 +107,15 @@ export default function SectionC({ profileId, initialData, onSave, onNext }) {
 
   const addFabricType = () => {
     const v = newTypeName.trim(); if (!v) return;
-    setFabricGroups(prev => ({ ...prev, [v.toLowerCase().replace(/\s+/g, '_')]: [] }));
+    // Slugify to match what the backend stores. Keep it to [a-z0-9_-] and cap at
+    // 50 chars — that's the column width for FabricAnswer.category, so a long
+    // name can't overflow it. Adding a group that already exists is a no-op.
+    const slug = v.toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 50);
+    if (!slug) return;
+    setFabricGroups(prev => (slug in prev ? prev : { ...prev, [slug]: [] }));
     setNewTypeName(''); setAddingType(false);
   };
   const addFabricToGroup = (cat, fabricName) => setFabricGroups(prev => ({ ...prev, [cat]: [...(prev[cat] || []), fabricName] }));
@@ -126,6 +134,12 @@ export default function SectionC({ profileId, initialData, onSave, onNext }) {
       names.forEach(n => { delete next[n]; });
       return next;
     });
+  };
+
+  // Remove a studio-added dye entirely (name + any expertise answer).
+  const removeCustomDye = (name) => {
+    setAllDyeNames(prev => prev.filter(n => n !== name));
+    setDyeAnswers(prev => { const next = { ...prev }; delete next[name]; return next; });
   };
 
   const addCustomDye = () => {
@@ -237,6 +251,8 @@ export default function SectionC({ profileId, initialData, onSave, onNext }) {
             checked={name in dyeAnswers} level={dyeAnswers[name] || null}
             onToggle={() => toggleDye(name)} onLevel={lvl => setDyeLevel(name, lvl)}
             tooltips={EXPERTISE_TOOLTIPS.dye}
+            /* Studio-added dyes can be removed; the built-in list can't. */
+            onDelete={DYES_DEFAULT.includes(name) ? undefined : () => removeCustomDye(name)}
             isLast={i === allDyeNames.length - 1} />
         ))}
         {addingDye ? (

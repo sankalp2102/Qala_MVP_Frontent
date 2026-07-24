@@ -56,6 +56,15 @@ const FABRIC_CATEGORY_LABELS = {
   other:       'Other',
 };
 
+// Studios can define their own fabric family in Section C, stored as a slug
+// (e.g. "re-cycled_fabrics"). Render those as readable tab labels instead of
+// showing the raw slug.
+const prettyCategory = (slug) =>
+  String(slug || '')
+    .replace(/[_-]+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, c => c.toUpperCase());
+
 // ─── Lightbox ─────────────────────────────────────────────────────────────────
 function Lightbox({ images, startIndex, onClose }) {
   const [idx, setIdx]     = useState(startIndex);
@@ -423,7 +432,7 @@ function FabricTabs({ fabrics, dyes }) {
               transition: 'all 0.15s', marginBottom: -1,
             }}
           >
-            {cat === 'dyes' ? 'Dyes' : (FABRIC_CATEGORY_LABELS[cat] || cat)}
+            {cat === 'dyes' ? 'Dyes' : (FABRIC_CATEGORY_LABELS[cat] || prettyCategory(cat))}
           </button>
         ))}
       </div>
