@@ -23,16 +23,27 @@ import { registerAutosave } from '../../utils/autosaveRegistry';
 /**
  * Debounced autosave. Persists `persistFn` a short time after `deps` change,
  * skips the initial mount, serializes concurrent saves with an in-flight lock
- * (and re-runs once if a change landed mid-save). Returns an `autoSaving` flag
- * for the footer indicator so it can show "Saving…" vs "Changes saved".
+ * (and re-runs once if a change landed mid-save).
+ *
+ * Returns `{ saving, error, retry }` for the footer indicator.
+ *
+ * Failures used to be swallowed by a bare `catch {}`: a save that 400'd or
+ * 500'd left the footer showing the green "Changes saved automatically", so a
+ * seller had no way to know their work wasn't persisting. Now a failed attempt
+ * keeps the edit marked dirty, retries on a short backoff, and surfaces the
+ * error in the indicator if it still won't go through.
  */
+const RETRY_DELAYS = [2000, 5000, 12000];
+
 export function useAutosave(persistFn, deps, delay = 900) {
-  const [autoSaving, setAutoSaving] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState(null);
   const first    = useRef(true);
   const timer    = useRef(null);
-  const inflight  = useRef(false);
+  const inflight = useRef(false);
   const pending  = useRef(false);
   const dirty    = useRef(false);   // edits waiting for the debounce to fire
+  const attempts = useRef(0);       // consecutive failures, drives the backoff
   const mounted  = useRef(true);    // avoid setState after unmount
   const fnRef    = useRef(persistFn);
   fnRef.current  = persistFn;
@@ -41,16 +52,38 @@ export function useAutosave(persistFn, deps, delay = 900) {
     if (inflight.current) { pending.current = true; return; }
     inflight.current = true;
     dirty.current = false;
-    if (mounted.current) setAutoSaving(true);
-    try { await fnRef.current(); } catch {}
+    if (mounted.current) setSaving(true);
+
+    let failed = false;
+    try {
+      await fnRef.current();
+      attempts.current = 0;
+      if (mounted.current) setError(null);
+    } catch (e) {
+      // Put the edit back in the queue. Without this the change is gone: the
+      // component state still holds it, but nothing will ever try to send it
+      // again unless the seller happens to type something else.
+      failed = true;
+      dirty.current = true;
+      attempts.current += 1;
+      if (mounted.current) setError(e);
+    }
+
     inflight.current = false;
-    if (mounted.current) setAutoSaving(false);
-    if (pending.current) { pending.current = false; run(); }
+    if (mounted.current) setSaving(false);
+
+    if (pending.current) { pending.current = false; run(); return; }
+
+    if (failed && attempts.current <= RETRY_DELAYS.length) {
+      clearTimeout(timer.current);
+      timer.current = setTimeout(run, RETRY_DELAYS[attempts.current - 1]);
+    }
   };
 
   useEffect(() => {
     if (first.current) { first.current = false; return; }
     dirty.current = true;
+    attempts.current = 0;             // a fresh edit restarts the backoff
     clearTimeout(timer.current);
     timer.current = setTimeout(run, delay);
     return () => clearTimeout(timer.current);
@@ -113,7 +146,7 @@ export function useAutosave(persistFn, deps, delay = 900) {
     };
   }, [flush]);
 
-  return autoSaving;
+  return { saving, error, retry: run };
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -258,7 +291,43 @@ export function SavedPulse({ show }) {
 }
 
 /** Passive autosave indicator — replaces the manual Save button. */
-export function AutosaveIndicator({ saving }) {
+/**
+ * Autosave status for the section footer.
+ *
+ * `status` accepts the object returned by useAutosave, a plain boolean (legacy
+ * call sites), or null. Null renders nothing — that is the honest state for a
+ * section whose forms are explicit-submit, which previously still showed the
+ * green "Changes saved automatically".
+ */
+export function AutosaveIndicator({ status }) {
+  if (status == null) return null;
+
+  const saving = typeof status === 'boolean' ? status : !!status.saving;
+  const error  = typeof status === 'boolean' ? null  : status.error;
+  const retry  = typeof status === 'boolean' ? null  : status.retry;
+
+  if (error && !saving) {
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#C0392B' }}>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          width: 15, height: 15, borderRadius: '50%', background: '#FBEDEC', color: '#C0392B',
+          fontSize: 10, fontWeight: 700,
+        }}>!</span>
+        Couldn't save your changes
+        {retry && (
+          <button onClick={retry} style={{
+            background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+            fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: '#C0392B',
+            textDecoration: 'underline',
+          }}>
+            Retry
+          </button>
+        )}
+      </span>
+    );
+  }
+
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: saving ? '#AAA' : '#4A8A4A' }}>
       {saving ? (
@@ -278,9 +347,27 @@ export function AutosaveIndicator({ saving }) {
 }
 
 /**
+ * Merge several useAutosave results into one status for a single footer.
+ * A section with more than one persist target (F has production + coordinator)
+ * should report "saving" while any of them is in flight and surface the first
+ * error rather than the last.
+ */
+export function mergeAutosave(...statuses) {
+  const list = statuses.filter(Boolean);
+  return {
+    saving: list.some(s => s.saving),
+    error:  list.find(s => s.error)?.error || null,
+    retry:  () => list.forEach(s => s.retry?.()),
+  };
+}
+
+/**
  * Section footer. The standalone "Save" button was removed — every section
  * autosaves as you type, so the footer keeps only the navigation button and a
  * passive autosave indicator. Section H overrides nextLabel to "Submit Profile ✓".
+ *
+ * Pass autoSaving={null} for a section that genuinely doesn't autosave, so the
+ * indicator stays off rather than claiming a guarantee it can't keep.
  */
 export function SectionFooter({ onNext, saving, autoSaving, nextLabel = 'Save & Next →' }) {
   return (
@@ -288,7 +375,7 @@ export function SectionFooter({ onNext, saving, autoSaving, nextLabel = 'Save & 
       <button className="btn btn-primary fade-up" onClick={onNext} disabled={saving}>
         {saving ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Saving…</> : nextLabel}
       </button>
-      <AutosaveIndicator saving={autoSaving} />
+      <AutosaveIndicator status={autoSaving} />
     </div>
   );
 }

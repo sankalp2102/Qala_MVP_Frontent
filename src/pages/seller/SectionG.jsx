@@ -458,6 +458,18 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
     finally { pending.current -= 1; if (pending.current <= 0) { pending.current = 0; setBusy(false); } }
   };
 
+  // A product or collection form is open with input that hasn't been committed.
+  // Section G deliberately has no autosave — a half-typed product must not
+  // create a row — so the browser is the only thing that can warn the seller
+  // before a reload or tab close throws the form away.
+  const formOpen = prodMode === 'single' || !!editingProduct || collFormOpen || !!editingCollection;
+  useEffect(() => {
+    if (!formOpen) return;
+    const onBeforeUnload = e => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [formOpen]);
+
   useEffect(() => {
     if (!initialData) return;
     if (initialData.studio_products)    setProducts(initialData.studio_products);
@@ -804,7 +816,13 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
         </div>
       )}
 
-      <SectionFooter onNext={() => finish(true)} saving={saving} autoSaving={busy} />
+      {/* autoSaving={null} — Section G has no autosave and never did. Products
+          and collections are committed through their own Save buttons, because
+          a half-typed product form must not create a row. The footer used to
+          pass `busy`, which rendered the green "Changes saved automatically"
+          any time no upload was running, promising a guarantee this section
+          cannot keep. The unsaved-changes guard above covers the real risk. */}
+      <SectionFooter onNext={() => finish(true)} saving={saving || busy} autoSaving={null} />
     </div>
   );
 }

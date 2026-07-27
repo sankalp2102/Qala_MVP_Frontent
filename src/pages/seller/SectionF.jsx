@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { onboardingAPI } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 import {
   SectionHeader, QCard, Field, SectionFooter, InfoBox, TrashBtn,
-  useAutosave, inputStyle, textareaStyle,
+  useAutosave, mergeAutosave, inputStyle, textareaStyle,
 } from './_ui';
 
 const API = onboardingAPI;
@@ -92,19 +92,19 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
     }).catch(() => {});
   }, [profileId]);
 
-  const saveCoordinatorSilent = useCallback(async (updated) => {
-    try {
-      const fd = new FormData();
-      fd.append('name', updated.name);
-      fd.append('position', updated.position);
-      fd.append('writeup', updated.writeup);
-      await API.putCoordinator(profileId, fd);
-      setCoordSaved(true);
-      setTimeout(() => setCoordSaved(false), 1500);
-    } catch {}
-  }, [profileId]);
-
-  const handleCoordBlur = () => saveCoordinatorSilent(coordinator);
+  // F.2 coordinator. This used to save on blur only, and was not part of any
+  // autosave: the fields weren't in the deps below, weren't registered with the
+  // autosave registry, and had no page-lifecycle coverage. Typing a writeup and
+  // then refreshing, closing the tab or logging out while the field still had
+  // focus lost the text outright — while the footer claimed "Changes saved
+  // automatically". It now goes through the shared hook like everything else.
+  const persistCoordinator = useCallback(() => {
+    const fd = new FormData();
+    fd.append('name', coordinator.name || '');
+    fd.append('position', coordinator.position || '');
+    fd.append('writeup', coordinator.writeup || '');
+    return API.putCoordinator(profileId, fd);
+  }, [profileId, coordinator]);
 
   const uploadCoordPhoto = async e => {
     const file = e.target.files?.[0]; if (!file) return;
@@ -162,7 +162,23 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
     moq_flexible: form.moq_flexible,
   });
 
-  const autoSaving = useAutosave(persist, [form]);
+  const productionAutoSave  = useAutosave(persist, [form]);
+  const coordinatorAutoSave = useAutosave(persistCoordinator, [coordinator]);
+  const autoSaving = mergeAutosave(productionAutoSave, coordinatorAutoSave);
+
+  // Keep the small "Saved" pulse next to the coordinator card driven by the
+  // autosave rather than by a blur handler. The ref matters: without it the
+  // effect runs on mount — when nothing has been saved — and flashes "Saved"
+  // at a seller who hasn't typed anything yet.
+  const coordSaveSeen = useRef(false);
+  useEffect(() => {
+    if (coordinatorAutoSave.saving) { coordSaveSeen.current = true; return; }
+    if (!coordSaveSeen.current || coordinatorAutoSave.error) return;
+    coordSaveSeen.current = false;
+    setCoordSaved(true);
+    const t = setTimeout(() => setCoordSaved(false), 1500);
+    return () => clearTimeout(t);
+  }, [coordinatorAutoSave.saving, coordinatorAutoSave.error]);
 
   const save = async (andNext = false) => {
     setSaving(true);
@@ -243,11 +259,11 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
           {coordSaved && <span style={{ fontSize: 11, color: '#AAA' }}>Saved</span>}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <Field label="Name *"><input style={inputStyle} value={coordinator.name} onChange={e => setCoordinator(c => ({ ...c, name: e.target.value }))} onBlur={handleCoordBlur} placeholder="e.g. Priya Sharma" /></Field>
-          <Field label="Position"><input style={inputStyle} value={coordinator.position} onChange={e => setCoordinator(c => ({ ...c, position: e.target.value }))} onBlur={handleCoordBlur} placeholder="e.g. Studio Manager / Founder" /></Field>
+          <Field label="Name *"><input style={inputStyle} value={coordinator.name} onChange={e => setCoordinator(c => ({ ...c, name: e.target.value }))} placeholder="e.g. Priya Sharma" /></Field>
+          <Field label="Position"><input style={inputStyle} value={coordinator.position} onChange={e => setCoordinator(c => ({ ...c, position: e.target.value }))} placeholder="e.g. Studio Manager / Founder" /></Field>
         </div>
         <Field label="About Them">
-          <textarea style={textareaStyle} rows={3} value={coordinator.writeup} onChange={e => setCoordinator(c => ({ ...c, writeup: e.target.value }))} onBlur={handleCoordBlur}
+          <textarea style={textareaStyle} rows={3} value={coordinator.writeup} onChange={e => setCoordinator(c => ({ ...c, writeup: e.target.value }))}
             placeholder="e.g. Priya has 12 years in textile production. She manages all buyer relationships from brief to delivery. Prefers WhatsApp for quick updates." />
         </Field>
         <Field label="Photo" style={{ marginBottom: 0 }}>

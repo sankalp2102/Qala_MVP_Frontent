@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { onboardingAPI } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
@@ -27,7 +27,6 @@ export default function SectionA({ profileId, initialData, onSave, onNext }) {
   const [newAward, setNewAward]   = useState({ award_name: '', link: '' });
   const [saving, setSaving]       = useState(false);
   const [uploading, setUploading] = useState('');
-  const debounceRef               = useRef({});
 
   const populateFromData = (d) => {
     if (!d) return;
@@ -77,19 +76,13 @@ export default function SectionA({ profileId, initialData, onSave, onNext }) {
     API.getAwards(profileId).then(r => setAwards(r.data || [])).catch(() => {});
   }, [profileId]);
 
-  const debouncedPatch = useCallback((field, val) => {
-    clearTimeout(debounceRef.current[field]);
-    debounceRef.current[field] = setTimeout(async () => {
-      try {
-        await API.patchStudio(profileId, { [field]: val });
-      } catch {}
-    }, 600);
-  }, [profileId]);
-
-  const handleField = (field, val) => {
-    setForm(f => ({ ...f, [field]: val }));
-    debouncedPatch(field, val);
-  };
+  // Section A used to fire a per-field PATCH on a 600ms debounce AND a full PUT
+  // via useAutosave on 900ms, so every keystroke produced two competing writes
+  // and an in-flight PATCH could land after the PUT and revert a neighbouring
+  // field. Those per-field timers were also never cleared on unmount. The
+  // autosave below already sends the whole form, so the field handler now just
+  // updates state.
+  const handleField = (field, val) => setForm(f => ({ ...f, [field]: val }));
 
   const saveCerts = async tags => {
     setCertTags(tags);

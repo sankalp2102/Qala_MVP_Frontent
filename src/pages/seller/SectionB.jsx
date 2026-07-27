@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { onboardingAPI } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
@@ -134,8 +134,6 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
   const [acceptingProjects, setAcceptingProjects] = useState(true);
 
   const [saving, setSaving] = useState(false);
-  const debounceRef         = useRef(null);
-  const pendingRef          = useRef({});   // merged autosave payload awaiting send
   const hydrated            = useRef(false); // hydrate from server only once
 
   const populateFromData = (d) => {
@@ -183,13 +181,13 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
     const v = itemName.trim(); if (!v) return;
     setHfGroups(prev => prev.map(g => g.group === groupName && !g.items.includes(v) ? { ...g, items: [...g.items, v] } : g));
     // Adding an item also selects it, so it persists in home_furnishings.
-    setHomeFurnishings(prev => { const next = prev.includes(v) ? prev : [...prev, v]; triggerAutosave({ home_furnishings: next }); return next; });
+    setHomeFurnishings(prev => { const next = prev.includes(v) ? prev : [...prev, v]; return next; });
   };
 
   // Remove a studio-added item from a home-furnishings group (built-ins stay).
   const removeHFItem = (groupName, itemName) => {
     setHfGroups(prev => prev.map(g => g.group === groupName ? { ...g, items: g.items.filter(i => i !== itemName) } : g));
-    setHomeFurnishings(prev => { const next = prev.filter(x => x !== itemName); triggerAutosave({ home_furnishings: next }); return next; });
+    setHomeFurnishings(prev => { const next = prev.filter(x => x !== itemName); return next; });
   };
 
   // An item is studio-added if it isn't in the built-in list for that group.
@@ -207,7 +205,7 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
     setHfGroups(prev => {
       const grp = prev.find(g => g.group === groupName);
       if (grp) {
-        setHomeFurnishings(hfPrev => { const next = hfPrev.filter(x => !grp.items.includes(x)); triggerAutosave({ home_furnishings: next }); return next; });
+        setHomeFurnishings(hfPrev => { const next = hfPrev.filter(x => !grp.items.includes(x)); return next; });
       }
       return prev.filter(g => g.group !== groupName);
     });
@@ -225,38 +223,15 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
     API.getStudio(profileId).then(r => { populateFromData(r.data); hydrated.current = true; }).catch(() => {});
   }, [profileId]);
 
-  // Accumulate field groups between debounce ticks. Previously each call did
-  // clearTimeout() and captured only its OWN payload, so editing gender then
-  // occasions within the debounce window cancelled the gender PATCH entirely —
-  // that edit was never sent and silently disappeared on the next refresh.
-  // We now merge every payload into pendingRef and send them together.
-  const triggerAutosave = useCallback((payload) => {
-    pendingRef.current = { ...pendingRef.current, ...payload };
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      const body = pendingRef.current;
-      pendingRef.current = {};
-      if (!Object.keys(body).length) return;
-      try {
-        await API.patchStudio(profileId, body);
-      } catch {
-        // Put the fields back so the next tick (or the unmount flush) retries
-        // them rather than dropping the edit.
-        pendingRef.current = { ...body, ...pendingRef.current };
-      }
-    }, 800);
-  }, [profileId]);
-
-  // Flush anything still pending when leaving the section, so navigating away
-  // within the debounce window doesn't lose the last edit.
-  useEffect(() => () => {
-    clearTimeout(debounceRef.current);
-    const body = pendingRef.current;
-    pendingRef.current = {};
-    if (profileId && Object.keys(body).length) {
-      API.patchStudio(profileId, body).catch(() => {});
-    }
-  }, [profileId]);
+  // Category selections are persisted by the shared useAutosave below, which
+  // sends every category field together. The section previously ran its own
+  // private 800ms debounce (`triggerAutosave`) that merged payloads and flushed
+  // on unmount — but it was never registered with the autosave registry, so a
+  // pending selection was dropped whenever the seller logged out, closed the
+  // tab, refreshed, or backgrounded the page. Those are exactly the moments
+  // work gets lost. Deleting it in favour of the shared hook picks up the
+  // registry, the page-lifecycle flushes, failure retries and the error
+  // indicator for free.
 
   const nextRank = list => list.length ? Math.max(...list.map(x => x.rank)) + 1 : 1;
 
@@ -266,7 +241,6 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
       const next = exists
         ? prev.filter(g => g.name !== name).sort((a, b) => a.rank - b.rank).map((g, i) => ({ ...g, rank: i + 1 }))
         : [...prev, { name, rank: nextRank(prev) }];
-      triggerAutosave({ gender_focus: next });
       return next;
     });
   };
@@ -277,7 +251,6 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
       const next = exists
         ? prev.filter(o => o.name !== name).sort((a, b) => a.rank - b.rank).map((o, i) => ({ ...o, rank: i + 1 }))
         : [...prev, { name, rank: nextRank(prev) }];
-      triggerAutosave({ occasions: next });
       return next;
     });
   };
@@ -285,7 +258,7 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
   const addCustomOccasion = () => {
     const v = customOcc.trim(); if (!v) return;
     setAllOccasionNames(prev => [...prev, v]);
-    setOccasions(prev => { const next = [...prev, { name: v, rank: nextRank(prev) }]; triggerAutosave({ occasions: next }); return next; });
+    setOccasions(prev => { const next = [...prev, { name: v, rank: nextRank(prev) }]; return next; });
     setCustomOcc(''); setAddingOcc(false);
   };
 
@@ -299,7 +272,6 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
     setAllOccasionNames(prev => prev.filter(n => n !== name));
     setOccasions(prev => {
       const next = prev.filter(o => o.name !== name).map((o, i) => ({ ...o, rank: i + 1 }));
-      triggerAutosave({ occasions: next });
       return next;
     });
   };
@@ -308,7 +280,6 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
     setAllGarmentNames(prev => prev.filter(n => n !== name));
     setGarments(prev => {
       const next = prev.filter(g => g.name !== name);
-      triggerAutosave({ garment_types: next });
       return next;
     });
   };
@@ -317,7 +288,6 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
     setAllAccessoryNames(prev => prev.filter(n => n !== name));
     setAccessories(prev => {
       const next = prev.filter(a => a !== name);
-      triggerAutosave({ accessory_types: next });
       return next;
     });
   };
@@ -340,7 +310,6 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
         const currentTop5 = prev.filter(g => g.top5).length;
         next = [...prev, { name, top5: currentTop5 < TOP5_MAX }];
       }
-      triggerAutosave({ garment_types: next });
       return next;
     });
   };
@@ -348,14 +317,13 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
   const addCustomGarment = () => {
     const v = customGarment.trim(); if (!v) return;
     setAllGarmentNames(p => [...p, v]);
-    setGarments(prev => { const next = [...prev, { name: v, top5: false }]; triggerAutosave({ garment_types: next }); return next; });
+    setGarments(prev => { const next = [...prev, { name: v, top5: false }]; return next; });
     setCustomGarment(''); setAddingGarment(false);
   };
 
   const toggleAccessory = name => {
     setAccessories(prev => {
       const next = prev.includes(name) ? prev.filter(x => x !== name) : [...prev, name];
-      triggerAutosave({ accessory_types: next });
       return next;
     });
   };
@@ -363,21 +331,32 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
   const addCustomAccessory = () => {
     const v = customAcc.trim(); if (!v) return;
     setAllAccessoryNames(p => [...p, v]);
-    setAccessories(prev => { const next = [...prev, v]; triggerAutosave({ accessory_types: next }); return next; });
+    setAccessories(prev => { const next = [...prev, v]; return next; });
     setCustomAcc(''); setAddingAcc(false);
   };
 
   const toggleHF = item => {
     setHomeFurnishings(prev => {
       const next = prev.includes(item) ? prev.filter(x => x !== item) : [...prev, item];
-      triggerAutosave({ home_furnishings: next });
       return next;
     });
   };
 
+  // One autosave for the whole section. Previously this covered `category_notes`
+  // ONLY — every other field on the page (gender focus, occasions, garment
+  // types, accessories, home furnishings) went through the private debounce that
+  // has just been removed, so none of them were reachable by the logout flush or
+  // the page-lifecycle handlers.
   const autoSaving = useAutosave(
-    () => API.patchStudio(profileId, { category_notes: categoryNotes }),
-    [categoryNotes]
+    () => API.patchStudio(profileId, {
+      gender_focus:     genders,
+      occasions,
+      garment_types:    garments,
+      accessory_types:  accessories,
+      home_furnishings: homeFurnishings,
+      category_notes:   categoryNotes,
+    }),
+    [genders, occasions, garments, accessories, homeFurnishings, categoryNotes]
   );
 
   const toggleAcceptingProjects = () => {
