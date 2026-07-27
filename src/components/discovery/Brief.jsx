@@ -148,6 +148,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
   }
 
   async function proceedToMatch() {
+    setMatching(true);
     setMatchingInModal(true);
     setMatchError('');
     setLoadingStep(0);
@@ -183,6 +184,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
       matchPromiseRef.current = null;
     } finally {
       clearInterval(msgInterval);
+      setMatching(false);
     }
   }
 
@@ -238,6 +240,28 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
         <p style={{ fontSize: 12, color: 'var(--red)', padding: '8px 18px 0', margin: 0, background: 'var(--surface)', fontFamily: 'var(--font-body)' }}>
           {matchError}
         </p>
+      )}
+
+      {/* Inline loading state for the skipContactForm path — the modal's
+          spinner never renders here since showContact stays false, so
+          without this the button click had zero visible feedback while
+          matching ran. */}
+      {matching && !showContact && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 18px', background: 'var(--surface)',
+          borderTop: '0.5px solid var(--border)',
+        }}>
+          <div style={{
+            width: 16, height: 16, flexShrink: 0,
+            border: '2px solid var(--surface3)', borderTopColor: SAGE,
+            borderRadius: '50%', animation: 'modalSpin 0.85s linear infinite',
+          }} />
+          <span style={{ fontSize: 12.5, color: 'var(--text3)', fontFamily: 'var(--font-body)' }}>
+            {LOADING_MESSAGES[loadingStep]}
+          </span>
+          <style>{`@keyframes modalSpin { to { transform: rotate(360deg); } }`}</style>
+        </div>
       )}
 
       {/* Reference images — moodboard / sketches / samples shared in chat */}

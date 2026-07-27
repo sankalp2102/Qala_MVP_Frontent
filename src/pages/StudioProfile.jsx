@@ -215,8 +215,10 @@ function Lightbox({ images, startIndex, onClose }) {
 // ─── Portfolio Grid ───────────────────────────────────────────────────────────
 // v3.1: hover overlay (name + tags), See-more toggle, and a brief-gated match
 // layer (banner / match dots / "other work" divider) that only renders when a
-// buyer brief is present. No brief is wired yet (matching is a later module), so
-// today this renders as a plain, match-free grid.
+// buyer brief is present. The brief arrives as `active_brief` on the studio
+// profile response (resolved server-side from the buyer's session token), so a
+// buyer landing here from a Qalawati recommendation sees matched work first;
+// anonymous visitors get a plain, match-free grid in upload order.
 const PORTFOLIO_VISIBLE = 9;
 
 function scoreWork(item, brief) {
@@ -953,7 +955,7 @@ export default function StudioProfile() {
           {hasWork && (
             <div className="profile-fade profile-fade-2" style={{ marginBottom: 44 }}>
               <Section title="Portfolio">
-                <PortfolioGrid items={s.work_images} />
+                <PortfolioGrid items={s.work_images} brief={s.active_brief || null} />
               </Section>
             </div>
           )}

@@ -5,6 +5,7 @@ import { Toast } from '../../components/Toast';
 import {
   SectionHeader, QCard, SectionFooter, RankRow, Top5Row, CheckRow,
   CategoryAccordion, GroupAccordion, AddButton, useAutosave, inputStyle, textareaStyle, TOP5_MAX,
+  CollabToggle,
 } from './_ui';
 
 const API = onboardingAPI;
@@ -128,6 +129,10 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
   const [addingHFGroup, setAddingHFGroup]     = useState(false);
   const [newHFGroup, setNewHFGroup]           = useState('');
 
+  // Matchmaking spec v0.6 §2 — Stage 1 hard filter. Defaults true so a studio
+  // that hasn't touched this looks unchanged to the matching engine.
+  const [acceptingProjects, setAcceptingProjects] = useState(true);
+
   const [saving, setSaving] = useState(false);
   const debounceRef         = useRef(null);
   const pendingRef          = useRef({});   // merged autosave payload awaiting send
@@ -137,6 +142,7 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
     if (!d) return;
     setGenders(d.gender_focus || []);
     setCategoryNotes(d.category_notes || '');
+    setAcceptingProjects(d.accepting_new_projects !== false);
 
     const occ = d.occasions || [];
     setOccasions(occ);
@@ -374,6 +380,16 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
     [categoryNotes]
   );
 
+  const toggleAcceptingProjects = () => {
+    setAcceptingProjects(prev => {
+      const next = !prev;
+      API.patchStudio(profileId, { accepting_new_projects: next }).catch(
+        () => error('Could not update your availability — please try again.')
+      );
+      return next;
+    });
+  };
+
   const save = async (andNext = false) => {
     setSaving(true);
     try {
@@ -382,6 +398,7 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
         garment_types: garments, accessory_types: accessories,
         home_furnishings: homeFurnishings,
         category_notes: categoryNotes,
+        accepting_new_projects: acceptingProjects,
       });
       success('Section B saved!');
       onSave?.();
@@ -397,6 +414,23 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
     <div style={{ padding: '40px 48px 80px', maxWidth: 760 }}>
       <Toast toasts={toasts} />
       <SectionHeader letter="B" title="Categories" desc="What categories you work with and have expertise in." />
+
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '12px 16px', marginBottom: 24, borderRadius: 8,
+        background: acceptingProjects ? '#F3F6F1' : '#F7F1EC',
+        border: `1px solid ${acceptingProjects ? '#7A8C6E' : '#D8D4CF'}`,
+      }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#333' }}>
+            {acceptingProjects ? 'Currently accepting new projects' : 'Not accepting new projects right now'}
+          </div>
+          <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>
+            Turn this off if you're at capacity — buyers won't be matched to your studio until you turn it back on.
+          </div>
+        </div>
+        <CollabToggle checked={acceptingProjects} onChange={toggleAcceptingProjects} label={acceptingProjects ? 'On' : 'Off'} />
+      </div>
 
       {/* ── Fashion ── */}
       <CategoryAccordion icon="👗" name="Fashion" sub="Clothing and Accessories" defaultOpen count={fashionCount}>
