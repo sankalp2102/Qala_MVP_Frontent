@@ -29,6 +29,18 @@
   /* ── Decorative gold (premium indicators) ── */
   --deco-gold: #C9A84C;
 
+  /* ── Admin accent ── aliased to --gold rather than a separate color:
+     every pre-existing admin page already just uses var(--gold) directly
+     with no distinct "admin purple" identity, so these are here purely
+     for backward-compat with admin-side components that reference
+     --admin explicitly — they resolve to the same sage green, not a
+     new color. */
+  --admin:      var(--gold);
+  --admin-l:    var(--gold-l);
+  --admin-dim:  rgba(122, 140, 110, 0.08);
+  --admin-dim2: rgba(122, 140, 110, 0.16);
+  --gold-dim2:  rgba(122, 140, 110, 0.16);
+
   /* ── Sage green (success, positive, material tags) ── */
   --teal:      #7A8C6E;   /* --sage */
   --teal-l:    #6A7A5E;

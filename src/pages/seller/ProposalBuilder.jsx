@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { projectsAPI } from '../../api/client';
+import { projectsAPI, onboardingAPI } from '../../api/client';
 import {
-  calcLandingCost, fetchForex,
+  calcLandingCost, fetchForex, sanitizeForex,
   fmtUSD, fmtINR, fmtPct,
 } from '../../utils/calculator';
 import LineItemCards, { normalizeItems, summarize } from '../../components/proposals/LineItemCards';
@@ -20,7 +20,7 @@ const STD_BOXES = [
   { label: 'L',  length_cm: 60, width_cm: 40, height_cm: 40, vol: 19.2, box: 1.4 },
 ];
 
-const SHIP_OPTIONS    = [['dhl','DHL Express'],['shipglobal','ShipGlobal (Economical)']];
+const SHIP_OPTIONS    = [['dhl','Express'],['shipglobal','Economical']];
 
 function fmtDate(iso) {
   return iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
@@ -53,14 +53,23 @@ function SLabel({ children, required }) {
 
 // ── STEP NAVIGATOR ────────────────────────────────────────────────────────────
 
+// Buyer's Brief removed as a step here — it's redundant with
+// EnquiryDetail.jsx, which already shows the full brief before "Start
+// Proposal" is even clicked. The prototype (studio-proposal.html) only
+// ever has 6 sections, not 7 — confirmed by its own section IDs (sec-1
+// through sec-6) and its section-header numbers (01, 03, 04, 05, 06, 07 —
+// note the deliberate gap at 02, which is the prototype's OWN numbering,
+// not something to "fix"). Internal step ids below are kept as 2-7,
+// matching those header numbers exactly, so none of the case/header code
+// below needed to change — only navNumber is new, giving the sidebar a
+// clean 1-6 display distinct from the internal step id.
 const STEPS = [
-  { n: 1, label: "Buyer's brief" },
-  { n: 2, label: 'Concept' },
-  { n: 3, label: 'Past projects' },
-  { n: 4, label: 'Offerings & costing', required: true },
-  { n: 5, label: 'Timelines', required: true },
-  { n: 6, label: 'Terms (SOW)' },
-  { n: 7, label: 'Review & submit' },
+  { n: 2, navNumber: 1, label: 'Concept' },
+  { n: 3, navNumber: 2, label: 'Past projects' },
+  { n: 4, navNumber: 3, label: 'Offerings & costing', required: true },
+  { n: 5, navNumber: 4, label: 'Timelines', required: true },
+  { n: 6, navNumber: 5, label: 'Terms (SOW)' },
+  { n: 7, navNumber: 6, label: 'Review & submit' },
 ];
 
 function StepNav({ current, onChange, completedSteps }) {
@@ -87,7 +96,7 @@ function StepNav({ current, onChange, completedSteps }) {
               background: done ? 'var(--green)' : active ? 'var(--gold)' : 'var(--surface3)',
               color: done || active ? '#fff' : 'var(--text3)',
             }}>
-              {done ? '✓' : s.n}
+              {done ? '✓' : s.navNumber}
             </div>
             <div>
               <div style={{ fontSize: 13, fontWeight: active ? 600 : 400, color: active ? 'var(--gold)' : 'var(--text2)' }}>{s.label}</div>
@@ -102,60 +111,307 @@ function StepNav({ current, onChange, completedSteps }) {
 
 // ── LIVE CALC PANEL ───────────────────────────────────────────────────────────
 
-function CalcPanel({ result, forex, brief, pfPct }) {
-  const targetUSD = brief?.target_landing_price_usd ? parseFloat(brief.target_landing_price_usd) : null;
-  const diff = targetUSD && result.hasItems ? result.landingCostUSD - targetUSD : null;
-
+// ── RIGHT PANEL — carbon copy of studio-proposal.html's #right-panel ──────────
+// Three states exactly matching the prototype's #calc-right / #tl-right /
+// #default-right divs, swapped by current step rather than JS show/hide.
+function PayTrack({ pct, onChange, disabled }) {
   return (
-    <div style={{ width: 220, flexShrink: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 16px', position: 'sticky', top: 80, alignSelf: 'flex-start' }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Buyer Landing Cost</div>
-      <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
-        {result.hasItems ? fmtUSD(result.landingCostUSD) : '$—'}
-      </div>
-      {targetUSD && (
-        <div style={{ fontSize: 11, marginBottom: 12, color: diff > 0 ? 'var(--red)' : 'var(--green)' }}>
-          {diff > 0 ? `▲ ${fmtUSD(diff)} above target` : `▼ ${fmtUSD(Math.abs(diff))} below target`}
-          <div style={{ color: 'var(--text4)', marginTop: 2 }}>Target: {fmtUSD(targetUSD)}</div>
-        </div>
-      )}
-      {!result.hasItems && (
-        <div style={{ fontSize: 11, color: 'var(--text4)', marginBottom: 12 }}>
-          {targetUSD ? `Buyer target ${fmtUSD(targetUSD)}` : 'Add items to calculate'}
-        </div>
-      )}
+    <div style={{ position: 'relative', height: 5, background: 'var(--surface3)', borderRadius: 3, margin: '4px 0 6px', cursor: disabled ? 'default' : 'pointer' }}>
+      <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', background: 'var(--gold)', borderRadius: 3, pointerEvents: 'none', transition: 'width .05s', width: `${pct}%` }} />
+      <input type="range" min="0" max="100" step="5" value={pct} disabled={disabled} onChange={onChange}
+        style={{ position: 'absolute', width: '100%', top: -6, left: 0, margin: 0, opacity: 0, cursor: disabled ? 'default' : 'pointer', height: 18 }} />
+    </div>
+  );
+}
 
-      {result.hasItems && (
-        <div style={{ fontSize: 12, borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 4 }}>
-          {[
-            ['Production', fmtUSD(result.totalProdUSD)],
-            [result.isSG ? 'ShipGlobal' : 'DHL Express', fmtUSD(result.shippingUSD)],
-            ...(!result.isSG ? [['Import duties', fmtUSD(result.totalDutyUSD)]] : []),
-            [`Qala fee (${fmtPct(pfPct)})`, fmtUSD(result.pfTotal)],
-          ].map(([l, v]) => (
-            <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, color: 'var(--text3)' }}>
-              <span>{l}</span><span style={{ color: 'var(--text)', fontWeight: 500 }}>{v}</span>
+const PHASE_META = {
+  designing:  { label: 'Design',     color: '#7A8C6E' },
+  sampling:   { label: 'Sampling',   color: '#C4953A' },
+  production: { label: 'Production', color: '#5B4B8A' },
+};
+
+function RightPanel({ step, result, forex, currency, setCurrency, exp, toggleExp, advPctDesign, setAdvPctDesign, advPctProduction, setAdvPctProduction, enquiry, brief, designDate, sampleDate, bulkDate }) {
+  const c = (usd, inr) => currency === 'usd' ? fmtUSD(usd) : fmtINR(inr ?? usd * forex);
+  const unitHdr = currency === 'usd' ? 'Unit ($)' : 'Unit (₹)';
+  const totHdr  = currency === 'usd' ? 'Total ($)' : 'Total (₹)';
+
+  const Row = ({ label, value, sub, clickable, expandKey, bold }) => (
+    <div className={`br${sub ? ' sub' : ''}${bold ? ' tot' : ''}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: sub ? '4px 0 4px 14px' : bold ? '10px 0 0' : '7px 0', borderBottom: bold ? 'none' : sub ? '1px dashed var(--border)' : '1px solid var(--border)', borderTop: bold ? '1px solid var(--border2)' : 'none', fontSize: sub ? 11 : bold ? 13 : 12, fontWeight: bold ? 500 : 400, cursor: clickable ? 'pointer' : 'default' }}
+      onClick={clickable ? () => toggleExp(expandKey) : undefined}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, color: sub ? 'var(--text3)' : 'var(--text2)' }}>
+        {clickable && <span style={{ fontSize: 11, color: 'var(--text3)', display: 'inline-block', transform: exp[expandKey] ? 'rotate(90deg)' : 'none', transition: 'transform .2s' }}>›</span>}
+        {label}
+      </span>
+      <span style={{ color: bold ? 'var(--gold)' : 'var(--text)', whiteSpace: 'nowrap', marginLeft: 8 }}>{value}</span>
+    </div>
+  );
+
+  if (step === 4 || step === 7) {
+    const items = result.items || [];
+    return (
+      <div style={{ width: 340, flexShrink: 0, borderLeft: '1px solid var(--border)', position: 'sticky', top: 52, height: 'calc(100vh - 52px)', overflowY: 'auto', background: 'var(--bg)' }}>
+        {/* Proforma card */}
+        <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--text4)' }}>Buyer landing cost</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontSize: 10, color: 'var(--terra, #D4836A)', background: 'rgba(212,131,106,.08)', border: '1px solid rgba(212,131,106,.2)', borderRadius: 4, padding: '2px 7px' }}>1 USD = ₹{forex.toFixed(2)}</div>
+              <div style={{ display: 'flex', border: '1px solid var(--border2)', borderRadius: 8, overflow: 'hidden' }}>
+                <button onClick={() => setCurrency('usd')} style={{ padding: '4px 10px', fontSize: 11, border: 'none', cursor: 'pointer', background: currency === 'usd' ? 'var(--gold)' : 'var(--bg)', color: currency === 'usd' ? '#fff' : 'var(--text2)' }}>USD</button>
+                <button onClick={() => setCurrency('inr')} style={{ padding: '4px 10px', fontSize: 11, border: 'none', borderLeft: '1px solid var(--border2)', cursor: 'pointer', background: currency === 'inr' ? 'var(--gold)' : 'var(--bg)', color: currency === 'inr' ? '#fff' : 'var(--text2)' }}>INR</button>
+              </div>
             </div>
-          ))}
-          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 6, marginTop: 6, display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: 'var(--text)' }}>
-            <span>Landing</span><span>{fmtUSD(result.landingCostUSD)}</span>
           </div>
+          <div style={{ background: 'var(--bg)', border: '1px solid var(--border2)', borderLeft: '3px solid var(--terra, #D4836A)', borderRadius: 10, padding: '16px 18px' }}>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: 4 }}>Landing cost</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 600, color: 'var(--terra, #D4836A)', lineHeight: 1 }}>{result.hasItems ? c(result.landingCostUSD) : '—'}</div>
+            </div>
+            {items.length === 0 ? (
+              <div style={{ textAlign: 'center', color: 'var(--text4)', padding: 12, fontSize: 11 }}>Add items to see pricing</div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead><tr>
+                  <th style={{ fontSize: 9, fontWeight: 600, color: 'var(--text4)', textAlign: 'left', paddingBottom: 4 }}>#</th>
+                  <th style={{ fontSize: 9, fontWeight: 600, color: 'var(--text4)', textAlign: 'left', paddingBottom: 4 }}>Item</th>
+                  <th style={{ fontSize: 9, fontWeight: 600, color: 'var(--text4)', textAlign: 'right', paddingBottom: 4 }}>Qty</th>
+                  <th style={{ fontSize: 9, fontWeight: 600, color: 'var(--text4)', textAlign: 'right', paddingBottom: 4 }}>{unitHdr}</th>
+                  <th style={{ fontSize: 9, fontWeight: 600, color: 'var(--text4)', textAlign: 'right', paddingBottom: 4 }}>{totHdr}</th>
+                </tr></thead>
+                <tbody>
+                  {['designing', 'sampling', 'production'].flatMap((phaseKey) => {
+                    const phaseItems = items.filter(it => it.itemType === phaseKey);
+                    if (phaseItems.length === 0) return [];
+                    const phaseSubtotal = result.byPhase?.[phaseKey]?.subtotal || 0;
+                    const phaseProdUSD  = phaseItems.reduce((s, it) => s + it.prodUSD, 0);
+                    const meta = PHASE_META[phaseKey];
+                    const rows = [
+                      <tr key={`${phaseKey}-hdr`}>
+                        <td colSpan={5} style={{ padding: '10px 0 3px', borderTop: '1px solid var(--border)' }}>
+                          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.5px', color: meta.color, textTransform: 'uppercase' }}>{meta.label}</span>
+                        </td>
+                      </tr>,
+                      ...phaseItems.map((it, i) => {
+                        const landing = phaseProdUSD > 0 ? it.prodUSD * (phaseSubtotal / phaseProdUSD) : 0;
+                        return (
+                          <tr key={`${phaseKey}-${i}`}>
+                            <td style={{ fontSize: 11, padding: '3px 0', color: 'var(--text4)', paddingLeft: 6 }}>{i + 1}</td>
+                            <td style={{ fontSize: 11, padding: '3px 0', color: 'var(--text2)', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={it.name}>{it.name || '—'}</td>
+                            <td style={{ fontSize: 11, padding: '3px 0', textAlign: 'right', color: 'var(--text3)' }}>{it.qty}</td>
+                            <td style={{ fontSize: 12, padding: '3px 0', textAlign: 'right', fontWeight: 500 }}>{c(it.qty > 0 ? landing / it.qty : 0)}</td>
+                            <td style={{ fontSize: 12, padding: '3px 0', textAlign: 'right', fontWeight: 600, color: 'var(--terra, #D4836A)' }}>{c(landing)}</td>
+                          </tr>
+                        );
+                      }),
+                    ];
+                    const note = phaseKey === 'sampling'
+                      ? 'Shipping & duties — to be charged on actuals'
+                      : 'All inclusive · excl. payment gateway charges';
+                    rows.push(
+                      <tr key={`${phaseKey}-note`}>
+                        <td colSpan={5} style={{ padding: '3px 6px 6px' }}>
+                          <span style={{ fontSize: 10, color: 'var(--text4)', fontStyle: 'italic' }}>{note}</span>
+                        </td>
+                      </tr>
+                    );
+                    return rows;
+                  })}
+                </tbody>
+              </table>
+            )}
+            {result.hasItems && (
+              <div style={{ marginTop: 8, borderTop: '1px solid var(--border2)', paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontWeight: 600, fontSize: 13 }}>
+                <span>Total</span><span style={{ color: 'var(--terra, #D4836A)' }}>{c(result.landingCostUSD)}</span>
+              </div>
+            )}
+          </div>
+        </div>
 
-          <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Your Payout</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>{fmtINR(result.payoutTotalINR)}</div>
-            <div style={{ fontSize: 10, color: 'var(--text4)', marginTop: 2 }}>{fmtINR(result.payoutBaseINR)} + {fmtINR(result.payoutGSTINR)} GST</div>
-            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-              {[['Advance 50%', result.advanceINR], ['On dispatch', result.balanceINR]].map(([l, v]) => (
-                <div key={l} style={{ flex: 1, background: 'var(--surface2)', borderRadius: 7, padding: '7px 8px' }}>
-                  <div style={{ fontSize: 9, color: 'var(--text4)', marginBottom: 2 }}>{l}</div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)' }}>{fmtINR(v)}</div>
+        {/* Cost breakup */}
+        <div style={{ padding: '20px 20px 14px', borderBottom: '1px solid var(--border)' }}>
+          <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--text4)', marginBottom: 12, display: 'block' }}>Cost breakup</span>
+
+          <Row label="Studio charges" value={c(result.totalProdUSD)} clickable expandKey="prod" />
+          {exp.prod && (
+            <table style={{ width: '100%', borderCollapse: 'collapse', margin: '6px 0 4px' }}>
+              <tbody>
+                {items.length === 0 ? <tr><td style={{ fontSize: 11, color: 'var(--text4)', padding: 6 }}>Add items</td></tr> :
+                  items.map((it, i) => (
+                    <tr key={i}><td style={{ fontSize: 11, color: 'var(--text2)', padding: '3px 0' }}>{it.name}</td><td style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'right' }}>{it.qty}</td><td style={{ fontSize: 11, color: 'var(--text)', textAlign: 'right', fontWeight: 500 }}>{c(it.prodUSD)}</td></tr>
+                  ))}
+              </tbody>
+            </table>
+          )}
+
+          <Row label={`Shipping · ${result.isSG ? 'Economical' : 'Express'}`} value={c(result.shippingUSD)} clickable expandKey="ship" />
+          {exp.ship && (
+            <div style={{ marginBottom: 6 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--text4)', margin: '8px 0 5px' }}>Weight</div>
+              {[['Items actual', result.itemsActWt], ['Carton', result.cartWt], ['Actual total', result.totalActWt], ['Volumetric', result.volWt], ['Chargeable (higher)', result.chargeBase], ['+ 10% error margin', result.chargeMgn], ['Final chargeable', result.chargeFin]].map(([l, v]) => (
+                <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0 4px 14px', borderBottom: '1px dashed var(--border)', fontSize: 11 }}>
+                  <span style={{ color: 'var(--text3)' }}>{l}</span><span style={{ color: 'var(--text3)' }}>{(v || 0).toFixed(2)} kg</span>
+                </div>
+              ))}
+              <div style={{ marginTop: 8, fontSize: 10, color: 'var(--text4)', fontStyle: 'italic', lineHeight: 1.5 }}>Estimate for production only · Sampling charged at actuals</div>
+            </div>
+          )}
+
+          {!result.isSG && (
+            <>
+              <Row label="Import duties" sub={false} value={c(result.totalDutyUSD)} clickable expandKey="duty" />
+              {exp.duty && (
+                <div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', margin: '6px 0 4px' }}>
+                    <thead><tr>
+                      <th style={{ fontSize: 9, fontWeight: 600, color: 'var(--text4)', textAlign: 'left', paddingBottom: 4 }}>Item</th>
+                      <th style={{ fontSize: 9, fontWeight: 600, color: 'var(--text4)', textAlign: 'right', paddingBottom: 4 }}>Cost</th>
+                      <th style={{ fontSize: 9, fontWeight: 600, color: 'var(--text4)', textAlign: 'right', paddingBottom: 4 }}>Rate</th>
+                      <th style={{ fontSize: 9, fontWeight: 600, color: 'var(--text4)', textAlign: 'right', paddingBottom: 4 }}>Duty</th>
+                    </tr></thead>
+                    <tbody>
+                      {items.filter(it => it.itemType === 'production').map((it, i) => (
+                        <tr key={i}><td style={{ fontSize: 11, color: 'var(--text2)', padding: '3px 0' }}>{it.name}</td><td style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'right' }}>{c(it.dutyBase)}</td><td style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'right' }}>{(it.dutyPct * 100).toFixed(1)}%</td><td style={{ fontSize: 11, color: 'var(--text)', textAlign: 'right', fontWeight: 500 }}>{c(it.dutyBase * it.dutyPct)}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 11 }}>
+                    <span style={{ color: 'var(--text3)' }}>
+                      {result.totalDutyBase < 2500 || !result.procFee ? 'Processing fee — $2.00 flat' : 'Processing fee — 0.35% (min $33.58)'}
+                    </span>
+                    <span style={{ color: 'var(--text3)' }}>{c(result.procFee)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 11, fontWeight: 500 }}>
+                    <span style={{ color: 'var(--text2)' }}>Total duties</span>
+                    <span style={{ color: 'var(--text)' }}>{c(result.totalDutyUSD)}</span>
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: 10, color: 'var(--text4)', fontStyle: 'italic', lineHeight: 1.5 }}>Estimate for production only · Sampling charged at actuals</div>
+                </div>
+              )}
+            </>
+          )}
+
+          <Row label="Qala platform services" value={c(result.pfTotalFinal)} clickable expandKey="pf" />
+          {exp.pf && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0 4px 14px', fontSize: 11 }}>
+                <span style={{ color: 'var(--text3)' }}>Platform & IP Protection <span style={{ color: 'var(--text4)', fontSize: 10 }}>(4%)</span></span>
+                <span style={{ color: 'var(--text3)' }}>{c(result.ipAmt)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0 4px 14px', fontSize: 11 }}>
+                <span style={{ color: 'var(--text3)' }}>Managed Production <span style={{ color: 'var(--text4)', fontSize: 10 }}>(+6%)</span></span>
+                <span style={{ color: 'var(--text3)' }}>{c(result.mpAmt)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0 4px 14px', fontSize: 11 }}>
+                <span style={{ color: 'var(--text3)' }}>Trade & Compliance <span style={{ color: 'var(--text4)', fontSize: 10 }}>(+5%)</span></span>
+                <span style={{ color: 'var(--text3)' }}>{c(result.tcAmt)}</span>
+              </div>
+              <div style={{ marginTop: 8, padding: '8px 10px', background: 'var(--surface)', borderRadius: 6, fontSize: 10, color: 'var(--text3)', lineHeight: 1.6 }}>
+                Fee applies per phase — Design 4% · Sampling 10% · Production 15%
+              </div>
+            </div>
+          )}
+
+          <Row label="Landing cost" value={c(result.landingCostUSD)} bold />
+        </div>
+
+        {/* Payment schedule / payout */}
+        <div style={{ padding: '20px 20px 20px' }}>
+          <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--text4)', marginBottom: 12, display: 'block' }}>Payment schedule (INR)</span>
+          <div onClick={() => toggleExp('payout')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', paddingBottom: 6, marginBottom: 10 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ fontSize: 11, color: 'var(--text3)', display: 'inline-block', transform: exp.payout ? 'rotate(90deg)' : 'none' }}>›</span>
+              <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--terra, #D4836A)' }}>Your payout</span>
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)' }}>{fmtINR(result.payoutTotalINR)}</span>
+          </div>
+          {exp.payout && (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0 4px 14px', fontSize: 11 }}><span style={{ color: 'var(--text3)' }}>Base (excl. GST)</span><span style={{ color: 'var(--text3)' }}>{fmtINR(result.payoutBaseINR)}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0 4px 14px', fontSize: 11 }}><span style={{ color: 'var(--text3)' }}>GST</span><span style={{ color: 'var(--text3)' }}>{fmtINR(result.payoutGSTINR)}</span></div>
+              <div style={{ height: 6 }} />
+              {['designing', 'sampling', 'production'].map(k => (
+                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0 4px 14px', fontSize: 11, color: PHASE_META[k].color }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.04em' }}>{PHASE_META[k].label}</span><span>{fmtINR(result.payoutByPhase?.[k])}</span>
                 </div>
               ))}
             </div>
-          </div>
+          )}
+
+          {/* Design payment split */}
+          {result.payoutByPhase?.designing > 0 && (
+            <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.5px', color: PHASE_META.designing.color, textTransform: 'uppercase' }}>Design</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>{fmtINR(result.payoutByPhase.designing)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 8 }}>
+                <div><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text4)', display: 'block' }}>Advance</span><span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>{Math.round(advPctDesign * 100)}%</span><span style={{ fontSize: 11, fontWeight: 500, color: 'var(--terra, #D4836A)', display: 'block' }}>{fmtINR(result.payoutByPhase.designing * advPctDesign)}</span></div>
+                <div style={{ textAlign: 'right' }}><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text4)', display: 'block' }}>On approval</span><span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>{Math.round((1 - advPctDesign) * 100)}%</span><span style={{ fontSize: 11, fontWeight: 500, color: 'var(--terra, #D4836A)', display: 'block' }}>{fmtINR(result.payoutByPhase.designing * (1 - advPctDesign))}</span></div>
+              </div>
+              <PayTrack pct={Math.round(advPctDesign * 100)} onChange={e => setAdvPctDesign(parseInt(e.target.value) / 100)} />
+            </div>
+          )}
+
+          {/* Sampling — fixed 100/0, not editable */}
+          {result.payoutByPhase?.sampling > 0 && (
+            <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.5px', color: PHASE_META.sampling.color, textTransform: 'uppercase' }}>Sampling</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>{fmtINR(result.payoutByPhase.sampling)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 8 }}>
+                <div><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text4)', display: 'block' }}>Advance</span><span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>100%</span><span style={{ fontSize: 11, fontWeight: 500, color: 'var(--terra, #D4836A)', display: 'block' }}>{fmtINR(result.payoutByPhase.sampling)}</span></div>
+                <div style={{ textAlign: 'right' }}><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text4)', display: 'block' }}>On dispatch</span><span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>0%</span><span style={{ fontSize: 11, fontWeight: 500, color: 'var(--terra, #D4836A)', display: 'block' }}>{fmtINR(0)}</span></div>
+              </div>
+              <PayTrack pct={100} disabled />
+              <div style={{ fontSize: 10, color: 'var(--text4)', marginTop: 4 }}>Paid in full before sampling begins</div>
+            </div>
+          )}
+
+          {/* Production payment split */}
+          {result.payoutByPhase?.production > 0 && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.5px', color: PHASE_META.production.color, textTransform: 'uppercase' }}>Production</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>{fmtINR(result.payoutByPhase.production)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 8 }}>
+                <div><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text4)', display: 'block' }}>Advance</span><span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>{Math.round(advPctProduction * 100)}%</span><span style={{ fontSize: 11, fontWeight: 500, color: 'var(--terra, #D4836A)', display: 'block' }}>{fmtINR(result.payoutByPhase.production * advPctProduction)}</span></div>
+                <div style={{ textAlign: 'right' }}><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text4)', display: 'block' }}>On dispatch</span><span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>{Math.round((1 - advPctProduction) * 100)}%</span><span style={{ fontSize: 11, fontWeight: 500, color: 'var(--terra, #D4836A)', display: 'block' }}>{fmtINR(result.payoutByPhase.production * (1 - advPctProduction))}</span></div>
+              </div>
+              <PayTrack pct={Math.round(advPctProduction * 100)} onChange={e => setAdvPctProduction(parseInt(e.target.value) / 100)} />
+            </div>
+          )}
         </div>
-      )}
-      <div style={{ marginTop: 12, fontSize: 10, color: 'var(--text4)' }}>$1 = ₹{forex.toFixed(2)} (est.)</div>
+      </div>
+    );
+  }
+
+  if (step === 5) {
+    const rows = [
+      ['Design handover', designDate],
+      ['Sample dispatch', sampleDate],
+      ['Bulk dispatch', bulkDate],
+    ].filter(([, d]) => d);
+    return (
+      <div style={{ width: 340, flexShrink: 0, borderLeft: '1px solid var(--border)', position: 'sticky', top: 52, height: 'calc(100vh - 52px)', overflowY: 'auto', background: 'var(--bg)', padding: '20px 20px 16px' }}>
+        <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--text4)', marginBottom: 12, display: 'block' }}>Timeline overview</span>
+        {rows.length === 0 ? (
+          <div style={{ fontSize: 13, color: 'var(--text4)' }}>Enter dispatch dates to see estimated delivery</div>
+        ) : rows.map(([l, d]) => (
+          <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 12 }}>
+            <span style={{ color: 'var(--text3)' }}>{l}</span><span style={{ color: 'var(--text)', fontWeight: 500 }}>{fmtDate(d)}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width: 340, flexShrink: 0, borderLeft: '1px solid var(--border)', position: 'sticky', top: 52, height: 'calc(100vh - 52px)', overflowY: 'auto', background: 'var(--bg)', padding: '20px 20px 16px' }}>
+      <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--text4)', marginBottom: 8, display: 'block' }}>This proposal</span>
+      <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 3 }}>{enquiry?.name}</div>
+      <div style={{ fontSize: 13, color: 'var(--text3)' }}>{brief?.buyer_brand_name || enquiry?.buyer_name}</div>
     </div>
   );
 }
@@ -165,21 +421,37 @@ function CalcPanel({ result, forex, brief, pfPct }) {
 // ── BOXES TABLE ───────────────────────────────────────────────────────────────
 
 function BoxesTable({ boxes, onChange }) {
+  const [unit, setUnit] = useState('cm');
   const upd = (id, k, v) => onChange(boxes.map(b => b._id === id ? {...b, [k]: v} : b));
   const rm  = (id) => onChange(boxes.filter(b => b._id !== id));
   const add = (std) => onChange([...boxes, { ...mkBox(), ...std, qty: 1 }]);
   const addCustom = () => onChange([...boxes, mkBox()]);
   const inp = (w) => ({ padding:'5px 6px',borderRadius:5,border:'1px solid var(--border)',background:'var(--surface2)',fontSize:11,color:'var(--text)',fontFamily:'var(--font-body)',width:w });
 
+  // Display/input conversion only — boxes[].length_cm etc always stay in
+  // cm internally (the volumetric weight formula L×W×H÷5000 is cm-based),
+  // so switching the toggle never changes what's actually calculated.
+  const toDisplay = (cm) => unit === 'in' ? (parseFloat(cm) || 0) / 2.54 : (parseFloat(cm) || 0);
+  const fromDisplay = (val) => unit === 'in' ? (parseFloat(val) || 0) * 2.54 : (parseFloat(val) || 0);
+
   return (
     <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <div style={{ fontSize: 11, color: 'var(--text4)' }}>Standard sizes — 5-ply corrugated</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 11, color: 'var(--text3)' }}>Unit:</span>
+          <div style={{ display: 'flex', border: '1px solid var(--border2)', borderRadius: 8, overflow: 'hidden' }}>
+            <button onClick={() => setUnit('cm')} style={{ padding: '3px 10px', fontSize: 11, border: 'none', cursor: 'pointer', background: unit === 'cm' ? 'var(--gold)' : 'var(--bg)', color: unit === 'cm' ? '#fff' : 'var(--text2)' }}>cm</button>
+            <button onClick={() => setUnit('in')} style={{ padding: '3px 10px', fontSize: 11, border: 'none', borderLeft: '1px solid var(--border2)', cursor: 'pointer', background: unit === 'in' ? 'var(--gold)' : 'var(--bg)', color: unit === 'in' ? '#fff' : 'var(--text2)' }}>inch</button>
+          </div>
+        </div>
+      </div>
       {/* Standard sizes quick-add */}
       <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 11, color: 'var(--text4)', marginBottom: 8 }}>Standard sizes — 5-ply corrugated</div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {STD_BOXES.map(b => (
             <button key={b.label} onClick={() => add(b)} style={{ fontSize: 12, padding: '6px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text2)', cursor: 'pointer', fontFamily: 'var(--font-body)', textAlign: 'left' }}>
-              <div style={{ fontWeight: 600 }}>{b.label} — {b.length_cm}×{b.width_cm}×{b.height_cm} cm</div>
+              <div style={{ fontWeight: 600 }}>{b.label} — {unit === 'in' ? `${(b.length_cm/2.54).toFixed(1)}×${(b.width_cm/2.54).toFixed(1)}×${(b.height_cm/2.54).toFixed(1)} in` : `${b.length_cm}×${b.width_cm}×${b.height_cm} cm`}</div>
               <div style={{ fontSize: 10, color: 'var(--text4)' }}>Vol {b.vol} kg · Box {b.box} kg</div>
             </button>
           ))}
@@ -195,7 +467,7 @@ function BoxesTable({ boxes, onChange }) {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
           <thead>
             <tr style={{ background: 'var(--surface2)' }}>
-              {['Size','L (cm)','W (cm)','H (cm)','Vol. wt','Box wt','Qty',''].map(h => (
+              {['Size', `L (${unit})`, `W (${unit})`, `H (${unit})`, 'Vol. wt', 'Box wt', 'Qty', ''].map(h => (
                 <th key={h} style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--text3)', fontSize: 10 }}>{h}</th>
               ))}
             </tr>
@@ -209,7 +481,7 @@ function BoxesTable({ boxes, onChange }) {
                 <tr key={b._id} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={{ padding: '5px 6px' }}><input value={b.label} onChange={e => upd(b._id,'label',e.target.value)} style={inp(60)} /></td>
                   {['length_cm','width_cm','height_cm'].map(k => (
-                    <td key={k} style={{ padding: '5px 6px' }}><input type="number" value={b[k]} onChange={e => upd(b._id,k,e.target.value)} min="0" style={inp(56)} /></td>
+                    <td key={k} style={{ padding: '5px 6px' }}><input type="number" value={toDisplay(b[k]).toFixed(unit === 'in' ? 2 : 1).replace(/\.0+$/, '')} onChange={e => upd(b._id,k,fromDisplay(e.target.value))} min="0" style={inp(56)} /></td>
                   ))}
                   <td style={{ padding: '5px 8px', color: 'var(--text3)' }}>{vol}</td>
                   <td style={{ padding: '5px 8px', color: 'var(--text3)' }}>{bwt}</td>
@@ -221,8 +493,9 @@ function BoxesTable({ boxes, onChange }) {
           </tbody>
         </table>
       )}
-      <div style={{ fontSize: 10, color: 'var(--text4)', marginTop: 8 }}>
-        Vol. wt = L×W×H ÷ 5000 · Chargeable = max(actual, vol) + 10% margin · Rounds to 0.5 kg (≤30 kg) or 1 kg (&gt;30 kg)
+      <div style={{ display: 'flex', gap: 8, background: 'rgba(201,168,76,.08)', border: '1px solid rgba(201,168,76,.20)', borderRadius: 6, padding: '9px 11px', fontSize: 12, color: '#C9A84C', marginTop: 10, lineHeight: 1.5 }}>
+        <span>ⓘ</span>
+        <span>Vol. wt = L×W×H ÷ 5000 · Chargeable = max(actual, vol) + 10% margin · Rounds to 0.5 kg (≤30 kg) or 1 kg (&gt;30 kg)</span>
       </div>
     </div>
   );
@@ -240,7 +513,8 @@ export default function ProposalBuilder() {
   const [saving,     setSaving]     = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [saved,      setSaved]      = useState(false);
-  const [step,       setStep]       = useState(1);
+  const [saveError,  setSaveError]  = useState(null);
+  const [step,       setStep]       = useState(2);
   const [completed,  setCompleted]  = useState(new Set());
   const [forex,      setForex]      = useState(91.62);
 
@@ -258,6 +532,16 @@ export default function ProposalBuilder() {
   const [conceptTitle, setConceptTitle] = useState('');
   const [conceptDesc,  setConceptDesc]  = useState('');
   const [pastProjects, setPastProjects] = useState([]);
+  const [collections, setCollections] = useState([]);
+  const [collectionsLoading, setCollectionsLoading] = useState(true);
+  const [showCreateColl, setShowCreateColl] = useState(false);
+  const [rpCurrency, setRpCurrency] = useState('usd');
+  const [rpExpanded, setRpExpanded] = useState({});
+  const [advPctDesign, setAdvPctDesign] = useState(0.5);
+  const [advPctProduction, setAdvPctProduction] = useState(0.5);
+  const [phaseNotes, setPhaseNotes] = useState({ designing: '', sampling: '', production: '' });
+  const setPhaseNote = (key, val) => setPhaseNotes(n => ({ ...n, [key]: val }));
+  const toggleRpExpand = (key) => setRpExpanded(e => ({ ...e, [key]: !e[key] }));
   const [sowClauses,   setSowClauses]   = useState([]);
   const [clarNotes,    setClarNotes]    = useState('');
 
@@ -272,7 +556,7 @@ export default function ProposalBuilder() {
     ...b, length_cm: parseFloat(b.length_cm)||0, width_cm: parseFloat(b.width_cm)||0,
     height_cm: parseFloat(b.height_cm)||0, qty: parseInt(b.qty)||1,
   }));
-  const result = calcLandingCost({ lineItems: numItems, boxes: numBoxes, domain, orderType, shipping, forex, pfPct: 0.15, advancePct: 0.5 });
+  const result = calcLandingCost({ lineItems: numItems, boxes: numBoxes, domain, orderType, shipping, forex, pfPctByPhase: { designing: 0.04, sampling: 0.10, production: 0.15 }, advancePct: 0.5 });
 
   // Which order types are present across configured items — drives which
   // sections (boxes, timelines) show.
@@ -281,8 +565,17 @@ export default function ProposalBuilder() {
   const hasDesigning = configuredTypes.some(t => t === 'designing');
   const hasProduction = configuredTypes.some(t => t === 'production');
 
+  const reloadCollections = () => {
+    setCollectionsLoading(true);
+    onboardingAPI.getSellerCollections()
+      .then(r => setCollections(r.data || []))
+      .catch(() => {})
+      .finally(() => setCollectionsLoading(false));
+  };
+
   useEffect(() => {
     fetchForex().then(setForex);
+    reloadCollections();
     projectsAPI.getEnquiry(projectId).then(r => {
       const e = r.data.enquiry;
       setEnquiry(e);
@@ -293,6 +586,9 @@ export default function ProposalBuilder() {
         setOrderType(legacyType);
         setDomain(legacyDomain);
         setShipping(p.shipping_method     || 'dhl');
+        setAdvPctDesign(p.advance_pct_design != null ? parseFloat(p.advance_pct_design) : 0.5);
+        setAdvPctProduction(p.advance_pct_production != null ? parseFloat(p.advance_pct_production) : 0.5);
+        setPhaseNotes({ designing: '', sampling: '', production: '', ...(p.phase_notes || {}) });
         setLineItems(normalizeItems(p.line_items, legacyType, legacyDomain));
         setBoxes(p.boxes                  || []);
         setDesignDate(p.design_handover_date || '');
@@ -304,7 +600,7 @@ export default function ProposalBuilder() {
         setPastProjects(p.past_projects   || []);
         setSowClauses(p.sow_clauses       || []);
         setClarNotes(p.clarification_notes || '');
-        if (p.forex_rate_usd_inr) setForex(parseFloat(p.forex_rate_usd_inr));
+        if (p.forex_rate_usd_inr) setForex(sanitizeForex(p.forex_rate_usd_inr));
       }
     }).catch(() => {}).finally(() => setLoading(false));
   }, [projectId, proposalId]);
@@ -333,10 +629,14 @@ export default function ProposalBuilder() {
     sow_clauses:          sowClauses,
     clarification_notes:  clarNotes,
     advance_pct:          0.5,
+    advance_pct_design:     advPctDesign,
+    advance_pct_production: advPctProduction,
+    phase_notes:            phaseNotes,
   });
 
   const saveDraft = async () => {
     setSaving(true);
+    setSaveError(null);
     try {
       const payload = buildPayload();
       if (conceptPdf) {
@@ -354,11 +654,22 @@ export default function ProposalBuilder() {
       }
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } catch {} finally { setSaving(false); }
+      return true;
+    } catch (e) {
+      // Previously: catch {} swallowed this completely, so submit() below
+      // had no way to know the save had failed and proceeded to flip the
+      // proposal's status to "submitted" anyway — a submitted proposal
+      // with none of the studio's actual data, since it was never
+      // persisted. Now surfaced so submit() can stop, and the studio can
+      // actually see and retry instead of believing it went through.
+      setSaveError(e?.response?.data?.message || e?.response?.data?.errors ? JSON.stringify(e.response.data.errors) : 'Could not save — check your connection and try again.');
+      return false;
+    } finally { setSaving(false); }
   };
 
   const goNext = async (n) => {
-    await saveDraft();
+    const ok = await saveDraft();
+    if (!ok) return;
     markComplete(n);
     setStep(n + 1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -376,8 +687,13 @@ export default function ProposalBuilder() {
     }
     if (!window.confirm('Submit this proposal to Qala for review? You cannot edit it after submission.')) return;
     setSubmitting(true);
+    const saved_ok = await saveDraft();
+    if (!saved_ok) {
+      setSubmitting(false);
+      alert('Your changes could not be saved, so this was not submitted. ' + (saveError || 'Please try again.'));
+      return;
+    }
     try {
-      await saveDraft();
       await projectsAPI.submitProposal(projectId, proposalId);
       nav(`/dashboard/enquiries/${projectId}`);
     } catch { setSubmitting(false); }
@@ -398,7 +714,7 @@ export default function ProposalBuilder() {
 
   const NavBtns = ({ n, skipLabel, onSkip, continueLabel, onContinue, disableContinue }) => (
     <div style={{ display: 'flex', gap: 10, marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--border)', alignItems: 'center' }}>
-      {n > 1 && <button onClick={() => goBack(n)} className="btn btn-ghost" style={stepBtn}>← Back</button>}
+      {n > 2 && <button onClick={() => goBack(n)} className="btn btn-ghost" style={stepBtn}>← Back</button>}
       {onSkip && <button onClick={onSkip} className="btn btn-ghost" style={{ ...stepBtn, color: 'var(--text3)' }}>{skipLabel || 'Skip for now'}</button>}
       {/* Change 4: save draft available on every step */}
       <button onClick={saveDraft} disabled={saving} className="btn btn-ghost" style={{ ...stepBtn, color: 'var(--text3)', fontSize: 12 }}>
@@ -414,107 +730,9 @@ export default function ProposalBuilder() {
   // Step content
   const renderStep = () => {
     switch (step) {
-      // ── Step 1: Buyer Brief (read-only) ──────────────────────────────────
-      case 1: return (
-        <div>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>01 — Buyer's brief</h2>
-          <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 20 }}>Project details from the buyer. Review carefully before building your proposal.</div>
-
-          {/* Core info */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
-            {[
-              ['Project name',  enquiry.name],
-              ['Buyer / Brand', brief.buyer_brand_name || '—'],
-              ['Location',      brief.buyer_location   || '—'],
-              ['Category',      brief.product_category  || '—'],
-              ['Brief received', fmtDate(enquiry.created_at)],
-            ].map(([l, v]) => (
-              <div key={l}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>{l}</div>
-                <div style={{ fontSize: 14, color: 'var(--text)' }}>{v}</div>
-              </div>
-            ))}
-          </div>
-
-          {brief.product_description && (
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Product description</div>
-              <div style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.7, background: 'var(--surface2)', borderRadius: 8, padding: '12px 14px' }}>{brief.product_description}</div>
-            </div>
-          )}
-
-          {brief.materials_keywords?.length > 0 && (
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Materials requested</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {brief.materials_keywords.map(k => <span key={k} style={{ fontSize: 12, padding: '4px 12px', background: 'var(--surface3)', borderRadius: 20, color: 'var(--text2)' }}>{k}</span>)}
-              </div>
-            </div>
-          )}
-
-          {/* Change 3: qty + delivery in one row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 16 }}>
-            {[
-              ['Bulk qty',              brief.bulk_quantity   != null ? `${brief.bulk_quantity} sets` : '—'],
-              ['Buyer currency',        brief.budget_currency || '—'],
-              ['Target landing price',  brief.target_landing_price_usd
-                ? `${fmtUSD(parseFloat(brief.target_landing_price_usd))} per set`
-                : '—'],
-              ['Target sample delivery', fmtDate(brief.target_sample_delivery_date)],
-              ['Target bulk delivery',   fmtDate(brief.target_bulk_delivery_date)],
-            ].map(([l, v]) => (
-              <div key={l}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>{l}</div>
-                <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: l.includes('qty') || l.includes('price') ? 600 : 400 }}>{v}</div>
-              </div>
-            ))}
-          </div>
-
-          {brief.additional_specs && (
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Additional notes</div>
-              <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.65, background: 'var(--surface2)', borderRadius: 8, padding: '10px 14px' }}>{brief.additional_specs}</div>
-            </div>
-          )}
-
-          {/* Change 3: reference link */}
-          {brief.reference_url && (
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Reference link</div>
-              <a href={brief.reference_url} target="_blank" rel="noreferrer"
-                style={{ fontSize: 13, color: 'var(--gold)', wordBreak: 'break-all', display: 'block' }}>
-                {brief.reference_url}
-              </a>
-            </div>
-          )}
-
-          {/* Change 3: attachments */}
-          {brief.moodboards?.length > 0 && (
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Attachments from buyer</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {brief.moodboards.map(m => {
-                  const icon = m.mime_type?.startsWith('image/') ? '🖼' : m.mime_type === 'application/pdf' ? '📄' : m.mime_type?.startsWith('video/') ? '🎬' : '📎';
-                  return (
-                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--border)' }}>
-                      <span style={{ fontSize: 16 }}>{icon}</span>
-                      <a href={m.url} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--gold)', textDecoration: 'none', flex: 1 }}>{m.file_name}</a>
-                      <span style={{ fontSize: 11, color: 'var(--text4)' }}>{m.file_size_kb ? (m.file_size_kb < 1024 ? `${m.file_size_kb} KB` : `${(m.file_size_kb/1024).toFixed(1)} MB`) : ''}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <NavBtns n={1} continueLabel="Continue to concept →" />
-        </div>
-      );
-
-      // ── Step 2: Concept ────────────────────────────────────────────────────
       case 2: return (
         <div>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>02 — Concept</h2>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>01 — Concept</h2>
           <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 24 }}>Share your creative vision. Upload a PDF — mood references, fabric direction, colour palette, silhouettes.</div>
 
           <div className="field" style={{ marginBottom: 20 }}>
@@ -554,86 +772,183 @@ export default function ProposalBuilder() {
       );
 
       // ── Step 3: Past projects ──────────────────────────────────────────────
-      case 3: return (
-        <div>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>03 — Past projects</h2>
-          <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 24 }}>Show the buyer work closest to this project. Add up to 3 past projects.</div>
+      case 3: {
+        // Match-highlight collections against the brief's structured
+        // preferences (same fields projects/matching.py scores studios
+        // against) — a collection whose products mention a fabric/dye/
+        // technique the buyer asked for gets a green "✓ match" tag,
+        // matching studio-proposal.html's coll-mtag treatment.
+        const briefTerms = [
+          ...(brief.preferred_fabrics || []),
+          ...(brief.preferred_dyes || []),
+          ...(brief.embellishment_required || []),
+          ...(brief.printing_required || []),
+          ...(brief.weaving_required || []),
+          ...(brief.dyeing_techniques_required || []),
+          ...(brief.spinning_required || []),
+        ].map(t => t.toLowerCase()).filter(Boolean);
 
-          {/* Change 1: import from Section G portfolio */}
-          {enquiry.studio_projects?.length > 0 && pastProjects.length < 3 && (
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Import from your portfolio</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {enquiry.studio_projects.map(sp => {
-                  const alreadyAdded = pastProjects.some(p => p._imported_id === sp.id);
-                  const yr = sp.month_year ? sp.month_year.slice(0, 4) : '';
-                  const desc = [sp.fabrics_used, sp.techniques_used, sp.about].filter(Boolean).join(' · ').slice(0, 120);
+        const collectionTags = (coll) => {
+          const products = coll.products || [];
+          const haystack = products.map(p => [p.fabrics_used, p.dyes_used, p.craft_techniques_used].filter(Boolean).join(' ')).join(' ').toLowerCase();
+          const tagSet = new Set();
+          products.forEach(p => {
+            [p.fabrics_used, p.dyes_used, p.craft_techniques_used].forEach(field => {
+              (field || '').split(/[,·]/).map(s => s.trim()).filter(Boolean).forEach(t => tagSet.add(t));
+            });
+          });
+          const tags = Array.from(tagSet).slice(0, 4);
+          return tags.map(tag => ({ tag, matched: briefTerms.some(bt => tag.toLowerCase().includes(bt) || bt.includes(tag.toLowerCase())) }));
+        };
+
+        const selectedIds = new Set(pastProjects.filter(p => p._collection_id).map(p => p._collection_id));
+        const atCap = pastProjects.length >= 3;
+
+        const toggleCollection = (coll) => {
+          if (selectedIds.has(coll.id)) {
+            setPastProjects(pastProjects.filter(p => p._collection_id !== coll.id));
+            return;
+          }
+          if (atCap) return;
+          const products = coll.products || [];
+          const firstPhoto = products.find(p => p.photos?.length > 0)?.photos?.[0]?.file || products.find(p => p.photos?.length > 0)?.photos?.[0]?.thumbnail || null;
+          const techSummary = [...new Set(products.flatMap(p => [p.fabrics_used, p.craft_techniques_used].filter(Boolean)))].slice(0, 3).join(' · ');
+          setPastProjects(prev => [...prev, {
+            _collection_id: coll.id,
+            name: coll.name,
+            year: '',
+            description: coll.about || techSummary || `${products.length} piece${products.length !== 1 ? 's' : ''}`,
+            image_url: firstPhoto,
+          }]);
+        };
+
+        return (
+        <div>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>03 — Past work</h2>
+          <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 20 }}>Show buyer your past work closest to this project. Select from your existing collections, or add a project manually.</div>
+
+          <div style={{ display: 'flex', gap: 10, background: 'var(--admin-dim, var(--gold-dim))', border: '1px solid var(--gold-dim2, var(--border))', borderRadius: 8, padding: '12px 16px', marginBottom: 24, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+            <span style={{ fontSize: 16, flexShrink: 0 }}>🗂</span>
+            <span>Collections and products you add here become part of your <strong>portfolio</strong> — visible to buyers browsing the platform. You can control visibility per item: keep it <strong>private</strong> (only you see it) or mark it <strong>open for collaboration</strong> (buyers can pitch projects around it).</span>
+          </div>
+
+          {collectionsLoading ? (
+            <div style={{ fontSize: 12, color: 'var(--text4)', padding: '20px 0' }}>Loading your portfolio…</div>
+          ) : collections.length > 0 ? (
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Collections</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}>
+                {collections.map(coll => {
+                  const isSelected = selectedIds.has(coll.id);
+                  const products = coll.products || [];
+                  const thumbs = products.slice(0, 3);
+                  const tags = collectionTags(coll);
                   return (
-                    <div key={sp.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--surface2)', borderRadius: 8, border: `1px solid ${alreadyAdded ? 'var(--green)' : 'var(--border)'}` }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>{sp.name}</div>
-                        {desc && <div style={{ fontSize: 11, color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{desc}</div>}
-                        {yr && <div style={{ fontSize: 11, color: 'var(--text4)', marginTop: 2 }}>{yr}</div>}
+                    <div
+                      key={coll.id}
+                      onClick={() => toggleCollection(coll)}
+                      style={{
+                        position: 'relative', border: `1px solid ${isSelected ? 'var(--gold)' : 'var(--border)'}`, borderRadius: 12,
+                        padding: 14, cursor: atCap && !isSelected ? 'not-allowed' : 'pointer', background: 'var(--surface)',
+                        opacity: atCap && !isSelected ? 0.5 : 1, transition: 'border-color .15s',
+                      }}
+                    >
+                      {/* Stacked thumbnails, matching coll-thumbs in the prototype */}
+                      <div style={{ position: 'relative', height: 64, marginBottom: 10 }}>
+                        {thumbs.length > 0 ? thumbs.map((p, i) => {
+                          const photoUrl = p.photos?.[0]?.thumbnail || p.photos?.[0]?.file;
+                          return (
+                            <div key={p.id} style={{
+                              position: 'absolute', left: i * 28, top: 0, width: 56, height: 56, borderRadius: 8,
+                              background: photoUrl ? `url(${photoUrl}) center/cover` : 'var(--surface3)',
+                              border: '2px solid var(--surface)', zIndex: 3 - i,
+                            }} />
+                          );
+                        }) : (
+                          <div style={{ width: 56, height: 56, borderRadius: 8, background: 'var(--surface3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🧵</div>
+                        )}
                       </div>
-                      <button
-                        disabled={alreadyAdded || pastProjects.length >= 3}
-                        onClick={() => {
-                          if (alreadyAdded || pastProjects.length >= 3) return;
-                          setPastProjects(prev => [...prev, {
-                            _imported_id: sp.id,
-                            name:        sp.name,
-                            year:        yr,
-                            description: [sp.fabrics_used, sp.techniques_used, sp.about].filter(Boolean).join(' · ').slice(0, 200),
-                          }]);
-                        }}
-                        style={{
-                          fontSize: 12, padding: '6px 14px', borderRadius: 6, cursor: alreadyAdded || pastProjects.length >= 3 ? 'default' : 'pointer',
-                          border: '1px solid var(--border)', fontFamily: 'var(--font-body)',
-                          background: alreadyAdded ? 'var(--green)' : 'var(--surface)',
-                          color: alreadyAdded ? '#fff' : 'var(--text2)',
-                          flexShrink: 0,
-                        }}>
-                        {alreadyAdded ? '✓ Added' : '+ Import'}
-                      </button>
+
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>{coll.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text4)', marginBottom: 8 }}>{products.length} piece{products.length !== 1 ? 's' : ''}</div>
+
+                      {tags.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
+                          {tags.map(({ tag, matched }, i) => (
+                            <span key={i} style={{
+                              fontSize: 10, padding: '2px 8px', borderRadius: 20,
+                              background: matched ? 'var(--green-dim)' : 'var(--surface2)',
+                              color: matched ? 'var(--green)' : 'var(--text3)',
+                              fontWeight: matched ? 600 : 400,
+                            }}>
+                              {tag}{matched ? ' ✓' : ''}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {(() => {
+                        const vis = coll.visibility || (coll.is_hidden ? 'private' : 'public');
+                        const label = vis === 'open_for_collaboration' ? 'Open for collaboration' : vis === 'private' ? 'Private' : 'Public';
+                        const bg = vis === 'open_for_collaboration' ? 'var(--green-dim)' : vis === 'private' ? 'var(--surface2)' : 'var(--gold-dim)';
+                        const color = vis === 'open_for_collaboration' ? 'var(--green)' : vis === 'private' ? 'var(--text4)' : 'var(--gold)';
+                        return <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: bg, color }}>{label}</span>;
+                      })()}
+
+                      {isSelected && (
+                        <div style={{ position: 'absolute', top: 10, right: 10, width: 22, height: 22, borderRadius: '50%', background: 'var(--gold)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>✓</div>
+                      )}
                     </div>
                   );
                 })}
               </div>
-              {pastProjects.length < 3 && (
-                <div style={{ fontSize: 11, color: 'var(--text4)', marginTop: 8 }}>
-                  Or add a project manually below.
-                </div>
-              )}
+              {atCap && <div style={{ fontSize: 11, color: 'var(--text4)', marginTop: 10 }}>Up to 3 selected — remove one to add another.</div>}
+              <button onClick={() => setShowCreateColl(true)} className="btn btn-ghost" style={{ fontSize: 12, marginTop: 14 }}>+ Create new collection</button>
+            </div>
+          ) : (
+            <div style={{ background: 'var(--surface2)', borderRadius: 10, padding: '16px 18px', marginBottom: 20, fontSize: 12, color: 'var(--text3)' }}>
+              You don't have any portfolio collections yet — add products and collections from your Past Work section, or add a project manually below.
+              <div style={{ marginTop: 10 }}>
+                <button onClick={() => setShowCreateColl(true)} className="btn btn-ghost" style={{ fontSize: 12 }}>+ Create new collection</button>
+              </div>
             </div>
           )}
 
-          {/* Manual / imported entries */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
-            {pastProjects.map((p, i) => (
-              <div key={i} style={{ background: 'var(--surface2)', borderRadius: 10, padding: '16px 18px', border: '1px solid var(--border)', position: 'relative' }}>
-                {p._imported_id && (
-                  <div style={{ fontSize: 10, color: 'var(--green)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-                    Imported from portfolio — editable
+          {/* Selected / manual entries — still editable after picking from a collection */}
+          {pastProjects.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Added to this proposal</div>
+              {pastProjects.map((p, i) => (
+                <div key={i} style={{ background: 'var(--surface2)', borderRadius: 10, padding: '16px 18px', border: '1px solid var(--border)', position: 'relative', display: 'flex', gap: 14 }}>
+                  {p.image_url && (
+                    <div style={{ width: 56, height: 56, borderRadius: 8, background: `url(${p.image_url}) center/cover`, flexShrink: 0 }} />
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {p._collection_id && (
+                      <div style={{ fontSize: 10, color: 'var(--gold)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+                        From portfolio — editable
+                      </div>
+                    )}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 12, marginBottom: 10 }}>
+                      <div className="field" style={{ margin: 0 }}>
+                        <label style={{ fontSize: 10 }}>Project name</label>
+                        <input value={p.name} onChange={e => updPP(i,'name',e.target.value)} placeholder="Project name" style={{ fontSize: 12 }} />
+                      </div>
+                      <div className="field" style={{ margin: 0 }}>
+                        <label style={{ fontSize: 10 }}>Year</label>
+                        <input type="number" value={p.year} onChange={e => updPP(i,'year',e.target.value)} placeholder="2024" style={{ fontSize: 12 }} />
+                      </div>
+                      <button onClick={() => rmPP(i)} style={{ alignSelf: 'flex-end', background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 20, paddingBottom: 4 }}>×</button>
+                    </div>
+                    <div className="field" style={{ margin: 0 }}>
+                      <label style={{ fontSize: 10 }}>Brief description / materials / technique</label>
+                      <input value={p.description} onChange={e => updPP(i,'description',e.target.value)} placeholder="e.g. Natural dyes · Linen · Handblock print" style={{ fontSize: 12 }} />
+                    </div>
                   </div>
-                )}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 12, marginBottom: 10 }}>
-                  <div className="field" style={{ margin: 0 }}>
-                    <label style={{ fontSize: 10 }}>Project name</label>
-                    <input value={p.name} onChange={e => updPP(i,'name',e.target.value)} placeholder="Project name" style={{ fontSize: 12 }} />
-                  </div>
-                  <div className="field" style={{ margin: 0 }}>
-                    <label style={{ fontSize: 10 }}>Year</label>
-                    <input type="number" value={p.year} onChange={e => updPP(i,'year',e.target.value)} placeholder="2024" style={{ fontSize: 12 }} />
-                  </div>
-                  <button onClick={() => rmPP(i)} style={{ alignSelf: 'flex-end', background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 20, paddingBottom: 4 }}>×</button>
                 </div>
-                <div className="field" style={{ margin: 0 }}>
-                  <label style={{ fontSize: 10 }}>Brief description / materials / technique</label>
-                  <input value={p.description} onChange={e => updPP(i,'description',e.target.value)} placeholder="e.g. Natural dyes · Linen · Handblock print" style={{ fontSize: 12 }} />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {pastProjects.length < 3 && (
             <button onClick={addPP} style={{ fontSize: 13, color: 'var(--gold)', background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', borderRadius: 8, padding: '8px 18px', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
@@ -643,14 +958,13 @@ export default function ProposalBuilder() {
 
           <NavBtns n={3} onSkip={() => { markComplete(3); setStep(4); }} />
         </div>
-      );
+      );}
 
       // ── Step 4: Costing ────────────────────────────────────────────────────
       case 4: return (
-        <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
+        <div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>04 — Offerings & costing</h2>
-            <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 4 }}>Add the items you'll produce and your costs. The buyer's landing cost updates live on the right.</div>
+            <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 4 }}>Add the items you'll produce and your costs. The buyer's landing cost — including shipping, duties, and Qala's fee — updates live on the right.</div>
             {brief.target_landing_price_usd && (
               <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 20 }}>
                 Buyer's target landing price <strong>{fmtUSD(parseFloat(brief.target_landing_price_usd))}</strong> per set ≈ <strong>{fmtINR(parseFloat(brief.target_landing_price_usd) * forex)}</strong> at current rate
@@ -669,7 +983,7 @@ export default function ProposalBuilder() {
             <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '18px 20px', marginBottom: 16 }}>
               <SLabel required>Items & costing</SLabel>
               <div style={{ fontSize: 11, color: 'var(--text4)', marginBottom: 12 }}>Add each product. For every item, pick its order type and domain first, then fill the details. You can mix types and domains in one proposal.</div>
-              <LineItemCards items={lineItems} onChange={setLineItems} />
+              <LineItemCards items={lineItems} onChange={setLineItems} phaseNotes={phaseNotes} onPhaseNoteChange={setPhaseNote} />
             </div>
 
             {/* Boxes — shown when any item ships (i.e. not all designing) */}
@@ -681,14 +995,15 @@ export default function ProposalBuilder() {
               </div>
             )}
 
+            <div style={{ display: 'flex', gap: 10, background: 'rgba(91,75,138,0.06)', border: '1px solid rgba(91,75,138,0.18)', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+              <span style={{ fontSize: 16, flexShrink: 0, color: '#5B4B8A' }}>ℹ</span>
+              <span><strong style={{ color: '#5B4B8A' }}>Note —</strong> Shipping and duties are estimated here for <strong>production only</strong>. For sampling, both are billed at actuals after dispatch and are not included in this quote.</span>
+            </div>
+
             <NavBtns n={4}
               disableContinue={!lineItems.some(it => it._configured && it.qty && it.cost_per_pc_inr)}
               continueLabel="Continue →"
             />
-          </div>
-
-          {/* Live calc panel */}
-          <CalcPanel result={result} forex={forex} brief={brief} pfPct={0.15} />
         </div>
       );
 
@@ -866,13 +1181,161 @@ export default function ProposalBuilder() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start' }}>
+      {saveError && (
+        <div style={{ background: 'var(--red-dim)', border: '1px solid var(--red)', color: 'var(--red)', borderRadius: 8, padding: '10px 16px', fontSize: 13, marginBottom: 20 }}>
+          ⚠ {saveError}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 0, alignItems: 'flex-start' }}>
         {/* Step navigator */}
         <StepNav current={step} onChange={setStep} completedSteps={completed} />
 
         {/* Step content */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, padding: '0 32px' }}>
           {renderStep()}
+        </div>
+
+        {/* Right panel — carbon copy of the prototype's #right-panel */}
+        <RightPanel
+          step={step} result={result} forex={forex}
+          currency={rpCurrency} setCurrency={setRpCurrency}
+          exp={rpExpanded} toggleExp={toggleRpExpand}
+          advPctDesign={advPctDesign} setAdvPctDesign={setAdvPctDesign}
+          advPctProduction={advPctProduction} setAdvPctProduction={setAdvPctProduction}
+          enquiry={enquiry} brief={brief}
+          designDate={designDate} sampleDate={sampleDate} bulkDate={bulkDate}
+        />
+      </div>
+
+      {showCreateColl && (
+        <CreateCollectionModal
+          onClose={() => setShowCreateColl(false)}
+          onCreated={() => { setShowCreateColl(false); reloadCollections(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Create a new collection — studio-proposal.html's "Create a new
+// collection" modal. Real, functional version: name/description/
+// visibility plus one or more brand-new pieces added inline (each saved
+// via the real addStudioProduct endpoint, then the collection is created
+// referencing them via product_ids). This is a genuine gap-fill, not a
+// styling pass — this flow did not exist in the builder at all before.
+//
+// Deliberately trimmed vs. the full prototype: no "pick from your
+// existing product library" picker grid here (that needs a separate
+// getStudioProducts() fetch this pass didn't wire up), and the optional
+// fields section (gender/occasion/season/silhouette/sustainability/care)
+// is collapsed-and-omitted rather than built out, to ship the core
+// (create collection with new real pieces) rather than nothing. Both are
+// straightforward follow-ups against the same real endpoints.
+const GARMENT_TYPES = ['Kurta', 'Dress', 'Kaftan', 'Co-ord set', 'Top', 'Jacket', 'Trousers', 'Dupatta', 'Shirt', 'Skirt'];
+
+function CreateCollectionModal({ onClose, onCreated }) {
+  const [name, setName] = useState('');
+  const [about, setAbout] = useState('');
+  const [visibility, setVisibility] = useState('public');
+  const [pieces, setPieces] = useState([{ name: '', garment_type: '', fabrics_used: '', dyes_used: '', craft_techniques_used: '' }]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const updatePiece = (i, field, val) => setPieces(ps => ps.map((p, j) => j === i ? { ...p, [field]: val } : p));
+  const addPiece = () => setPieces(ps => [...ps, { name: '', garment_type: '', fabrics_used: '', dyes_used: '', craft_techniques_used: '' }]);
+  const removePiece = (i) => setPieces(ps => ps.length > 1 ? ps.filter((_, j) => j !== i) : ps);
+
+  const save = async () => {
+    if (!name.trim()) { setError('Collection name is required.'); return; }
+    const validPieces = pieces.filter(p => p.name.trim() && p.garment_type);
+    if (validPieces.length === 0) { setError('Add at least one piece with a name and garment type.'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      const productIds = [];
+      for (const p of validPieces) {
+        const r = await onboardingAPI.addStudioProduct(undefined, {
+          name: p.name.trim(),
+          garment_type: p.garment_type,
+          fabrics_used: p.fabrics_used || null,
+          dyes_used: p.dyes_used || null,
+          craft_techniques_used: p.craft_techniques_used || null,
+        });
+        productIds.push(r.data.id);
+      }
+      await onboardingAPI.addCollection(undefined, {
+        name: name.trim(),
+        about: about.trim() || null,
+        visibility,
+        product_ids: productIds,
+      });
+      onCreated();
+    } catch (e) {
+      setError(e?.response?.data?.message || 'Could not create the collection — please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div onClick={(e) => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, background: 'rgba(26,22,18,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+      <div style={{ background: '#fff', borderRadius: 14, maxWidth: 560, width: '100%', maxHeight: '86vh', display: 'flex', flexDirection: 'column', boxShadow: 'var(--shadow-lg)' }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600 }}>Create a new collection</div>
+          <span onClick={onClose} style={{ cursor: 'pointer', fontSize: 20, color: 'var(--text4)' }}>×</span>
+        </div>
+        <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
+          {error && <div style={{ background: 'var(--red-dim)', color: 'var(--red)', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 16 }}>{error}</div>}
+
+          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', display: 'block', marginBottom: 6 }}>Collection name</label>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. SS26 Resort Collection"
+            style={{ width: '100%', padding: '10px 13px', borderRadius: 8, border: '1px solid var(--border2)', fontSize: 13, marginBottom: 18, boxSizing: 'border-box' }} />
+
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Pieces in this collection</div>
+          {pieces.map((p, i) => (
+            <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 14, marginBottom: 10, background: 'var(--surface)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)' }}>Piece {i + 1}</span>
+                {pieces.length > 1 && <span onClick={() => removePiece(i)} style={{ cursor: 'pointer', color: 'var(--red)', fontSize: 12 }}>Remove</span>}
+              </div>
+              <input value={p.name} onChange={e => updatePiece(i, 'name', e.target.value)} placeholder="Product name *"
+                style={{ width: '100%', padding: '8px 11px', borderRadius: 7, border: '1px solid var(--border2)', fontSize: 13, marginBottom: 8, boxSizing: 'border-box' }} />
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                {GARMENT_TYPES.map(g => (
+                  <span key={g} onClick={() => updatePiece(i, 'garment_type', g)}
+                    style={{ fontSize: 12, padding: '5px 12px', borderRadius: 20, cursor: 'pointer', border: `1px solid ${p.garment_type === g ? 'var(--gold-d)' : 'var(--border2)'}`, background: p.garment_type === g ? 'var(--gold)' : '#fff', color: p.garment_type === g ? '#fff' : 'var(--text2)' }}>
+                    {g}
+                  </span>
+                ))}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+                <input value={p.fabrics_used} onChange={e => updatePiece(i, 'fabrics_used', e.target.value)} placeholder="Fabrics used"
+                  style={{ padding: '8px 11px', borderRadius: 7, border: '1px solid var(--border2)', fontSize: 13, boxSizing: 'border-box' }} />
+                <input value={p.dyes_used} onChange={e => updatePiece(i, 'dyes_used', e.target.value)} placeholder="Dyes used"
+                  style={{ padding: '8px 11px', borderRadius: 7, border: '1px solid var(--border2)', fontSize: 13, boxSizing: 'border-box' }} />
+              </div>
+              <input value={p.craft_techniques_used} onChange={e => updatePiece(i, 'craft_techniques_used', e.target.value)} placeholder="Craft techniques used"
+                style={{ width: '100%', padding: '8px 11px', borderRadius: 7, border: '1px solid var(--border2)', fontSize: 13, boxSizing: 'border-box' }} />
+            </div>
+          ))}
+          <button onClick={addPiece} className="btn btn-ghost" style={{ fontSize: 12, marginBottom: 18 }}>+ Add another piece</button>
+
+          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', display: 'block', marginBottom: 6 }}>Description <span style={{ fontWeight: 400, color: 'var(--text4)' }}>(optional)</span></label>
+          <textarea value={about} onChange={e => setAbout(e.target.value)} rows={3} placeholder="What makes this collection special? Describe the craft process, inspiration, materials…"
+            style={{ width: '100%', padding: '10px 13px', borderRadius: 8, border: '1px solid var(--border2)', fontSize: 13, marginBottom: 18, resize: 'vertical', boxSizing: 'border-box' }} />
+
+          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', display: 'block', marginBottom: 6 }}>Visibility</label>
+          <select value={visibility} onChange={e => setVisibility(e.target.value)}
+            style={{ width: '100%', padding: '10px 13px', borderRadius: 8, border: '1px solid var(--border2)', fontSize: 13 }}>
+            <option value="public">Public — visible to any buyer</option>
+            <option value="private">Private — proposal-only</option>
+            <option value="open_for_collaboration">Open for collaboration</option>
+          </select>
+        </div>
+        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button onClick={onClose} className="btn btn-ghost">Cancel</button>
+          <button onClick={save} disabled={saving} className="btn btn-primary">{saving ? 'Creating…' : 'Create collection'}</button>
         </div>
       </div>
     </div>

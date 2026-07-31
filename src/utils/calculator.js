@@ -195,6 +195,12 @@ export function calcLandingCost({
   shipping  = 'dhl',
   forex     = 91.62,
   pfPct     = 0.15,
+  // Optional — per-phase rates for the admin review UI (spec: Design 4% /
+  // Sampling 10% / Production 15% by default, each independently editable).
+  // When omitted, every phase uses the flat `pfPct` above — this is exactly
+  // what the seller-side calculator already did, unchanged, since studios
+  // never see the per-phase breakdown (spec §5.3).
+  pfPctByPhase = null,
   advancePct = 0.5,
 }) {
   const isSG = shipping === 'shipglobal';
@@ -203,29 +209,51 @@ export function calcLandingCost({
   // order_type / product_domain are now per item. `orderType` / `domain` remain
   // as fallbacks so proposals saved before the per-item change still calculate.
   const items = lineItems
-    .filter(it => it.qty > 0 && it.cost_per_pc_inr > 0)
+    .filter(it => it.order_type === 'designing' ? it.cost_per_pc_inr > 0 : (it.qty > 0 && it.cost_per_pc_inr > 0))
     .map(it => {
       const itemType    = it.order_type    || orderType;
       const itemDomain  = it.product_domain || domain;
       const isDesigning = itemType === 'designing';
       const isItemProd  = itemType === 'production';
       const shippable   = !isDesigning;   // designing = a service line, never ships
+      // Design items are a flat fee, not a per-unit cost — there's no Qty
+      // field for them in the UI at all (LineItemCards hides that column
+      // for Design rows). Use an effective qty of 1 so cost_per_pc_inr is
+      // treated as the whole fee, not silently multiplied by a real qty
+      // of 0 (which is what happens if it's left at the raw item.qty).
+      const effQty   = isDesigning ? 1 : it.qty;
 
-      const prodUSD  = it.cost_per_pc_inr * it.qty / forex;
+      const prodUSD  = it.cost_per_pc_inr * effQty / forex;
       const dutyPct  = shippable
         ? getDuty(itemDomain, it.gender || 'Women', it.technique || 'Woven', it.category || getCats(itemDomain)[0], it.material || '')
         : 0;
-      const dutyBase = !shippable ? 0 : (isItemProd ? prodUSD : (it.declared_value_usd || 0));
-      const actWt    = shippable ? (it.weight_per_pc || 0) * it.qty : 0;
+      // Duty applies to Production only. Sampling was previously falling
+      // into the "not production" branch and picking up a real duty via
+      // declared_value_usd if the studio set one — but the prototype's own
+      // model (and the disclaimer already shown elsewhere: "Sampling
+      // shipping & duties — billed at actuals, not included in this
+      // quote") zeroes duty for Sampling entirely. Only Production gets a
+      // real dutyBase; Design and Sampling both get 0.
+      const dutyBase = isItemProd ? prodUSD : 0;
+      // Only Production items actually ship in this quote (see anyShippable
+      // below) — weight from Sampling items (shippable=true, since they're
+      // not designing, but excluded from this quote's shipment) must not
+      // inflate the production shipment's chargeable weight.
+      const actWt    = isItemProd ? (it.weight_per_pc || 0) * effQty : 0;
       const gstRate  = parseFloat(it.gst_rate) || 0;
 
-      return { ...it, itemType, itemDomain, isDesigning, shippable, prodUSD, dutyPct, dutyBase, actWt, gstRate };
+      return { ...it, qty: effQty, itemType, itemDomain, isDesigning, shippable, prodUSD, dutyPct, dutyBase, actWt, gstRate };
     });
 
-  const anyShippable = items.some(it => it.shippable);
-  // Shipment rate tier: production pricing if any shippable item is production,
-  // otherwise sample pricing.
-  const shipIsProd   = items.some(it => it.shippable && it.itemType === 'production');
+  // Only Production ships in this quote (Sampling is billed at actuals
+  // separately, Design never ships) — matches the byPhase allocation
+  // below, which only ever gives Production a nonzero share. Gating on
+  // `shippable` here (true for both Sampling and Production) meant a
+  // Sampling-only proposal could compute a real nonzero shippingUSD that
+  // then had nowhere to go in byPhase — silently dropped from the total
+  // instead of either being charged or genuinely being zero.
+  const anyShippable = items.some(it => it.itemType === 'production');
+  const shipIsProd    = true; // reached only when anyShippable is true, which now means production-only
 
   // ── Weight calculation ──────────────────────────────────────────────────────
   let cartWt = 0, volWt = 0;
@@ -256,8 +284,9 @@ export function calcLandingCost({
   // ── Import duties (DHL only; ShipGlobal = duties included) ─────────────────
   let totalDutyUSD = 0;
   let procFee = 0;
+  let totalDutyBase = 0;
   if (!isSG) {
-    const totalDutyBase = items.reduce((s, it) => s + it.dutyBase, 0);
+    totalDutyBase = items.reduce((s, it) => s + it.dutyBase, 0);
     procFee = totalDutyBase < 2500
       ? 2.0
       : Math.max(totalDutyBase * 0.003464, 33.58);
@@ -273,17 +302,86 @@ export function calcLandingCost({
   const pfBase       = totalProdUSD + shippingUSD + totalDutyUSD;
   // Platform fee is applied as % of landing cost (gross margin model)
   const subtotal     = pfPct < 1 ? pfBase / (1 - pfPct) : pfBase;
-  const pfTotal      = subtotal * pfPct;
-  const bpAmt        = subtotal * pfPct * (10 / 15);
-  const tcAmt        = subtotal * pfPct * (3.5 / 15);
-  const pgcAmt       = subtotal * pfPct * (1.5 / 15);
+  const pfTotal       = subtotal * pfPct;
   const pgBuyer      = subtotal * 0.05;       // 5% card surcharge (buyer pays separately)
   const totalWithPG  = subtotal + pgBuyer;
+
+  // ── Per-phase breakdown (admin review — 3 independently editable rates) ────
+  // Shipping/duty aren't naturally phase-scoped (computed once across all
+  // shippable items), so each phase's share is allocated proportionally to
+  // its share of production cost — the same principle the per-item duty
+  // pro-rating above already uses. When pfPctByPhase is omitted (seller
+  // side) or all three rates happen to be equal, this reduces to exactly
+  // the flat-rate numbers above — grossing up (base/(1-r)) is additive
+  // across a partition when the rate is constant, so nothing changes for
+  // any caller that doesn't pass per-phase rates.
+  const byPhase = {};
+  // Design never ships, so shipping/duty must be shared out only between the
+  // phases that actually ship (sampling/production) — using totalProdUSD
+  // (which includes Design) as the share denominator would silently lose a
+  // sliver of shipping/duty to Design's non-zero production share, so the
+  // equal-rate case wouldn't exactly reduce to the flat-rate result.
+  // Only Production items actually ship in this quote. Sampling is billed
+  // at actuals separately (see the disclaimer shown elsewhere), and Design
+  // never ships at all — so 100% of shippingUSD/totalDutyUSD belongs to
+  // Production, not spread proportionally across Sampling+Production.
+  // (Previously this denominator included Sampling's production cost,
+  // which meant a proposal with both Sampling and Production items would
+  // silently bleed some real shipping/duty cost onto Sampling's phase
+  // subtotal — wrong per the prototype's own model.)
+  const productionProdUSD = items.filter(it => it.itemType === 'production').reduce((s, it) => s + it.prodUSD, 0);
+  for (const phaseKey of ['designing', 'sampling', 'production']) {
+    const phaseItems   = items.filter(it => it.itemType === phaseKey);
+    const phaseProdUSD = phaseItems.reduce((s, it) => s + it.prodUSD, 0);
+    const share        = phaseKey === 'production' ? (productionProdUSD > 0 ? phaseProdUSD / productionProdUSD : 0) : 0;
+    const phaseShipUSD = shippingUSD * share;
+    const phaseDutyUSD = totalDutyUSD * share;
+    const phaseBase    = phaseProdUSD + phaseShipUSD + phaseDutyUSD;
+    const rate          = pfPctByPhase ? (pfPctByPhase[phaseKey] ?? pfPct) : pfPct;
+    const phaseSubtotal = rate < 1 ? phaseBase / (1 - rate) : phaseBase;
+    const phasePfTotal  = phaseSubtotal * rate;
+    byPhase[phaseKey] = {
+      prodUSD: phaseProdUSD, shippingUSD: phaseShipUSD, dutyUSD: phaseDutyUSD,
+      base: phaseBase, rate, subtotal: phaseSubtotal, pfTotal: phasePfTotal,
+    };
+  }
+
+  // Platform fee sub-breakdown — matches the prototype's actual cumulative
+  // model exactly: IP Protection is present in every phase's rate (Design
+  // 4% = IP only), Managed Production is added starting at Sampling
+  // (Sampling 10% = IP 4% + MP 6%), Trade & Compliance is added only at
+  // Production (Production 15% = IP 4% + MP 6% + TC 5%). Computed from
+  // each phase's OWN pfTotal (whatever rate that phase actually used —
+  // flat or per-phase), not a flat ratio applied to the aggregate total,
+  // which is what the previous bpAmt/tcAmt/pgcAmt did and is why it never
+  // got wired up to any display — it didn't correctly reduce to zero for
+  // Design/Sampling's IP-only / IP+MP-only rates.
+  const ipAmt = byPhase.designing.pfTotal + byPhase.sampling.pfTotal * (4 / 10) + byPhase.production.pfTotal * (4 / 15);
+  const mpAmt =                              byPhase.sampling.pfTotal * (6 / 10) + byPhase.production.pfTotal * (6 / 15);
+  const tcAmt =                                                                     byPhase.production.pfTotal * (5 / 15);
+  // Grand totals, built from the per-phase breakdown when per-phase rates
+  // were supplied — otherwise identical to the flat-rate values above.
+  const landingCostUSDByPhase = pfPctByPhase
+    ? byPhase.designing.subtotal + byPhase.sampling.subtotal + byPhase.production.subtotal
+    : subtotal;
+  const pfTotalByPhase = pfPctByPhase
+    ? byPhase.designing.pfTotal + byPhase.sampling.pfTotal + byPhase.production.pfTotal
+    : pfTotal;
 
   // ── Studio payout ───────────────────────────────────────────────────────────
   const payoutBaseINR = items.reduce((s, it) => s + it.cost_per_pc_inr * it.qty, 0);
   const payoutGSTINR  = items.reduce((s, it) => s + it.cost_per_pc_inr * it.qty * it.gstRate, 0);
   const payoutTotalINR = payoutBaseINR + payoutGSTINR;
+
+  // Studio payout by phase — what a phase's items are worth (incl. GST)
+  // before the platform fee for that phase is deducted.
+  const payoutByPhase = {};
+  for (const phaseKey of ['designing', 'sampling', 'production']) {
+    const phaseItems = items.filter(it => it.itemType === phaseKey);
+    const base = phaseItems.reduce((s, it) => s + it.cost_per_pc_inr * it.qty, 0);
+    const gst  = phaseItems.reduce((s, it) => s + it.cost_per_pc_inr * it.qty * it.gstRate, 0);
+    payoutByPhase[phaseKey] = base + gst;
+  }
 
   // ── Advance / balance ───────────────────────────────────────────────────────
   const advanceINR  = payoutTotalINR * advancePct;
@@ -297,24 +395,43 @@ export function calcLandingCost({
     // Shipping
     shippingUSD, shippingINR,
     // Duties
-    totalDutyUSD, procFee,
+    totalDutyUSD, procFee, totalDutyBase,
     // Cost build-up
-    totalProdUSD, pfBase, subtotal, pfTotal, bpAmt, tcAmt, pgcAmt,
+    totalProdUSD, pfBase, subtotal, pfTotal, ipAmt, mpAmt, tcAmt,
     pgBuyer, totalWithPG,
     // Platform fee breakdown rates
     bpRate: pfPct * (10 / 15),
     tcRate: pfPct * (3.5 / 15),
     pgcRate: pfPct * (1.5 / 15),
+    // Per-phase breakdown (admin review — 3 independently editable rates)
+    byPhase,
+    payoutByPhase,
     // Studio payout
     payoutBaseINR, payoutGSTINR, payoutTotalINR, advanceINR, balanceINR,
-    // Convenience
-    landingCostUSD: subtotal,
+    // Convenience — uses the per-phase grand total when pfPctByPhase was
+    // supplied, otherwise identical to the flat-rate value.
+    landingCostUSD: landingCostUSDByPhase,
+    pfTotalFinal: pfTotalByPhase,
     hasItems: items.length > 0,
     isSG,
   };
 }
 
 // ── Forex fetch ───────────────────────────────────────────────────────────────
+
+// A saved forex_rate_usd_inr that's 0 already falls back via `|| 91.62` at
+// call sites, but anything else out of a sane range (e.g. a stray 0.01 from
+// a bad save) doesn't — and since forex is a DENOMINATOR in every cost
+// calculation (cost_per_pc_inr * qty / forex), a near-zero value silently
+// inflates every downstream number by orders of magnitude until it blows
+// past calculated_landing_cost_usd's max_digits at save time, with a
+// cryptic error far from the actual cause. INR/USD has stayed in the
+// roughly 70-110 range for years — 30-200 is a generous sane bound.
+export function sanitizeForex(value, fallback = 91.62) {
+  const n = parseFloat(value);
+  if (!n || isNaN(n) || n < 30 || n > 200) return fallback;
+  return n;
+}
 
 export async function fetchForex() {
   try {

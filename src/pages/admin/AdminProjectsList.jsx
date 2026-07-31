@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { projectsAPI } from '../../api/client';
+import { projectsAPI, adminAPI } from '../../api/client';
 
 const STAGE_COLORS = {
   draft:           'var(--text3)',
@@ -93,6 +93,14 @@ export default function AdminProjectsList() {
   const [showCreate,  setShowCreate]  = useState(false);
   const [stageFilter, setStageFilter] = useState('');
   const [searchQ,     setSearchQ]     = useState('');
+
+  // Buyers who contacted a studio directly ("Get Introduced") but don't have
+  // a formal project/brief yet — surfaced here instead of a separate nav
+  // section so admin runs into them naturally while working the pipeline.
+  const [inquiries,   setInquiries]   = useState([]);
+  const [inqLoading,  setInqLoading]  = useState(true);
+  const [inqOpen,     setInqOpen]     = useState(true);
+  const [converting,  setConverting]  = useState(null);
   const [form, setForm] = useState({
     name: '', buyer_user_id: '',
     buyer_brand_name: '', buyer_location: '',
@@ -121,6 +129,27 @@ export default function AdminProjectsList() {
   };
 
   useEffect(() => { load(); loadBuyers(); }, [stageFilter]);
+
+  useEffect(() => {
+    setInqLoading(true);
+    adminAPI.getAdminStudioInquiries()
+      .then(r => setInquiries(r.data.inquiries || []))
+      .catch(() => {})
+      .finally(() => setInqLoading(false));
+  }, []);
+
+  const pendingInquiries = inquiries.filter(i => !i.project_id);
+
+  const convertToProject = async (inq) => {
+    setConverting(inq.id);
+    try {
+      const r = await adminAPI.convertInquiryToProject(inq.id);
+      nav(`/admin/projects/${r.data.project_id}/assign-studios`);
+    } catch (e) {
+      alert(e?.response?.data?.message || 'Could not convert this inquiry to a project.');
+      setConverting(null);
+    }
+  };
 
   const set = (k, v) => setForm(f => ({...f, [k]: v}));
 
@@ -174,9 +203,56 @@ export default function AdminProjectsList() {
               <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
             ))}
           </select>
-          <button onClick={() => setShowCreate(true)} className="btn btn-primary" style={{ fontSize: 13, padding: '8px 18px' }}>+ New Project</button>
+          <button onClick={() => nav('/admin/projects/new')} className="btn btn-primary" style={{ fontSize: 13, padding: '8px 18px' }}>+ New Project</button>
         </div>
       </div>
+
+      {/* Buyers who contacted a studio directly — convert to a project here */}
+      {!inqLoading && pendingInquiries.length > 0 && (
+        <div style={{ background: 'var(--gold-dim)', border: '1px solid var(--gold)', borderRadius: 12, marginBottom: 20, overflow: 'hidden' }}>
+          <div
+            onClick={() => setInqOpen(o => !o)}
+            style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+          >
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+              🔔 {pendingInquiries.length} buyer{pendingInquiries.length > 1 ? 's' : ''} contacted a studio directly — not yet a project
+            </div>
+            <span style={{ fontSize: 12, color: 'var(--text3)' }}>{inqOpen ? 'Hide ▲' : 'Show ▼'}</span>
+          </div>
+          {inqOpen && (
+            <div style={{ padding: '0 20px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {pendingInquiries.map(inq => (
+                <div key={inq.id} style={{
+                  background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10,
+                  padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+                }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{inq.name} <span style={{ fontWeight: 400, color: 'var(--text4)' }}>· {inq.email}</span></div>
+                    <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
+                      Contacted <strong>{inq.studio?.name}</strong>
+                      {inq.buyer?.product_types?.length > 0 && <> · {inq.buyer.product_types.join(', ')}</>}
+                    </div>
+                  </div>
+                  {inq.buyer ? (
+                    <button
+                      onClick={() => convertToProject(inq)}
+                      disabled={converting === inq.id}
+                      className="btn btn-primary"
+                      style={{ fontSize: 12, padding: '7px 16px', whiteSpace: 'nowrap' }}
+                    >
+                      {converting === inq.id ? 'Creating…' : 'Convert to Project →'}
+                    </button>
+                  ) : (
+                    <span style={{ fontSize: 11, color: 'var(--text4)', fontStyle: 'italic', whiteSpace: 'nowrap' }}>
+                      No brief data — create manually
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Search bar */}
       <div style={{ marginBottom: 16 }}>

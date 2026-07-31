@@ -44,6 +44,19 @@ export const authTokens = {
     localStorage.setItem(TYPE_KEY, 'session');
   },
 
+  // Persist an access-key session (buyer auto-created/logged-in from the
+  // Qalawati chat flow — see discovery/chat_views.py::ChatContactView).
+  // Distinct from setSession(): this is a signed access-key token, not a
+  // SuperTokens session, so it's flagged with TYPE_KEY = 'access_key' and
+  // sent as `Authorization: AccessKey <token>` (see request interceptor
+  // below), matching core.authentication.AccessKeyAuthentication.
+  setAccessKeySession(token) {
+    if (!token) return;
+    localStorage.setItem(ACCESS_KEY, token);
+    localStorage.removeItem(REFRESH_KEY);
+    localStorage.setItem(TYPE_KEY, 'access_key');
+  },
+
   clear() {
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
@@ -235,6 +248,7 @@ export const onboardingAPI = {
   patchCollection:    (pid,id,d) => api.patch(`/api/seller/onboarding/collections/${id}/`, d, { headers: ph(pid) }),
   delCollection:      (pid,id) => api.delete(`/api/seller/onboarding/collections/${id}/`, { headers: ph(pid) }),
   getStudioInquiries: pid => api.get('/api/seller/studio-inquiries/', { headers: ph(pid) }),
+  getSellerCollections: pid => api.get('/api/seller/onboarding/collections/', { headers: ph(pid) }),
 };
 
 export const adminAPI = {
@@ -249,10 +263,11 @@ export const adminAPI = {
   deleteStudioMedia: (pid, mediaId) => api.delete(`/api/admin/seller-profiles/${pid}/studio-media/${mediaId}/`),
   deleteBTSMedia:    (pid, mediaId) => api.delete(`/api/admin/seller-profiles/${pid}/bts-media/${mediaId}/`),
   editSection:   (pid, section, d) => api.patch(`/api/admin/seller-profiles/${pid}/edit/${section}/`, d),
-  getDiscoveryBuyers:       () => api.get('/api/admin/discovery/buyers/'),
+  getDiscoveryBuyers:       (params)      => api.get('/api/admin/discovery/buyers/', { params }),
   getDiscoveryBuyer:        id => api.get(`/api/admin/discovery/buyers/${id}/`),
   getDiscoveryInquiries:    () => api.get('/api/admin/discovery/inquiries/'),
   getAdminStudioInquiries:  () => api.get('/api/admin/discovery/studio-inquiries/'),
+  convertInquiryToProject: id => api.post(`/api/admin/discovery/studio-inquiries/${id}/convert-to-project/`),
   listAccessKeys:    ()  => api.get('/api/admin/chat/access-keys/'),
   generateAccessKeys: d  => api.post('/api/admin/chat/access-keys/', d),
   updateAccessKey:   (id, d) => api.patch(`/api/admin/chat/access-keys/${id}/`, d),
@@ -339,9 +354,8 @@ export const discoveryAPI = {
 
 export const chatAPI = {
   start: (accessKey = null) =>
-    axios.post(`${BASE}/api/discovery/chat/start/`,
-      accessKey ? { access_key: accessKey } : {},
-      { headers: { 'Content-Type': 'application/json' } }
+    api.post('/api/discovery/chat/start/',
+      accessKey ? { access_key: accessKey } : {}
     ),
 
   sendMessage: (sessionId, message, images = null, selectedImageIds = null) =>
@@ -400,7 +414,8 @@ export const projectsAPI = {
   deleteMoodboard:       (id, mid)       => api.delete(`/api/buyer/projects/${id}/brief/moodboards/${mid}/`),
   submitBrief:           id              => api.post(`/api/buyer/projects/${id}/brief/submit/`),
   getProposals:          id              => api.get(`/api/buyer/projects/${id}/proposals/`),
-  acceptProposal:        (id, pid)       => api.post(`/api/buyer/projects/${id}/proposals/${pid}/accept/`),
+  acceptProposal:        (id, pid, data) => api.post(`/api/buyer/projects/${id}/proposals/${pid}/accept/`, data),
+  actOnProposal:         (id, pid, data) => api.post(`/api/buyer/projects/${id}/proposals/${pid}/action/`, data),
   getOrders:             id              => api.get(`/api/buyer/projects/${id}/orders/`),
   getOrder:              (id, oid)       => api.get(`/api/buyer/projects/${id}/orders/${oid}/`),
   getContracts:          id              => api.get(`/api/buyer/projects/${id}/contracts/`),
@@ -414,21 +429,42 @@ export const projectsAPI = {
   updateProposal:        (id, pid, data) => api.patch(`/api/seller/projects/${id}/proposals/${pid}/`, data),
   updateProposalJSON:    (id, pid, data) => api.patch(`/api/seller/projects/${id}/proposals/${pid}/`, data, { headers: { 'Content-Type': 'application/json' } }),
   submitProposal:        (id, pid)       => api.post(`/api/seller/projects/${id}/proposals/${pid}/submit/`),
+  respondToEnquiry:      (id, data)      => api.post(`/api/seller/projects/enquiries/${id}/respond/`, data),
+  getEnquiryMessages:    id              => api.get(`/api/seller/projects/enquiries/${id}/messages/`),
+  sendEnquiryMessage:    (id, data)      => api.post(`/api/seller/projects/enquiries/${id}/messages/`, data),
+  getProposalActivity:   (id, pid)       => api.get(`/api/seller/projects/${id}/proposals/${pid}/activity/`),
   dispatchOrder:         (id, oid, data) => api.patch(`/api/seller/projects/${id}/orders/${oid}/dispatch/`, data),
+  markOrderStageDone:    (id, oid, data) => api.post(`/api/seller/projects/${id}/orders/${oid}/stage/`, data),
+  delayOrder:            (id, oid, data) => api.patch(`/api/seller/projects/${id}/orders/${oid}/delay/`, data),
+  schedulePickup:        (id, oid, data) => api.post(`/api/seller/projects/${id}/orders/${oid}/pickup/`, data),
 
   // ── Admin ──────────────────────────────────────────────────────────────────
   adminListProjects:     (params)        => api.get('/api/admin/projects/', { params }),
   adminCreateProject:    data            => api.post('/api/admin/projects/', data),
   adminGetProject:       id              => api.get(`/api/admin/projects/${id}/`),
   adminUpdateProject:    (id, data)      => api.patch(`/api/admin/projects/${id}/`, data),
+  adminDeleteProject:    (id, confirmName) => api.delete(`/api/admin/projects/${id}/`, { data: { confirm_name: confirmName } }),
   adminUpdateBrief:      (id, data)      => api.patch(`/api/admin/projects/${id}/brief/`, data),
   adminUploadMoodboard:  (id, form)      => api.post(`/api/admin/projects/${id}/brief/moodboards/`, form),
   adminDeleteMoodboard:  (id, mid)       => api.delete(`/api/admin/projects/${id}/brief/moodboards/${mid}/`),
   adminGetShareStudios:  id              => api.get(`/api/admin/projects/${id}/share/`),
   adminShareBrief:       (id, data)      => api.post(`/api/admin/projects/${id}/share/`, data),
+  adminMatchStudios:     id              => api.get(`/api/admin/projects/${id}/match/`),
+  adminGetAssignments:   id              => api.get(`/api/admin/projects/${id}/studio-assignments/`),
+  adminAssignStudios:    (id, data)      => api.post(`/api/admin/projects/${id}/studio-assignments/`, data),
+  adminUpdateAssignment: (id, aid, data) => api.patch(`/api/admin/projects/${id}/studio-assignments/${aid}/`, data),
+  adminGetEnquiryMessages: (id, aid)     => api.get(`/api/admin/projects/${id}/studio-assignments/${aid}/messages/`),
+  adminSendEnquiryMessage: (id, aid, data) => api.post(`/api/admin/projects/${id}/studio-assignments/${aid}/messages/`, data),
+  adminRemoveAssignment: (id, aid)       => api.delete(`/api/admin/projects/${id}/studio-assignments/${aid}/`),
   adminGetProposals:     id              => api.get(`/api/admin/projects/${id}/proposals/`),
   adminUpdateProposal:   (id, pid, data) => api.patch(`/api/admin/projects/${id}/proposals/${pid}/`, data),
   adminSendProposal:     (id, pid)       => api.post(`/api/admin/projects/${id}/proposals/${pid}/send-to-buyer/`),
+  adminGetMilestones:    (id, pid)       => api.get(`/api/admin/projects/${id}/proposals/${pid}/milestones/`),
+  adminCreateMilestone:  (id, pid, data) => api.post(`/api/admin/projects/${id}/proposals/${pid}/milestones/`, data),
+  adminUpdateMilestone:  (id, pid, mid, data) => api.patch(`/api/admin/projects/${id}/proposals/${pid}/milestones/${mid}/`, data),
+  adminDeleteMilestone:  (id, pid, mid) => api.delete(`/api/admin/projects/${id}/proposals/${pid}/milestones/${mid}/`),
+  adminMarkMilestonePaid: (id, pid, mid) => api.post(`/api/admin/projects/${id}/proposals/${pid}/milestones/${mid}/mark-paid/`),
+  adminGetProposalActivity: (id, pid)    => api.get(`/api/admin/projects/${id}/proposals/${pid}/activity/`),
   adminCreateOrder:      (id, data)      => api.post(`/api/admin/projects/${id}/orders/`, data),
   adminUpdateOrder:      (id, oid, data) => api.patch(`/api/admin/projects/${id}/orders/${oid}/`, data),
   adminUploadOrderDoc:   (id, oid, form) => api.post(`/api/admin/projects/${id}/orders/${oid}/documents/`, form),
@@ -436,6 +472,11 @@ export const projectsAPI = {
   adminGetOrders:        (params)        => api.get('/api/admin/orders/', { params }),
   adminGetCustomers:     (params)        => api.get('/api/admin/customers/', { params }),
   adminRequestRevision:  (id, pid, data) => api.post(`/api/admin/projects/${id}/proposals/${pid}/request-revision/`, data),
+};
+
+export const walletAPI = {
+  getBuyerWallet:  () => api.get('/api/buyer/wallet/'),
+  getSellerWallet: () => api.get('/api/seller/wallet/'),
 };
 
 export const adminLibraryAPI = {

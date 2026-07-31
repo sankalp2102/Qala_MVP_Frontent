@@ -1,6 +1,6 @@
 // src/components/discovery/Brief.jsx
 import { useState, useEffect, useRef } from 'react';
-import { discoveryAPI, chatAPI } from '../../api/client';
+import { discoveryAPI, chatAPI, authTokens } from '../../api/client';
 
 const SAGE = '#7A8C6E';
 const BASE = import.meta.env.VITE_API_URL || 'https://api.qala.studio';
@@ -197,11 +197,19 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
 
     setSavingContact(true);
     try {
-      await chatAPI.saveContact(sessionId, {
+      const r = await chatAPI.saveContact(sessionId, {
         name:  contactForm.name.trim(),
         email: contactForm.email.trim(),
         phone: contactForm.phone.trim(),
       });
+      // Backend silently created + logged in a buyer account for this
+      // email the moment they submitted contact details (see
+      // discovery/chat_views.py::ChatContactView / _auto_create_buyer_account).
+      // Adopt the session immediately so they land on their dashboard
+      // already authenticated instead of hitting a login screen.
+      if (r?.data?.auth_token) {
+        authTokens.setAccessKeySession(r.data.auth_token);
+      }
       // Persist so the form is skipped on future visits with same key
       localStorage.setItem('qala_has_contact', 'true');
     } catch { /* non-fatal */ }

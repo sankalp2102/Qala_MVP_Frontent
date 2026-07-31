@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { onboardingAPI } from '../api/client';
+import { onboardingAPI, projectsAPI } from '../api/client';
 import { DashLayout } from '../components/DashLayout';
 import { Spinner } from '../components/Spinner';
 import { mediaUrl } from '../utils/mediaUrl';
@@ -17,6 +17,13 @@ import EnquiryDetail from './seller/EnquiryDetail';
 import EnquiriesList from './seller/EnquiriesList';
 import ProposalBuilder from './seller/ProposalBuilder';
 import ActiveProjects from './seller/ActiveProjects';
+import Wallet from './seller/Wallet';
+import SellerHome from './seller/SellerHome';
+import ActivityHistory from './seller/ActivityHistory';
+import OrderDetail from './seller/OrderDetail';
+import Earnings from './seller/Earnings';
+import SellerProfile from './seller/SellerProfile';
+import SellerSettings from './seller/SellerSettings';
 
 // v3: 8 sections A–H
 const SECTIONS = [
@@ -123,177 +130,6 @@ function Overview({ snapshot, flags }) {
   );
 }
 
-/* ── SELLER INQUIRIES ── */
-function SellerInquiries({ profileId }) {
-  const [data,    setData]    = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [search,  setSearch]  = useState('');
-
-  useEffect(() => {
-    if (!profileId) return;
-    onboardingAPI.getStudioInquiries(profileId)
-      .then(r => setData(r.data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [profileId]);
-
-  if (loading) return <Spinner full />;
-  if (!data)   return <div style={{ padding: 40, color: 'var(--red)' }}>Failed to load inquiries.</div>;
-
-  const filtered = data.inquiries.filter(inq => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      inq.name.toLowerCase().includes(q)  ||
-      inq.email.toLowerCase().includes(q) ||
-      inq.answers?.some(a => a.answer?.toLowerCase().includes(q))
-    );
-  });
-
-  return (
-    <div style={{ padding: 'clamp(20px, 3vw, 40px) clamp(16px, 4vw, 48px)' }}>
-      <div className="fade-up" style={{ marginBottom: 36 }}>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 42, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-          Buyer <em style={{ color: 'var(--gold)' }}>Inquiries</em>
-        </h1>
-        <p style={{ color: 'var(--text3)', fontSize: 15 }}>
-          Buyers who clicked "Get a Callback" on your studio profile.
-        </p>
-      </div>
-
-      <div className="card fade-up">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)' }}>
-            {data.count} Inquir{data.count !== 1 ? 'ies' : 'y'}
-          </div>
-          <input
-            placeholder="Search name, email, answers..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{
-              background: 'var(--surface2)', border: '1px solid var(--border)',
-              borderRadius: 8, padding: '8px 14px', fontSize: 13,
-              color: 'var(--text)', width: 260, fontFamily: 'var(--font-body)',
-            }}
-          />
-        </div>
-
-        {filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '48px 0' }}>
-            <div style={{ fontSize: 14, color: 'var(--text3)', marginBottom: 6 }}>No inquiries yet.</div>
-            <div style={{ fontSize: 12, color: 'var(--text4)' }}>
-              When buyers click "Get a Callback" on your profile, they'll appear here.
-            </div>
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gap: 14 }}>
-            {filtered.map(inq => (
-              <div key={inq.id} style={{
-                padding: '20px 24px', background: 'var(--surface2)',
-                borderRadius: 10, border: '1px solid var(--border)',
-                borderLeft: '3px solid var(--gold)',
-              }}>
-                {/* Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', marginBottom: 3 }}>{inq.name}</div>
-                    <a
-                      href={`mailto:${inq.email}`}
-                      style={{ fontSize: 13, color: 'var(--teal)', textDecoration: 'none' }}
-                    >
-                      {inq.email}
-                    </a>
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--text4)', textAlign: 'right' }}>
-                    {new Date(inq.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    <br />
-                    <span style={{ fontSize: 11 }}>
-                      {new Date(inq.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Pre-call Q&A answers */}
-                {inq.answers?.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
-                    {inq.answers.map((a, i) => (
-                      <div key={i}>
-                        <div style={{
-                          fontSize: 10, fontWeight: 700, color: 'var(--text4)',
-                          textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3,
-                        }}>
-                          {a.question}
-                        </div>
-                        <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.65 }}>
-                          {a.answer || <em style={{ color: 'var(--text4)' }}>No answer</em>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 13, color: 'var(--text4)', fontStyle: 'italic', marginBottom: 14 }}>
-                    No pre-call questions answered.
-                  </div>
-                )}
-
-                {/* Attachment */}
-                {inq.attachment_url && (
-                  <div style={{ marginBottom: 14 }}>
-                    <a
-                      href={mediaUrl(`/media/${inq.attachment_url}`)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 7,
-                        fontSize: 12, color: 'var(--gold)', textDecoration: 'none',
-                        background: 'var(--gold-dim)', border: '1px solid rgba(200,160,60,0.25)',
-                        borderRadius: 6, padding: '6px 12px', fontWeight: 500,
-                      }}
-                    >
-                      View attached file
-                    </a>
-                  </div>
-                )}
-
-                {/* Buyer brief tags */}
-                {inq.buyer && (
-                  <div style={{ paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-                    <div style={{ fontSize: 10, color: 'var(--text4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
-                      Their discovery brief
-                    </div>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {(inq.buyer.product_types || []).map(p => (
-                        <span key={p} style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 6 }}>
-                          {p.replace(/_/g, ' ')}
-                        </span>
-                      ))}
-                      {(inq.buyer.crafts || []).map(c => (
-                        <span key={c} style={{ fontSize: 11, color: 'var(--gold)', background: 'var(--gold-dim)', padding: '2px 8px', borderRadius: 6 }}>
-                          {c}
-                        </span>
-                      ))}
-                      {inq.buyer.timeline && (
-                        <span style={{ fontSize: 11, color: 'var(--teal)', background: 'var(--teal-dim)', padding: '2px 8px', borderRadius: 6 }}>
-                          {inq.buyer.timeline.replace(/_/g, ' ')}
-                        </span>
-                      )}
-                      {inq.buyer.batch_size && (
-                        <span style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 6 }}>
-                          {inq.buyer.batch_size.replace(/_/g, ' ')} pcs
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 /* ── MAIN EXPORT ── */
 export default function SellerDashboard() {
   const { user } = useAuth();
@@ -310,9 +146,27 @@ export default function SellerDashboard() {
 
   useEffect(refresh, [profileId]);
 
+  // New-enquiries nav badge (spec §4.1) — counts assignments not yet
+  // actioned by the studio (assigned/brief_viewed).
+  const [newEnquiryCount, setNewEnquiryCount] = useState(0);
+  useEffect(() => {
+    const loadCount = () => {
+      projectsAPI.getEnquiries()
+        .then(r => {
+          const n = (r.data.enquiries || []).filter(e => ['assigned', 'brief_viewed'].includes(e.enquiry_status)).length;
+          setNewEnquiryCount(n);
+        })
+        .catch(() => {});
+    };
+    loadCount();
+    const id = setInterval(loadCount, 60000); // refresh every minute, not a live feed
+    return () => clearInterval(id);
+  }, []);
+
   const status = snapshot?.status;
   const navItems = [
     { to:'/dashboard',             icon:'', label:'Overview',             end: true                                                                              },
+    { to:'/dashboard/home',        icon:'', label:'Home'                                                                                                          },
     { to:'/dashboard/studio',      icon:'', label:'A — Introduction',     badge: status?.section_a_status === 'flagged' ? { type:'red', text:'!' } : null },
     { to:'/dashboard/products',    icon:'', label:'B — Categories',       badge: status?.section_b_status === 'flagged' ? { type:'red', text:'!' } : null },
     { to:'/dashboard/fabrics',     icon:'', label:'C — Fabrics & Dyes',   badge: status?.section_c_status === 'flagged' ? { type:'red', text:'!' } : null },
@@ -321,15 +175,19 @@ export default function SellerDashboard() {
     { to:'/dashboard/production',  icon:'', label:'F — Team & Capacity', badge: status?.section_f_status === 'flagged' ? { type:'red', text:'!' } : null },
     { to:'/dashboard/projects',    icon:'', label:'G — Past Work',   badge: status?.section_g_status === 'flagged' ? { type:'red', text:'!' } : null },
     { to:'/dashboard/process',     icon:'', label:'H — Behind the Scenes', badge: status?.section_h_status === 'flagged' ? { type:'red', text:'!' } : null },
-    { to:'/dashboard/inquiries',   icon:'', label:'Inquiries'                                                                                      },
-    { to:'/dashboard/enquiries',   icon:'', label:'Project Enquiries'                                                                                  },
+    { to:'/dashboard/enquiries',   icon:'', label:'Enquiries',   badge: newEnquiryCount > 0 ? { type:'gold', text:String(newEnquiryCount) } : null },
     { to:'/dashboard/active',      icon:'', label:'Active Projects'                                                                                    },
+    { to:'/dashboard/earnings',    icon:'', label:'Earnings & Wallet'                                                                                  },
+    { to:'/dashboard/activity',    icon:'', label:'Activity History'                                                                                   },
+    { to:'/dashboard/profile',     icon:'', label:'My Profile'                                                                                         },
+    { to:'/dashboard/settings',    icon:'', label:'Settings'                                                                                           },
   ].filter(n => n.badge !== null || true).map(n => ({ ...n, badge: n.badge || undefined }));
 
   return (
     <DashLayout nav={navItems} theme="qala-form-theme">
       <Routes>
         <Route index             element={<Overview snapshot={snapshot} flags={flags} />}  />
+        <Route path="home"       element={<SellerHome />}                                  />
         <Route path="studio"     element={<SectionA profileId={profileId} initialData={snapshot?.studio_details}  onSave={refresh} onNext={() => { refresh(); nav('/dashboard/products'); }} />} />
         <Route path="products"   element={<SectionB profileId={profileId} initialData={snapshot?.studio_details}  onSave={refresh} onNext={() => { refresh(); nav('/dashboard/fabrics'); }} />} />
         <Route path="fabrics"    element={<SectionC profileId={profileId} initialData={{ studio: snapshot?.studio_details, fabrics: snapshot?.fabric_answers, dyes: snapshot?.dye_answers }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/crafts'); }} />} />
@@ -338,11 +196,17 @@ export default function SellerDashboard() {
         <Route path="production" element={<SectionF profileId={profileId} initialData={{ production: snapshot?.production_scale, collab: snapshot?.collab_design, studio: snapshot?.studio_details }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/projects'); }} />} />
         <Route path="projects"   element={<SectionG profileId={profileId} initialData={{ studio_products: snapshot?.studio_products, studio_collections: snapshot?.studio_collections }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard/process'); }} />} />
         <Route path="process"    element={<SectionH profileId={profileId} initialData={{ process: snapshot?.process_readiness, studio: snapshot?.studio_details }} onSave={refresh} onNext={() => { refresh(); nav('/dashboard'); }} />} />
-        <Route path="inquiries"  element={<SellerInquiries profileId={profileId} />}           />
+        <Route path="inquiries"  element={<Navigate to="/dashboard/enquiries" replace />}    />
         <Route path="enquiries"  element={<EnquiriesList />}                                          />
         <Route path="enquiries/:projectId" element={<EnquiryDetail />}                                />
         <Route path="enquiries/:projectId/proposal/:proposalId" element={<ProposalBuilder />}         />
         <Route path="active"     element={<ActiveProjects />}                                          />
+        <Route path="active/:projectId/orders/:orderId" element={<OrderDetail />}                      />
+        <Route path="wallet"     element={<Wallet />}                                                  />
+        <Route path="earnings"   element={<Earnings />}                                                />
+        <Route path="activity"   element={<ActivityHistory />}                                         />
+        <Route path="profile"    element={<SellerProfile snapshot={snapshot} profileId={profileId} onSave={refresh} />} />
+        <Route path="settings"   element={<SellerSettings snapshot={snapshot} profileId={profileId} onSave={refresh} userEmail={user?.email} />} />
       </Routes>
     </DashLayout>
   );

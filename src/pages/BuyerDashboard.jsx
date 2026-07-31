@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link, Routes, Route } from 'react-router-dom';
+import { useNavigate, useLocation, Link, Routes, Route } from 'react-router-dom';
 import ProjectsList from './buyer/ProjectsList';
 import ProjectDetail from './buyer/ProjectDetail';
+import Wallet from './buyer/Wallet';
 import { useAuth } from '../context/AuthContext';
 import { buyerAPI } from '../api/client';
 import { Spinner } from '../components/Spinner';
@@ -342,11 +343,18 @@ function SessionsTab({ sessions, onResume, onNew }) {
 export default function BuyerDashboard() {
   const { user }  = useAuth();
   const nav       = useNavigate();
+  const location  = useLocation();
 
   const [sessions,   setSessions]   = useState([]);
   const [profile,    setProfile]    = useState(null);
   const [loading,    setLoading]    = useState(true);
-  const [activeTab,  setActiveTab]  = useState('sessions');
+  // Derived from the URL, not separate local state — previously this defaulted
+  // to 'sessions' regardless of the actual path, so navigating straight to
+  // /buyer/projects/... (e.g. after creating a project) rendered the wrong
+  // tab entirely while the nested <Routes> below silently mismatched the URL.
+  const activeTab = location.pathname.startsWith('/buyer/projects') ? 'projects'
+    : location.pathname.startsWith('/buyer/wallet') ? 'wallet'
+    : 'sessions';
 
   useEffect(() => {
     Promise.all([
@@ -405,8 +413,8 @@ export default function BuyerDashboard() {
 
         {/* Tab switcher */}
         <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', marginBottom: 28 }}>
-          {[['sessions', 'Discovery Sessions'], ['projects', 'Projects']].map(([key, label]) => (
-            <button key={key} onClick={() => setActiveTab(key)} style={{
+          {[['sessions', 'Discovery Sessions', '/buyer'], ['projects', 'Projects', '/buyer/projects'], ['wallet', 'Wallet', '/buyer/wallet']].map(([key, label, path]) => (
+            <button key={key} onClick={() => nav(path)} style={{
               padding: '9px 20px', border: 'none',
               borderBottom: activeTab === key ? '2px solid var(--gold)' : '2px solid transparent',
               background: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)',
@@ -434,12 +442,18 @@ export default function BuyerDashboard() {
           </div>
         )}
 
-        {/* Projects tab — full width, nested routes */}
-        {activeTab === 'projects' && (
+        {/* Projects tab — full width, nested routes.
+           Path patterns must include the literal "projects" segment because
+           ProjectsList.jsx/ProjectDetail.jsx already nav() to /buyer/projects/...
+           — previously these patterns only matched /buyer/:projectId directly,
+           so a URL like /buyer/projects/<uuid> matched :projectId="projects"
+           (wrong) and fired GET /api/buyer/projects/projects/ → 404. */}
+        {(activeTab === 'projects' || activeTab === 'wallet') && (
           <Routes>
-            <Route index                  element={<ProjectsList />} />
-            <Route path=":projectId"      element={<ProjectDetail />} />
-            <Route path=":projectId/*"    element={<ProjectDetail />} />
+            <Route path="projects"                element={<ProjectsList />} />
+            <Route path="projects/:projectId"     element={<ProjectDetail />} />
+            <Route path="projects/:projectId/*"   element={<ProjectDetail />} />
+            <Route path="wallet"                  element={<Wallet />} />
           </Routes>
         )}
       </div>

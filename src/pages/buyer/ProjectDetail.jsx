@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { projectsAPI } from '../../api/client';
+import PaymentModal from '../../components/proposals/PaymentModal';
+import ProposalCarbonCopy from '../../components/proposals/ProposalCarbonCopy';
 
 const STAGE_LABELS = {
   draft: 'Draft', brief_submitted: 'Brief Submitted',
@@ -266,17 +268,16 @@ function BriefTab({ project, onRefresh }) {
 }
 
 // ── Proposals tab ──────────────────────────────────────────────────────────
+// Renders each proposal via the shared ProposalCarbonCopy component — the
+// exact same prototype-exact rendering used by the public /p/:token page.
+// This used to be a separate, much simpler hand-built card here that had
+// drifted completely from the prototype (no concept box, no cost
+// accordion, no real timeline, plain bullet-list terms, no persistent
+// payment-status section). Rather than hand-maintain two copies of the
+// same rendering, this now reuses the one verified implementation.
 function ProposalsTab({ project, onRefresh }) {
-  const [accepting, setAccepting] = useState(null);
   const proposals = project.proposals || [];
   const visible   = proposals.filter(p => ['sent_to_buyer','accepted','declined','negotiating'].includes(p.status));
-
-  const acceptProposal = async (pid) => {
-    if (!window.confirm('Accept this proposal? This will move the project to In Production.')) return;
-    setAccepting(pid);
-    try { await projectsAPI.acceptProposal(project.id, pid); onRefresh(); }
-    catch {} finally { setAccepting(null); }
-  };
 
   if (visible.length === 0) return (
     <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, padding:'40px 32px', textAlign:'center' }}>
@@ -286,52 +287,25 @@ function ProposalsTab({ project, onRefresh }) {
   );
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+    <div style={{ display:'flex', flexDirection:'column', gap:24 }}>
       {visible.map(p => (
-        <div key={p.id} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, padding:'24px 28px', borderLeft:`3px solid ${p.status === 'accepted' ? 'var(--green)' : p.status === 'declined' ? 'var(--red)' : 'var(--gold)'}` }}>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:16, flexWrap:'wrap', gap:10 }}>
-            <div>
-              <div style={{ fontFamily:'var(--font-display)', fontSize:17, fontWeight:600, color:'var(--text)', marginBottom:4 }}>{p.studio_name}</div>
-              <div style={{ fontSize:12, color:'var(--text4)' }}>Brief v{p.brief_version_no} · {fmt(p.sent_to_buyer_at)}</div>
-            </div>
-            <span style={{ fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:20, background: p.status==='accepted' ? 'var(--green-dim)' : p.status==='declined' ? 'var(--red-dim)' : 'var(--gold-dim)', color: p.status==='accepted' ? 'var(--green)' : p.status==='declined' ? 'var(--red)' : 'var(--gold)', textTransform:'uppercase' }}>
-              {p.status.replace(/_/g,' ')}
-            </span>
-          </div>
-
-          {/* Costing */}
-          {(p.costing_sampling || p.costing_bulk || p.costing_design) && (
-            <div style={{ display:'flex', gap:24, flexWrap:'wrap', marginBottom:16, padding:'14px 16px', background:'var(--surface2)', borderRadius:8 }}>
-              {[['Design', p.costing_design], ['Sampling', p.costing_sampling], ['Bulk', p.costing_bulk]].filter(([,v]) => v).map(([label, val]) => (
-                <div key={label}>
-                  <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:3 }}>{label}</div>
-                  <div style={{ fontSize:14, fontWeight:600, color:'var(--text)' }}>{p.costing_currency} {Number(val).toLocaleString()}</div>
-                </div>
-              ))}
-              {[['Sampling',p.timeline_sampling_weeks],['Bulk',p.timeline_bulk_weeks]].filter(([,v])=>v).map(([label,val])=>(
-                <div key={`t-${label}`}>
-                  <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:3 }}>{label} Timeline</div>
-                  <div style={{ fontSize:14, fontWeight:600, color:'var(--text)' }}>{val} weeks</div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {p.sow_terms && (
-            <div style={{ marginBottom:16 }}>
-              <div style={{ fontSize:10, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:6 }}>Terms</div>
-              <div style={{ fontSize:13, color:'var(--text2)', lineHeight:1.65 }}>{p.sow_terms}</div>
-            </div>
-          )}
-
-          {p.status === 'sent_to_buyer' && (
-            <button onClick={() => acceptProposal(p.id)} disabled={!!accepting} className="btn btn-primary" style={{ fontSize:13, padding:'10px 24px' }}>
-              {accepting === p.id ? 'Accepting…' : 'Accept Proposal →'}
-            </button>
-          )}
-          {p.status === 'accepted' && p.accepted_at && (
-            <div style={{ fontSize:12, color:'var(--green)' }}>✓ Accepted on {fmt(p.accepted_at)}</div>
-          )}
+        <div key={p.id} style={{ border:'1px solid var(--border)', borderRadius:12, overflow:'hidden' }}>
+          <ProposalCarbonCopy
+            proposal={p}
+            embedded
+            navContext={`${project.name} · ${p.studio_name}`}
+            onAccept={async (notes) => {
+              await projectsAPI.acceptProposal(project.id, p.id, { notes });
+              onRefresh();
+            }}
+            onAction={async (type, message) => {
+              const payload = { type };
+              if (type === 'question' || type === 'changes_requested') payload.message = message;
+              if (type === 'declined' && message) payload.message = message;
+              await projectsAPI.actOnProposal(project.id, p.id, payload);
+              onRefresh();
+            }}
+          />
         </div>
       ))}
     </div>
