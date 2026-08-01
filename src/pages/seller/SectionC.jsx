@@ -9,6 +9,56 @@ import {
 
 const API = onboardingAPI;
 
+/* Hoisted OUT of SectionC on purpose. It used to be declared inside the
+   SectionC function body, which meant a brand new FabricGroupBody function
+   (a new component TYPE, as far as React's reconciler is concerned) was
+   created on every SectionC re-render — including every click on a
+   Moderate/High/Pro button, since that updates fabricAnswers state one level
+   up. React sees the changed function identity and unmounts + remounts the
+   whole subtree instead of reusing it, which wiped GroupAccordion's local
+   `open` state and snapped every group shut mid-click (sometimes on the very
+   click that was supposed to select a level, sometimes a beat later from an
+   unrelated re-render — e.g. the autosave indicator). Living at module scope
+   gives it a stable identity across renders, so state inside it (the
+   accordion's open/closed flag, the inline "add fabric" input) now survives
+   normal re-renders the way it should. */
+function FabricGroupBody({
+  g, removable = false, fabricGroups, fabricAnswers,
+  toggleFabric, setFabricLevel, addFabricToGroup, deleteFabricFromGroup, removeFabricType,
+}) {
+  const [adding, setAdding] = useState(false);
+  const [val, setVal] = useState('');
+  const fabrics = fabricGroups[g.cat] || g.fabrics;
+  const defaults = g.fabrics;
+  const count = fabrics.filter(f => fabricAnswers[f]?.checked).length;
+  const commit = () => { const v = val.trim(); if (!v) return; addFabricToGroup(g.cat, v); setVal(''); setAdding(false); };
+  return (
+    <GroupAccordion label={g.label} count={count}
+      onDelete={removable ? () => removeFabricType(g.cat) : undefined}
+      deleteLabel={`Remove ${g.label} type`}>
+      {fabrics.map((f, i) => (
+        <ExpertiseRow key={f} name={f}
+          checked={!!fabricAnswers[f]?.checked} level={fabricAnswers[f]?.level || null}
+          onToggle={() => toggleFabric(g.cat, f)} onLevel={lvl => setFabricLevel(f, lvl)}
+          tooltips={EXPERTISE_TOOLTIPS.fabric}
+          onDelete={!defaults.includes(f) ? () => deleteFabricFromGroup(g.cat, f) : undefined}
+          isLast={i === fabrics.length - 1 && !adding} />
+      ))}
+      {adding ? (
+        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          <input style={{ ...inputStyle, flex: 1 }} value={val} onChange={e => setVal(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commit(); } if (e.key === 'Escape') { setAdding(false); setVal(''); } }}
+            placeholder={`e.g. add a ${g.label.split(' ')[0].toLowerCase()} fabric`} autoFocus />
+          <button className="btn btn-primary btn-sm" onClick={commit}>Add</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setAdding(false); setVal(''); }}>Cancel</button>
+        </div>
+      ) : (
+        <AddButton onClick={() => setAdding(true)}>+ Add {g.label.split(' ')[0].toLowerCase()} fabric</AddButton>
+      )}
+    </GroupAccordion>
+  );
+}
+
 /* Heritage / Handloom group removed — not in the prototype. FabricAnswer.category
    is stored per row, so any pre-existing handloom answer resurfaces as a custom
    group rather than being stranded; it is never deleted from the backend. */
@@ -178,42 +228,6 @@ export default function SectionC({ profileId, initialData, onSave, onNext }) {
 
   const notesLabel = { fontSize: 10, fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: 6 };
 
-  /* Inner accordion for a fabric group, with per-group add/delete.
-     `removable` groups (seller-added custom types) get a delete button. */
-  const FabricGroupBody = ({ g, removable = false }) => {
-    const [adding, setAdding] = useState(false);
-    const [val, setVal] = useState('');
-    const fabrics = fabricGroups[g.cat] || g.fabrics;
-    const defaults = g.fabrics;
-    const count = fabrics.filter(f => fabricAnswers[f]?.checked).length;
-    const commit = () => { const v = val.trim(); if (!v) return; addFabricToGroup(g.cat, v); setVal(''); setAdding(false); };
-    return (
-      <GroupAccordion label={g.label} count={count}
-        onDelete={removable ? () => removeFabricType(g.cat) : undefined}
-        deleteLabel={`Remove ${g.label} type`}>
-        {fabrics.map((f, i) => (
-          <ExpertiseRow key={f} name={f}
-            checked={!!fabricAnswers[f]?.checked} level={fabricAnswers[f]?.level || null}
-            onToggle={() => toggleFabric(g.cat, f)} onLevel={lvl => setFabricLevel(f, lvl)}
-            tooltips={EXPERTISE_TOOLTIPS.fabric}
-            onDelete={!defaults.includes(f) ? () => deleteFabricFromGroup(g.cat, f) : undefined}
-            isLast={i === fabrics.length - 1 && !adding} />
-        ))}
-        {adding ? (
-          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-            <input style={{ ...inputStyle, flex: 1 }} value={val} onChange={e => setVal(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commit(); } if (e.key === 'Escape') { setAdding(false); setVal(''); } }}
-              placeholder={`e.g. add a ${g.label.split(' ')[0].toLowerCase()} fabric`} autoFocus />
-            <button className="btn btn-primary btn-sm" onClick={commit}>Add</button>
-            <button className="btn btn-ghost btn-sm" onClick={() => { setAdding(false); setVal(''); }}>Cancel</button>
-          </div>
-        ) : (
-          <AddButton onClick={() => setAdding(true)}>+ Add {g.label.split(' ')[0].toLowerCase()} fabric</AddButton>
-        )}
-      </GroupAccordion>
-    );
-  };
-
   const customCats = Object.keys(fabricGroups).filter(k => !FABRIC_GROUPS.find(g => g.cat === k));
 
   return (
@@ -222,9 +236,19 @@ export default function SectionC({ profileId, initialData, onSave, onNext }) {
       <SectionHeader letter="C" title="Fabrics & Dyes" desc="What you work with — and how well. Expertise level is required for each fabric and dye you select." />
 
       <QCard qref="C.1" title="Fabrics You Work With">
-        {FABRIC_GROUPS.map(g => <FabricGroupBody key={g.cat} g={g} />)}
+        {FABRIC_GROUPS.map(g => (
+          <FabricGroupBody key={g.cat} g={g}
+            fabricGroups={fabricGroups} fabricAnswers={fabricAnswers}
+            toggleFabric={toggleFabric} setFabricLevel={setFabricLevel}
+            addFabricToGroup={addFabricToGroup} deleteFabricFromGroup={deleteFabricFromGroup}
+            removeFabricType={removeFabricType} />
+        ))}
         {customCats.map(cat => (
-          <FabricGroupBody key={cat} g={{ cat, label: cat.replace(/_/g, ' '), fabrics: [] }} removable />
+          <FabricGroupBody key={cat} g={{ cat, label: cat.replace(/_/g, ' '), fabrics: [] }} removable
+            fabricGroups={fabricGroups} fabricAnswers={fabricAnswers}
+            toggleFabric={toggleFabric} setFabricLevel={setFabricLevel}
+            addFabricToGroup={addFabricToGroup} deleteFabricFromGroup={deleteFabricFromGroup}
+            removeFabricType={removeFabricType} />
         ))}
         {addingType ? (
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>

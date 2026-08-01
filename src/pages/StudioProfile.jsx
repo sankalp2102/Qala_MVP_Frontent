@@ -76,14 +76,20 @@ const STUDIO_V3_CSS = `
 .studio-v3 .portfolio-brief-label { font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#9A8F82; white-space:nowrap; }
 .studio-v3 .portfolio-brief-pill { font-size:11px; color:#4A7C4A; background:#EEF3EC; border:1px solid #BCCFB8; border-radius:20px; padding:2px 9px; }
 .studio-v3 .portfolio-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
-.studio-v3 .portfolio-item { position:relative; aspect-ratio:3/4; overflow:hidden; border-radius:4px; cursor:pointer; background:#E8E2DA; }
-.studio-v3 .portfolio-img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.4s ease; }
+.studio-v3 .portfolio-item { position:relative; aspect-ratio:3/5; overflow:hidden; border-radius:4px; cursor:pointer; background:#E8E2DA; }
+.studio-v3 .portfolio-img { width:100%; height:100%; object-fit:cover; object-position:top center; display:block; transition:transform 0.4s ease; }
 .studio-v3 .portfolio-item:hover .portfolio-img { transform:scale(1.04); }
 .studio-v3 .portfolio-hover { position:absolute; inset:0; background:linear-gradient(to top,rgba(10,6,4,0.78) 0%,transparent 55%); opacity:0; transition:opacity 0.25s; display:flex; flex-direction:column; justify-content:flex-end; padding:14px; pointer-events:none; }
 .studio-v3 .portfolio-item:hover .portfolio-hover { opacity:1; }
 .studio-v3 .portfolio-hover-name { font-family:'Cormorant Garamond',Georgia,serif; font-size:15px; font-weight:500; color:#fff; margin-bottom:5px; }
 .studio-v3 .portfolio-hover-tags { display:flex; flex-wrap:wrap; gap:4px; }
 .studio-v3 .portfolio-hover-tag { font-size:10px; color:rgba(255,255,255,0.8); background:rgba(255,255,255,0.15); padding:2px 7px; border-radius:20px; backdrop-filter:blur(4px); }
+/* Product details shown on hover over the FULL image inside the lightbox. */
+.studio-v3-lb-hover { position:absolute; inset:0; background:linear-gradient(to top,rgba(10,6,4,0.82) 0%,transparent 45%); opacity:0; transition:opacity 0.2s; display:flex; flex-direction:column; justify-content:flex-end; padding:20px; pointer-events:none; border-radius:8px; }
+.studio-v3-lb-frame:hover .studio-v3-lb-hover { opacity:1; }
+.studio-v3-lb-hover-name { font-family:'Cormorant Garamond',Georgia,serif; font-size:19px; font-weight:500; color:#fff; margin-bottom:6px; }
+.studio-v3-lb-hover-tags { display:flex; flex-wrap:wrap; gap:5px; }
+.studio-v3-lb-hover-tag { font-size:11px; color:rgba(255,255,255,0.85); background:rgba(255,255,255,0.15); padding:3px 9px; border-radius:20px; backdrop-filter:blur(4px); }
 .studio-v3 .portfolio-match-dot { position:absolute; top:7px; right:7px; width:7px; height:7px; border-radius:50%; background:#7A8C6E; box-shadow:0 0 0 2px rgba(255,255,255,0.7); }
 .studio-v3 .portfolio-group-divider { grid-column:1 / -1; display:flex; align-items:center; gap:10px; padding:10px 0 4px; }
 .studio-v3 .portfolio-group-label { font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:#B0A898; white-space:nowrap; }
@@ -161,6 +167,9 @@ const STUDIO_V3_CSS = `
 .studio-v3 .sustain-block { display:flex; flex-direction:column; gap:22px; }
 .studio-v3 .sustain-q { font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:#9A8F82; margin-bottom:7px; }
 .studio-v3 .sustain-a { font-size:14px; color:#3C3630; line-height:1.7; white-space:pre-line; }
+.studio-v3 .sustain-a.clamped { display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; }
+.studio-v3 .sustain-more { margin-top:6px; background:none; border:none; padding:0; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:12px; font-weight:600; color:#7A8C6E; letter-spacing:0.02em; }
+.studio-v3 .sustain-more:hover { color:#5F7355; text-decoration:underline; }
 
 /* ── RECOGNITION ── */
 .studio-v3 .recog-list { display:flex; flex-direction:column; gap:8px; }
@@ -367,6 +376,10 @@ function Lightbox({ images, startIndex, onClose }) {
   const lbSrc = isVideo
     ? (current?.compressed_video_url || current?.url)
     : (current?.thumbnail_url || current?.url);
+  // Same shape/limit as PortfolioCard's hover tags — kept in sync deliberately
+  // so a piece shows the same details whether you're hovering the grid
+  // thumbnail or the opened full image.
+  const lbTags = [...(current?.crafts_used || []), ...(current?.fabrics_used || [])].slice(0, 4);
 
   const ctrl = {
     background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
@@ -400,13 +413,25 @@ function Lightbox({ images, startIndex, onClose }) {
           style={{ ...ctrl, position: 'absolute', left: 20, width: 44, height: 44, fontSize: 20 }}>‹</button>
       )}
 
-      <div onClick={e => e.stopPropagation()} style={{ maxWidth: '88vw', maxHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div onClick={e => e.stopPropagation()} className="studio-v3-lb-frame"
+        style={{ position: 'relative', maxWidth: '88vw', maxHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {isVideo ? (
           <video ref={videoRef} key={lbSrc} src={mediaUrl(lbSrc)} autoPlay loop muted={muted} playsInline
             style={{ maxWidth: '88vw', maxHeight: '80vh', borderRadius: 8, display: 'block', outline: 'none' }} />
         ) : (
           <img src={mediaUrl(lbSrc)} alt=""
             style={{ maxWidth: '88vw', maxHeight: '80vh', width: 'auto', height: 'auto', objectFit: 'contain', display: 'block', borderRadius: 8 }} />
+        )}
+
+        {(current?.product_name || lbTags.length > 0) && (
+          <div className="studio-v3-lb-hover">
+            {current?.product_name && <div className="studio-v3-lb-hover-name">{current.product_name}</div>}
+            {lbTags.length > 0 && (
+              <div className="studio-v3-lb-hover-tags">
+                {lbTags.map((t, i) => <span key={i} className="studio-v3-lb-hover-tag">{t}</span>)}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -437,6 +462,29 @@ function Lightbox({ images, startIndex, onClose }) {
       </div>
     </div>,
     document.body
+  );
+}
+
+/* ── Sustainability answer ────────────────────────────────────────────────────
+   H.1/H.2 answers are free text and can run long — clamped to 4 lines with a
+   "Read more" toggle so the section doesn't dominate the page. Only shows the
+   toggle when the text is actually long enough to be clamped (a short answer
+   never grows a "Read more" it doesn't need). The char threshold is a rough
+   proxy for "roughly more than 4 lines at this font size/width" — exact
+   overflow detection would need a layout measurement, which isn't worth it
+   here since a few extra/missing characters either way doesn't matter.        */
+function SustainAnswer({ text }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = text.length > 260;
+  return (
+    <>
+      <div className={`sustain-a${isLong && !expanded ? ' clamped' : ''}`}>{text}</div>
+      {isLong && (
+        <button type="button" className="sustain-more" onClick={() => setExpanded(e => !e)}>
+          {expanded ? 'Read less' : 'Read more'}
+        </button>
+      )}
+    </>
   );
 }
 
@@ -1083,7 +1131,7 @@ export default function StudioProfile() {
                 {sustainRows.map(([label, answer], i) => (
                   <div key={i}>
                     <div className="sustain-q">{label}</div>
-                    <div className="sustain-a">{answer}</div>
+                    <SustainAnswer text={String(answer)} />
                   </div>
                 ))}
               </div>
