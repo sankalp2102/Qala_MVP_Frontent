@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { discoveryAPI, chatAPI, buyerAPI } from '../api/client';
+import { discoveryAPI, chatAPI, buyerAPI, authTokens } from '../api/client';
 import qalaLogo from '../assets/qala-logo.png';
 import { mediaUrl, mediaOnError } from '../utils/mediaUrl';
 import UserAvatar from '../components/UserAvatar';
@@ -223,6 +223,8 @@ const STUDIO_V3_CSS = `
 .studio-v3-modal-field-label { font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:#9A8F82; margin-bottom:7px; display:block; }
 .studio-v3-modal-select { width:100%; border:1px solid #D8D4CF; border-radius:7px; padding:10px 12px; font-size:13px; font-family:'DM Sans',sans-serif; color:#2C2822; background:#fff; outline:none; margin-bottom:22px; appearance:none; background-image:url("data:image/svg+xml,%3Csvg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239A8F82' stroke-width='2' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:36px; }
 .studio-v3-modal-select:focus { border-color:#7A8C6E; }
+.studio-v3-modal-input { width:100%; border:1px solid #D8D4CF; border-radius:7px; padding:10px 12px; font-size:13px; font-family:'DM Sans',sans-serif; color:#2C2822; background:#fff; outline:none; margin-bottom:16px; box-sizing:border-box; }
+.studio-v3-modal-input:focus { border-color:#7A8C6E; }
 .studio-v3-modal-actions { display:flex; gap:10px; flex-direction:column; }
 .studio-v3-btn-primary { padding:12px; background:#7A8C6E; color:#fff; border:none; border-radius:8px; font-size:13.5px; font-family:'DM Sans',sans-serif; cursor:pointer; transition:background 0.2s; display:flex; align-items:center; justify-content:center; gap:8px; }
 .studio-v3-btn-primary:hover:not(:disabled) { background:#697C5D; }
@@ -761,8 +763,23 @@ function IntroPopup({ studio, onClose }) {
   const [submitting,   setSubmitting]   = useState(false);
   const [done,         setDone]         = useState(false);
   const [err,          setErr]          = useState('');
+  const [name,         setName]         = useState('');
+  const [email,        setEmail]        = useState('');
 
   useEffect(() => {
+    // buyerAPI.getSessions() requires a logged-in buyer. A visitor who
+    // reached this studio from the public Studio Directory (rather than
+    // completing a Qalawati chat/brief first) has no token in localStorage
+    // at all — calling it anyway would 401, and the shared axios response
+    // interceptor treats ANY 401 as "your session expired" and immediately
+    // hard-navigates the whole page to /login, aborting Get Introduced
+    // before the person ever reaches "Connect Without Brief" (which is the
+    // anonymous-friendly path — the backend endpoint it hits is AllowAny
+    // and doesn't need this call to have succeeded). Skipping the fetch
+    // entirely when there's no token avoids tripping that redirect; the
+    // popup just shows "Connect Without Brief" with no project dropdown,
+    // same as if the fetch had legitimately come back empty.
+    if (!authTokens.access()) { setLoadingSess(false); return; }
     buyerAPI.getSessions()
       .then(r => setSessions(r.data?.sessions || []))
       .catch(() => setSessions([]))
@@ -775,11 +792,28 @@ function IntroPopup({ studio, onClose }) {
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  const hasSessions = !loadingSess && sessions.length > 0;
+  // Nothing on file the backend can resolve contact details from — no
+  // brief session, no existing account/access key. GetIntroducedView needs
+  // a name + email from somewhere, or it 400s with "contact details not
+  // found" (previously shown to the person as a generic, unhelpful
+  // "Something went wrong"). Ask for them inline instead of failing silently.
+  const needsContactForm = !loadingSess && !hasSessions && !authTokens.access();
+
   const introduce = async (withSession) => {
     setErr('');
+    if (needsContactForm && (!name.trim() || !email.trim())) {
+      setErr('Please add your name and email so the studio can reach you.');
+      return;
+    }
     setSubmitting(true);
     try {
-      await chatAPI.getIntroduced(withSession ? selectedSess : null, studio.studio_id);
+      const r = await chatAPI.getIntroduced(withSession ? selectedSess : null, studio.studio_id,
+        needsContactForm ? { name: name.trim(), email: email.trim() } : {});
+      // Mirrors ChatContactView's account-creation contract: a first-time
+      // Studio Directory visitor who just filled in the form above comes
+      // away with a real account, same as making a brief on Qalawati does.
+      if (r?.data?.auth_token) authTokens.setAccessKeySession(r.data.auth_token);
       setDone(true);
     } catch {
       setErr('Something went wrong. Please try again.');
@@ -787,8 +821,6 @@ function IntroPopup({ studio, onClose }) {
       setSubmitting(false);
     }
   };
-
-  const hasSessions = !loadingSess && sessions.length > 0;
 
   return createPortal(
     <div className="studio-v3-modal-overlay" onClick={onClose}>
@@ -826,6 +858,17 @@ function IntroPopup({ studio, onClose }) {
               </>
             )}
 
+            {needsContactForm && (
+              <>
+                <label className="studio-v3-modal-field-label" htmlFor="sv3-name">Your name</label>
+                <input id="sv3-name" className="studio-v3-modal-input" type="text"
+                  value={name} onChange={e => setName(e.target.value)} placeholder="Full name" />
+                <label className="studio-v3-modal-field-label" htmlFor="sv3-email" style={{ marginTop: 10 }}>Email</label>
+                <input id="sv3-email" className="studio-v3-modal-input" type="email"
+                  value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" />
+              </>
+            )}
+
             {err && <div className="studio-v3-modal-err">{err}</div>}
 
             <div className="studio-v3-modal-actions">
@@ -836,7 +879,9 @@ function IntroPopup({ studio, onClose }) {
                   {submitting ? <><span className="studio-v3-spin" /> Sending…</> : 'Send Project Details'}
                 </button>
               )}
-              <button className="studio-v3-btn-secondary" disabled={submitting} onClick={() => introduce(false)}>
+              <button className="studio-v3-btn-secondary"
+                disabled={submitting || (needsContactForm && (!name.trim() || !email.trim()))}
+                onClick={() => introduce(false)}>
                 {submitting ? <><span className="studio-v3-spin dark" /> Sending…</> : 'Connect Without Brief'}
               </button>
             </div>

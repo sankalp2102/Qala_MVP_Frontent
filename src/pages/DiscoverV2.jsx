@@ -504,7 +504,7 @@ export default function DiscoverV2() {
               value={accessKey}
               onChange={e => { setAccessKey(e.target.value); setKeyError(''); }}
               onKeyDown={e => e.key === 'Enter' && accessKey.trim() && startSession(accessKey)}
-              placeholder="Enter your access key  —  QALA-XXXX-XXXX"
+              placeholder="Enter your access key  —  QS-0000"
               autoFocus
               style={{
                 width: '100%', padding: '11px 14px',

@@ -391,14 +391,16 @@ export const chatAPI = {
       { headers: { 'Content-Type': 'application/json' } }
     ),
 
-  getIntroduced: (sessionId, sellerProfileId) =>
-    axios.post(`${BASE}/api/discovery/get-introduced/`,
+  getIntroduced: (sessionId, sellerProfileId, contact = {}) =>
+    api.post('/api/discovery/get-introduced/',
       {
         session_id:        sessionId,
         seller_profile_id: sellerProfileId,
         access_key_code:   localStorage.getItem('qala_access_key') || '',
-      },
-      { headers: { 'Content-Type': 'application/json' } }
+        name:  contact.name  || '',
+        email: contact.email || '',
+        phone: contact.phone || '',
+      }
     ),
 };
 

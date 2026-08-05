@@ -70,7 +70,7 @@ export default function Landing() {
     if (!accessKey.trim() || starting) return;
     setStarting(true); setKeyError('');
     try {
-      const res  = await chatAPI.start(`QALA-${accessKey.trim()}`);
+      const res  = await chatAPI.start(`QS-${accessKey.trim()}`);
       const data = res.data;
       // If a previous session exists for this key, resume it
       const resumeId = data.existing_session_id || null;
@@ -81,7 +81,7 @@ export default function Landing() {
       if (data.has_contact) localStorage.setItem('qala_has_contact', 'true');
       else localStorage.removeItem('qala_has_contact');
       // Store the full key code so studio profile can send it with Get Introduced
-      localStorage.setItem('qala_access_key', `QALA-${accessKey.trim()}`);
+      localStorage.setItem('qala_access_key', `QS-${accessKey.trim()}`);
       if (data.access_token && data.user) loginWithAccessKey(data.access_token, data.user);
       setTransition(true);
       setTimeout(() => { setPhase('message'); setTransition(false); }, 320);
@@ -255,18 +255,19 @@ export default function Landing() {
               transition: 'border-color 0.2s',
               boxSizing: 'border-box',
             }}>
-              {/* Fixed QALA- prefix */}
+              {/* Fixed QS- prefix */}
               <span style={{
                 fontSize: 14, color: 'rgba(26,22,18,0.4)',
                 fontFamily: 'var(--font-body)', letterSpacing: '0.02em',
                 userSelect: 'none', flexShrink: 0,
-              }}>QALA-</span>
+              }}>QS-</span>
               <input
                 type="text"
                 value={accessKey}
-                onChange={e => { setAccessKey(e.target.value); setKeyError(''); }}
+                onChange={e => { setAccessKey(e.target.value.toUpperCase()); setKeyError(''); }}
                 onKeyDown={handleKeyDown}
-                placeholder="000000"
+                placeholder="0000"
+                maxLength={4}
                 autoFocus
                 style={{
                   flex: 1, border: 'none', background: 'transparent',
