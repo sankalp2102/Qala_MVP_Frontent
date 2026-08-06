@@ -201,7 +201,7 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
       <QCard qref="F.1" title="Key Team Members" desc="Add the key people — whoever runs design, production, and client communication.">
         {contacts.map(c => (
           editingContact?.id === c.id ? (
-            <div key={c.id} style={{ padding: 16, border: '1px solid #E4E0DB', borderRadius: 6, marginBottom: 8, background: '#FAFAF8' }}>
+            <div key={c.id} style={{ padding: 16, border: '1px solid var(--surface4)', borderRadius: 'var(--r)', marginBottom: 8, background: 'var(--bg)' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <Field label="Name *"><input style={inputStyle} value={editingContact.name} onChange={e => setEditingContact(x => ({ ...x, name: e.target.value }))} /></Field>
                 <Field label="Role *"><input style={inputStyle} value={editingContact.role} onChange={e => setEditingContact(x => ({ ...x, role: e.target.value }))} /></Field>
@@ -214,7 +214,7 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
               </div>
             </div>
           ) : (
-            <div key={c.id} style={{ border: '1px solid #E4E0DB', borderRadius: 6, padding: '14px 16px', marginBottom: 8 }}>
+            <div key={c.id} style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r)', padding: '14px 16px', marginBottom: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{c.name}</div>
@@ -232,7 +232,7 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
           )
         ))}
         {addingC ? (
-          <div style={{ padding: 16, border: '1px solid #E4E0DB', borderRadius: 6, marginTop: 8, background: '#FAFAF8' }}>
+          <div style={{ padding: 16, border: '1px solid var(--surface4)', borderRadius: 'var(--r)', marginTop: 8, background: 'var(--bg)' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <Field label="Name *"><input style={inputStyle} value={newContact.name} onChange={e => setNewContact(c => ({ ...c, name: e.target.value }))} /></Field>
               <Field label="Role *"><input style={inputStyle} value={newContact.role} onChange={e => setNewContact(c => ({ ...c, role: e.target.value }))} /></Field>
@@ -253,7 +253,7 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
       <QCard qref="F.2" title="Buyer Coordinator">
         <div className="q-desc">
           Who typically coordinates with buyers — takes requirements, sends proposals, manages the relationship?{' '}
-          <span style={{ fontSize: 11, color: '#7A8C6E', fontWeight: 500 }}>This will be shown to buyers on your studio page.</span>
+          <span style={{ fontSize: 11, color: 'var(--sage)', fontWeight: 500 }}>This will be shown to buyers on your studio page.</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', minHeight: 16 }}>
           {coordSaved && <span style={{ fontSize: 11, color: '#AAA' }}>Saved</span>}

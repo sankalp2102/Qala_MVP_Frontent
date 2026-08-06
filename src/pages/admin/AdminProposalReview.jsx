@@ -30,7 +30,7 @@ import { projectsAPI } from '../../api/client';
 import { calcLandingCost, sanitizeForex, fmtUSD, fmtINR } from '../../utils/calculator';
 import LineItemCards from '../../components/proposals/LineItemCards';
 
-const PHASE_COLOR = { designing: 'var(--ph-d, var(--gold))', design: 'var(--ph-d, var(--gold))', sampling: 'var(--ph-s, #C4953A)', production: 'var(--ph-p, var(--admin))' };
+const PHASE_COLOR = { designing: 'var(--ph-d, var(--gold))', design: 'var(--ph-d, var(--gold))', sampling: 'var(--ph-s, var(--amber-d))', production: 'var(--ph-p, var(--admin))' };
 const PHASE_LABEL = { designing: 'Design', design: 'Design', sampling: 'Sampling', production: 'Production' };
 // Milestone.phase in the DB uses 'design' (MilestonePhase enum), NOT
 // 'designing' — that's the convention line_items/calcLandingCost use.
@@ -54,8 +54,8 @@ const S = {
   navbar: { position: 'sticky', top: 0, zIndex: 300, background: 'var(--admin)', height: 52, display: 'flex', alignItems: 'center', padding: '0 24px', gap: 12 },
   navCrumb: { fontSize: 12, color: 'rgba(255,255,255,.55)', display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer' },
   navLogo: { fontFamily: 'var(--font-display)', fontSize: 21, fontWeight: 600, color: '#fff', margin: '0 auto' },
-  navRef: { fontSize: 11, color: 'rgba(255,255,255,.6)', border: '1px solid rgba(255,255,255,.2)', borderRadius: 5, padding: '2px 9px', fontFamily: 'monospace', letterSpacing: '.04em' },
-  adminBadge: { fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', background: 'rgba(255,255,255,.14)', border: '1px solid rgba(255,255,255,.18)', color: '#fff', padding: '3px 10px', borderRadius: 100 },
+  navRef: { fontSize: 11, color: 'rgba(255,255,255,.6)', border: '1px solid rgba(255,255,255,.2)', borderRadius: 'var(--r-5)', padding: '2px 9px', fontFamily: 'monospace', letterSpacing: '.04em' },
+  adminBadge: { fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', background: 'rgba(255,255,255,.14)', border: '1px solid rgba(255,255,255,.18)', color: '#fff', padding: '3px 10px', borderRadius: 'var(--r-full)' },
 
   briefStrip: { background: 'var(--admin)', borderTop: '1px solid rgba(255,255,255,.08)', padding: '9px 24px 11px', display: 'flex', alignItems: 'flex-start', gap: 28, flexWrap: 'wrap' },
   bsLbl: { fontSize: 10, fontWeight: 600, letterSpacing: '.10em', textTransform: 'uppercase', color: 'rgba(255,255,255,.40)', marginBottom: 1 },
@@ -65,82 +65,82 @@ const S = {
   mainCol: { display: 'flex', flexDirection: 'column', gap: 14 },
   sideCol: { position: 'sticky', top: 108, display: 'flex', flexDirection: 'column', gap: 12 },
 
-  card: { background: 'var(--bg)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' },
+  card: { background: 'var(--bg)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', overflow: 'hidden' },
   cardHeader: { padding: '13px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' },
   cardTitle: { fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600, color: 'var(--text)' },
   cardBody: { padding: '16px 18px' },
 
-  statusBanner: (variant) => ({ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 10, padding: '12px 15px', ...(variant === 'approved' ? { background: '#EAF5F0', border: '1px solid #A8D5BE' } : variant === 'revision' ? { background: '#FDF5E8', border: '1px solid #E8C87A' } : { background: 'var(--admin-dim)', border: '1px solid var(--admin-dim2)' }) }),
-  sbDot: (variant) => ({ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: variant === 'approved' ? '#2A8C5F' : variant === 'revision' ? '#C4953A' : 'var(--admin)' }),
-  sbTitle: (variant) => ({ fontSize: 13, fontWeight: 600, color: variant === 'approved' ? '#1E7A51' : variant === 'revision' ? '#9A7020' : 'var(--admin)' }),
+  statusBanner: (variant) => ({ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 'var(--r-10)', padding: '12px 15px', ...(variant === 'approved' ? { background: 'var(--surface2)', border: '1px solid #A8D5BE' } : variant === 'revision' ? { background: 'var(--surface)', border: '1px solid #E8C87A' } : { background: 'var(--admin-dim)', border: '1px solid var(--admin-dim2)' }) }),
+  sbDot: (variant) => ({ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: variant === 'approved' ? '#2A8C5F' : variant === 'revision' ? 'var(--amber-d)' : 'var(--admin)' }),
+  sbTitle: (variant) => ({ fontSize: 13, fontWeight: 600, color: variant === 'approved' ? '#1E7A51' : variant === 'revision' ? 'var(--amber-deep)' : 'var(--admin)' }),
 
-  chip: (bg, color) => ({ fontSize: 10, fontWeight: 600, letterSpacing: '.05em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: 100, whiteSpace: 'nowrap', background: bg, color }),
+  chip: (bg, color) => ({ fontSize: 10, fontWeight: 600, letterSpacing: '.05em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: 'var(--r-full)', whiteSpace: 'nowrap', background: bg, color }),
 
   briefGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginBottom: 12 },
-  briefCell: { background: 'var(--surface)', borderRadius: 8, padding: '9px 11px' },
+  briefCell: { background: 'var(--surface)', borderRadius: 'var(--r-8)', padding: '9px 11px' },
   bcLbl: { fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--text4)', marginBottom: 2 },
   bcVal: { fontSize: 13, color: 'var(--text)', fontWeight: 400 },
   bcValPrice: { fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 700, lineHeight: 1.1 },
   briefSection: { marginBottom: 13, paddingBottom: 13, borderBottom: '1px solid var(--border)' },
   briefSecLbl: { fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.10em', color: 'var(--text4)', marginBottom: 6, display: 'block' },
-  briefTag: { display: 'inline-block', background: 'var(--gold-dim)', border: '1px solid var(--gold-dim2)', color: 'var(--gold-d)', fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 100, margin: '2px 2px 0 0' },
+  briefTag: { display: 'inline-block', background: 'var(--gold-dim)', border: '1px solid var(--gold-dim2)', color: 'var(--gold-d)', fontSize: 11, fontWeight: 500, padding: '2px 8px', borderRadius: 'var(--r-full)', margin: '2px 2px 0 0' },
   briefNote: { fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 },
-  qalaBox: { background: 'var(--admin-dim)', border: '1px solid var(--admin-dim2)', borderRadius: 8, padding: '10px 13px' },
+  qalaBox: { background: 'var(--admin-dim)', border: '1px solid var(--admin-dim2)', borderRadius: 'var(--r-8)', padding: '10px 13px' },
   qgLbl: { fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--admin)', marginBottom: 5, display: 'flex', alignItems: 'center', gap: 5 },
-  refFile: { display: 'flex', alignItems: 'center', gap: 9, background: 'var(--surface)', borderRadius: 6, padding: '7px 10px', marginBottom: 5 },
+  refFile: { display: 'flex', alignItems: 'center', gap: 9, background: 'var(--surface)', borderRadius: 'var(--r)', padding: '7px 10px', marginBottom: 5 },
 
-  stabs: { display: 'flex', border: '1px solid var(--border)', borderRadius: 7, overflow: 'hidden', background: 'var(--surface)', marginBottom: 16 },
+  stabs: { display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden', background: 'var(--surface)', marginBottom: 16 },
   stab: (on) => ({ flex: 1, padding: '7px 5px', fontSize: 12, fontWeight: on ? 600 : 400, color: on ? 'var(--text)' : 'var(--text3)', background: on ? 'var(--bg)' : 'transparent', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', textAlign: 'center', boxShadow: on ? '0 0 0 1px var(--border)' : 'none' }),
 
-  infoBox: { display: 'flex', gap: 9, background: 'var(--admin-dim)', border: '1px solid var(--admin-dim2)', borderRadius: 8, padding: '9px 12px', fontSize: 12, color: 'var(--admin)', lineHeight: 1.6, marginBottom: 14 },
+  infoBox: { display: 'flex', gap: 9, background: 'var(--admin-dim)', border: '1px solid var(--admin-dim2)', borderRadius: 'var(--r-8)', padding: '9px 12px', fontSize: 12, color: 'var(--admin)', lineHeight: 1.6, marginBottom: 14 },
 
-  phaseAc: { border: '1.5px solid #E8E4DF', borderRadius: 9, overflow: 'hidden', marginBottom: 10, background: '#fff' },
+  phaseAc: { border: '1.5px solid var(--surface3)', borderRadius: 'var(--r-8)', overflow: 'hidden', marginBottom: 10, background: '#fff' },
   phaseAcHd: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 15px', cursor: 'pointer', userSelect: 'none' },
-  phaseAcBody: { padding: '13px 15px 15px', borderTop: '1px solid #F0EDE8', background: '#FDFCFA' },
+  phaseAcBody: { padding: '13px 15px 15px', borderTop: '1px solid var(--surface2)', background: 'var(--bg)' },
   phDot: (bg) => ({ width: 9, height: 9, borderRadius: '50%', flexShrink: 0, background: bg }),
 
   table: { width: '100%', borderCollapse: 'collapse' },
   th: { fontSize: 10, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--text4)', padding: '4px 3px', borderBottom: '1px solid var(--border)', textAlign: 'left', whiteSpace: 'nowrap' },
   td: { padding: '4px 3px', borderBottom: '1px solid var(--border)', verticalAlign: 'middle' },
-  tblInput: { padding: '4px 6px', fontSize: 12, borderRadius: 5, background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', outline: 'none', width: '100%', boxSizing: 'border-box' },
-  addRowBtn: { display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 9, padding: '5px 13px', fontSize: 12, fontWeight: 500, color: 'var(--admin)', background: 'var(--admin-dim)', border: '1px solid var(--admin-dim2)', borderRadius: 20, cursor: 'pointer' },
-  phFootnote: { fontSize: 10, color: 'var(--text4)', fontStyle: 'italic', marginTop: 9, paddingTop: 9, borderTop: '1px dashed #EBE8E4' },
+  tblInput: { padding: '4px 6px', fontSize: 12, borderRadius: 'var(--r-5)', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', outline: 'none', width: '100%', boxSizing: 'border-box' },
+  addRowBtn: { display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 9, padding: '5px 13px', fontSize: 12, fontWeight: 500, color: 'var(--admin)', background: 'var(--admin-dim)', border: '1px solid var(--admin-dim2)', borderRadius: 'var(--r-20)', cursor: 'pointer' },
+  phFootnote: { fontSize: 10, color: 'var(--text4)', fontStyle: 'italic', marginTop: 9, paddingTop: 9, borderTop: '1px dashed var(--surface3)' },
 
   frow2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 },
   fg: { marginBottom: 10 },
   fl2: { fontSize: 12, fontWeight: 500, color: 'var(--text2)', display: 'block', marginBottom: 4 },
-  input: { width: '100%', background: 'var(--surface)', border: '1px solid var(--border2)', borderRadius: 7, fontSize: 13, color: 'var(--text)', padding: '7px 10px', outline: 'none', boxSizing: 'border-box' },
-  tlBlock: { background: 'var(--surface)', borderRadius: 8, padding: '11px 13px', marginBottom: 8 },
+  input: { width: '100%', background: 'var(--surface)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', fontSize: 13, color: 'var(--text)', padding: '7px 10px', outline: 'none', boxSizing: 'border-box' },
+  tlBlock: { background: 'var(--surface)', borderRadius: 'var(--r-8)', padding: '11px 13px', marginBottom: 8 },
   tlPhLbl: { fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 8 },
   tlRow: { display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 2 },
 
-  clause: { display: 'flex', alignItems: 'flex-start', gap: 8, background: 'var(--surface)', borderRadius: 7, padding: '8px 10px', marginBottom: 5, fontSize: 13, color: 'var(--text)' },
+  clause: { display: 'flex', alignItems: 'flex-start', gap: 8, background: 'var(--surface)', borderRadius: 'var(--r)', padding: '8px 10px', marginBottom: 5, fontSize: 13, color: 'var(--text)' },
   cdel: { background: 'none', border: 'none', color: 'var(--text4)', cursor: 'pointer', fontSize: 14, padding: '0 2px' },
 
-  resultCard: { background: 'var(--bg)', border: '1px solid var(--border2)', borderLeft: '4px solid var(--terra, #C97A52)', borderRadius: 9, padding: '12px 14px', marginBottom: 10 },
+  resultCard: { background: 'var(--bg)', border: '1px solid var(--border2)', borderLeft: '4px solid var(--terra, var(--terra-l))', borderRadius: 'var(--r-8)', padding: '12px 14px', marginBottom: 10 },
   rcLbl: { fontSize: 10, fontWeight: 600, letterSpacing: '.09em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: 2 },
-  rcVal: { fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--terra, #C97A52)', lineHeight: 1.2 },
+  rcVal: { fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--terra, var(--terra-l))', lineHeight: 1.2 },
   buRow: (sub, tot) => ({ display: 'flex', justifyContent: 'space-between', padding: sub ? '3px 0 3px 12px' : tot ? '8px 0 0' : '4px 0', borderBottom: tot ? 'none' : sub ? '1px dashed var(--border)' : '1px solid var(--border)', borderTop: tot ? '2px solid var(--border2)' : 'none', fontSize: sub ? 11 : tot ? 13 : 12, fontWeight: tot ? 600 : 400 }),
 
   pfRow: { display: 'flex', alignItems: 'center', gap: 9, padding: '7px 0', borderBottom: '1px solid var(--border)' },
   pfName: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, minWidth: 84 },
-  pfNum: { width: 58, fontSize: 13, fontWeight: 600, textAlign: 'center', border: '1px solid var(--border2)', borderRadius: 5, padding: '3px 5px', background: 'var(--bg)', color: 'var(--text)', outline: 'none' },
+  pfNum: { width: 58, fontSize: 13, fontWeight: 600, textAlign: 'center', border: '1px solid var(--border2)', borderRadius: 'var(--r-5)', padding: '3px 5px', background: 'var(--bg)', color: 'var(--text)', outline: 'none' },
 
-  poutTotalBlock: { background: 'var(--terra-dim, rgba(201,122,82,.09))', border: '1px solid rgba(201,122,82,.18)', borderRadius: 8, padding: '10px 13px', marginBottom: 8 },
-  poutBig: { fontFamily: 'var(--font-display)', fontSize: 23, fontWeight: 600, color: 'var(--terra, #C97A52)' },
+  poutTotalBlock: { background: 'var(--terra-dim, rgba(201,122,82,.09))', border: '1px solid rgba(201,122,82,.18)', borderRadius: 'var(--r-8)', padding: '10px 13px', marginBottom: 8 },
+  poutBig: { fontFamily: 'var(--font-display)', fontSize: 23, fontWeight: 600, color: 'var(--terra, var(--terra-l))' },
   poutPhRow: { display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid var(--border)', fontSize: 12 },
 
   msRow: { display: 'grid', gridTemplateColumns: '1fr 54px auto', alignItems: 'center', gap: 7 },
-  msSelect: { width: '100%', fontSize: 11, border: '1px solid var(--border)', borderRadius: 5, padding: '5px 7px', background: 'var(--bg)', color: 'var(--text)', outline: 'none' },
-  msPct: { width: 54, fontSize: 13, fontWeight: 600, textAlign: 'center', border: '1px solid var(--border2)', borderRadius: 5, padding: '4px 5px', background: 'var(--bg)', color: 'var(--text)', outline: 'none' },
+  msSelect: { width: '100%', fontSize: 11, border: '1px solid var(--border)', borderRadius: 'var(--r-5)', padding: '5px 7px', background: 'var(--bg)', color: 'var(--text)', outline: 'none' },
+  msPct: { width: 54, fontSize: 13, fontWeight: 600, textAlign: 'center', border: '1px solid var(--border2)', borderRadius: 'var(--r-5)', padding: '4px 5px', background: 'var(--bg)', color: 'var(--text)', outline: 'none' },
 
-  btn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '9px 16px', borderRadius: 7, fontSize: 13, fontWeight: 500, cursor: 'pointer', border: 'none', width: '100%' },
-  btnApprove: { background: 'var(--green, #2E9E62)', color: '#fff' },
+  btn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '9px 16px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 500, cursor: 'pointer', border: 'none', width: '100%' },
+  btnApprove: { background: 'var(--green, var(--green))', color: '#fff' },
   btnSave: { background: 'var(--admin)', color: '#fff' },
   btnGhost: { background: 'transparent', border: '1.5px solid var(--border2)', color: 'var(--text2)' },
 
   baItem: { display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 16px', borderBottom: '1px solid var(--border)' },
-  baIcon: (bg, color) => ({ width: 32, height: 32, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0, marginTop: 1, background: bg, color }),
+  baIcon: (bg, color) => ({ width: 32, height: 32, borderRadius: 'var(--r)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0, marginTop: 1, background: bg, color }),
 };
 
 function fmtDateTime(d) {
@@ -279,7 +279,7 @@ export default function AdminProposalReview() {
     revision_req: ['Revision requested', 'Sent back to studio for changes'],
   }[proposal.status] || [proposal.status, ''];
 
-  const ACT_ICON = { accepted: ['✓', '#EAF5F0', '#1E7A51'], declined: ['✕', 'var(--red-dim)', 'var(--red)'], question: ['?', 'var(--amber-dim)', 'var(--amber)'], changes_requested: ['✎', 'var(--admin-dim)', 'var(--admin)'] };
+  const ACT_ICON = { accepted: ['✓', 'var(--surface2)', '#1E7A51'], declined: ['✕', 'var(--red-dim)', 'var(--red)'], question: ['?', 'var(--amber-dim)', 'var(--amber)'], changes_requested: ['✎', 'var(--admin-dim)', 'var(--admin)'] };
   const ACT_TITLE = { accepted: 'Proposal accepted', declined: 'Proposal declined', question: 'Buyer asked a question', changes_requested: 'Buyer requested changes' };
 
   return (
@@ -365,7 +365,7 @@ export default function AdminProposalReview() {
           <div style={S.card}>
             <div style={S.cardHeader}>
               <span style={S.cardTitle}>Studio submission</span>
-              <span style={S.chip(statusVariant === 'approved' ? '#EAF5F0' : statusVariant === 'revision' ? '#FDF5E8' : 'var(--amber-dim)', statusVariant === 'approved' ? '#1E7A51' : statusVariant === 'revision' ? '#9A7020' : 'var(--amber)')}>{statusText[0]}</span>
+              <span style={S.chip(statusVariant === 'approved' ? 'var(--surface2)' : statusVariant === 'revision' ? 'var(--surface)' : 'var(--amber-dim)', statusVariant === 'approved' ? '#1E7A51' : statusVariant === 'revision' ? 'var(--amber-deep)' : 'var(--amber)')}>{statusText[0]}</span>
             </div>
             <div style={S.cardBody}>
               <div style={S.stabs}>
@@ -410,13 +410,13 @@ export default function AdminProposalReview() {
               {tab === 'concept' && (
                 <div>
                   {proposal.concept_pdf_url && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--surface)', borderRadius: 8, padding: '12px 14px', marginBottom: 13 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--surface)', borderRadius: 'var(--r-8)', padding: '12px 14px', marginBottom: 13 }}>
                       <span style={{ fontSize: 24 }}>📄</span>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 13, fontWeight: 500 }}>{proposal.concept_pdf_name}</div>
                         <div style={{ fontSize: 11, color: 'var(--text3)' }}>Uploaded by studio</div>
                       </div>
-                      <a href={proposal.concept_pdf_url} target="_blank" rel="noreferrer" style={{ background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: 6, padding: '6px 13px', fontSize: 12, fontWeight: 500, color: 'var(--text2)', textDecoration: 'none' }}>Preview</a>
+                      <a href={proposal.concept_pdf_url} target="_blank" rel="noreferrer" style={{ background: 'var(--bg)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '6px 13px', fontSize: 12, fontWeight: 500, color: 'var(--text2)', textDecoration: 'none' }}>Preview</a>
                     </div>
                   )}
                   <div style={S.fg}><label style={S.fl2}>Concept title</label><input style={S.input} type="text" value={proposal.concept_title || ''} onChange={e => patch({ concept_title: e.target.value })} /></div>
@@ -436,19 +436,19 @@ export default function AdminProposalReview() {
                     const visLabel = vis === 'open_for_collaboration' ? 'Open for collaboration' : vis === 'private' ? 'Private' : 'Public';
                     const isOpen = openPwColl[i];
                     return (
-                      <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 10, marginBottom: 10, overflow: 'hidden' }}>
+                      <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-10)', marginBottom: 10, overflow: 'hidden' }}>
                         <div onClick={() => setOpenPwColl(o => ({ ...o, [i]: !o[i] }))} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', cursor: 'pointer', background: 'var(--surface)' }}>
                           <div style={{ position: 'relative', width: 60, height: 34, flexShrink: 0 }}>
                             {thumbs.length > 0 ? thumbs.map((p, j) => (
-                              <div key={j} style={{ position: 'absolute', width: 32, height: 32, borderRadius: 7, background: p.image_url ? `url(${p.image_url}) center/cover` : 'var(--surface3)', border: '2px solid var(--surface)', left: j * 14, top: j === 0 ? 2 : j === 1 ? 1 : 0, zIndex: 3 - j }} />
-                            )) : <div style={{ width: 32, height: 32, borderRadius: 7, background: 'var(--surface3)' }} />}
+                              <div key={j} style={{ position: 'absolute', width: 32, height: 32, borderRadius: 'var(--r)', background: p.image_url ? `url(${p.image_url}) center/cover` : 'var(--surface3)', border: '2px solid var(--surface)', left: j * 14, top: j === 0 ? 2 : j === 1 ? 1 : 0, zIndex: 3 - j }} />
+                            )) : <div style={{ width: 32, height: 32, borderRadius: 'var(--r)', background: 'var(--surface3)' }} />}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{coll.name || coll.collection_name}</div>
                             <div style={{ fontSize: 11, color: 'var(--text3)', margin: '2px 0 6px' }}>{pieces.length} piece{pieces.length !== 1 ? 's' : ''}{coll.year ? ` · ${coll.year}` : ''} · {visLabel}</div>
                             {(coll.tags || []).length > 0 && (
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                                {coll.tags.map(t => <span key={t} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 100, background: 'var(--gold-dim)', color: 'var(--gold-d, var(--gold))', border: '1px solid var(--gold-l)' }}>{t}</span>)}
+                                {coll.tags.map(t => <span key={t} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 'var(--r-full)', background: 'var(--gold-dim)', color: 'var(--gold-d, var(--gold))', border: '1px solid var(--gold-l)' }}>{t}</span>)}
                               </div>
                             )}
                           </div>
@@ -460,7 +460,7 @@ export default function AdminProposalReview() {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px,1fr))', gap: 8, marginBottom: 14 }}>
                               {pieces.map((p, j) => (
                                 <div key={j}>
-                                  <div style={{ width: '100%', aspectRatio: '1', borderRadius: 8, background: p.image_url ? `url(${p.image_url}) center/cover` : 'var(--surface3)' }} />
+                                  <div style={{ width: '100%', aspectRatio: '1', borderRadius: 'var(--r-8)', background: p.image_url ? `url(${p.image_url}) center/cover` : 'var(--surface3)' }} />
                                   <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
                                 </div>
                               ))}
@@ -468,7 +468,7 @@ export default function AdminProposalReview() {
                             {coll.note && (
                               <>
                                 <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--text4)', marginBottom: 8, display: 'block' }}>Studio note — why this is relevant</span>
-                                <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.65, fontStyle: 'italic', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px' }}>"{coll.note}"</div>
+                                <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.65, fontStyle: 'italic', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-8)', padding: '10px 14px' }}>"{coll.note}"</div>
                               </>
                             )}
                           </div>
@@ -491,7 +491,7 @@ export default function AdminProposalReview() {
                   ))}
                   <div style={{ display: 'flex', gap: 7, marginTop: 9 }}>
                     <input style={{ ...S.input, flex: 1 }} type="text" placeholder="Add a project-specific clause…" value={newClause} onChange={e => setNewClause(e.target.value)} />
-                    <button style={{ whiteSpace: 'nowrap', background: 'var(--surface2)', border: '1px solid var(--border2)', borderRadius: 7, padding: '7px 14px', fontSize: 12, fontWeight: 500, color: 'var(--text2)', cursor: 'pointer' }}
+                    <button style={{ whiteSpace: 'nowrap', background: 'var(--surface2)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', padding: '7px 14px', fontSize: 12, fontWeight: 500, color: 'var(--text2)', cursor: 'pointer' }}
                       onClick={() => { if (newClause.trim()) { patch({ sow_clauses: [...(proposal.sow_clauses || []), newClause.trim()] }); setNewClause(''); } }}>+ Add</button>
                   </div>
                 </div>
@@ -545,8 +545,8 @@ export default function AdminProposalReview() {
                 return (
                   <div key={p} style={S.pfRow}>
                     <div style={S.pfName}><div style={{ width: 7, height: 7, borderRadius: '50%', background: PHASE_COLOR[p] }} />{PHASE_LABEL[p]}</div>
-                    <div style={{ position: 'relative', flex: 1, height: 4, background: 'var(--surface3)', borderRadius: 2 }}>
-                      <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', borderRadius: 2, pointerEvents: 'none', background: PHASE_COLOR[p], width: `${fillPct}%` }} />
+                    <div style={{ position: 'relative', flex: 1, height: 4, background: 'var(--surface3)', borderRadius: 'var(--r-2)' }}>
+                      <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', borderRadius: 'var(--r-2)', pointerEvents: 'none', background: PHASE_COLOR[p], width: `${fillPct}%` }} />
                       <input type="range" min="0" max="15" step="0.5" value={val} onChange={e => setPfPhase(p, e.target.value)}
                         style={{ position: 'absolute', width: '100%', top: -6, left: 0, margin: 0, opacity: 0, cursor: 'pointer', height: 16 }} />
                     </div>
@@ -649,7 +649,7 @@ export default function AdminProposalReview() {
             <div style={S.cardHeader}>
               <span style={S.cardTitle}>Buyer responses</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text4)' }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green, #2E9E62)' }} />Live
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green, var(--green))' }} />Live
               </span>
             </div>
             <div>

@@ -47,7 +47,7 @@ export default function UserAvatar({ loginStyle = {}, hideWhenLoggedOut = false 
         style={{
           fontSize: 12, color: 'var(--text3)', letterSpacing: '0.08em',
           textTransform: 'uppercase', cursor: 'pointer', fontWeight: 500,
-          border: '1px solid var(--border)', borderRadius: 6, padding: '6px 14px',
+          border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '6px 14px',
           background: 'none', transition: 'color 0.2s, border-color 0.2s',
           fontFamily: 'var(--font-body)',
           ...loginStyle,
@@ -90,7 +90,7 @@ export default function UserAvatar({ loginStyle = {}, hideWhenLoggedOut = false 
           position: 'absolute', top: 'calc(100% + 8px)', right: 0,
           background: 'var(--surface)',
           border: '1px solid var(--border)',
-          borderRadius: 10,
+          borderRadius: 'var(--r-10)',
           boxShadow: '0 8px 32px rgba(26,22,18,0.13)',
           minWidth: 180,
           zIndex: 9999,

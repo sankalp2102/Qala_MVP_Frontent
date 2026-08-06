@@ -278,9 +278,9 @@ export default function SectionA({ profileId, initialData, onSave, onNext }) {
       {/* A.9 — Hero / Cover Image */}
       <QCard qref="A.9" title="Hero / Cover Image">
         {heroMedia && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: '#FAFAF8', borderRadius: 6, border: '1px solid #E4E0DB', marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--bg)', borderRadius: 'var(--r)', border: '1px solid var(--surface4)', marginBottom: 12 }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 500, color: '#1A1A1A' }}>{heroMedia.file_name}</div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{heroMedia.file_name}</div>
               <div style={{ fontSize: 11, color: '#999' }}>{heroMedia.mime_type} · {heroMedia.file_size_kb} KB</div>
             </div>
             <TrashBtn label="Remove hero image" onClick={delHero} />

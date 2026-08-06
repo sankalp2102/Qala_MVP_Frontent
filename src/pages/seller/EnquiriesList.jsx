@@ -99,7 +99,7 @@ export default function EnquiriesList() {
             key={f.key}
             onClick={() => setFilter(f.key)}
             style={{
-              fontSize: 13, fontWeight: 500, padding: '7px 16px', borderRadius: 20,
+              fontSize: 13, fontWeight: 500, padding: '7px 16px', borderRadius: 'var(--r-20)',
               border: `1px solid ${filter === f.key ? 'var(--gold)' : 'var(--border2)'}`,
               background: filter === f.key ? 'var(--gold-dim)' : 'transparent',
               color: filter === f.key ? 'var(--gold)' : 'var(--text3)',
@@ -114,7 +114,7 @@ export default function EnquiriesList() {
       {loading ? (
         <div style={{ padding: 40, color: 'var(--text3)', fontSize: 14 }}>Loading…</div>
       ) : visible.length === 0 ? (
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '48px 32px', textAlign: 'center' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '48px 32px', textAlign: 'center' }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>📬</div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--text)', marginBottom: 8 }}>
             {filter === 'all' ? 'No enquiries yet' : 'Nothing in this filter'}
@@ -136,7 +136,7 @@ export default function EnquiriesList() {
                 style={{
                   background: 'var(--surface)', border: '1px solid var(--border)',
                   borderLeft: isNew ? '3px solid var(--gold)' : '1px solid var(--border)',
-                  borderRadius: 12, padding: '18px 22px', cursor: 'pointer',
+                  borderRadius: 'var(--r-lg)', padding: '18px 22px', cursor: 'pointer',
                   transition: 'box-shadow 0.15s',
                 }}
                 onMouseEnter={ev => ev.currentTarget.style.boxShadow = 'var(--shadow-lg)'}
@@ -159,7 +159,7 @@ export default function EnquiriesList() {
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <span style={{
-                      fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20,
+                      fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 'var(--r-20)',
                       background: `${meta.color}22`, color: meta.color,
                       textTransform: 'uppercase', whiteSpace: 'nowrap', display: 'inline-block',
                     }}>
@@ -181,7 +181,7 @@ export default function EnquiriesList() {
                 )}
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
-                  <span style={{ fontSize: 11, color: 'var(--text4)', border: '1px solid var(--border)', borderRadius: 20, padding: '2px 10px' }}>
+                  <span style={{ fontSize: 11, color: 'var(--text4)', border: '1px solid var(--border)', borderRadius: 'var(--r-20)', padding: '2px 10px' }}>
                     {e.id?.slice(0, 8)}
                   </span>
                   {cta && (

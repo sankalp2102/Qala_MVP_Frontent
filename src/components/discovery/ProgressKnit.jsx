@@ -16,7 +16,7 @@ export default function ProgressKnit({ step, total }) {
                 <div
                   key={c}
                   style={{
-                    width: 8, height: 5, borderRadius: 2,
+                    width: 8, height: 5, borderRadius: 'var(--r-2)',
                     background: filled
                       ? isActive
                         ? `rgba(255,255,255,${0.5 + Math.sin((c / cells) * Math.PI) * 0.5})`

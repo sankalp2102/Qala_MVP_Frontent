@@ -51,7 +51,7 @@ export default function ImageUpload({ onImage, disabled, iconOnly = false }) {
           title="Upload image"
           style={{
             padding: 8,
-            borderRadius: 8,
+            borderRadius: 'var(--r-8)',
             border: '0.5px solid var(--border)',
             background: 'var(--surface2)',
             cursor: disabled ? 'not-allowed' : 'pointer',
@@ -82,7 +82,7 @@ export default function ImageUpload({ onImage, disabled, iconOnly = false }) {
           style={{
             background: 'none',
             border: '1.5px solid var(--border)',
-            borderRadius: 8,
+            borderRadius: 'var(--r-8)',
             padding: '0 12px',
             cursor: disabled ? 'not-allowed' : 'pointer',
             color: 'var(--text3)',

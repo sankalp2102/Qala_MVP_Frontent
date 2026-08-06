@@ -56,12 +56,12 @@ const S = {
   content: { padding: 28 },
   breadcrumb: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text3)', marginBottom: 20, cursor: 'pointer' },
 
-  card: { background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', marginBottom: 16 },
+  card: { background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', overflow: 'hidden', marginBottom: 16 },
   cardHeader: { padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   cardHeaderSm: { padding: '12px 16px', borderBottom: '1px solid var(--border)' },
   cardBody: { padding: 20 },
 
-  badge: (bg, color) => ({ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600 }),
+  badge: (bg, color) => ({ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 'var(--r-20)', fontSize: 11, fontWeight: 600 }),
   detailLabel: { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--text4)', marginBottom: 4 },
   detailValue: { fontSize: 14, color: 'var(--text)' },
 
@@ -72,10 +72,10 @@ const S = {
   stageTitle: (state) => ({ fontSize: 13, fontWeight: 600, color: state === 'future' ? 'var(--text4)' : 'var(--text)' }),
   stageTs: { fontSize: 11, color: 'var(--text4)', marginTop: 2 },
 
-  input: { width: '100%', background: 'var(--surface)', border: '1px solid var(--border2)', borderRadius: 7, fontSize: 13, color: 'var(--text)', padding: '7px 10px', outline: 'none', boxSizing: 'border-box', resize: 'vertical' },
+  input: { width: '100%', background: 'var(--surface)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', fontSize: 13, color: 'var(--text)', padding: '7px 10px', outline: 'none', boxSizing: 'border-box', resize: 'vertical' },
 
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,12,20,.42)', zIndex: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  modal: { background: 'var(--bg)', borderRadius: 12, width: '100%', maxWidth: 460, boxShadow: '0 12px 48px rgba(0,0,0,.22)' },
+  modal: { background: 'var(--bg)', borderRadius: 'var(--r-lg)', width: '100%', maxWidth: 460, boxShadow: '0 12px 48px rgba(0,0,0,.22)' },
   modalWide: { maxWidth: 660 },
   modalHead: { padding: '18px 20px 14px', borderBottom: '1px solid var(--border)' },
   modalTitle: { fontSize: 15, fontWeight: 600, color: 'var(--text)' },
@@ -118,7 +118,7 @@ function DelayModal({ order, projectId, onClose, onDone }) {
             <div><label style={S.fl}>Original dispatch date</label><input style={{ ...S.input, background: 'var(--surface)', color: 'var(--text3)' }} type="text" readOnly value={fmtDate(order.committed_dispatch_date)} /></div>
             <div><label style={S.fl}>New proposed date <span style={{ color: 'var(--red)' }}>*</span></label><input style={S.input} type="date" value={newDate} onChange={e => setNewDate(e.target.value)} /></div>
           </div>
-          <div style={{ display: 'flex', gap: 8, background: 'var(--amber-dim)', border: '1px solid rgba(200,138,40,.18)', borderRadius: 6, padding: '9px 12px', fontSize: 12, color: 'var(--amber)', lineHeight: 1.5 }}>
+          <div style={{ display: 'flex', gap: 8, background: 'var(--amber-dim)', border: '1px solid rgba(200,138,40,.18)', borderRadius: 'var(--r)', padding: '9px 12px', fontSize: 12, color: 'var(--amber)', lineHeight: 1.5 }}>
             The buyer will be notified and can accept the new date or escalate to Qala.
           </div>
         </div>
@@ -182,7 +182,7 @@ function PickupModal({ order, projectId, onClose, onDone }) {
             <div><label style={S.fl}>Pickup address</label><input style={S.input} type="text" value={address} onChange={e => setAddress(e.target.value)} placeholder="Studio address" /></div>
           </div>
           <div style={S.fg}><label style={S.fl}>Notes for courier (optional)</label><textarea style={S.input} rows={2} value={notes} onChange={e => setNotes(e.target.value)} placeholder="e.g. Fragile, preferred pickup window 10am–2pm" /></div>
-          <div style={{ display: 'flex', gap: 8, background: 'var(--green-dim)', border: '1px solid rgba(46,158,98,.18)', borderRadius: 6, padding: '9px 12px', fontSize: 12, color: 'var(--green)', lineHeight: 1.5 }}>
+          <div style={{ display: 'flex', gap: 8, background: 'var(--green-dim)', border: '1px solid rgba(46,158,98,.18)', borderRadius: 'var(--r)', padding: '9px 12px', fontSize: 12, color: 'var(--green)', lineHeight: 1.5 }}>
             Qala will review and confirm the pickup within 24 hours. You'll also receive export docs to print and hand to the courier.
           </div>
         </div>

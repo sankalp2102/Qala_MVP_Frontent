@@ -30,34 +30,34 @@ const S = {
   topbar: { height: 56, borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', padding: '0 28px', justifyContent: 'space-between' },
   content: { padding: 28 },
   header: { display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 24 },
-  logoLg: { width: 56, height: 56, borderRadius: 10, background: 'var(--gold-dim)', border: '1px solid var(--gold-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--gold)', flexShrink: 0 },
-  metaChip: { fontSize: 11, padding: '3px 10px', borderRadius: 20, border: '1px solid var(--border2)', color: 'var(--text3)', marginRight: 6, marginTop: 6, display: 'inline-block' },
+  logoLg: { width: 56, height: 56, borderRadius: 'var(--r-10)', background: 'var(--gold-dim)', border: '1px solid var(--gold-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--gold)', flexShrink: 0 },
+  metaChip: { fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-20)', border: '1px solid var(--border2)', color: 'var(--text3)', marginRight: 6, marginTop: 6, display: 'inline-block' },
   metaChipGold: { background: 'var(--gold-dim)', borderColor: 'var(--gold-l)', color: 'var(--gold)' },
-  progressBar: { width: 120, height: 6, borderRadius: 4, background: 'var(--surface2)', overflow: 'hidden' },
+  progressBar: { width: 120, height: 6, borderRadius: 'var(--r-4)', background: 'var(--surface2)', overflow: 'hidden' },
   progressFill: (pct) => ({ height: '100%', width: `${pct}%`, background: 'var(--gold)' }),
 
   tabs: { display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', marginBottom: 20 },
   tab: (active) => ({ padding: '10px 4px', marginRight: 20, fontSize: 13, fontWeight: active ? 600 : 500, color: active ? 'var(--text)' : 'var(--text3)', borderBottom: active ? '2px solid var(--gold)' : '2px solid transparent', cursor: 'pointer' }),
 
-  formCard: { background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', marginBottom: 16 },
+  formCard: { background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', overflow: 'hidden', marginBottom: 16 },
   formCardHeader: { padding: '14px 20px', borderBottom: '1px solid var(--border)' },
   formCardBody: { padding: 20 },
   row2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 },
   fg: { marginBottom: 0 },
   label: { fontSize: 12, fontWeight: 500, color: 'var(--text2)', display: 'block', marginBottom: 6 },
-  input: { width: '100%', background: 'var(--surface)', border: '1px solid var(--border2)', borderRadius: 7, fontSize: 13, color: 'var(--text)', padding: '8px 11px', outline: 'none', boxSizing: 'border-box' },
+  input: { width: '100%', background: 'var(--surface)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', fontSize: 13, color: 'var(--text)', padding: '8px 11px', outline: 'none', boxSizing: 'border-box' },
 
-  card: { background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' },
+  card: { background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', overflow: 'hidden' },
   cardHeader: { padding: '14px 20px', borderBottom: '1px solid var(--border)' },
   activityItem: { display: 'flex', gap: 10, padding: '8px 0' },
 
-  infoBox: { display: 'flex', gap: 9, background: 'var(--admin-dim, var(--gold-dim))', border: '1px solid var(--gold-l)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--gold-d)', lineHeight: 1.6 },
+  infoBox: { display: 'flex', gap: 9, background: 'var(--admin-dim, var(--gold-dim))', border: '1px solid var(--gold-l)', borderRadius: 'var(--r-8)', padding: '10px 14px', fontSize: 12, color: 'var(--gold-d)', lineHeight: 1.6 },
 
   portGrid: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 },
-  portCard: { border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' },
+  portCard: { border: '1px solid var(--border)', borderRadius: 'var(--r-10)', overflow: 'hidden' },
   portImg: { height: 140, background: 'var(--surface3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text4)', fontSize: 28 },
 
-  chip: (active) => ({ fontSize: 12, padding: '4px 12px', borderRadius: 20, border: `1px solid ${active ? 'var(--gold-l)' : 'var(--border2)'}`, background: active ? 'var(--gold-dim)' : 'transparent', color: active ? 'var(--gold)' : 'var(--text2)', marginRight: 6, marginBottom: 6, display: 'inline-block' }),
+  chip: (active) => ({ fontSize: 12, padding: '4px 12px', borderRadius: 'var(--r-20)', border: `1px solid ${active ? 'var(--gold-l)' : 'var(--border2)'}`, background: active ? 'var(--gold-dim)' : 'transparent', color: active ? 'var(--gold)' : 'var(--text2)', marginRight: 6, marginBottom: 6, display: 'inline-block' }),
 };
 
 export default function SellerProfile({ snapshot, profileId, onSave }) {
@@ -208,7 +208,7 @@ export default function SellerProfile({ snapshot, profileId, onSave }) {
                   </div>
                 </div>
               ))}
-              <div style={{ border: '2px dashed var(--border2)', borderRadius: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 200, color: 'var(--text4)' }}>
+              <div style={{ border: '2px dashed var(--border2)', borderRadius: 'var(--r-10)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 200, color: 'var(--text4)' }}>
                 <div style={{ fontSize: 28, marginBottom: 8 }}>+</div>
                 <div style={{ fontSize: 13 }}>Add project in onboarding</div>
               </div>
@@ -245,7 +245,7 @@ export default function SellerProfile({ snapshot, profileId, onSave }) {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
                   {certifications.map((c, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px' }}>
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-8)', padding: '10px 14px' }}>
                       <span style={{ fontSize: 13 }}>{c}</span>
                       <span style={{ fontSize: 16, color: 'var(--text4)', cursor: 'pointer' }} onClick={() => setCertifications(certifications.filter((_, j) => j !== i))}>×</span>
                     </div>

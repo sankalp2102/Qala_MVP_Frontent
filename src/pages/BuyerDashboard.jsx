@@ -223,14 +223,14 @@ function AccessKeyCard({ accessKey }) {
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
         background: 'var(--surface2)', border: '1px solid var(--border)',
-        borderRadius: 8, padding: '10px 14px', marginBottom: 16,
+        borderRadius: 'var(--r-8)', padding: '10px 14px', marginBottom: 16,
       }}>
         <span style={{ flex: 1, fontFamily: 'monospace', fontSize: 15, fontWeight: 600, color: 'var(--text)', letterSpacing: '0.1em' }}>
           {accessKey.key_code}
         </span>
         <button onClick={handleCopy} style={{
           background: copied ? 'var(--green-dim)' : 'var(--surface3)',
-          border: '1px solid var(--border)', borderRadius: 6, padding: '5px 12px',
+          border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '5px 12px',
           fontSize: 11, fontWeight: 500, color: copied ? 'var(--green)' : 'var(--text2)',
           cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s',
           whiteSpace: 'nowrap', flexShrink: 0,
@@ -246,9 +246,9 @@ function AccessKeyCard({ accessKey }) {
             {accessKey.tokens_used.toLocaleString()} / {accessKey.tokens_allocated.toLocaleString()}
           </span>
         </div>
-        <div style={{ height: 4, background: 'var(--surface3)', borderRadius: 2, overflow: 'hidden' }}>
+        <div style={{ height: 4, background: 'var(--surface3)', borderRadius: 'var(--r-2)', overflow: 'hidden' }}>
           <div style={{
-            height: '100%', borderRadius: 2, width: `${pct}%`,
+            height: '100%', borderRadius: 'var(--r-2)', width: `${pct}%`,
             background: pct > 80 ? 'var(--red)' : pct > 50 ? 'var(--amber)' : 'var(--teal)',
             transition: 'width 0.6s ease',
           }} />

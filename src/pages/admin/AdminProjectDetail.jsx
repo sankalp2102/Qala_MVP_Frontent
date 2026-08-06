@@ -76,7 +76,7 @@ function BriefForm({ projectId, brief, isAdmin, onSaved }) {
 
   const inp = { fontSize: 13 };
   const inpErr = k => (errors[k] ? { ...inp, borderColor: 'var(--red)' } : inp);
-  const sel = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)' };
+  const sel = { width: '100%', padding: '9px 12px', borderRadius: 'var(--r-8)', border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)' };
   const req = <span style={{ color: 'var(--red)' }}> *</span>;
 
   return (
@@ -101,7 +101,7 @@ function BriefForm({ projectId, brief, isAdmin, onSaved }) {
         <label style={{ fontSize: 11 }}>Product Description{req}</label>
         <textarea rows={3} value={form.product_description} onChange={e => set('product_description', e.target.value)}
           placeholder="A 5-piece linen collection for summer — kurta, wide-leg trousers, jacket…"
-          style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: `1px solid ${errors.product_description ? 'var(--red)' : 'var(--border)'}`, background: 'var(--surface2)', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text)', resize: 'vertical' }} />
+          style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r-8)', border: `1px solid ${errors.product_description ? 'var(--red)' : 'var(--border)'}`, background: 'var(--surface2)', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text)', resize: 'vertical' }} />
       </div>
 
       {/* Materials keywords */}
@@ -109,7 +109,7 @@ function BriefForm({ projectId, brief, isAdmin, onSaved }) {
         <label style={{ fontSize: 11, fontWeight: 700, color: errors.materials_keywords ? 'var(--red)' : 'var(--text3)', display: 'block', marginBottom: 6 }}>Materials / Keywords{req}</label>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
           {form.materials_keywords.map(kw => (
-            <span key={kw} style={{ fontSize: 12, padding: '3px 10px', background: 'var(--surface3)', borderRadius: 20, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span key={kw} style={{ fontSize: 12, padding: '3px 10px', background: 'var(--surface3)', borderRadius: 'var(--r-20)', color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 6 }}>
               {kw}
               <button onClick={() => removeKeyword(kw)} style={{ background: 'none', border: 'none', color: 'var(--text4)', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
             </span>
@@ -119,7 +119,7 @@ function BriefForm({ projectId, brief, isAdmin, onSaved }) {
           <input value={kwInput} onChange={e => setKwInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && addKeyword()}
             placeholder="e.g. 100% Linen, Natural dyes, Handblock print — press Enter to add"
-            style={{ flex: 1, padding: '7px 10px', borderRadius: 7, border: `1px solid ${errors.materials_keywords ? 'var(--red)' : 'var(--border)'}`, background: 'var(--surface2)', fontSize: 12, fontFamily: 'var(--font-body)', color: 'var(--text)' }} />
+            style={{ flex: 1, padding: '7px 10px', borderRadius: 'var(--r)', border: `1px solid ${errors.materials_keywords ? 'var(--red)' : 'var(--border)'}`, background: 'var(--surface2)', fontSize: 12, fontFamily: 'var(--font-body)', color: 'var(--text)' }} />
           <button onClick={addKeyword} className="btn btn-ghost" style={{ fontSize: 12, padding: '7px 12px', width: 'auto', flexShrink: 0 }}>Add</button>
         </div>
       </div>
@@ -157,7 +157,7 @@ function BriefForm({ projectId, brief, isAdmin, onSaved }) {
         <label style={{ fontSize: 11 }}>Additional Notes{req}</label>
         <textarea rows={3} value={form.additional_specs} onChange={e => set('additional_specs', e.target.value)}
           placeholder="Open to studio's creative direction. Minimal packaging preferred…"
-          style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: `1px solid ${errors.additional_specs ? 'var(--red)' : 'var(--border)'}`, background: 'var(--surface2)', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text)', resize: 'vertical' }} />
+          style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r-8)', border: `1px solid ${errors.additional_specs ? 'var(--red)' : 'var(--border)'}`, background: 'var(--surface2)', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text)', resize: 'vertical' }} />
       </div>
 
       {/* Actions */}
@@ -196,7 +196,7 @@ function BriefTab({ project, onRefresh }) {
   const [editing, setEditing] = useState(false);
 
   return (
-    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '24px 28px' }}>
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '24px 28px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600, color: 'var(--text)' }}>Brief</div>
         {!editing && (
@@ -243,7 +243,7 @@ function BriefDisplay({ brief }) {
         <div style={{ marginBottom: 12 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Materials / Keywords</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {brief.materials_keywords.map(k => <span key={k} style={{ fontSize: 11, padding: '3px 9px', background: 'var(--surface3)', borderRadius: 20, color: 'var(--text2)' }}>{k}</span>)}
+            {brief.materials_keywords.map(k => <span key={k} style={{ fontSize: 11, padding: '3px 9px', background: 'var(--surface3)', borderRadius: 'var(--r-20)', color: 'var(--text2)' }}>{k}</span>)}
           </div>
         </div>
       )}
@@ -376,9 +376,9 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
 
   const hasShippable = lineItems.some(it => it._configured && it.order_type && it.order_type !== 'designing');
 
-  const inp = (w) => ({ padding:'5px 7px',borderRadius:6,border:'1px solid var(--border)',background:'var(--surface3)',fontSize:11,color:'var(--text)',fontFamily:'var(--font-body)',width:w });
+  const inp = (w) => ({ padding:'5px 7px',borderRadius: 'var(--r)',border:'1px solid var(--border)',background:'var(--surface3)',fontSize:11,color:'var(--text)',fontFamily:'var(--font-body)',width:w });
   const togBtn = (val, cur) => ({
-    padding:'5px 12px',borderRadius:6,border:'1px solid var(--border)',fontSize:12,cursor:'pointer',fontFamily:'var(--font-body)',transition:'all 0.15s',
+    padding:'5px 12px',borderRadius: 'var(--r)',border:'1px solid var(--border)',fontSize:12,cursor:'pointer',fontFamily:'var(--font-body)',transition:'all 0.15s',
     background: cur === val ? 'var(--gold)' : 'var(--surface2)',
     color:      cur === val ? '#fff' : 'var(--text2)',
   });
@@ -472,7 +472,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
     <div>
       {/* Brief strip — quick-reference chips matching the prototype's
          navbar-adjacent strip. Was missing entirely before. */}
-      <div style={{ background: 'var(--admin, #5B4B8A)', borderRadius: 10, padding: '12px 18px', marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 24, flexWrap: 'wrap' }}>
+      <div style={{ background: 'var(--admin, var(--purple))', borderRadius: 'var(--r-10)', padding: '12px 18px', marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 24, flexWrap: 'wrap' }}>
         {[
           ['Project', proposal.project_name || brief?.project?.name],
           ['Buyer', brief?.buyer_brand_name],
@@ -489,7 +489,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
 
       {/* Status banner — matches the prototype's color-coded states (spec §6.1) */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 12, borderRadius: 10, padding: '12px 16px', marginBottom: 16,
+        display: 'flex', alignItems: 'center', gap: 12, borderRadius: 'var(--r-10)', padding: '12px 16px', marginBottom: 16,
         background: proposal.status === 'sent_to_buyer' ? 'var(--green-dim)' : proposal.status === 'accepted' ? 'var(--green-dim)' : 'var(--amber-dim)',
         border: `1px solid ${['sent_to_buyer','accepted'].includes(proposal.status) ? 'var(--green)' : 'var(--amber)'}`,
       }}>
@@ -523,10 +523,10 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
          references, buyer notes, or the Qala-guidance box) — genuinely
          missing most of the prototype's actual content, not just styled
          differently. */}
-      <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 16, overflow: 'hidden' }}>
+      <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', marginBottom: 16, overflow: 'hidden' }}>
         <div style={{ padding: '13px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600 }}>Buyer's brief</span>
-          <span style={{ fontSize: 11, background: 'var(--surface2)', color: 'var(--text3)', borderRadius: 100, padding: '3px 10px' }}>Read-only · from project creation</span>
+          <span style={{ fontSize: 11, background: 'var(--surface2)', color: 'var(--text3)', borderRadius: 'var(--r-full)', padding: '3px 10px' }}>Read-only · from project creation</span>
         </div>
         <div style={{ padding: '16px 18px' }}>
           <div style={{ marginBottom: 13, paddingBottom: 13, borderBottom: '1px solid var(--border)' }}>
@@ -539,12 +539,12 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
                 ['Bulk delivery', fmtDate(brief?.target_bulk_delivery_date)],
                 ['Delivery location', brief?.buyer_location],
               ].map(([l, v]) => (
-                <div key={l} style={{ background: 'var(--surface)', borderRadius: 8, padding: '9px 11px' }}>
+                <div key={l} style={{ background: 'var(--surface)', borderRadius: 'var(--r-8)', padding: '9px 11px' }}>
                   <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--text4)', marginBottom: 2 }}>{l}</div>
                   <div style={{ fontSize: 13, color: 'var(--text)' }}>{v || '—'}</div>
                 </div>
               ))}
-              <div style={{ gridColumn: 'span 2', background: 'var(--surface)', borderRadius: 8, padding: '9px 11px' }}>
+              <div style={{ gridColumn: 'span 2', background: 'var(--surface)', borderRadius: 'var(--r-8)', padding: '9px 11px' }}>
                 <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--text4)', marginBottom: 2 }}>Price basis</div>
                 <div style={{ fontSize: 13, color: 'var(--text)' }}>All-in landed cost{brief?.garment_types?.[0] ? ` · per ${brief.garment_types[0].toLowerCase()}` : ''}</div>
               </div>
@@ -554,27 +554,27 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
           {(brief?.occasion_tags || []).length > 0 && (
             <div style={{ marginBottom: 13, paddingBottom: 13, borderBottom: '1px solid var(--border)' }}>
               <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.10em', color: 'var(--text4)', marginBottom: 6, display: 'block' }}>Occasion</span>
-              <div>{brief.occasion_tags.map(t => <span key={t} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 100, background: 'var(--gold-dim)', color: 'var(--gold-d, var(--gold))', border: '1px solid var(--gold-l)', marginRight: 4, display: 'inline-block' }}>{t}</span>)}</div>
+              <div>{brief.occasion_tags.map(t => <span key={t} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-full)', background: 'var(--gold-dim)', color: 'var(--gold-d, var(--gold))', border: '1px solid var(--gold-l)', marginRight: 4, display: 'inline-block' }}>{t}</span>)}</div>
             </div>
           )}
           {(brief?.garment_types || []).length > 0 && (
             <div style={{ marginBottom: 13, paddingBottom: 13, borderBottom: '1px solid var(--border)' }}>
               <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.10em', color: 'var(--text4)', marginBottom: 6, display: 'block' }}>Product / garment types</span>
-              <div>{brief.garment_types.map(t => <span key={t} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 100, background: 'var(--gold-dim)', color: 'var(--gold-d, var(--gold))', border: '1px solid var(--gold-l)', marginRight: 4, display: 'inline-block' }}>{t}</span>)}</div>
+              <div>{brief.garment_types.map(t => <span key={t} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--r-full)', background: 'var(--gold-dim)', color: 'var(--gold-d, var(--gold))', border: '1px solid var(--gold-l)', marginRight: 4, display: 'inline-block' }}>{t}</span>)}</div>
             </div>
           )}
           <div style={{ marginBottom: 13, paddingBottom: 13, borderBottom: '1px solid var(--border)' }}>
-            {(brief?.preferred_fabrics || []).length > 0 && <><span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.10em', color: 'var(--text4)', marginBottom: 6, display: 'block' }}>Fabrics</span><div style={{ marginBottom: 9 }}>{brief.preferred_fabrics.map(t => <span key={t} style={{ fontSize: 11, padding: '2px 8px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 100, color: 'var(--text2)', marginRight: 4, display: 'inline-block' }}>{t}</span>)}</div></>}
-            {(brief?.printing_required || []).length > 0 && <><span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.10em', color: 'var(--text4)', marginBottom: 6, display: 'block' }}>Printing & dyeing</span><div style={{ marginBottom: 9 }}>{brief.printing_required.map(t => <span key={t} style={{ fontSize: 11, padding: '2px 8px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 100, color: 'var(--text2)', marginRight: 4, display: 'inline-block' }}>{t}</span>)}</div></>}
-            {(brief?.embellishment_required || []).length > 0 && <><span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.10em', color: 'var(--text4)', marginBottom: 6, display: 'block' }}>Surface work</span><div style={{ marginBottom: 9 }}>{brief.embellishment_required.map(t => <span key={t} style={{ fontSize: 11, padding: '2px 8px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 100, color: 'var(--text2)', marginRight: 4, display: 'inline-block' }}>{t}</span>)}</div></>}
-            {(brief?.preferred_dyes || []).length > 0 && <><span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.10em', color: 'var(--text4)', marginBottom: 6, display: 'block' }}>Dyes</span><div>{brief.preferred_dyes.map(t => <span key={t} style={{ fontSize: 11, padding: '2px 8px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 100, color: 'var(--text2)', marginRight: 4, display: 'inline-block' }}>{t}</span>)}</div></>}
+            {(brief?.preferred_fabrics || []).length > 0 && <><span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.10em', color: 'var(--text4)', marginBottom: 6, display: 'block' }}>Fabrics</span><div style={{ marginBottom: 9 }}>{brief.preferred_fabrics.map(t => <span key={t} style={{ fontSize: 11, padding: '2px 8px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--r-full)', color: 'var(--text2)', marginRight: 4, display: 'inline-block' }}>{t}</span>)}</div></>}
+            {(brief?.printing_required || []).length > 0 && <><span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.10em', color: 'var(--text4)', marginBottom: 6, display: 'block' }}>Printing & dyeing</span><div style={{ marginBottom: 9 }}>{brief.printing_required.map(t => <span key={t} style={{ fontSize: 11, padding: '2px 8px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--r-full)', color: 'var(--text2)', marginRight: 4, display: 'inline-block' }}>{t}</span>)}</div></>}
+            {(brief?.embellishment_required || []).length > 0 && <><span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.10em', color: 'var(--text4)', marginBottom: 6, display: 'block' }}>Surface work</span><div style={{ marginBottom: 9 }}>{brief.embellishment_required.map(t => <span key={t} style={{ fontSize: 11, padding: '2px 8px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--r-full)', color: 'var(--text2)', marginRight: 4, display: 'inline-block' }}>{t}</span>)}</div></>}
+            {(brief?.preferred_dyes || []).length > 0 && <><span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.10em', color: 'var(--text4)', marginBottom: 6, display: 'block' }}>Dyes</span><div>{brief.preferred_dyes.map(t => <span key={t} style={{ fontSize: 11, padding: '2px 8px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--r-full)', color: 'var(--text2)', marginRight: 4, display: 'inline-block' }}>{t}</span>)}</div></>}
           </div>
 
           {(brief?.moodboards || []).length > 0 && (
             <div style={{ marginBottom: 13, paddingBottom: 13, borderBottom: '1px solid var(--border)' }}>
               <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.10em', color: 'var(--text4)', marginBottom: 6, display: 'block' }}>References</span>
               {brief.moodboards.map((m, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'var(--surface)', borderRadius: 6, padding: '7px 10px', marginBottom: 5 }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'var(--surface)', borderRadius: 'var(--r)', padding: '7px 10px', marginBottom: 5 }}>
                   <span style={{ fontSize: 16 }}>🖼</span><span style={{ fontSize: 12, fontWeight: 500, flex: 1 }}>{m.file_name || m.name}</span>
                   {m.file_size_kb && <span style={{ fontSize: 11, color: 'var(--text4)' }}>{m.file_size_kb < 1024 ? `${m.file_size_kb} KB` : `${(m.file_size_kb/1024).toFixed(1)} MB`}</span>}
                 </div>
@@ -588,7 +588,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
             </div>
           )}
           {brief?.admin_notes && (
-            <div style={{ background: 'var(--admin-dim)', border: '1px solid var(--admin-dim2)', borderRadius: 8, padding: '10px 13px' }}>
+            <div style={{ background: 'var(--admin-dim)', border: '1px solid var(--admin-dim2)', borderRadius: 'var(--r-8)', padding: '10px 13px' }}>
               <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--admin)', marginBottom: 5, display: 'flex', alignItems: 'center', gap: 5 }}>
                 🔒 Qala guidance <span style={{ fontSize: 10, fontWeight: 400, color: 'rgba(91,75,138,.6)', textTransform: 'none', letterSpacing: 0 }}>— visible to studio, not shared with buyer</span>
               </div>
@@ -603,13 +603,13 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
          a loose tabs bar with no card/heading at all). Tabs now use the
          prototype's exact segmented-pill style (.stabs/.stab) instead of
          underline-tabs, which didn't match the prototype's design. */}
-      <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 16, overflow: 'hidden' }}>
+      <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', marginBottom: 16, overflow: 'hidden' }}>
         <div style={{ padding: '13px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600 }}>Studio submission</span>
-          <span style={{ fontSize: 11, background: 'var(--amber-dim)', color: 'var(--amber)', borderRadius: 100, padding: '3px 10px' }}>Under review</span>
+          <span style={{ fontSize: 11, background: 'var(--amber-dim)', color: 'var(--amber)', borderRadius: 'var(--r-full)', padding: '3px 10px' }}>Under review</span>
         </div>
         <div style={{ padding: '16px 18px' }}>
-          <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 7, overflow: 'hidden', background: 'var(--surface)', marginBottom: 16 }}>
+          <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden', background: 'var(--surface)', marginBottom: 16 }}>
             {[['costing','Costing & items'],['projects','Past work'],['timelines','Timelines'],['concept','Concept'],['sow','SOW clauses']].map(([key,label]) => (
               <button key={key} onClick={() => setReviewTab(key)} style={{
                 flex: 1, padding:'7px 5px', border:'none', cursor:'pointer', fontFamily:'var(--font-body)', fontSize:12,
@@ -622,7 +622,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
           </div>
 
           {reviewTab === 'costing' && (
-            <div style={{ background:'var(--amber-dim)',border:'1px solid var(--amber)',borderRadius:8,padding:'10px 14px',fontSize:12,color:'var(--amber)',marginBottom:16 }}>
+            <div style={{ background:'var(--amber-dim)',border:'1px solid var(--amber)',borderRadius: 'var(--r-8)',padding:'10px 14px',fontSize:12,color:'var(--amber)',marginBottom:16 }}>
               🛡 You can edit any value before sending to buyer — items, costs, GST, shipping. All changes recalculate landing cost in real time. Studio's original figures are preserved internally.
             </div>
           )}
@@ -630,7 +630,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
           {reviewTab === 'costing' && (
             <div>
               {/* Config — only shipping is global now */}
-              <div style={{ background:'var(--surface)',border:'1px solid var(--border)',borderRadius:10,padding:'16px 18px',marginBottom:14 }}>
+              <div style={{ background:'var(--surface)',border:'1px solid var(--border)',borderRadius: 'var(--r-10)',padding:'16px 18px',marginBottom:14 }}>
                 <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:8}}>Shipping method</div>
                 <div style={{display:'flex',gap:6}}>
                   {[['dhl','DHL Express'],['shipglobal','ShipGlobal']].map(([v,l]) => (
@@ -641,7 +641,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
               </div>
 
               {/* Line items — per-item order type + domain */}
-              <div style={{ background:'var(--surface)',border:'1px solid var(--border)',borderRadius:10,padding:'16px 18px',marginBottom:14 }}>
+              <div style={{ background:'var(--surface)',border:'1px solid var(--border)',borderRadius: 'var(--r-10)',padding:'16px 18px',marginBottom:14 }}>
                 <div style={{fontSize:12,fontWeight:600,color:'var(--text)',marginBottom:4}}>Line items (studio entered)</div>
                 <div style={{fontSize:11,color:'var(--text4)',marginBottom:12}}>$1 = ₹{forex.toFixed(2)} (est.)</div>
                 <LineItemCards items={lineItems} onChange={setLineItems} />
@@ -649,17 +649,17 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
 
               {/* Shipping boxes — only when any item ships */}
               {hasShippable && (
-              <div style={{ background:'var(--surface)',border:'1px solid var(--border)',borderRadius:10,padding:'16px 18px',marginBottom:14 }}>
+              <div style={{ background:'var(--surface)',border:'1px solid var(--border)',borderRadius: 'var(--r-10)',padding:'16px 18px',marginBottom:14 }}>
                 <div style={{fontSize:12,fontWeight:600,color:'var(--text)',marginBottom:12}}>Shipping boxes (studio entered)</div>
                 <div style={{display:'flex',gap:8,marginBottom:10,flexWrap:'wrap'}}>
                   {[{label:'M',length_cm:50,width_cm:40,height_cm:30},{label:'L',length_cm:60,width_cm:40,height_cm:40}].map(b => (
                     <button key={b.label} onClick={() => setBoxes(bx=>[...bx,{...b,_id:Date.now(),qty:1}])}
-                      style={{fontSize:11,padding:'5px 10px',borderRadius:6,border:'1px solid var(--border)',background:'var(--surface2)',color:'var(--text2)',cursor:'pointer',fontFamily:'var(--font-body)'}}>
+                      style={{fontSize:11,padding:'5px 10px',borderRadius: 'var(--r)',border:'1px solid var(--border)',background:'var(--surface2)',color:'var(--text2)',cursor:'pointer',fontFamily:'var(--font-body)'}}>
                       + {b.label} box ({b.length_cm}×{b.width_cm}×{b.height_cm})
                     </button>
                   ))}
                   <button onClick={() => setBoxes(bx=>[...bx,{_id:Date.now(),label:'Custom',length_cm:'',width_cm:'',height_cm:'',qty:1}])}
-                    style={{fontSize:11,padding:'5px 10px',borderRadius:6,border:'1px dashed var(--border)',background:'none',color:'var(--text3)',cursor:'pointer',fontFamily:'var(--font-body)'}}>
+                    style={{fontSize:11,padding:'5px 10px',borderRadius: 'var(--r)',border:'1px dashed var(--border)',background:'none',color:'var(--text3)',cursor:'pointer',fontFamily:'var(--font-body)'}}>
                     + Custom
                   </button>
                 </div>
@@ -702,17 +702,17 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
               ) : proposal.past_projects.map((coll, i) => {
                 const pieces = coll.pieces || [];
                 return (
-                  <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 10, marginBottom: 10, overflow: 'hidden' }}>
+                  <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-10)', marginBottom: 10, overflow: 'hidden' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', background: 'var(--surface)' }}>
                       <div style={{ position: 'relative', width: 60, height: 34, flexShrink: 0 }}>
                         {pieces.slice(0, 3).map((p, j) => (
-                          <div key={j} style={{ position: 'absolute', width: 32, height: 32, borderRadius: 7, background: p.image_url ? `url(${p.image_url}) center/cover` : 'var(--surface3)', border: '2px solid var(--surface)', left: j * 14, top: j === 0 ? 2 : j === 1 ? 1 : 0, zIndex: 3 - j }} />
+                          <div key={j} style={{ position: 'absolute', width: 32, height: 32, borderRadius: 'var(--r)', background: p.image_url ? `url(${p.image_url}) center/cover` : 'var(--surface3)', border: '2px solid var(--surface)', left: j * 14, top: j === 0 ? 2 : j === 1 ? 1 : 0, zIndex: 3 - j }} />
                         ))}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 14, fontWeight: 600 }}>{coll.name || coll.collection_name}</div>
                         <div style={{ fontSize: 11, color: 'var(--text3)', margin: '2px 0 6px' }}>{pieces.length} piece{pieces.length !== 1 ? 's' : ''}{coll.year ? ` · ${coll.year}` : ''}</div>
-                        {(coll.tags || []).length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>{coll.tags.map(t => <span key={t} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 100, background: 'var(--gold-dim)', color: 'var(--gold-d, var(--gold))', border: '1px solid var(--gold-l)' }}>{t}</span>)}</div>}
+                        {(coll.tags || []).length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>{coll.tags.map(t => <span key={t} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 'var(--r-full)', background: 'var(--gold-dim)', color: 'var(--gold-d, var(--gold))', border: '1px solid var(--gold-l)' }}>{t}</span>)}</div>}
                       </div>
                     </div>
                     <div style={{ padding: 14, borderTop: '1px solid var(--border)' }}>
@@ -720,7 +720,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px,1fr))', gap: 8, marginBottom: 14 }}>
                         {pieces.map((p, j) => (
                           <div key={j}>
-                            <div style={{ width: '100%', aspectRatio: '1', borderRadius: 8, background: p.image_url ? `url(${p.image_url}) center/cover` : 'var(--surface3)' }} />
+                            <div style={{ width: '100%', aspectRatio: '1', borderRadius: 'var(--r-8)', background: p.image_url ? `url(${p.image_url}) center/cover` : 'var(--surface3)' }} />
                             <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
                           </div>
                         ))}
@@ -728,7 +728,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
                       {coll.note && (
                         <>
                           <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--text4)', marginBottom: 8, display: 'block' }}>Studio note — why this is relevant</span>
-                          <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.65, fontStyle: 'italic', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px' }}>"{coll.note}"</div>
+                          <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.65, fontStyle: 'italic', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-8)', padding: '10px 14px' }}>"{coll.note}"</div>
                         </>
                       )}
                     </div>
@@ -746,7 +746,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
                 ['Sampling','Sample dispatch date',sampleDate,setSampleDate],
                 ['Bulk production','Bulk dispatch date',bulkDate,setBulkDate],
               ].map(([section,label,val,setter]) => (
-                <div key={section} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:10,padding:'16px 18px',marginBottom:12}}>
+                <div key={section} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius: 'var(--r-10)',padding:'16px 18px',marginBottom:12}}>
                   <div style={{fontWeight:600,color:'var(--text)',marginBottom:12}}>{section}</div>
                   <div className="field">
                     <label style={{fontSize:12}}>{label}</label>
@@ -764,7 +764,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
           {reviewTab === 'concept' && (
             <div>
               {proposal.concept_pdf_url || proposal.concept_pdf_name ? (
-                <div style={{display:'flex',alignItems:'center',gap:12,padding:'14px 18px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:10,marginBottom:16}}>
+                <div style={{display:'flex',alignItems:'center',gap:12,padding:'14px 18px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius: 'var(--r-10)',marginBottom:16}}>
                   <span style={{fontSize:24}}>📄</span>
                   <div style={{flex:1}}>
                     <div style={{fontSize:14,fontWeight:500,color:'var(--text)'}}>{proposal.concept_pdf_name}</div>
@@ -772,7 +772,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
                   </div>
                   {proposal.concept_pdf_url && (
                     <a href={proposal.concept_pdf_url} target="_blank" rel="noopener noreferrer"
-                      style={{fontSize:12,color:'var(--gold)',textDecoration:'none',padding:'6px 14px',background:'var(--gold-dim)',borderRadius:6,border:'1px solid rgba(200,165,90,0.2)'}}>
+                      style={{fontSize:12,color:'var(--gold)',textDecoration:'none',padding:'6px 14px',background:'var(--gold-dim)',borderRadius: 'var(--r)',border:'1px solid rgba(200,165,90,0.2)'}}>
                       Preview
                     </a>
                   )}
@@ -791,7 +791,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
               {proposal.concept_description && (
                 <div style={{marginBottom:14}}>
                   <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>Concept description</div>
-                  <div style={{fontSize:13,color:'var(--text)',lineHeight:1.7,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,padding:'12px 14px'}}>{proposal.concept_description}</div>
+                  <div style={{fontSize:13,color:'var(--text)',lineHeight:1.7,background:'var(--surface)',border:'1px solid var(--border)',borderRadius: 'var(--r-8)',padding:'12px 14px'}}>{proposal.concept_description}</div>
                 </div>
               )}
 
@@ -799,7 +799,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
                 <div>
                   <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:10}}>Past projects linked by studio</div>
                   {proposal.past_projects.map((p,i) => (
-                    <div key={i} style={{padding:'10px 14px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:8,marginBottom:8}}>
+                    <div key={i} style={{padding:'10px 14px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius: 'var(--r-8)',marginBottom:8}}>
                       <div style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>{p.name} {p.year && `· ${p.year}`}</div>
                       {p.description && <div style={{fontSize:12,color:'var(--text3)',marginTop:2}}>{p.description}</div>}
                     </div>
@@ -812,7 +812,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
           {/* ── SOW tab ── */}
           {reviewTab === 'sow' && (
             <div>
-              <div style={{background:'var(--surface2)',borderRadius:8,padding:'12px 14px',marginBottom:16,fontSize:12,color:'var(--text3)'}}>
+              <div style={{background:'var(--surface2)',borderRadius: 'var(--r-8)',padding:'12px 14px',marginBottom:16,fontSize:12,color:'var(--text3)'}}>
                 📋 Standard Qala SOW is auto-included. Below are project-specific clauses from the studio. You may add, edit, or remove any clause before sending to buyer.
               </div>
               <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:14}}>
@@ -820,12 +820,12 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
                 {sowClauses.map((clause,i) => (
                   <div key={i} style={{display:'flex',gap:8,alignItems:'flex-start'}}>
                     <textarea rows={2} value={clause} onChange={e=>setSowClauses(c=>c.map((x,xi)=>xi===i?e.target.value:x))}
-                      style={{flex:1,padding:'9px 12px',borderRadius:8,border:'1px solid var(--border)',background:'var(--surface2)',fontFamily:'var(--font-body)',fontSize:13,color:'var(--text)',resize:'vertical'}} />
+                      style={{flex:1,padding:'9px 12px',borderRadius: 'var(--r-8)',border:'1px solid var(--border)',background:'var(--surface2)',fontFamily:'var(--font-body)',fontSize:13,color:'var(--text)',resize:'vertical'}} />
                     <button onClick={() => setSowClauses(c=>c.filter((_,xi)=>xi!==i))} style={{background:'none',border:'none',color:'var(--red)',cursor:'pointer',fontSize:18,paddingTop:6}}>×</button>
                   </div>
                 ))}
               </div>
-              <button onClick={() => setSowClauses(c=>[...c,''])} style={{fontSize:12,color:'var(--gold)',background:'var(--gold-dim)',border:'1px solid rgba(200,165,90,0.2)',borderRadius:6,padding:'6px 14px',cursor:'pointer',fontFamily:'var(--font-body)'}}>
+              <button onClick={() => setSowClauses(c=>[...c,''])} style={{fontSize:12,color:'var(--gold)',background:'var(--gold-dim)',border:'1px solid rgba(200,165,90,0.2)',borderRadius: 'var(--r)',padding:'6px 14px',cursor:'pointer',fontFamily:'var(--font-body)'}}>
                 + Add
               </button>
             </div>
@@ -836,7 +836,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
       {/* Admin notes — 3rd card in the main column, matching the
          prototype's card-header/card-body pattern, right after Studio
          submission's tabs (not a page-wide footer below everything). */}
-          <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, marginTop: 16, overflow: 'hidden' }}>
+          <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', marginTop: 16, overflow: 'hidden' }}>
             <div style={{ padding: '13px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600 }}>Admin notes</span>
               <span style={{ fontSize: 11, color: 'var(--text4)' }}>Internal only · never shared</span>
@@ -844,7 +844,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
             <div style={{ padding: '16px 18px' }}>
               <textarea rows={2} value={adminNotes} onChange={e=>setAdminNotes(e.target.value)}
                 placeholder="Pricing concerns, anomalies, review comments…"
-                style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid var(--border)',background:'var(--surface2)',fontFamily:'var(--font-body)',fontSize:13,color:'var(--text)',resize:'vertical',boxSizing:'border-box',minHeight:72}} />
+                style={{width:'100%',padding:'9px 12px',borderRadius: 'var(--r-8)',border:'1px solid var(--border)',background:'var(--surface2)',fontFamily:'var(--font-body)',fontSize:13,color:'var(--text)',resize:'vertical',boxSizing:'border-box',minHeight:72}} />
             </div>
           </div>
 
@@ -857,12 +857,12 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
 
           {/* Landing Cost */}
           <SideCard title="Landing cost" headerExtra={
-            <div style={{ display: 'flex', border: '1px solid var(--border2)', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', border: '1px solid var(--border2)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
               <button onClick={() => setLcCurrency('usd')} style={{ padding: '3px 8px', fontSize: 10, border: 'none', cursor: 'pointer', background: lcCurrency === 'usd' ? 'var(--gold)' : 'var(--bg)', color: lcCurrency === 'usd' ? '#fff' : 'var(--text2)' }}>USD</button>
               <button onClick={() => setLcCurrency('inr')} style={{ padding: '3px 8px', fontSize: 10, border: 'none', borderLeft: '1px solid var(--border2)', cursor: 'pointer', background: lcCurrency === 'inr' ? 'var(--gold)' : 'var(--bg)', color: lcCurrency === 'inr' ? '#fff' : 'var(--text2)' }}>INR</button>
             </div>
           }>
-            <div style={{background:'var(--surface2)',borderRadius:10,padding:'14px 16px',marginBottom:14,textAlign:'center'}}>
+            <div style={{background:'var(--surface2)',borderRadius: 'var(--r-10)',padding:'14px 16px',marginBottom:14,textAlign:'center'}}>
               <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>Buyer landing cost (total)</div>
               <div style={{fontFamily:'var(--font-display)',fontSize:26,fontWeight:700,color:'var(--text)'}}>
                 {result.hasItems ? (lcCurrency === 'usd' ? fmtUSD(result.landingCostUSD) : fmtINR(result.landingCostUSD * forex)) : (lcCurrency === 'usd' ? '$—' : '₹—')}
@@ -875,7 +875,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
                 </div>
               )}
               {proposal.calculated_landing_cost_usd && result.hasItems && Math.abs(parseFloat(proposal.calculated_landing_cost_usd) - result.landingCostUSD) > 0.5 && (
-                <div style={{ marginTop: 8, fontSize: 11, color: 'var(--red)', background: 'var(--red-dim)', border: '1px solid var(--red)', borderRadius: 6, padding: '6px 9px', textAlign: 'left' }}>
+                <div style={{ marginTop: 8, fontSize: 11, color: 'var(--red)', background: 'var(--red-dim)', border: '1px solid var(--red)', borderRadius: 'var(--r)', padding: '6px 9px', textAlign: 'left' }}>
                   ⚠ Studio submitted {fmtUSD(parseFloat(proposal.calculated_landing_cost_usd))} — this now recalculates to {fmtUSD(result.landingCostUSD)}. Forex at submission: {proposal.forex_rate_usd_inr ? `₹${parseFloat(proposal.forex_rate_usd_inr).toFixed(4)}` : '—'} · Forex used now: ₹{forex.toFixed(4)}.
                 </div>
               )}
@@ -889,7 +889,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
                 <div style={{display:'flex',justifyContent:'space-between',marginBottom:4,fontWeight:600,color:'var(--text2)'}}>
                   <span>Studio charges</span><span>{lcCurrency === 'usd' ? fmtUSD(result.totalProdUSD) : fmtINR(result.totalProdUSD * forex)}</span>
                 </div>
-                {[['designing','Design','var(--ph-d, #7A8C6E)'],['sampling','Sampling','var(--ph-s, #C4953A)'],['production','Production','var(--ph-p, #5B4B8A)']].map(([key,label,color]) => (
+                {[['designing','Design','var(--ph-d, var(--sage))'],['sampling','Sampling','var(--ph-s, var(--amber-d))'],['production','Production','var(--ph-p, var(--purple))']].map(([key,label,color]) => (
                   result.byPhase[key].prodUSD > 0 && (
                     <div key={key} style={{display:'flex',justifyContent:'space-between',marginBottom:3,paddingLeft:10,color}}>
                       <span>{label}</span><span>{lcCurrency === 'usd' ? fmtUSD(result.byPhase[key].prodUSD) : fmtINR(result.byPhase[key].prodUSD * forex)}</span>
@@ -907,7 +907,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
                 <div style={{display:'flex',justifyContent:'space-between',marginBottom:4,color:'var(--text3)'}}>
                   <span>Platform services</span><span style={{color:'var(--text)',fontWeight:500}}>{lcCurrency === 'usd' ? fmtUSD(result.pfTotalFinal) : fmtINR(result.pfTotalFinal * forex)}</span>
                 </div>
-                {[['designing','Design',pfPctDesign,'var(--ph-d, #7A8C6E)'],['sampling','Sampling',pfPctSampling,'var(--ph-s, #C4953A)'],['production','Production',pfPctProduction,'var(--ph-p, #5B4B8A)']].map(([key,label,rate,color]) => (
+                {[['designing','Design',pfPctDesign,'var(--ph-d, var(--sage))'],['sampling','Sampling',pfPctSampling,'var(--ph-s, var(--amber-d))'],['production','Production',pfPctProduction,'var(--ph-p, var(--purple))']].map(([key,label,rate,color]) => (
                   result.byPhase[key].pfTotal > 0 && (
                     <div key={key} style={{display:'flex',justifyContent:'space-between',marginBottom:3,paddingLeft:10,color}}>
                       <span>{label} <span style={{color:'var(--text4)'}}>({fmtPct(rate)})</span></span><span>{lcCurrency === 'usd' ? fmtUSD(result.byPhase[key].pfTotal) : fmtINR(result.byPhase[key].pfTotal * forex)}</span>
@@ -930,9 +930,9 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
           <SideCard title="Platform fee" badge="Per phase · editable">
             <div style={{fontSize:11,color:'var(--text3)',marginBottom:12,lineHeight:1.6}}>Standard rates apply. Override any phase — changes reflect in landing cost immediately.</div>
             {[
-              ['Design', pfPctDesign, setPfPctDesign, 'var(--ph-d, #7A8C6E)'],
-              ['Sampling', pfPctSampling, setPfPctSampling, 'var(--ph-s, #C4953A)'],
-              ['Production', pfPctProduction, setPfPctProduction, 'var(--ph-p, #5B4B8A)'],
+              ['Design', pfPctDesign, setPfPctDesign, 'var(--ph-d, var(--sage))'],
+              ['Sampling', pfPctSampling, setPfPctSampling, 'var(--ph-s, var(--amber-d))'],
+              ['Production', pfPctProduction, setPfPctProduction, 'var(--ph-p, var(--purple))'],
             ].map(([label, val, setVal, color]) => (
               <div key={label} style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
                 <div style={{display:'flex',alignItems:'center',gap:6,width:70,flexShrink:0}}>
@@ -944,7 +944,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
                   style={{flex:1,accentColor:color}} />
                 <input type="number" min="0" max="30" step="0.5" value={Math.round(val*1000)/10}
                   onChange={e=>setVal((parseFloat(e.target.value)||0)/100)}
-                  style={{width:48,fontSize:11,padding:'4px 6px',borderRadius:6,border:'1px solid var(--border)',background:'var(--surface2)',color:'var(--text)',fontFamily:'var(--font-body)'}} />
+                  style={{width:48,fontSize:11,padding:'4px 6px',borderRadius: 'var(--r)',border:'1px solid var(--border)',background:'var(--surface2)',color:'var(--text)',fontFamily:'var(--font-body)'}} />
               </div>
             ))}
             <div style={{fontSize:10,color:'var(--text4)',marginTop:6}}>% applied to studio charges incl. GST · per phase</div>
@@ -952,12 +952,12 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
 
           {/* Studio Payout */}
           <SideCard title="Studio payout" badge="INR · incl. GST">
-            <div style={{background:'var(--surface2)',borderRadius:10,padding:'14px 16px',marginBottom:12,textAlign:'center'}}>
+            <div style={{background:'var(--surface2)',borderRadius: 'var(--r-10)',padding:'14px 16px',marginBottom:12,textAlign:'center'}}>
               <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:4}}>Total payout</div>
               <div style={{fontFamily:'var(--font-display)',fontSize:20,fontWeight:700,color:'var(--text)'}}>{fmtINR(result.payoutTotalINR)}</div>
               <div style={{fontSize:10,color:'var(--text4)',marginTop:2}}>Studio receives after Qala deducts platform fee</div>
             </div>
-            {[['designing','Design','var(--ph-d, #7A8C6E)'],['sampling','Sampling','var(--ph-s, #C4953A)'],['production','Production','var(--ph-p, #5B4B8A)']].map(([key,label,color]) => (
+            {[['designing','Design','var(--ph-d, var(--sage))'],['sampling','Sampling','var(--ph-s, var(--amber-d))'],['production','Production','var(--ph-p, var(--purple))']].map(([key,label,color]) => (
               result.payoutByPhase[key] > 0 && (
                 <div key={key} style={{display:'flex',justifyContent:'space-between',marginBottom:6,fontSize:12}}>
                   <span style={{color}}>{label}</span><span style={{fontWeight:600,color:'var(--text)'}}>{fmtINR(result.payoutByPhase[key])}</span>
@@ -986,7 +986,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
             </label>
             <input type="date" value={validUntil} onChange={e=>setValidUntil(e.target.value)}
               style={{
-                width:'100%',fontSize:12,padding:'7px 10px',borderRadius:6,
+                width:'100%',fontSize:12,padding:'7px 10px',borderRadius: 'var(--r)',
                 border: `1px solid ${validUntilReady ? 'var(--border)' : 'var(--red)'}`,
                 background:'var(--surface2)',color:'var(--text)',fontFamily:'var(--font-body)',
                 marginBottom:14, boxSizing:'border-box',
@@ -997,7 +997,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
             </label>
             <div style={{ display: 'flex', gap: 6, marginBottom: 4 }}>
               <input type="url" placeholder="https://pay.stripe.com/…" value={firstPayLink} onChange={e => setFirstPayLink(e.target.value)}
-                style={{ flex: 1, fontSize: 12, padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text)', fontFamily: 'var(--font-body)', boxSizing: 'border-box' }} />
+                style={{ flex: 1, fontSize: 12, padding: '7px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text)', fontFamily: 'var(--font-body)', boxSizing: 'border-box' }} />
               <button onClick={saveFirstPayLink} disabled={savingLink || !m1} className="btn btn-ghost" style={{ fontSize: 11, padding: '0 12px', width: 'auto' }}>
                 {savingLink ? '…' : 'Save'}
               </button>
@@ -1005,7 +1005,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
             <div style={{fontSize:10,color:'var(--text4)',marginBottom:14}}>Buyer sees a <strong>Pay now</strong> button after accepting.{m1 ? ` First milestone: ${fmtUSD((parseFloat(m1.percentage) || 0) / 100 * (result.byPhase?.designing?.subtotal || 0))}.` : ''}</div>
 
             {/* Pre-flight checklist — live, not discovered after a failed send */}
-            <div style={{background:'var(--surface2)',borderRadius:8,padding:'10px 12px',marginBottom:14}}>
+            <div style={{background:'var(--surface2)',borderRadius: 'var(--r-8)',padding:'10px 12px',marginBottom:14}}>
               <div style={{fontSize:10,fontWeight:700,color:'var(--text4)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>Before you can send</div>
               {[
                 ['Valid until date set', validUntilReady],
@@ -1024,7 +1024,7 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
             </div>
 
             {actionError && (
-              <div ref={errorBannerRef} style={{background:'var(--red-dim)',border:'1px solid var(--red)',color:'var(--red)',borderRadius:8,padding:'10px 16px',fontSize:13,marginBottom:14}}>
+              <div ref={errorBannerRef} style={{background:'var(--red-dim)',border:'1px solid var(--red)',color:'var(--red)',borderRadius: 'var(--r-8)',padding:'10px 16px',fontSize:13,marginBottom:14}}>
                 ⚠ {actionError}
               </div>
             )}
@@ -1046,11 +1046,11 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
             </div>
 
             {showRevForm && (
-              <div style={{marginTop:14,background:'var(--surface)',border:'1px solid var(--amber)',borderRadius:10,padding:'16px 18px'}}>
+              <div style={{marginTop:14,background:'var(--surface)',border:'1px solid var(--amber)',borderRadius: 'var(--r-10)',padding:'16px 18px'}}>
                 <div style={{fontSize:13,fontWeight:600,color:'var(--text)',marginBottom:10}}>Revision request message</div>
                 <textarea rows={3} value={revMsg} onChange={e=>setRevMsg(e.target.value)}
                   placeholder="Explain what the studio needs to revise…"
-                  style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid var(--border)',background:'var(--surface2)',fontFamily:'var(--font-body)',fontSize:13,color:'var(--text)',resize:'vertical',marginBottom:10,boxSizing:'border-box'}} />
+                  style={{width:'100%',padding:'9px 12px',borderRadius: 'var(--r-8)',border:'1px solid var(--border)',background:'var(--surface2)',fontFamily:'var(--font-body)',fontSize:13,color:'var(--text)',resize:'vertical',marginBottom:10,boxSizing:'border-box'}} />
                 <button onClick={requestRevision} disabled={revising||!revMsg.trim()} className="btn btn-primary" style={{fontSize:13,background:'var(--amber)'}}>
                   {revising ? 'Sending…' : 'Send revision request'}
                 </button>
@@ -1068,11 +1068,11 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
 
 function SideCard({ title, badge, headerExtra, children }) {
   return (
-    <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, padding:'16px 18px' }}>
+    <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', padding:'16px 18px' }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
         <span style={{ fontSize:13, fontWeight:700, color:'var(--text)' }}>{title}</span>
         {headerExtra}
-        {badge && <span style={{ fontSize:10, fontWeight:600, color:'var(--gold)', background:'var(--gold-dim)', padding:'2px 8px', borderRadius:20 }}>{badge}</span>}
+        {badge && <span style={{ fontSize:10, fontWeight:600, color:'var(--gold)', background:'var(--gold-dim)', padding:'2px 8px', borderRadius: 'var(--r-20)' }}>{badge}</span>}
       </div>
       {children}
     </div>
@@ -1139,7 +1139,7 @@ function MilestonesEditor({ projectId, proposalId, onChange }) {
 
   if (loading) return <div style={{ fontSize: 12, color: 'var(--text4)' }}>Loading milestones…</div>;
 
-  const phaseDot = { design: 'var(--ph-d, #7A8C6E)', sampling: 'var(--ph-s, #C4953A)', production: 'var(--ph-p, #5B4B8A)' };
+  const phaseDot = { design: 'var(--ph-d, var(--sage))', sampling: 'var(--ph-s, var(--amber-d))', production: 'var(--ph-p, var(--purple))' };
 
   return (
     <div>
@@ -1152,7 +1152,7 @@ function MilestonesEditor({ projectId, proposalId, onChange }) {
             <span style={{ width:7, height:7, borderRadius:'50%', background: phaseDot[key], flexShrink: 0 }} />
             <span style={{ fontSize:13, fontWeight:700, color:'var(--text)' }}>{label}</span>
             {items.length > 0 && Math.abs(total - 100) > 0.01 && (
-              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--red)', background: 'var(--red-dim)', borderRadius: 100, padding: '2px 8px', marginLeft: 'auto' }}>{total}% — needs 100%</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--red)', background: 'var(--red-dim)', borderRadius: 'var(--r-full)', padding: '2px 8px', marginLeft: 'auto' }}>{total}% — needs 100%</span>
             )}
           </div>
           <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom: 9 }}>
@@ -1164,24 +1164,24 @@ function MilestonesEditor({ projectId, proposalId, onChange }) {
                     <select
                       value={isCustom ? 'Custom' : m.trigger_label}
                       onChange={e => updateMilestone(m.id, { trigger_label: e.target.value === 'Custom' ? '' : e.target.value })}
-                      style={{ width: '100%', fontSize:12, padding:'7px 9px', borderRadius:8, border:'1px solid var(--border)', background:'var(--bg)', color:'var(--text)', fontFamily:'var(--font-body)', boxSizing:'border-box' }}>
+                      style={{ width: '100%', fontSize:12, padding:'7px 9px', borderRadius: 'var(--r-8)', border:'1px solid var(--border)', background:'var(--bg)', color:'var(--text)', fontFamily:'var(--font-body)', boxSizing:'border-box' }}>
                       {MILESTONE_TRIGGER_OPTIONS[key].map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                     <input type="number" min="0" max="100" placeholder="%" value={m.percentage}
                       onChange={e => updateMilestone(m.id, { percentage: e.target.value })}
-                      style={{ width: '100%', fontSize:14, fontWeight:700, textAlign:'center', padding:'7px 5px', borderRadius:8, border:'1px solid var(--border2)', background:'var(--bg)', color:'var(--text)', fontFamily:'var(--font-body)', boxSizing:'border-box' }} />
+                      style={{ width: '100%', fontSize:14, fontWeight:700, textAlign:'center', padding:'7px 5px', borderRadius: 'var(--r-8)', border:'1px solid var(--border2)', background:'var(--bg)', color:'var(--text)', fontFamily:'var(--font-body)', boxSizing:'border-box' }} />
                     <button onClick={() => removeMilestone(m.id)} style={{ background:'none', border:'none', color:'var(--text4)', cursor:'pointer', fontSize:15, padding:'0 2px', flexShrink:0 }}>×</button>
                   </div>
                   {isCustom && (
                     <input type="text" placeholder="Describe the milestone condition…" value={m.trigger_label}
                       onChange={e => updateMilestone(m.id, { trigger_label: e.target.value })}
-                      style={{ width: '100%', marginTop: 4, fontSize:12, padding:'6px 9px', borderRadius:8, border:'1px solid var(--border)', background:'var(--bg)', color:'var(--text)', fontFamily:'var(--font-body)', boxSizing:'border-box' }} />
+                      style={{ width: '100%', marginTop: 4, fontSize:12, padding:'6px 9px', borderRadius: 'var(--r-8)', border:'1px solid var(--border)', background:'var(--bg)', color:'var(--text)', fontFamily:'var(--font-body)', boxSizing:'border-box' }} />
                   )}
                 </div>
               );
             })}
           </div>
-          <button onClick={() => addMilestone(key)} disabled={addingPhase === key} className="btn btn-ghost" style={{ fontSize:12, padding:'6px 15px', width: 'auto', borderRadius: 100, color: 'var(--admin, var(--gold))', background: 'var(--admin-dim, var(--gold-dim))', border: '1px solid var(--admin-dim2, var(--gold-l))' }}>
+          <button onClick={() => addMilestone(key)} disabled={addingPhase === key} className="btn btn-ghost" style={{ fontSize:12, padding:'6px 15px', width: 'auto', borderRadius: 'var(--r-full)', color: 'var(--admin, var(--gold))', background: 'var(--admin-dim, var(--gold-dim))', border: '1px solid var(--admin-dim2, var(--gold-l))' }}>
             {addingPhase === key ? 'Adding…' : '+ Add milestone'}
           </button>
         </div>
@@ -1228,7 +1228,7 @@ function BuyerActivityFeed({ projectId, proposalId }) {
   }, [projectId, proposalId]);
 
   return (
-    <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, padding:'16px 18px' }}>
+    <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', padding:'16px 18px' }}>
       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
         <span style={{ fontSize:13, fontWeight:700, color:'var(--text)', flex: 1 }}>Buyer responses</span>
         <span style={{ width:7, height:7, borderRadius:'50%', background:'var(--green)', display:'inline-block' }} />
@@ -1381,10 +1381,10 @@ export default function AdminProjectDetail() {
                 onFocus={() => { setBuyerOpen(true); if (buyers.length === 0) searchBuyers(''); }}
                 onChange={e => searchBuyers(e.target.value)}
                 placeholder="Link chat buyer…"
-                style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)', width: 220 }}
+                style={{ padding: '8px 12px', borderRadius: 'var(--r-8)', border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)', width: 220 }}
               />
               {buyerOpen && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: 'var(--shadow-lg)', maxHeight: 260, overflowY: 'auto', marginTop: 4 }}>
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-8)', boxShadow: 'var(--shadow-lg)', maxHeight: 260, overflowY: 'auto', marginTop: 4 }}>
                   <div
                     onClick={() => { updateProject({ buyer_profile: null }); setBuyerQuery(''); setBuyerOpen(false); }}
                     style={{ padding: '9px 14px', fontSize: 13, color: 'var(--text3)', cursor: 'pointer', borderBottom: '1px solid var(--border)' }}
@@ -1413,7 +1413,7 @@ export default function AdminProjectDetail() {
             </div>
           )}
           <select value={project.stage} onChange={e => updateProject({ stage: e.target.value })}
-            style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)' }}>
+            style={{ padding: '8px 14px', borderRadius: 'var(--r-8)', border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)' }}>
             {['draft','brief_submitted','studio_assigned','in_production','completed','cancelled'].map(s => (
               <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
             ))}
@@ -1433,7 +1433,7 @@ export default function AdminProjectDetail() {
          AdminProjectDetailView.delete), so this isn't just a UI speed bump. */}
       {deleteOpen && (
         <div onClick={closeDeleteModal} style={{ position:'fixed', inset:0, background:'rgba(26,22,18,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:20 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:16, maxWidth:440, width:'100%', padding:'28px 26px', boxShadow:'var(--shadow-lg)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius: 'var(--r-16)', maxWidth:440, width:'100%', padding:'28px 26px', boxShadow:'var(--shadow-lg)' }}>
             {deleteStage === 1 ? (
               <>
                 <div style={{ fontSize: 28, marginBottom: 10 }}>⚠️</div>
@@ -1465,7 +1465,7 @@ export default function AdminProjectDetail() {
                   value={deleteText}
                   onChange={e => setDeleteText(e.target.value)}
                   placeholder={project.name}
-                  style={{ width:'100%', fontSize:14, padding:'10px 12px', borderRadius:8, border:'1px solid var(--border2)', fontFamily:'var(--font-body)', marginBottom: 10, boxSizing:'border-box' }}
+                  style={{ width:'100%', fontSize:14, padding:'10px 12px', borderRadius: 'var(--r-8)', border:'1px solid var(--border2)', fontFamily:'var(--font-body)', marginBottom: 10, boxSizing:'border-box' }}
                 />
                 {deleteError && <div style={{ fontSize:12, color:'var(--red)', marginBottom:10 }}>{deleteError}</div>}
                 <div style={{ display:'flex', gap:10 }}>
@@ -1502,7 +1502,7 @@ export default function AdminProjectDetail() {
       {tab === 'share' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{
-            background: 'var(--gold-dim)', border: '1px solid var(--gold)', borderRadius: 12,
+            background: 'var(--gold-dim)', border: '1px solid var(--gold)', borderRadius: 'var(--r-lg)',
             padding: '18px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12,
           }}>
             <div>
@@ -1514,13 +1514,13 @@ export default function AdminProjectDetail() {
             </button>
           </div>
 
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '24px 28px' }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '24px 28px' }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Quick single-studio share</div>
             <div style={{ fontSize: 12, color: 'var(--text4)', marginBottom: 16 }}>Legacy path — shares the brief to one studio directly, without going through match scoring.</div>
             {project.studio_name && <div style={{ fontSize: 13, color: 'var(--teal)', marginBottom: 14 }}>✓ Currently assigned: {project.studio_name}</div>}
             <div style={{ display: 'flex', gap: 12 }}>
               <select value={selectedStudio} onChange={e => setSelectedStudio(e.target.value)}
-                style={{ flex: 1, padding: '9px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)' }}>
+                style={{ flex: 1, padding: '9px 14px', borderRadius: 'var(--r-8)', border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)' }}>
                 <option value="">Select a studio…</option>
                 {studios.map(s => <option key={s.studio_id} value={s.studio_id}>{s.studio_name}{s.location ? ` — ${s.location}` : ''}</option>)}
               </select>
@@ -1546,7 +1546,7 @@ export default function AdminProjectDetail() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {proposals.length === 0 ? <div style={{ fontSize: 13, color: 'var(--text4)', fontStyle: 'italic' }}>No proposals yet.</div> : proposals.map(p => (
-                <div key={p.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 22px', cursor: 'pointer', transition: 'box-shadow 0.15s' }}
+                <div key={p.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '18px 22px', cursor: 'pointer', transition: 'box-shadow 0.15s' }}
                   onClick={() => setSelectedProposal(p)}
                   onMouseEnter={e => e.currentTarget.style.boxShadow = 'var(--shadow-lg)'}
                   onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
@@ -1559,7 +1559,7 @@ export default function AdminProjectDetail() {
                         {p.submitted_at && ` · Submitted ${fmt(p.submitted_at)}`}
                       </div>
                     </div>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold)', background: 'var(--gold-dim)', padding: '3px 10px', borderRadius: 20, textTransform: 'uppercase' }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold)', background: 'var(--gold-dim)', padding: '3px 10px', borderRadius: 'var(--r-20)', textTransform: 'uppercase' }}>
                       Review →
                     </span>
                   </div>
@@ -1575,10 +1575,10 @@ export default function AdminProjectDetail() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {orders.length === 0 ? <div style={{ fontSize: 13, color: 'var(--text4)', fontStyle: 'italic' }}>No orders yet.</div>
           : orders.map(o => (
-            <div key={o.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px' }}>
+            <div key={o.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', padding: '16px 20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', textTransform: 'capitalize' }}>{o.order_type?.replace(/_/g,' ')} Order</div>
-                <span style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface2)', padding: '2px 8px', borderRadius: 6, textTransform: 'capitalize' }}>{o.status?.replace(/_/g,' ')}</span>
+                <span style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface2)', padding: '2px 8px', borderRadius: 'var(--r)', textTransform: 'capitalize' }}>{o.status?.replace(/_/g,' ')}</span>
               </div>
               <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
                 {o.committed_dispatch_date && <div><div style={{ fontSize: 10, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Dispatch</div><div style={{ fontSize: 13, color: 'var(--text2)' }}>{fmt(o.committed_dispatch_date)}</div></div>}

@@ -30,7 +30,7 @@ function fmt(iso) {
 }
 function StageBadge({ stage }) {
   const c = STAGE_COLORS[stage] || STAGE_COLORS.draft;
-  return <span style={{ fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:20, background:c.bg, color:c.text, textTransform:'uppercase' }}>{STAGE_LABELS[stage] || stage}</span>;
+  return <span style={{ fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius: 'var(--r-20)', background:c.bg, color:c.text, textTransform:'uppercase' }}>{STAGE_LABELS[stage] || stage}</span>;
 }
 function Tab({ label, active, onClick, count }) {
   return (
@@ -43,7 +43,7 @@ function Tab({ label, active, onClick, count }) {
       transition:'all 0.15s', marginBottom:-1, display:'flex', alignItems:'center', gap:6,
     }}>
       {label}
-      {count > 0 && <span style={{ fontSize:10, background: active ? 'var(--gold)' : 'var(--surface3)', color: active ? '#fff' : 'var(--text3)', borderRadius:10, padding:'1px 6px' }}>{count}</span>}
+      {count > 0 && <span style={{ fontSize:10, background: active ? 'var(--gold)' : 'var(--surface3)', color: active ? '#fff' : 'var(--text3)', borderRadius: 'var(--r-10)', padding:'1px 6px' }}>{count}</span>}
     </button>
   );
 }
@@ -133,7 +133,7 @@ function BriefTab({ project, onRefresh }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:24 }}>
       {/* Brief fields */}
-      <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, padding:'24px 28px' }}>
+      <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', padding:'24px 28px' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
           <div style={{ fontFamily:'var(--font-display)', fontSize:18, fontWeight:600, color:'var(--text)' }}>Brief Details</div>
           {canEdit && !editing && (
@@ -164,13 +164,13 @@ function BriefTab({ project, onRefresh }) {
               <label style={{ fontSize:11 }}>Product Description <span style={{ color:'var(--red)' }}>*</span></label>
               <textarea rows={3} value={form.product_description || ''}
                 onChange={e => { setForm(f => ({...f, product_description: e.target.value})); setErrors(er => ({...er, product_description: false})); }}
-                style={{ fontSize:13, resize:'vertical', width:'100%', padding:'9px 12px', borderRadius:8, border:`1px solid ${errors.product_description ? 'var(--red)' : 'var(--border)'}`, background:'var(--surface2)', fontFamily:'var(--font-body)', color:'var(--text)' }} />
+                style={{ fontSize:13, resize:'vertical', width:'100%', padding:'9px 12px', borderRadius: 'var(--r-8)', border:`1px solid ${errors.product_description ? 'var(--red)' : 'var(--border)'}`, background:'var(--surface2)', fontFamily:'var(--font-body)', color:'var(--text)' }} />
             </div>
             <div className="field" style={{ gridColumn:'1 / -1' }}>
               <label style={{ fontSize:11 }}>Additional Notes <span style={{ color:'var(--red)' }}>*</span></label>
               <textarea rows={3} value={form.additional_specs || ''}
                 onChange={e => { setForm(f => ({...f, additional_specs: e.target.value})); setErrors(er => ({...er, additional_specs: false})); }}
-                style={{ fontSize:13, resize:'vertical', width:'100%', padding:'9px 12px', borderRadius:8, border:`1px solid ${errors.additional_specs ? 'var(--red)' : 'var(--border)'}`, background:'var(--surface2)', fontFamily:'var(--font-body)', color:'var(--text)' }} />
+                style={{ fontSize:13, resize:'vertical', width:'100%', padding:'9px 12px', borderRadius: 'var(--r-8)', border:`1px solid ${errors.additional_specs ? 'var(--red)' : 'var(--border)'}`, background:'var(--surface2)', fontFamily:'var(--font-body)', color:'var(--text)' }} />
             </div>
             <div style={{ gridColumn:'1 / -1', display:'flex', gap:10, alignItems:'center' }}>
               <button onClick={saveBrief} disabled={saving} className="btn btn-primary" style={{ fontSize:13 }}>{saving ? 'Saving…' : 'Save Brief'}</button>
@@ -201,7 +201,7 @@ function BriefTab({ project, onRefresh }) {
               <div style={{ gridColumn:'1 / -1' }}>
                 <div style={{ fontSize:10, fontWeight:700, color:'var(--text4)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:6 }}>Materials / Keywords</div>
                 <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-                  {brief.materials_keywords.map(k => <span key={k} style={{ fontSize:11, padding:'3px 9px', background:'var(--surface3)', borderRadius:20, color:'var(--text2)' }}>{k}</span>)}
+                  {brief.materials_keywords.map(k => <span key={k} style={{ fontSize:11, padding:'3px 9px', background:'var(--surface3)', borderRadius: 'var(--r-20)', color:'var(--text2)' }}>{k}</span>)}
                 </div>
               </div>
             )}
@@ -222,7 +222,7 @@ function BriefTab({ project, onRefresh }) {
       </div>
 
       {/* Moodboards */}
-      <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, padding:'24px 28px' }}>
+      <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', padding:'24px 28px' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
           <div style={{ fontFamily:'var(--font-display)', fontSize:18, fontWeight:600, color:'var(--text)' }}>Moodboards</div>
           {canEdit && (
@@ -237,7 +237,7 @@ function BriefTab({ project, onRefresh }) {
         ) : (
           <div style={{ display:'flex', flexWrap:'wrap', gap:12 }}>
             {(brief.moodboards || []).map(m => (
-              <div key={m.id} style={{ position:'relative', width:100, height:100, borderRadius:8, overflow:'hidden', border:'1px solid var(--border)', background:'var(--surface2)' }}>
+              <div key={m.id} style={{ position:'relative', width:100, height:100, borderRadius: 'var(--r-8)', overflow:'hidden', border:'1px solid var(--border)', background:'var(--surface2)' }}>
                 {m.mime_type?.startsWith('image/') ? (
                   <img src={m.url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
                 ) : (
@@ -280,7 +280,7 @@ function ProposalsTab({ project, onRefresh }) {
   const visible   = proposals.filter(p => ['sent_to_buyer','accepted','declined','negotiating'].includes(p.status));
 
   if (visible.length === 0) return (
-    <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, padding:'40px 32px', textAlign:'center' }}>
+    <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', padding:'40px 32px', textAlign:'center' }}>
       <div style={{ fontSize:32, marginBottom:12 }}>📬</div>
       <div style={{ fontSize:14, color:'var(--text3)' }}>No proposals received yet. Qala will share one once a studio responds to your brief.</div>
     </div>
@@ -289,7 +289,7 @@ function ProposalsTab({ project, onRefresh }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:24 }}>
       {visible.map(p => (
-        <div key={p.id} style={{ border:'1px solid var(--border)', borderRadius:12, overflow:'hidden' }}>
+        <div key={p.id} style={{ border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow:'hidden' }}>
           <ProposalCarbonCopy
             proposal={p}
             embedded
@@ -316,7 +316,7 @@ function ProposalsTab({ project, onRefresh }) {
 function OrdersTab({ project }) {
   const orders = project.orders || [];
   if (orders.length === 0) return (
-    <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, padding:'40px 32px', textAlign:'center' }}>
+    <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', padding:'40px 32px', textAlign:'center' }}>
       <div style={{ fontSize:32, marginBottom:12 }}>📦</div>
       <div style={{ fontSize:14, color:'var(--text3)' }}>No orders yet. Orders will appear here once your project is in production.</div>
     </div>
@@ -324,11 +324,11 @@ function OrdersTab({ project }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
       {orders.map(o => (
-        <div key={o.id} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:12, padding:'20px 24px' }}>
+        <div key={o.id} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', padding:'20px 24px' }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14, flexWrap:'wrap', gap:8 }}>
             <div style={{ display:'flex', gap:10, alignItems:'center' }}>
               <div style={{ fontFamily:'var(--font-display)', fontSize:16, fontWeight:600, color:'var(--text)' }}>{ORDER_TYPES[o.order_type] || o.order_type}</div>
-              <span style={{ fontSize:11, fontWeight:600, color: ORDER_STATUS_COLORS[o.status] || 'var(--text3)', background:'var(--surface2)', padding:'2px 8px', borderRadius:6 }}>{ORDER_STATUS[o.status] || o.status}</span>
+              <span style={{ fontSize:11, fontWeight:600, color: ORDER_STATUS_COLORS[o.status] || 'var(--text3)', background:'var(--surface2)', padding:'2px 8px', borderRadius: 'var(--r)' }}>{ORDER_STATUS[o.status] || o.status}</span>
             </div>
             <div style={{ fontSize:12, color:'var(--text4)' }}>{fmt(o.created_at)}</div>
           </div>
@@ -373,13 +373,13 @@ function ContractsTab({ project }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
       {contracts.map(c => (
-        <div key={c.id} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 18px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+        <div key={c.id} style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius: 'var(--r-10)', padding:'14px 18px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <div>
             <div style={{ fontSize:13, fontWeight:500, color:'var(--text)', marginBottom:3 }}>{c.file_name}</div>
             <div style={{ fontSize:11, color:'var(--text4)' }}>{c.contract_type?.replace(/_/g,' ')} · {fmt(c.uploaded_at)}</div>
           </div>
           {c.url && (
-            <a href={c.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:12, color:'var(--gold)', textDecoration:'none', padding:'6px 14px', background:'var(--gold-dim)', borderRadius:6, border:'1px solid rgba(200,165,90,0.2)' }}>
+            <a href={c.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:12, color:'var(--gold)', textDecoration:'none', padding:'6px 14px', background:'var(--gold-dim)', borderRadius: 'var(--r)', border:'1px solid rgba(200,165,90,0.2)' }}>
               View →
             </a>
           )}

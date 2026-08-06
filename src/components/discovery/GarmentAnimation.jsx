@@ -599,7 +599,7 @@ export default function GarmentAnimation({ step }) {
         <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
           {STAGES.map((_, i) => (
             <div key={i} style={{
-              height: 2.5, borderRadius: 2, flex: i + 1 === step ? 2.5 : 1,
+              height: 2.5, borderRadius: 'var(--r-2)', flex: i + 1 === step ? 2.5 : 1,
               background: i + 1 < step
                 ? 'rgba(255,255,255,0.45)'
                 : i + 1 === step

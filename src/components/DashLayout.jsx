@@ -38,7 +38,7 @@ export function DashLayout({ children, nav: navItems, theme = '' }) {
           .dash-hamburger {
             display: flex; align-items: center; justify-content: center;
             position: fixed; top: 14px; left: 14px; z-index: 40;
-            width: 40px; height: 40px; border-radius: 8px;
+            width: 40px; height: 40px; border-radius: var(--r-8);
             background: var(--surface); border: 1px solid var(--border);
             cursor: pointer; font-size: 18; color: var(--text);
             box-shadow: 0 2px 8px rgba(0,0,0,0.06);
@@ -88,7 +88,7 @@ export function DashLayout({ children, nav: navItems, theme = '' }) {
         <div style={{ padding:'14px 12px', borderTop:'1px solid var(--border)' }}>
           <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', background:'var(--surface2)', borderRadius:'var(--radius)', border:'1px solid var(--border)', marginBottom:10 }}>
             <div style={{
-              width:30, height:30, borderRadius:8, flexShrink:0,
+              width:30, height:30, borderRadius: 'var(--r-8)', flexShrink:0,
               background:'linear-gradient(135deg,var(--teal),var(--teal-l))',
               display:'flex', alignItems:'center', justifyContent:'center',
               fontSize:13, fontWeight:700, color:'var(--bg)',

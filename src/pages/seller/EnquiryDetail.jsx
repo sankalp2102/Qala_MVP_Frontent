@@ -73,13 +73,13 @@ const S = {
   topbar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 },
   breadcrumb: { fontSize: 13, color: 'var(--text3)' },
   breadcrumbLink: { color: 'var(--text3)', cursor: 'pointer', background: 'none', border: 'none', fontSize: 13, padding: 0 },
-  badgeNew: { fontSize: 11, fontWeight: 600, background: 'var(--gold-dim)', color: 'var(--gold-d, var(--gold))', border: '1px solid var(--gold-l)', borderRadius: 20, padding: '4px 12px' },
-  card: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '24px 28px', marginBottom: 20 },
+  badgeNew: { fontSize: 11, fontWeight: 600, background: 'var(--gold-dim)', color: 'var(--gold-d, var(--gold))', border: '1px solid var(--gold-l)', borderRadius: 'var(--r-20)', padding: '4px 12px' },
+  card: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '24px 28px', marginBottom: 20 },
   cardTitle: { fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600, color: 'var(--text)', marginBottom: 20 },
   detailLabel: { fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 },
   detailValue: { fontSize: 14, fontWeight: 500, color: 'var(--text)' },
   divider: { height: 1, background: 'var(--border)', margin: '18px 0' },
-  chip: { fontSize: 12, color: 'var(--text2)', background: 'var(--gold-dim)', border: '1px solid var(--gold-l)', borderRadius: 20, padding: '3px 10px' },
+  chip: { fontSize: 12, color: 'var(--text2)', background: 'var(--gold-dim)', border: '1px solid var(--gold-l)', borderRadius: 'var(--r-20)', padding: '3px 10px' },
 };
 
 export default function EnquiryDetail() {
@@ -205,19 +205,19 @@ export default function EnquiryDetail() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
               <div>
                 <div style={{ ...S.detailLabel, marginBottom: 6 }}>Fabrics</div>
-                <div>{(brief.preferred_fabrics || []).length > 0 ? brief.preferred_fabrics.map((t, i) => <span key={i} style={{ fontSize: 12, color: 'var(--text2)', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 20, padding: '3px 10px', marginRight: 4, display: 'inline-block', marginBottom: 4 }}>{t}</span>) : <span style={{ fontSize: 12, color: 'var(--text4)' }}>Not specified</span>}</div>
+                <div>{(brief.preferred_fabrics || []).length > 0 ? brief.preferred_fabrics.map((t, i) => <span key={i} style={{ fontSize: 12, color: 'var(--text2)', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--r-20)', padding: '3px 10px', marginRight: 4, display: 'inline-block', marginBottom: 4 }}>{t}</span>) : <span style={{ fontSize: 12, color: 'var(--text4)' }}>Not specified</span>}</div>
               </div>
               <div>
                 <div style={{ ...S.detailLabel, marginBottom: 6 }}>Printing & dyeing</div>
-                <div>{(brief.printing_required || []).length > 0 ? brief.printing_required.map((t, i) => <span key={i} style={{ fontSize: 12, color: 'var(--text2)', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 20, padding: '3px 10px', marginRight: 4, display: 'inline-block', marginBottom: 4 }}>{t}</span>) : <span style={{ fontSize: 12, color: 'var(--text4)' }}>Not specified</span>}</div>
+                <div>{(brief.printing_required || []).length > 0 ? brief.printing_required.map((t, i) => <span key={i} style={{ fontSize: 12, color: 'var(--text2)', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--r-20)', padding: '3px 10px', marginRight: 4, display: 'inline-block', marginBottom: 4 }}>{t}</span>) : <span style={{ fontSize: 12, color: 'var(--text4)' }}>Not specified</span>}</div>
               </div>
               <div>
                 <div style={{ ...S.detailLabel, marginBottom: 6 }}>Surface work</div>
-                <div>{(brief.embellishment_required || []).length > 0 ? brief.embellishment_required.map((t, i) => <span key={i} style={{ fontSize: 12, color: 'var(--text2)', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 20, padding: '3px 10px', marginRight: 4, display: 'inline-block', marginBottom: 4 }}>{t}</span>) : <span style={{ fontSize: 12, color: 'var(--text4)' }}>Not specified</span>}</div>
+                <div>{(brief.embellishment_required || []).length > 0 ? brief.embellishment_required.map((t, i) => <span key={i} style={{ fontSize: 12, color: 'var(--text2)', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--r-20)', padding: '3px 10px', marginRight: 4, display: 'inline-block', marginBottom: 4 }}>{t}</span>) : <span style={{ fontSize: 12, color: 'var(--text4)' }}>Not specified</span>}</div>
               </div>
               <div>
                 <div style={{ ...S.detailLabel, marginBottom: 6 }}>Dyes</div>
-                <div>{(brief.preferred_dyes || []).length > 0 ? brief.preferred_dyes.map((t, i) => <span key={i} style={{ fontSize: 12, color: 'var(--text2)', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 20, padding: '3px 10px', marginRight: 4, display: 'inline-block', marginBottom: 4 }}>{t}</span>) : <span style={{ fontSize: 12, color: 'var(--text4)' }}>Not specified</span>}</div>
+                <div>{(brief.preferred_dyes || []).length > 0 ? brief.preferred_dyes.map((t, i) => <span key={i} style={{ fontSize: 12, color: 'var(--text2)', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--r-20)', padding: '3px 10px', marginRight: 4, display: 'inline-block', marginBottom: 4 }}>{t}</span>) : <span style={{ fontSize: 12, color: 'var(--text4)' }}>Not specified</span>}</div>
               </div>
             </div>
 
@@ -226,7 +226,7 @@ export default function EnquiryDetail() {
                 <div style={S.divider} />
                 <div style={{ ...S.detailLabel, marginBottom: 6 }}>References</div>
                 {brief.moodboards.map((m, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'var(--surface)', borderRadius: 6, padding: '7px 10px', marginBottom: 5 }}>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'var(--surface)', borderRadius: 'var(--r)', padding: '7px 10px', marginBottom: 5 }}>
                     <span style={{ fontSize: 16 }}>🖼</span><span style={{ fontSize: 12, fontWeight: 500, flex: 1 }}>{m.file_name || m.name}</span>
                     {m.url && <a href={m.url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--gold)' }}>Open ↗</a>}
                   </div>
@@ -259,10 +259,10 @@ export default function EnquiryDetail() {
 
           {/* Qala's note — private admin context, never shown to buyer (spec §4.4) */}
           {assignment.studio_note && (
-            <div style={{ background: '#F5F1FA', border: '1px solid #C9B8E8', borderRadius: 12, padding: '18px 22px', marginBottom: 20 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#5B4B8A', marginBottom: 4 }}>🔒 Qala's note to you</div>
+            <div style={{ background: 'var(--surface)', border: '1px solid #C9B8E8', borderRadius: 'var(--r-lg)', padding: '18px 22px', marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--purple)', marginBottom: 4 }}>🔒 Qala's note to you</div>
               <div style={{ fontSize: 10, color: 'rgba(91,75,138,0.65)', marginBottom: 10 }}>Visible to your studio only — not shared with the buyer</div>
-              <div style={{ fontSize: 13, color: '#5B4B8A', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{assignment.studio_note}</div>
+              <div style={{ fontSize: 13, color: 'var(--purple)', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{assignment.studio_note}</div>
             </div>
           )}
 
@@ -272,7 +272,7 @@ export default function EnquiryDetail() {
               <div style={S.cardTitle}>Moodboards</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                 {brief.moodboards.map(m => (
-                  <div key={m.id} style={{ width: 90, height: 90, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--surface2)' }}>
+                  <div key={m.id} style={{ width: 90, height: 90, borderRadius: 'var(--r-8)', overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--surface2)' }}>
                     {m.url && m.file_name?.match(/\.(jpg|jpeg|png|webp)$/i) ? (
                       <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
@@ -391,7 +391,7 @@ export default function EnquiryDetail() {
                     onChange={e => setDeclineReason(e.target.value)}
                     placeholder="Reason (optional)"
                     rows={3}
-                    style={{ width: '100%', fontSize: 13, padding: 10, borderRadius: 8, border: '1px solid var(--border2)', fontFamily: 'var(--font-body)', resize: 'vertical', marginBottom: 8, boxSizing: 'border-box' }}
+                    style={{ width: '100%', fontSize: 13, padding: 10, borderRadius: 'var(--r-8)', border: '1px solid var(--border2)', fontFamily: 'var(--font-body)', resize: 'vertical', marginBottom: 8, boxSizing: 'border-box' }}
                   />
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button onClick={() => respond('decline', declineReason)} disabled={responding} className="btn btn-primary" style={{ fontSize: 13, flex: 1, background: 'var(--red)', borderColor: 'var(--red)' }}>
@@ -448,7 +448,7 @@ function QAThread({ projectId }) {
               alignSelf: m.sender === 'studio' ? 'flex-end' : 'flex-start',
               maxWidth: '80%',
               background: m.sender === 'studio' ? 'var(--gold-dim)' : 'var(--surface2)',
-              borderRadius: 10, padding: '9px 13px',
+              borderRadius: 'var(--r-10)', padding: '9px 13px',
             }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: m.sender === 'studio' ? 'var(--gold)' : 'var(--text3)', marginBottom: 3 }}>
                 {m.sender === 'studio' ? 'You' : m.sender_name || 'Qala'}
@@ -465,7 +465,7 @@ function QAThread({ projectId }) {
         onChange={e => setText(e.target.value)}
         placeholder="e.g. Are you open to machine-assisted work for the base stitch with hand detailing at collars and cuffs?"
         rows={3}
-        style={{ width: '100%', fontSize: 13, padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)', fontFamily: 'var(--font-body)', color: 'var(--text)', resize: 'vertical', marginBottom: 10, boxSizing: 'border-box' }}
+        style={{ width: '100%', fontSize: 13, padding: '9px 12px', borderRadius: 'var(--r-8)', border: '1px solid var(--border)', background: 'var(--surface2)', fontFamily: 'var(--font-body)', color: 'var(--text)', resize: 'vertical', marginBottom: 10, boxSizing: 'border-box' }}
       />
       <div style={{ display: 'flex', gap: 8 }}>
         <button onClick={send} disabled={sending || !text.trim()} className="btn btn-primary btn-sm">

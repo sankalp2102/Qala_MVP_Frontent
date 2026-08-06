@@ -31,7 +31,7 @@ export default function Wallet() {
       <h1 style={{ fontFamily:'var(--font-display)', fontSize:32, fontWeight:700, color:'var(--text)', marginBottom:6 }}>Earnings</h1>
       <p style={{ fontSize:14, color:'var(--text3)', marginBottom:28 }}>Your payout history across every project.</p>
 
-      <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:14, padding:'22px 26px', marginBottom:28, maxWidth:340 }}>
+      <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', padding:'22px 26px', marginBottom:28, maxWidth:340 }}>
         <div style={{ fontSize:11, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--text4)', marginBottom:6 }}>Total paid out</div>
         <div style={{ fontFamily:'var(--font-display)', fontSize:30, fontWeight:600, color:'var(--text)' }}>₹{Number(data?.total_payout_inr || 0).toLocaleString('en-IN')}</div>
       </div>
@@ -40,7 +40,7 @@ export default function Wallet() {
         <div style={{ marginBottom:32 }}>
           <div style={{ fontSize:11, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--text4)', marginBottom:12 }}>Upcoming</div>
           {pending.map(m => (
-            <div key={m.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 18px', background:'var(--surface)', border:'1px solid var(--border)', borderRadius:10, marginBottom:8 }}>
+            <div key={m.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 18px', background:'var(--surface)', border:'1px solid var(--border)', borderRadius: 'var(--r-10)', marginBottom:8 }}>
               <div>
                 <div style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>{PHASE_LABELS[m.phase]} — {m.project_name}</div>
                 <div style={{ fontSize:12, color:'var(--text4)' }}>{m.buyer_name} · {m.trigger_label}</div>

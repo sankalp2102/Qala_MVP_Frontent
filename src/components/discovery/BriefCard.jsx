@@ -40,7 +40,7 @@ export default function BriefCard({ extracted = {}, sessionToken }) {
     <div style={{
       background: 'var(--surface)',
       border: '1px solid var(--border2)',
-      borderRadius: 12,
+      borderRadius: 'var(--r-lg)',
       padding: '16px 18px',
       marginTop: 8,
       maxWidth: 320,
@@ -90,9 +90,9 @@ export default function BriefCard({ extracted = {}, sessionToken }) {
         style={{
           width: '100%',
           padding: '11px 16px',
-          borderRadius: 8,
-          background: '#1A1612',
-          color: '#F5F0E8',
+          borderRadius: 'var(--r-8)',
+          background: 'var(--text)',
+          color: 'var(--surface2)',
           border: 'none',
           fontSize: 12,
           fontWeight: 600,
@@ -102,8 +102,8 @@ export default function BriefCard({ extracted = {}, sessionToken }) {
           fontFamily: 'var(--font-body)',
           transition: 'background 0.18s',
         }}
-        onMouseEnter={e => { e.currentTarget.style.background = '#C46E49'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = '#1A1612'; }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'var(--terra-l)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'var(--text)'; }}
       >
         Find Studios →
       </button>

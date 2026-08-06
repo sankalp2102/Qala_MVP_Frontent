@@ -9,11 +9,11 @@ const PATTERNS = {
   'pattern-block': {
     backgroundImage: 'repeating-linear-gradient(45deg, rgba(185,92,56,0.15) 0, rgba(185,92,56,0.15) 2px, transparent 0, transparent 50%)',
     backgroundSize: '28px 28px',
-    backgroundColor: '#F5EDE4',
+    backgroundColor: 'var(--surface2)',
   },
   'pattern-print': {
     backgroundImage: 'repeating-linear-gradient(-45deg, rgba(185,92,56,0.12) 0, rgba(185,92,56,0.12) 3px, transparent 0, transparent 18px)',
-    backgroundColor: '#F5EDE4',
+    backgroundColor: 'var(--surface2)',
   },
   'pattern-embroidery': {
     backgroundImage: 'radial-gradient(circle, rgba(201,168,76,0.25) 1.5px, transparent 1.5px)',
@@ -25,10 +25,10 @@ const PATTERNS = {
       repeating-linear-gradient(0deg, rgba(122,140,110,0.2) 0, rgba(122,140,110,0.2) 2px, transparent 0, transparent 12px),
       repeating-linear-gradient(90deg, rgba(122,140,110,0.2) 0, rgba(122,140,110,0.2) 2px, transparent 0, transparent 12px)
     `,
-    backgroundColor: '#E8F0E5',
+    backgroundColor: 'var(--surface2)',
   },
   'pattern-dye': {
-    background: 'radial-gradient(ellipse at 30% 70%, rgba(122,140,110,0.3) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(201,168,76,0.25) 0%, transparent 50%), #EEE8DA',
+    background: 'radial-gradient(ellipse at 30% 70%, rgba(122,140,110,0.3) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(201,168,76,0.25) 0%, transparent 50%), var(--surface3)',
   },
   'pattern-leather': {
     backgroundImage: 'repeating-linear-gradient(90deg, rgba(26,22,18,0.06) 0, rgba(26,22,18,0.06) 1px, transparent 0, transparent 14px)',
@@ -59,14 +59,14 @@ function craftTitle(key) {
 function SkeletonCard() {
   return (
     <div style={{
-      background: 'var(--surface)', borderRadius: 12,
+      background: 'var(--surface)', borderRadius: 'var(--r-lg)',
       border: '1px solid var(--border)', overflow: 'hidden',
     }}>
       <div style={{ height: 160, background: 'var(--surface3)', animation: 'pulse 1.4s ease infinite' }} />
       <div style={{ padding: '18px 20px 20px' }}>
         {[120, 80, 200, 160, 200].map((w, i) => (
           <div key={i} style={{
-            height: 12, width: w, background: 'var(--surface3)', borderRadius: 6,
+            height: 12, width: w, background: 'var(--surface3)', borderRadius: 'var(--r)',
             marginBottom: 10, animation: 'pulse 1.4s ease infinite',
             animationDelay: `${i * 0.1}s`,
           }} />
@@ -95,7 +95,7 @@ function StudioCard({ studio, onClick }) {
       onMouseLeave={() => setHovered(false)}
       style={{
         background: 'var(--surface)',
-        borderRadius: 12,
+        borderRadius: 'var(--r-lg)',
         border: '1px solid var(--border)',
         overflow: 'hidden',
         cursor: 'pointer',
@@ -212,11 +212,11 @@ function StudioCard({ studio, onClick }) {
         <button
           style={{
             width: '100%', padding: 10,
-            background: hovered ? '#1A1612' : 'transparent',
-            color: hovered ? '#F5F0E8' : 'var(--text)',
+            background: hovered ? 'var(--text)' : 'transparent',
+            color: hovered ? 'var(--surface2)' : 'var(--text)',
             border: '1.5px solid rgba(26,22,18,0.15)',
-            borderColor: hovered ? '#1A1612' : 'rgba(26,22,18,0.15)',
-            borderRadius: 8, fontFamily: 'var(--font-body)',
+            borderColor: hovered ? 'var(--text)' : 'rgba(26,22,18,0.15)',
+            borderRadius: 'var(--r-8)', fontFamily: 'var(--font-body)',
             fontSize: 13, fontWeight: 500, letterSpacing: '0.04em',
             cursor: 'pointer', transition: 'background 0.18s, color 0.18s, border-color 0.18s',
           }}
@@ -238,10 +238,10 @@ function Chip({ label, active, onClick }) {
       onMouseLeave={() => setHovered(false)}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 5,
-        padding: '6px 14px', borderRadius: 100,
-        border: `1.5px solid ${active ? '#1A1612' : hovered ? 'var(--gold)' : 'rgba(26,22,18,0.22)'}`,
-        background: active ? '#1A1612' : hovered ? 'rgba(196,110,73,0.06)' : 'rgba(255,255,255,0.7)',
-        color: active ? '#F5F0E8' : hovered ? 'var(--gold)' : 'var(--text2)',
+        padding: '6px 14px', borderRadius: 'var(--r-full)',
+        border: `1.5px solid ${active ? 'var(--text)' : hovered ? 'var(--gold)' : 'rgba(26,22,18,0.22)'}`,
+        background: active ? 'var(--text)' : hovered ? 'rgba(196,110,73,0.06)' : 'rgba(255,255,255,0.7)',
+        color: active ? 'var(--surface2)' : hovered ? 'var(--gold)' : 'var(--text2)',
         fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: active ? 500 : 400,
         cursor: 'pointer', whiteSpace: 'nowrap',
         transition: 'all 0.18s ease',
@@ -364,10 +364,10 @@ function FilterGroup({ label, options, pinned = [], activeValues, isAll, onAll, 
             onClick={() => setExpanded(e => !e)}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 4,
-              padding: '5px 12px', borderRadius: 100, border: '1.5px solid',
-              borderColor: expanded || hasHiddenActive ? '#8FA083' : 'rgba(26,22,18,0.15)',
+              padding: '5px 12px', borderRadius: 'var(--r-full)', border: '1.5px solid',
+              borderColor: expanded || hasHiddenActive ? 'var(--sage-muted)' : 'rgba(26,22,18,0.15)',
               background: expanded ? 'rgba(122,140,110,0.08)' : 'transparent',
-              color: expanded || hasHiddenActive ? '#8FA083' : 'var(--text3)',
+              color: expanded || hasHiddenActive ? 'var(--sage-muted)' : 'var(--text3)',
               fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 500,
               cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.18s',
             }}
@@ -382,7 +382,7 @@ function FilterGroup({ label, options, pinned = [], activeValues, isAll, onAll, 
         <div style={{
           position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 200,
           background: 'var(--bg)', border: '1px solid var(--border)',
-          borderRadius: 12, padding: '16px 18px',
+          borderRadius: 'var(--r-lg)', padding: '16px 18px',
           boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
           display: 'flex', flexWrap: 'wrap', gap: 8,
           maxWidth: 480, minWidth: 280,
@@ -492,10 +492,10 @@ function FilterBar({ options, filters, setFilter, clearAll, totalVisible, hasAny
             onClick={() => setDrawerOpen(true)}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '8px 16px', borderRadius: 100,
-              border: `1.5px solid ${activeCount > 0 ? '#1A1612' : 'rgba(26,22,18,0.22)'}`,
-              background: activeCount > 0 ? '#1A1612' : 'rgba(255,255,255,0.7)',
-              color: activeCount > 0 ? '#F5F0E8' : 'var(--text2)',
+              padding: '8px 16px', borderRadius: 'var(--r-full)',
+              border: `1.5px solid ${activeCount > 0 ? 'var(--text)' : 'rgba(26,22,18,0.22)'}`,
+              background: activeCount > 0 ? 'var(--text)' : 'rgba(255,255,255,0.7)',
+              color: activeCount > 0 ? 'var(--surface2)' : 'var(--text2)',
               fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: 500,
               cursor: 'pointer',
             }}
@@ -542,7 +542,7 @@ function FilterBar({ options, filters, setFilter, clearAll, totalVisible, hasAny
               borderBottom: '1px solid var(--border)',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}>
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)' }} />
+              <div style={{ width: 36, height: 4, borderRadius: 'var(--r-2)', background: 'var(--border)', position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)' }} />
               <span style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 500, color: 'var(--text)', marginTop: 8 }}>Filters</span>
               <button onClick={() => setDrawerOpen(false)} style={{ background: 'none', border: 'none', fontSize: 20, color: 'var(--text3)', cursor: 'pointer', marginTop: 4 }}>✕</button>
             </div>
@@ -578,8 +578,8 @@ function FilterBar({ options, filters, setFilter, clearAll, totalVisible, hasAny
               <button
                 onClick={() => setDrawerOpen(false)}
                 style={{
-                  width: '100%', padding: '13px', borderRadius: 10,
-                  background: '#1A1612', color: '#F5F0E8', border: 'none',
+                  width: '100%', padding: '13px', borderRadius: 'var(--r-10)',
+                  background: 'var(--text)', color: 'var(--surface2)', border: 'none',
                   fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 600,
                   cursor: 'pointer',
                 }}
@@ -745,7 +745,7 @@ export default function StudioDirectory() {
 
       {/* ── LOGO BAR — sticky, always visible ───────────────────────────── */}
       <div style={{
-        background: '#1A1612', borderBottom: '1px solid rgba(245,240,232,0.08)',
+        background: 'var(--text)', borderBottom: '1px solid rgba(245,240,232,0.08)',
         padding: '0 48px', height: 58, position: 'sticky', top: 0, zIndex: 101,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         flexShrink: 0,
@@ -759,7 +759,7 @@ export default function StudioDirectory() {
 
       {/* ── HEADER ──────────────────────────────────────────────────────── */}
       <div style={{
-        background: '#1A1612', padding: '32px 48px 48px',
+        background: 'var(--text)', padding: '32px 48px 48px',
         position: 'relative', overflow: 'hidden',
       }}>
         {/* Decorative circles */}
@@ -802,11 +802,11 @@ export default function StudioDirectory() {
         {/* Title */}
         <h1 style={{
           fontFamily: 'var(--font-display)', fontWeight: 300,
-          fontSize: 'clamp(38px, 5vw, 64px)', color: '#F5F0E8',
+          fontSize: 'clamp(38px, 5vw, 64px)', color: 'var(--surface2)',
           lineHeight: 1.1, position: 'relative', zIndex: 1, maxWidth: 560,
           marginBottom: 20,
         }}>
-          Craft Studios <em style={{ fontStyle: 'italic', color: '#A3B898' }}>— Directory</em>
+          Craft Studios <em style={{ fontStyle: 'italic', color: 'var(--sage-l)' }}>— Directory</em>
         </h1>
 
         {/* Studio count */}
@@ -835,7 +835,7 @@ export default function StudioDirectory() {
         {error && (
           <div style={{
             textAlign: 'center', padding: '60px 40px',
-            background: 'var(--red-dim)', borderRadius: 12,
+            background: 'var(--red-dim)', borderRadius: 'var(--r-lg)',
             border: '1px solid rgba(201,64,64,0.2)',
           }}>
             <div style={{ fontSize: 14, color: 'var(--red)', marginBottom: 16 }}>{error}</div>
@@ -859,7 +859,7 @@ export default function StudioDirectory() {
         {!loading && !error && totalVisible === 0 && (
           <div style={{
             textAlign: 'center', padding: '80px 40px',
-            background: 'rgba(26,22,18,0.03)', borderRadius: 12,
+            background: 'rgba(26,22,18,0.03)', borderRadius: 'var(--r-lg)',
             maxWidth: 400, margin: '0 auto',
           }}>
             <div style={{ fontSize: 40, marginBottom: 20 }}>🧵</div>

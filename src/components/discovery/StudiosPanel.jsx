@@ -28,7 +28,7 @@ function DirectoryCard({ navigate }) {
         background: 'var(--surface)',
         border: '1px solid var(--border)',
         borderColor: hovered ? 'var(--border3)' : 'var(--border)',
-        borderRadius: 16,
+        borderRadius: 'var(--r-16)',
         overflow: 'hidden',
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
@@ -69,14 +69,14 @@ function DirectoryCard({ navigate }) {
         onClick={() => navigate('/directory')}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
-          padding: '12px 28px', borderRadius: 8,
-          background: '#1A1612', color: '#F5F0E8',
+          padding: '12px 28px', borderRadius: 'var(--r-8)',
+          background: 'var(--text)', color: 'var(--surface2)',
           border: 'none', fontSize: 13, fontWeight: 500,
           fontFamily: 'var(--font-body)', letterSpacing: '0.04em',
           cursor: 'pointer', transition: 'background 0.18s ease',
         }}
-        onMouseEnter={e => { e.currentTarget.style.background = '#8FA083'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = '#1A1612'; }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'var(--sage-muted)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'var(--text)'; }}
       >
         Browse all studios →
       </button>
@@ -151,7 +151,7 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
               title="Back to chat"
               style={{
                 background: 'none', border: '1px solid var(--border)',
-                borderRadius: 8, width: 32, height: 32,
+                borderRadius: 'var(--r-8)', width: 32, height: 32,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer', color: 'var(--text2)',
                 transition: 'background 0.15s', flexShrink: 0,
@@ -282,7 +282,7 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
             onClick={onClose}
             style={{
               background: 'none', border: '1px solid var(--border)',
-              borderRadius: 8, width: 36, height: 36,
+              borderRadius: 'var(--r-8)', width: 36, height: 36,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer', color: 'var(--text2)',
               transition: 'background 0.15s',

@@ -455,7 +455,7 @@ export default function DiscoverV2() {
       <button
         onClick={() => { authHandledRef.current = false; setPhase('loading'); startSession(null); }}
         style={{
-          padding: '9px 20px', borderRadius: 8, border: '1px solid var(--border)',
+          padding: '9px 20px', borderRadius: 'var(--r-8)', border: '1px solid var(--border)',
           background: 'none', cursor: 'pointer', fontSize: 13,
           fontFamily: 'var(--font-body)', color: 'var(--text)',
         }}
@@ -475,7 +475,7 @@ export default function DiscoverV2() {
         <div style={{
           background: 'var(--surface)',
           border: '1px solid var(--border)',
-          borderRadius: 16, padding: '40px 36px',
+          borderRadius: 'var(--r-16)', padding: '40px 36px',
           width: '100%', maxWidth: 420,
           boxShadow: 'var(--shadow-lg)',
         }}>
@@ -509,7 +509,7 @@ export default function DiscoverV2() {
               style={{
                 width: '100%', padding: '11px 14px',
                 border: `1px solid ${keyError ? 'var(--red)' : 'var(--border)'}`,
-                borderRadius: 8, background: 'var(--surface)',
+                borderRadius: 'var(--r-8)', background: 'var(--surface)',
                 fontSize: 14, color: 'var(--text)',
                 fontFamily: 'var(--font-body)', outline: 'none',
                 boxSizing: 'border-box', transition: 'border-color 0.18s',
@@ -528,16 +528,16 @@ export default function DiscoverV2() {
             disabled={!accessKey.trim() || starting}
             style={{
               width: '100%', padding: '12px',
-              borderRadius: 8, border: 'none',
-              background: '#1A1612', color: '#F5F0E8',
+              borderRadius: 'var(--r-8)', border: 'none',
+              background: 'var(--text)', color: 'var(--surface2)',
               fontSize: 14, fontWeight: 500,
               cursor: !accessKey.trim() || starting ? 'not-allowed' : 'pointer',
               fontFamily: 'var(--font-body)',
               opacity: !accessKey.trim() || starting ? 0.5 : 1,
               transition: 'background 0.18s, opacity 0.18s',
             }}
-            onMouseEnter={e => { if (!starting && accessKey.trim()) e.currentTarget.style.background = '#8FA083'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#1A1612'; }}
+            onMouseEnter={e => { if (!starting && accessKey.trim()) e.currentTarget.style.background = 'var(--sage-muted)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--text)'; }}
           >
             {starting ? 'Starting…' : 'Continue →'}
           </button>
@@ -557,7 +557,7 @@ export default function DiscoverV2() {
             onClick={() => navigate('/login?redirect=/discover')}
             style={{
               width: '100%', padding: '12px',
-              borderRadius: 8,
+              borderRadius: 'var(--r-8)',
               border: '1px solid var(--border)',
               background: 'transparent', color: 'var(--text)',
               fontSize: 14, fontWeight: 500,
@@ -601,7 +601,7 @@ export default function DiscoverV2() {
         .tdot:nth-child(2) { animation-delay: .15s; }
         .tdot:nth-child(3) { animation-delay: .3s; }
         .qchip {
-          padding: 6px 14px; border-radius: 20px;
+          padding: 6px 14px; border-radius: var(--r-20);
           border: 0.5px solid var(--border2);
           background: var(--surface);
           font-size: 12.5px; color: var(--text);
@@ -610,7 +610,7 @@ export default function DiscoverV2() {
         }
         .qchip:hover { background: var(--surface2); }
         .msgs-scroll::-webkit-scrollbar { width: 3px; }
-        .msgs-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+        .msgs-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--r-2); }
         textarea:focus { outline: none; }
         textarea { scrollbar-width: none; }
         textarea::-webkit-scrollbar { display: none; }
@@ -659,10 +659,10 @@ export default function DiscoverV2() {
               onClick={() => setSplitView(true)}
               style={{
                 padding: '7px 14px',
-                borderRadius: 8,
-                border: '0.5px solid #7A8C6E',
+                borderRadius: 'var(--r-8)',
+                border: '0.5px solid var(--sage)',
                 background: 'rgba(196,86,58,0.07)',
-                color: '#7A8C6E',
+                color: 'var(--sage)',
                 fontSize: 12, fontWeight: 500,
                 cursor: 'pointer',
                 fontFamily: 'var(--font-body)',
@@ -758,7 +758,7 @@ export default function DiscoverV2() {
                   src={`data:${img.mime};base64,${img.data}`}
                   alt=""
                   style={{
-                    height: 44, borderRadius: 6,
+                    height: 44, borderRadius: 'var(--r)',
                     border: '0.5px solid var(--border)',
                     display: 'block',
                   }}
@@ -768,7 +768,7 @@ export default function DiscoverV2() {
                   style={{
                     position: 'absolute', top: -5, right: -5,
                     width: 16, height: 16, borderRadius: '50%',
-                    background: '#1A1612', border: 'none',
+                    background: 'var(--text)', border: 'none',
                     color: '#fff', fontSize: 9, fontWeight: 700,
                     cursor: 'pointer', display: 'flex',
                     alignItems: 'center', justifyContent: 'center',
@@ -809,7 +809,7 @@ export default function DiscoverV2() {
             style={{
               flex: 1, resize: 'none',
               padding: '8px 12px',
-              borderRadius: 8,
+              borderRadius: 'var(--r-8)',
               border: '0.5px solid var(--border2)',
               background: 'var(--surface2)',
               fontSize: 14, color: 'var(--text)',
@@ -823,7 +823,7 @@ export default function DiscoverV2() {
             disabled={sending || (!input.trim() && !pendingImages.length)}
             style={{
               padding: '8px 16px',
-              borderRadius: 8,
+              borderRadius: 'var(--r-8)',
               border: '0.5px solid var(--border2)',
               background: 'var(--surface2)',
               fontSize: 13, color: 'var(--text)',
@@ -880,14 +880,14 @@ export default function DiscoverV2() {
               display: 'none', // shown via media query below
               position: 'fixed', bottom: 20, right: 20,
               width: 52, height: 52, borderRadius: '50%',
-              background: '#1A1612', border: 'none',
+              background: 'var(--text)', border: 'none',
               boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
               cursor: 'pointer', zIndex: 300,
               alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
             }}
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5F0E8" strokeWidth="1.8" strokeLinecap="round">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--surface2)" strokeWidth="1.8" strokeLinecap="round">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
             </svg>
             <style>{`
@@ -963,7 +963,7 @@ export default function DiscoverV2() {
                   onClick={() => setChatOpen(false)}
                   style={{ padding: '12px 0 8px', display: 'flex', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', minHeight: 44 }}
                 >
-                  <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border2)' }} />
+                  <div style={{ width: 36, height: 4, borderRadius: 'var(--r-2)', background: 'var(--border2)' }} />
                 </div>
  
                 {/* Reuse the chat column content inline */}
@@ -1003,7 +1003,7 @@ export default function DiscoverV2() {
                     disabled={sending}
                     style={{
                       flex: 1, resize: 'none', padding: '8px 12px',
-                      borderRadius: 8, border: '0.5px solid var(--border2)',
+                      borderRadius: 'var(--r-8)', border: '0.5px solid var(--border2)',
                       background: 'var(--surface2)', fontSize: 14,
                       color: 'var(--text)', fontFamily: 'var(--font-body)',
                       maxHeight: 80, outline: 'none',
@@ -1013,7 +1013,7 @@ export default function DiscoverV2() {
                     onClick={() => sendMessage()}
                     disabled={sending || !input.trim()}
                     style={{
-                      padding: '8px 14px', borderRadius: 8,
+                      padding: '8px 14px', borderRadius: 'var(--r-8)',
                       border: '0.5px solid var(--border2)',
                       background: 'var(--surface2)', fontSize: 13,
                       color: 'var(--text)', cursor: sending || !input.trim() ? 'not-allowed' : 'pointer',

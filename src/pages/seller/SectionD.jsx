@@ -25,19 +25,19 @@ function TechniqueCard({ craft, onUpdate, onDelete, onImageUpload, onImageRemove
   const imgSrc = rawUrl ? mediaUrl(rawUrl) : null;
 
   return (
-    <div style={{ border: '1px solid #E4E0DB', borderRadius: 6, padding: '14px 16px', background: '#FAFAF8', marginBottom: 10 }}>
+    <div style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r)', padding: '14px 16px', background: 'var(--bg)', marginBottom: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
         <input
           value={craft.craft_name}
           onChange={e => onUpdate({ craft_name: e.target.value })}
           placeholder="Technique name"
-          style={{ flex: 1, minWidth: 160, fontWeight: 600, fontSize: 14, border: 'none', background: 'transparent', padding: 0, color: '#1A1A1A', fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
+          style={{ flex: 1, minWidth: 160, fontWeight: 600, fontSize: 14, border: 'none', background: 'transparent', padding: 0, color: 'var(--text)', fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
         />
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
           <ExpertiseButtons value={craft.expertise_level} onChange={lvl => onUpdate({ expertise_level: lvl })} tooltips={EXPERTISE_TOOLTIPS.technique} />
           <button aria-label="Delete technique" onClick={onDelete}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#CCC', padding: '4px 6px', lineHeight: 1, display: 'inline-flex', alignItems: 'center' }}
-            onMouseEnter={e => e.currentTarget.style.color = '#C0392B'}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--red-d)'}
             onMouseLeave={e => e.currentTarget.style.color = '#CCC'}>
             <TrashIcon size={13} />
           </button>
@@ -45,21 +45,21 @@ function TechniqueCard({ craft, onUpdate, onDelete, onImageUpload, onImageRemove
       </div>
 
       <div style={{ marginBottom: 10 }}>
-        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#CCCCCC', fontWeight: 600, marginBottom: 4 }}>About this technique — specialities, innovations, or what makes your approach unique (optional)</div>
+        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--border-l)', fontWeight: 600, marginBottom: 4 }}>About this technique — specialities, innovations, or what makes your approach unique (optional)</div>
         <input
           value={craft.specialization || ''}
           onChange={e => onUpdate({ specialization: e.target.value })}
           placeholder="e.g. What's distinctive about how your studio does this — a speciality, a signature method, or an innovation"
-          style={{ width: '100%', padding: '7px 10px', border: '1px solid #D8D4CF', borderRadius: 5, background: '#fff', color: '#1A1A1A', fontSize: 12, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
+          style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border-l)', borderRadius: 'var(--r-5)', background: '#fff', color: 'var(--text)', fontSize: 12, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
         />
       </div>
 
-      <div style={{ paddingTop: 10, borderTop: '1px solid #F0EDE8' }}>
-        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#CCCCCC', fontWeight: 600, marginBottom: 6 }}>Thumbnail image (optional)</div>
+      <div style={{ paddingTop: 10, borderTop: '1px solid var(--surface2)' }}>
+        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--border-l)', fontWeight: 600, marginBottom: 6 }}>Thumbnail image (optional)</div>
         <div
           onMouseEnter={() => setImgHover(true)}
           onMouseLeave={() => setImgHover(false)}
-          style={{ width: 76, height: 76, borderRadius: 5, border: `1px ${imgSrc ? 'solid #E4E0DB' : 'dashed #C8C4BF'}`, background: imgSrc ? 'transparent' : imgHover ? '#FEF8F0' : '#FAFAF8', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', flexShrink: 0, cursor: imgSrc ? 'default' : 'pointer', transition: 'border-color .15s, background .15s', ...(imgHover && !imgSrc ? { borderColor: '#D97520' } : {}) }}>
+          style={{ width: 76, height: 76, borderRadius: 'var(--r-5)', border: `1px ${imgSrc ? 'solid var(--surface4)' : 'dashed var(--warm-gray)'}`, background: imgSrc ? 'transparent' : imgHover ? 'var(--surface)' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', flexShrink: 0, cursor: imgSrc ? 'default' : 'pointer', transition: 'border-color .15s, background .15s', ...(imgHover && !imgSrc ? { borderColor: 'var(--sage)' } : {}) }}>
           {imgSrc ? (
             <>
               <img src={imgSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />

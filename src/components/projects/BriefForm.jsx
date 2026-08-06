@@ -114,7 +114,7 @@ export default function BriefForm({ projectId, brief, isAdmin, onSaved }) {
 
   const inp = { fontSize: 13 };
   const sel = {
-    width: '100%', padding: '9px 12px', borderRadius: 8,
+    width: '100%', padding: '9px 12px', borderRadius: 'var(--r-8)',
     border: '1px solid var(--border)', background: 'var(--surface2)',
     fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)',
   };
@@ -141,7 +141,7 @@ export default function BriefForm({ projectId, brief, isAdmin, onSaved }) {
         <label style={{ fontSize: 11 }}>Product Description</label>
         <textarea rows={3} value={form.product_description} onChange={e => set('product_description', e.target.value)}
           placeholder="A 5-piece linen collection for summer — kurta, wide-leg trousers, jacket…"
-          style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text)', resize: 'vertical' }} />
+          style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r-8)', border: '1px solid var(--border)', background: 'var(--surface2)', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text)', resize: 'vertical' }} />
       </div>
 
       {/* Materials keywords */}
@@ -149,7 +149,7 @@ export default function BriefForm({ projectId, brief, isAdmin, onSaved }) {
         <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', display: 'block', marginBottom: 6 }}>Materials / Keywords</label>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
           {form.materials_keywords.map(kw => (
-            <span key={kw} style={{ fontSize: 12, padding: '3px 10px', background: 'var(--surface3)', borderRadius: 20, color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span key={kw} style={{ fontSize: 12, padding: '3px 10px', background: 'var(--surface3)', borderRadius: 'var(--r-20)', color: 'var(--text2)', display: 'flex', alignItems: 'center', gap: 6 }}>
               {kw}
               <button onClick={() => removeKeyword(kw)} style={{ background: 'none', border: 'none', color: 'var(--text4)', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
             </span>
@@ -159,7 +159,7 @@ export default function BriefForm({ projectId, brief, isAdmin, onSaved }) {
           <input value={kwInput} onChange={e => setKwInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && addKeyword()}
             placeholder="e.g. 100% Linen, Natural dyes, Handblock print — press Enter to add"
-            style={{ flex: 1, padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 12, fontFamily: 'var(--font-body)', color: 'var(--text)' }} />
+            style={{ flex: 1, padding: '7px 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 12, fontFamily: 'var(--font-body)', color: 'var(--text)' }} />
           <button onClick={addKeyword} className="btn btn-ghost" style={{ fontSize: 12, padding: '7px 12px' }}>Add</button>
         </div>
       </div>
@@ -221,7 +221,7 @@ export default function BriefForm({ projectId, brief, isAdmin, onSaved }) {
         <label style={{ fontSize: 11 }}>Additional Notes</label>
         <textarea rows={3} value={form.additional_specs} onChange={e => set('additional_specs', e.target.value)}
           placeholder="Open to studio's creative direction. Minimal packaging preferred…"
-          style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text)', resize: 'vertical' }} />
+          style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r-8)', border: '1px solid var(--border)', background: 'var(--surface2)', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text)', resize: 'vertical' }} />
       </div>
 
       {/* ── Change 2: Reference link + attachments (bottom, full-width) ── */}
@@ -254,7 +254,7 @@ export default function BriefForm({ projectId, brief, isAdmin, onSaved }) {
             {attachments.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
                 {attachments.map(a => (
-                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--surface2)', borderRadius: 'var(--r-8)', border: '1px solid var(--border)' }}>
                     <span style={{ fontSize: 16 }}>{AttachmentIcon({ mime: a.mime_type })}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -301,7 +301,7 @@ export default function BriefForm({ projectId, brief, isAdmin, onSaved }) {
             <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', display: 'block', marginBottom: 8 }}>Attachments</label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {attachments.map(a => (
-                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--surface2)', borderRadius: 'var(--r-8)', border: '1px solid var(--border)' }}>
                   <span style={{ fontSize: 16 }}>{AttachmentIcon({ mime: a.mime_type })}</span>
                   <a href={a.url} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--gold)', textDecoration: 'none' }}>{a.file_name}</a>
                   <span style={{ fontSize: 11, color: 'var(--text4)', marginLeft: 'auto' }}>{formatBytes(a.file_size_kb)}</span>

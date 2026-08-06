@@ -62,7 +62,7 @@ export default function Login() {
           {[['signin','Sign In'],['signup','Sign Up']].map(([k,l]) => (
             <button key={k} onClick={() => { setTab(k); setErr(''); }}
               style={{
-                flex:1, padding:'9px', borderRadius:8, border:'none',
+                flex:1, padding:'9px', borderRadius: 'var(--r-8)', border:'none',
                 fontSize:13.5, fontWeight:600, cursor:'pointer', transition:'all 0.18s',
                 background: tab===k ? 'var(--surface4)' : 'transparent',
                 color: tab===k ? 'var(--text)' : 'var(--text3)',

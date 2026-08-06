@@ -22,7 +22,7 @@ export default function PaymentModal({ proposal, studioName, onClose }) {
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: '#fff', borderRadius: 16, maxWidth: 440, width: '100%',
+          background: '#fff', borderRadius: 'var(--r-16)', maxWidth: 440, width: '100%',
           padding: '32px 30px', boxShadow: 'var(--shadow-lg)',
         }}
       >
@@ -35,7 +35,7 @@ export default function PaymentModal({ proposal, studioName, onClose }) {
         </div>
 
         {m1 ? (
-          <div style={{ background: 'var(--surface2)', borderRadius: 12, padding: '18px 20px', marginBottom: 20 }}>
+          <div style={{ background: 'var(--surface2)', borderRadius: 'var(--r-lg)', padding: '18px 20px', marginBottom: 20 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
               First payment due
             </div>

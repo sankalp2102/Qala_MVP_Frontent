@@ -2,8 +2,8 @@
  * src/components/proposals/LineItemCards.jsx
  *
  * Matches studio-proposal.html's Section 4 (Costing) structure: three fixed,
- * color-coded, collapsible phase cards — Design (sage #7A8C6E), Sampling
- * (gold #C4953A), Production (purple #5B4B8A) — each with its own table and
+ * color-coded, collapsible phase cards — Design (sage var(--sage)), Sampling
+ * (gold var(--amber-d)), Production (purple var(--purple)) — each with its own table and
  * its own "+ Add item" button, instead of one flat list where order type is
  * picked per item. Adding an item inside a phase card sets its order_type
  * automatically; the old "pick order type, then domain" two-step config only
@@ -24,9 +24,9 @@ const DM_LABEL = Object.fromEntries(DOMAIN_OPTIONS);
 
 // Matches studio-proposal.html's phase cards exactly — colors, order, copy.
 const PHASES = [
-  { key: 'designing',  label: 'Design',     color: '#7A8C6E', hint: 'Tech packs · Mockups · Design files' },
-  { key: 'sampling',   label: 'Sampling',   color: '#C4953A', hint: 'Physical samples · Prototypes' },
-  { key: 'production', label: 'Production', color: '#5B4B8A', hint: 'Bulk manufacturing' },
+  { key: 'designing',  label: 'Design',     color: 'var(--sage)', hint: 'Tech packs · Mockups · Design files' },
+  { key: 'sampling',   label: 'Sampling',   color: 'var(--amber-d)', hint: 'Physical samples · Prototypes' },
+  { key: 'production', label: 'Production', color: 'var(--purple)', hint: 'Bulk manufacturing' },
 ];
 
 /** A fresh, unconfigured item. Order type + domain are picked in the card. */
@@ -63,7 +63,7 @@ export function summarize(items, key, fallback) {
 }
 
 /* ── styles ── */
-const cellCtl = { padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 12, color: 'var(--text)', fontFamily: 'var(--font-body)', width: '100%', boxSizing: 'border-box' };
+const cellCtl = { padding: '6px 8px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 12, color: 'var(--text)', fontFamily: 'var(--font-body)', width: '100%', boxSizing: 'border-box' };
 const th = { fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'left', padding: '0 8px 8px', whiteSpace: 'nowrap' };
 const td = { padding: '4px 8px 4px 0', verticalAlign: 'top' };
 
@@ -158,7 +158,7 @@ function PhaseCard({ phase, items, onAdd, onUpdate, onRemove, note, onNoteChange
   const subtotal = items.reduce((sum, it) => sum + (parseFloat(it.cost_per_pc_inr) || 0) * (isDesigning ? 1 : (parseFloat(it.qty) || 0)), 0);
 
   return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 10, marginBottom: 12, overflow: 'hidden' }}>
+    <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-10)', marginBottom: 12, overflow: 'hidden' }}>
       <div
         onClick={() => setOpen(o => !o)}
         style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', cursor: 'pointer', background: 'var(--surface)' }}
@@ -212,7 +212,7 @@ function PhaseCard({ phase, items, onAdd, onUpdate, onRemove, note, onNoteChange
           <button
             type="button"
             onClick={() => onAdd(phase.key)}
-            style={{ fontSize: 12, color: phase.color, background: `${phase.color}18`, border: `1px solid ${phase.color}40`, borderRadius: 6, padding: '7px 16px', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600 }}
+            style={{ fontSize: 12, color: phase.color, background: `${phase.color}18`, border: `1px solid ${phase.color}40`, borderRadius: 'var(--r)', padding: '7px 16px', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600 }}
           >
             + Add item
           </button>
@@ -223,7 +223,7 @@ function PhaseCard({ phase, items, onAdd, onUpdate, onRemove, note, onNoteChange
               onChange={e => onNoteChange(phase.key, e.target.value)}
               placeholder={NOTE_PLACEHOLDER[phase.key]}
               rows={2}
-              style={{ width: '100%', fontSize: 12, padding: '9px 12px', borderRadius: 8, border: '1px solid #E8E4DF', fontFamily: 'var(--font-body)', color: 'var(--text)', background: '#fff', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.5, outline: 'none' }}
+              style={{ width: '100%', fontSize: 12, padding: '9px 12px', borderRadius: 'var(--r-8)', border: '1px solid var(--surface3)', fontFamily: 'var(--font-body)', color: 'var(--text)', background: '#fff', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.5, outline: 'none' }}
             />
           </div>
         </div>

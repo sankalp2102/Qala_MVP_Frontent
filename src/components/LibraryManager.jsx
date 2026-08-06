@@ -30,15 +30,15 @@ const CAT_LABEL = Object.fromEntries(CATEGORIES.slice(1).map(c => [c.value, c.la
 function Badge({ children, color = 'gray' }) {
   const colors = {
     gray:  { bg: 'rgba(255,255,255,0.07)', text: 'var(--text3)' },
-    green: { bg: 'rgba(90,232,122,0.10)',  text: '#5AE87A' },
-    amber: { bg: 'rgba(232,184,80,0.10)',  text: '#E8B850' },
+    green: { bg: 'rgba(90,232,122,0.10)',  text: 'var(--green-bright)' },
+    amber: { bg: 'rgba(232,184,80,0.10)',  text: 'var(--amber-l)' },
     blue:  { bg: 'rgba(100,160,255,0.10)', text: '#64A0FF' },
   };
   const c = colors[color] || colors.gray;
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center',
-      padding: '2px 8px', borderRadius: 10,
+      padding: '2px 8px', borderRadius: 'var(--r-10)',
       background: c.bg, color: c.text,
       fontSize: 11, fontWeight: 500, letterSpacing: 0.3,
       fontFamily: 'var(--font-body)',
@@ -69,7 +69,7 @@ function StatCard({ label, value, sub, color }) {
     <div style={{
       flex: '1 1 160px',
       padding: '16px 20px',
-      borderRadius: 10,
+      borderRadius: 'var(--r-10)',
       background: 'var(--surface2)',
       border: '1px solid var(--border)',
     }}>
@@ -108,7 +108,7 @@ function DropZone({ accept, multiple, label, hint, icon, onFiles, disabled }) {
       onDrop={handleDrop}
       style={{
         border: `2px dashed ${dragging ? 'var(--text3)' : 'var(--border)'}`,
-        borderRadius: 10,
+        borderRadius: 'var(--r-10)',
         padding: '28px 20px',
         textAlign: 'center',
         cursor: disabled ? 'not-allowed' : 'pointer',
@@ -141,7 +141,7 @@ function ExcelResult({ result, onDismiss }) {
   const hasErrors = result.error_count > 0;
   return (
     <div style={{
-      marginTop: 12, padding: '14px 16px', borderRadius: 8,
+      marginTop: 12, padding: '14px 16px', borderRadius: 'var(--r-8)',
       background: hasErrors ? 'rgba(232,80,80,0.06)' : 'rgba(90,232,122,0.06)',
       border: `1px solid ${hasErrors ? 'rgba(232,80,80,0.2)' : 'rgba(90,232,122,0.2)'}`,
     }}>
@@ -153,14 +153,14 @@ function ExcelResult({ result, onDismiss }) {
           <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.7 }}>
             {result.created > 0 && <span>Created <strong style={{ color: 'var(--text)' }}>{result.created}</strong> new entries&nbsp;&nbsp;</span>}
             {result.updated > 0 && <span>Updated <strong style={{ color: 'var(--text)' }}>{result.updated}</strong> existing entries&nbsp;&nbsp;</span>}
-            {result.error_count > 0 && <span>Skipped <strong style={{ color: '#E85050' }}>{result.error_count}</strong> rows</span>}
+            {result.error_count > 0 && <span>Skipped <strong style={{ color: 'var(--red-l)' }}>{result.error_count}</strong> rows</span>}
           </div>
           {hasErrors && (
             <details style={{ marginTop: 8 }}>
               <summary style={{ fontSize: 11, color: 'var(--text4)', cursor: 'pointer' }}>Show errors</summary>
               <div style={{ marginTop: 6, maxHeight: 120, overflowY: 'auto' }}>
                 {result.errors.map((e, i) => (
-                  <div key={i} style={{ fontSize: 11, color: '#E85050', lineHeight: 1.6 }}>• {e}</div>
+                  <div key={i} style={{ fontSize: 11, color: 'var(--red-l)', lineHeight: 1.6 }}>• {e}</div>
                 ))}
               </div>
             </details>
@@ -177,7 +177,7 @@ function ImageResult({ result, onDismiss }) {
   const hasIssues = result.not_found.length > 0 || result.bad_format.length > 0;
   return (
     <div style={{
-      marginTop: 12, padding: '14px 16px', borderRadius: 8,
+      marginTop: 12, padding: '14px 16px', borderRadius: 'var(--r-8)',
       background: hasIssues ? 'rgba(232,184,80,0.06)' : 'rgba(90,232,122,0.06)',
       border: `1px solid ${hasIssues ? 'rgba(232,184,80,0.2)' : 'rgba(90,232,122,0.2)'}`,
     }}>
@@ -188,15 +188,15 @@ function ImageResult({ result, onDismiss }) {
           </div>
           <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.7 }}>
             <span>Uploaded <strong style={{ color: 'var(--text)' }}>{result.uploaded_count}</strong> of {result.total_sent} files&nbsp;&nbsp;</span>
-            {result.not_found.length > 0 && <span>Not matched: <strong style={{ color: '#E8B850' }}>{result.not_found.length}</strong>&nbsp;&nbsp;</span>}
-            {result.bad_format.length > 0 && <span>Bad format: <strong style={{ color: '#E85050' }}>{result.bad_format.length}</strong></span>}
+            {result.not_found.length > 0 && <span>Not matched: <strong style={{ color: 'var(--amber-l)' }}>{result.not_found.length}</strong>&nbsp;&nbsp;</span>}
+            {result.bad_format.length > 0 && <span>Bad format: <strong style={{ color: 'var(--red-l)' }}>{result.bad_format.length}</strong></span>}
           </div>
           {result.not_found.length > 0 && (
             <details style={{ marginTop: 8 }}>
               <summary style={{ fontSize: 11, color: 'var(--text4)', cursor: 'pointer' }}>Unmatched files ({result.not_found.length})</summary>
               <div style={{ marginTop: 6, maxHeight: 100, overflowY: 'auto' }}>
                 {result.not_found.map((f, i) => (
-                  <div key={i} style={{ fontSize: 11, color: '#E8B850', lineHeight: 1.6 }}>
+                  <div key={i} style={{ fontSize: 11, color: 'var(--amber-l)', lineHeight: 1.6 }}>
                     • {f.filename} {f.error ? `(${f.error})` : '— no entry with this ID'}
                   </div>
                 ))}
@@ -298,7 +298,7 @@ function EntryRow({ entry, onDelete }) {
         {/* Category */}
         <Badge color="blue">{CAT_LABEL[entry.category] || entry.category}</Badge>
         {/* Image */}
-        <div style={{ fontSize: 12, color: entry.has_image ? '#5AE87A' : 'var(--text4)' }}>
+        <div style={{ fontSize: 12, color: entry.has_image ? 'var(--green-bright)' : 'var(--text4)' }}>
           {entry.has_image ? '✓' : '—'}
         </div>
         {/* Actions */}
@@ -308,13 +308,13 @@ function EntryRow({ entry, onDelete }) {
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                style={{ padding: '4px 10px', borderRadius: 5, border: '1px solid rgba(232,80,80,0.5)', background: 'rgba(232,80,80,0.15)', color: '#E85050', fontSize: 11, cursor: deleting ? 'wait' : 'pointer', fontFamily: 'var(--font-body)' }}
+                style={{ padding: '4px 10px', borderRadius: 'var(--r-5)', border: '1px solid rgba(232,80,80,0.5)', background: 'rgba(232,80,80,0.15)', color: 'var(--red-l)', fontSize: 11, cursor: deleting ? 'wait' : 'pointer', fontFamily: 'var(--font-body)' }}
               >
                 {deleting ? '…' : 'Confirm'}
               </button>
               <button
                 onClick={() => setConfirmDel(false)}
-                style={{ padding: '4px 8px', borderRadius: 5, border: '1px solid var(--border)', background: 'none', color: 'var(--text4)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+                style={{ padding: '4px 8px', borderRadius: 'var(--r-5)', border: '1px solid var(--border)', background: 'none', color: 'var(--text4)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
               >
                 Cancel
               </button>
@@ -322,7 +322,7 @@ function EntryRow({ entry, onDelete }) {
           ) : (
             <button
               onClick={handleDelete}
-              style={{ padding: '4px 10px', borderRadius: 5, border: '1px solid var(--border)', background: 'none', color: 'var(--text4)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+              style={{ padding: '4px 10px', borderRadius: 'var(--r-5)', border: '1px solid var(--border)', background: 'none', color: 'var(--text4)', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
             >
               Delete
             </button>
@@ -348,7 +348,7 @@ function EntryRow({ entry, onDelete }) {
                   <img
                     src={detail.image_url}
                     alt={detail.name}
-                    style={{ height: 120, borderRadius: 6, objectFit: 'cover', border: '1px solid var(--border)' }}
+                    style={{ height: 120, borderRadius: 'var(--r)', objectFit: 'cover', border: '1px solid var(--border)' }}
                   />
                 </div>
               )}
@@ -520,8 +520,8 @@ export default function LibraryManager() {
         ) : stats ? (
           <>
             <StatCard label="Total entries"   value={stats.total}          />
-            <StatCard label="With images"     value={stats.with_image}     color="#5AE87A" />
-            <StatCard label="Missing images"  value={stats.without_image}  color={stats.without_image > 0 ? '#E8B850' : undefined} />
+            <StatCard label="With images"     value={stats.with_image}     color="var(--green-bright)" />
+            <StatCard label="Missing images"  value={stats.without_image}  color={stats.without_image > 0 ? 'var(--amber-l)' : undefined} />
             <StatCard label="Image coverage"  value={`${stats.image_coverage}%`} sub={`${stats.with_image} of ${stats.total}`} />
           </>
         ) : null}
@@ -533,7 +533,7 @@ export default function LibraryManager() {
         {/* ── LEFT: Upload panel ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           <div style={{
-            borderRadius: 12,
+            borderRadius: 'var(--r-lg)',
             border: '1px solid var(--border)',
             background: 'var(--surface)',
             overflow: 'hidden',
@@ -562,7 +562,7 @@ export default function LibraryManager() {
 
               {excelResult && (
                 excelResult.error ? (
-                  <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, background: 'rgba(232,80,80,0.07)', border: '1px solid rgba(232,80,80,0.2)', fontSize: 12, color: '#E85050' }}>
+                  <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 'var(--r-8)', background: 'rgba(232,80,80,0.07)', border: '1px solid rgba(232,80,80,0.2)', fontSize: 12, color: 'var(--red-l)' }}>
                     {excelResult.error}
                   </div>
                 ) : (
@@ -580,8 +580,8 @@ export default function LibraryManager() {
                 Image Upload
               </div>
               <div style={{ fontSize: 11, color: 'var(--text4)', marginBottom: 12, lineHeight: 1.6 }}>
-                Name each file after its entry ID — e.g. <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 3 }}>ajrakh.jpg</code>,&nbsp;
-                <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 3 }}>mulmul.png</code>.
+                Name each file after its entry ID — e.g. <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 'var(--r-4)' }}>ajrakh.jpg</code>,&nbsp;
+                <code style={{ background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 'var(--r-4)' }}>mulmul.png</code>.
                 Upload in bulk — all selected at once.
               </div>
 
@@ -603,7 +603,7 @@ export default function LibraryManager() {
 
               {imgResult && (
                 imgResult.error ? (
-                  <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, background: 'rgba(232,80,80,0.07)', border: '1px solid rgba(232,80,80,0.2)', fontSize: 12, color: '#E85050' }}>
+                  <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 'var(--r-8)', background: 'rgba(232,80,80,0.07)', border: '1px solid rgba(232,80,80,0.2)', fontSize: 12, color: 'var(--red-l)' }}>
                     {imgResult.error}
                   </div>
                 ) : (
@@ -626,15 +626,15 @@ export default function LibraryManager() {
                       <div key={cat.category} style={{ marginBottom: 8 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text3)', marginBottom: 3 }}>
                           <span>{cat.label}</span>
-                          <span style={{ color: pct === 100 ? '#5AE87A' : pct > 0 ? '#E8B850' : 'var(--text4)' }}>
+                          <span style={{ color: pct === 100 ? 'var(--green-bright)' : pct > 0 ? 'var(--amber-l)' : 'var(--text4)' }}>
                             {cat.with_image}/{cat.count}
                           </span>
                         </div>
-                        <div style={{ height: 3, borderRadius: 2, background: 'var(--surface2)' }}>
+                        <div style={{ height: 3, borderRadius: 'var(--r-2)', background: 'var(--surface2)' }}>
                           <div style={{
-                            height: '100%', borderRadius: 2,
+                            height: '100%', borderRadius: 'var(--r-2)',
                             width: `${pct}%`,
-                            background: pct === 100 ? '#5AE87A' : pct > 0 ? '#E8B850' : 'transparent',
+                            background: pct === 100 ? 'var(--green-bright)' : pct > 0 ? 'var(--amber-l)' : 'transparent',
                             transition: 'width 0.3s',
                           }} />
                         </div>
@@ -649,7 +649,7 @@ export default function LibraryManager() {
 
         {/* ── RIGHT: Browser panel ── */}
         <div style={{
-          borderRadius: 12,
+          borderRadius: 'var(--r-lg)',
           border: '1px solid var(--border)',
           background: 'var(--surface)',
           overflow: 'hidden',
@@ -670,7 +670,7 @@ export default function LibraryManager() {
                 onChange={e => handleSearchInput(e.target.value)}
                 placeholder="Search by ID or name…"
                 style={{
-                  padding: '6px 12px', borderRadius: 7, fontSize: 12,
+                  padding: '6px 12px', borderRadius: 'var(--r)', fontSize: 12,
                   border: '1px solid var(--border)', background: 'var(--surface2)',
                   color: 'var(--text)', outline: 'none', width: 200,
                   fontFamily: 'var(--font-body)',
@@ -757,14 +757,14 @@ export default function LibraryManager() {
                 <button
                   disabled={page <= 1}
                   onClick={() => setPage(p => p - 1)}
-                  style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'none', color: page <= 1 ? 'var(--text4)' : 'var(--text2)', fontSize: 12, cursor: page <= 1 ? 'default' : 'pointer', fontFamily: 'var(--font-body)' }}
+                  style={{ padding: '5px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'none', color: page <= 1 ? 'var(--text4)' : 'var(--text2)', fontSize: 12, cursor: page <= 1 ? 'default' : 'pointer', fontFamily: 'var(--font-body)' }}
                 >
                   ← Prev
                 </button>
                 <button
                   disabled={page >= totalPages}
                   onClick={() => setPage(p => p + 1)}
-                  style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'none', color: page >= totalPages ? 'var(--text4)' : 'var(--text2)', fontSize: 12, cursor: page >= totalPages ? 'default' : 'pointer', fontFamily: 'var(--font-body)' }}
+                  style={{ padding: '5px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'none', color: page >= totalPages ? 'var(--text4)' : 'var(--text2)', fontSize: 12, cursor: page >= totalPages ? 'default' : 'pointer', fontFamily: 'var(--font-body)' }}
                 >
                   Next →
                 </button>

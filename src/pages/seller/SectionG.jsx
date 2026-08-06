@@ -10,7 +10,7 @@ const API = onboardingAPI;
 const GENDER_OPTIONS = ['Womenswear', 'Menswear', 'Gender Neutral / Unisex', 'Kidswear', 'Home / Non-apparel'];
 
 /* Sand/terracotta placeholder tints used when a product has no photo (per prototype). */
-const PLACEHOLDER_COLORS = ['#C8B898', '#D4C4A8', '#B8A880', '#C0A876', '#E0DAD0', '#CDBBA0'];
+const PLACEHOLDER_COLORS = ['#C8B898', '#D4C4A8', '#B8A880', '#C0A876', 'var(--surface4)', '#CDBBA0'];
 const tintFor = id => PLACEHOLDER_COLORS[Math.abs(String(id).split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % PLACEHOLDER_COLORS.length];
 
 const EMPTY_PRODUCT = {
@@ -31,16 +31,16 @@ const BULK_COLUMNS = [
 /* ── shared style atoms (mirrors the prototype's .pw-* CSS) ───────────────── */
 const S = {
   label:    { fontSize: 10, fontWeight: 600, color: '#999', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6, display: 'block' },
-  form:     { border: '1px solid #E4E0DB', borderRadius: 10, background: '#fff', overflow: 'hidden', marginBottom: 16 },
-  formHead: { padding: '12px 16px', background: '#FAFAF8', borderBottom: '1px solid #F0EDE8', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-  formTitle:{ fontSize: 13, fontWeight: 600, color: '#1A1A1A' },
+  form:     { border: '1px solid var(--surface4)', borderRadius: 'var(--r-10)', background: '#fff', overflow: 'hidden', marginBottom: 16 },
+  formHead: { padding: '12px 16px', background: 'var(--bg)', borderBottom: '1px solid var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  formTitle:{ fontSize: 13, fontWeight: 600, color: 'var(--text)' },
   formBody: { padding: 16 },
   row2:     { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 },
-  greenBox: { background: '#F2F6F0', border: '1px solid #C8D9C4', borderRadius: 8, padding: '11px 14px', display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 },
-  ptag:     { fontSize: 9, padding: '2px 6px', borderRadius: 4, background: '#F5F3EF', color: '#777' },
-  ptagColl: { fontSize: 9, padding: '2px 6px', borderRadius: 4, background: '#EEF3EC', color: '#4A7C4A' },
-  ptagNone: { fontSize: 9, padding: '2px 6px', borderRadius: 4, background: '#F5F5F5', color: '#BBB', fontStyle: 'italic' },
-  hiddenBadge: { display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#888', background: '#F5F3EF', border: '1px solid #E4E0DB', padding: '2px 8px', borderRadius: 10 },
+  greenBox: { background: 'var(--surface)', border: '1px solid var(--sage-pale)', borderRadius: 'var(--r-8)', padding: '11px 14px', display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 },
+  ptag:     { fontSize: 9, padding: '2px 6px', borderRadius: 'var(--r-4)', background: 'var(--surface)', color: '#777' },
+  ptagColl: { fontSize: 9, padding: '2px 6px', borderRadius: 'var(--r-4)', background: 'var(--surface2)', color: 'var(--green-d)' },
+  ptagNone: { fontSize: 9, padding: '2px 6px', borderRadius: 'var(--r-4)', background: 'var(--surface)', color: '#BBB', fontStyle: 'italic' },
+  hiddenBadge: { display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#888', background: 'var(--surface)', border: '1px solid var(--surface4)', padding: '2px 8px', borderRadius: 'var(--r-10)' },
 };
 
 function XClose({ onClick }) {
@@ -113,19 +113,19 @@ function ProductForm({ initial, onSave, onCancel }) {
           {(existingPhotos.length > 0 || photoFiles.length > 0) && (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
               {existingPhotos.map(p => (
-                <div key={p.id} style={{ width: 64, height: 64, borderRadius: 4, overflow: 'hidden', border: '1px solid #E4E0DB' }}>
+                <div key={p.id} style={{ width: 64, height: 64, borderRadius: 'var(--r-4)', overflow: 'hidden', border: '1px solid var(--surface4)' }}>
                   <img src={mediaUrl(p.thumbnail || p.file)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
                 </div>
               ))}
               {photoFiles.map((p, i) => (
-                <div key={i} style={{ width: 64, height: 64, borderRadius: 4, overflow: 'hidden', position: 'relative', border: '1px solid #E4E0DB' }}>
+                <div key={i} style={{ width: 64, height: 64, borderRadius: 'var(--r-4)', overflow: 'hidden', position: 'relative', border: '1px solid var(--surface4)' }}>
                   <img src={p.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <button onClick={() => rmLocal(i)} style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: 3, width: 16, height: 16, fontSize: 11, cursor: 'pointer', lineHeight: 1 }}>×</button>
+                  <button onClick={() => rmLocal(i)} style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: 'var(--r-4)', width: 16, height: 16, fontSize: 11, cursor: 'pointer', lineHeight: 1 }}>×</button>
                 </div>
               ))}
             </div>
           )}
-          <label style={{ display: 'block', border: '1px dashed #C8C4BF', borderRadius: 6, padding: 18, textAlign: 'center', cursor: 'pointer' }}>
+          <label style={{ display: 'block', border: '1px dashed var(--warm-gray)', borderRadius: 'var(--r)', padding: 18, textAlign: 'center', cursor: 'pointer' }}>
             <div style={{ fontSize: 18, color: '#CCC' }}>📸</div>
             <div style={{ fontSize: 13, color: '#888' }}>Upload product photos</div>
             <div style={{ fontSize: 11, color: '#BBB', marginTop: 4 }}>JPG · PNG · WEBP · up to 10 MB each · multiple allowed</div>
@@ -136,7 +136,7 @@ function ProductForm({ initial, onSave, onCancel }) {
         <div style={S.greenBox}>
           <div style={{ marginTop: 2 }}><CollabToggle checked={!!form.open_for_collab} onChange={v => set({ open_for_collab: v })} /></div>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#3A6B3A', marginBottom: 2 }}>Open for Collaboration</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--green-deep)', marginBottom: 2 }}>Open for Collaboration</div>
             <div style={{ fontSize: 11, color: '#666', lineHeight: 1.5 }}>Buyers can request their own version of this piece — adapted to their fabrics, colours, or silhouettes.</div>
           </div>
         </div>
@@ -176,20 +176,20 @@ function BulkZone({ onImport, onDownloadTemplate, onCancel }) {
   };
   return (
     <div onClick={() => !busy && inputRef.current?.click()}
-      style={{ border: '2px dashed #C8D9C4', borderRadius: 10, background: '#F4F7F3', padding: '32px 24px', textAlign: 'center', cursor: busy ? 'default' : 'pointer', marginBottom: 14 }}>
+      style={{ border: '2px dashed var(--sage-pale)', borderRadius: 'var(--r-10)', background: 'var(--surface)', padding: '32px 24px', textAlign: 'center', cursor: busy ? 'default' : 'pointer', marginBottom: 14 }}>
       <input ref={inputRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={handle} disabled={busy} />
       <div style={{ fontSize: 28, marginBottom: 10 }}>📋</div>
-      <div style={{ fontSize: 14, fontWeight: 600, color: '#3A6B3A', marginBottom: 4 }}>{busy ? 'Importing…' : 'Upload your product list'}</div>
+      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--green-deep)', marginBottom: 4 }}>{busy ? 'Importing…' : 'Upload your product list'}</div>
       <div style={{ fontSize: 12, color: '#777', marginBottom: 14 }}>Drop an Excel or CSV file here, or click to browse</div>
 
       {/* Import mode — prevents a re-import silently duplicating the library */}
       <div onClick={e => e.stopPropagation()} style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
         {IMPORT_MODES.map(m => (
           <button key={m.key} type="button" title={m.hint} onClick={() => setMode(m.key)}
-            style={{ fontSize: 11, padding: '5px 11px', borderRadius: 6, cursor: 'pointer',
-              border: `1px solid ${mode === m.key ? '#7A8C6E' : '#D8D4CF'}`,
-              background: mode === m.key ? '#EEF3EC' : '#fff',
-              color: mode === m.key ? '#3A6B3A' : '#777', fontWeight: mode === m.key ? 600 : 400 }}>
+            style={{ fontSize: 11, padding: '5px 11px', borderRadius: 'var(--r)', cursor: 'pointer',
+              border: `1px solid ${mode === m.key ? 'var(--sage)' : 'var(--border-l)'}`,
+              background: mode === m.key ? 'var(--surface2)' : '#fff',
+              color: mode === m.key ? 'var(--green-deep)' : '#777', fontWeight: mode === m.key ? 600 : 400 }}>
             {m.label}
           </button>
         ))}
@@ -201,7 +201,7 @@ function BulkZone({ onImport, onDownloadTemplate, onCancel }) {
       <div style={{ fontSize: 10, color: '#AAA', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em' }}>Expected columns</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, justifyContent: 'center' }}>
         {BULK_COLUMNS.map(c => (
-          <span key={c.label} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 5, background: c.req ? '#FEF0EC' : '#fff', border: `1px solid ${c.req ? '#F0C8B0' : '#D8D4CF'}`, color: c.req ? '#C06818' : '#777', opacity: c.faded ? 0.5 : 1 }}>{c.label}</span>
+          <span key={c.label} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 'var(--r-5)', background: c.req ? 'var(--surface)' : '#fff', border: `1px solid ${c.req ? '#F0C8B0' : 'var(--border-l)'}`, color: c.req ? '#C06818' : '#777', opacity: c.faded ? 0.5 : 1 }}>{c.label}</span>
         ))}
       </div>
       <div style={{ fontSize: 10, color: '#999', marginTop: 10 }}>
@@ -228,12 +228,12 @@ function ImageJobBanner({ job, onRetry }) {
   // A dispatch failure leaves failed === 0, so don't gate retry on that count.
   const canRetry = failed || (done && job.failed > 0);
 
-  const tone = failed ? '#C0392B' : done ? '#B5822A' : queued ? '#8A8278' : '#3A6B3A';
-  const bg   = failed ? '#FDF0EE' : done ? '#FEF5E8' : queued ? '#FAFAF8' : '#F4F7F3';
-  const bd   = failed ? '#F0C0B8' : done ? '#F0D4A4' : queued ? '#E4E0DB' : '#C8D9C4';
+  const tone = failed ? 'var(--red-d)' : done ? '#B5822A' : queued ? 'var(--text-muted)' : 'var(--green-deep)';
+  const bg   = failed ? 'var(--surface)' : done ? 'var(--surface)' : queued ? 'var(--bg)' : 'var(--surface)';
+  const bd   = failed ? '#F0C0B8' : done ? '#F0D4A4' : queued ? 'var(--surface4)' : 'var(--sage-pale)';
 
   return (
-    <div style={{ border: `1px solid ${bd}`, background: bg, borderRadius: 8, padding: '12px 14px', marginBottom: 14 }}>
+    <div style={{ border: `1px solid ${bd}`, background: bg, borderRadius: 'var(--r-8)', padding: '12px 14px', marginBottom: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: tone }}>
           {queued  && `Queued — waiting for the image worker (${job.total_images} images)`}
@@ -248,8 +248,8 @@ function ImageJobBanner({ job, onRetry }) {
         )}
       </div>
       {running && (
-        <div style={{ height: 5, background: '#E4E9E2', borderRadius: 3, marginTop: 9, overflow: 'hidden' }}>
-          <div style={{ width: `${job.progress_percent}%`, height: '100%', background: '#7A8C6E', transition: 'width .4s' }} />
+        <div style={{ height: 5, background: 'var(--surface3)', borderRadius: 'var(--r-4)', marginTop: 9, overflow: 'hidden' }}>
+          <div style={{ width: `${job.progress_percent}%`, height: '100%', background: 'var(--sage)', transition: 'width .4s' }} />
         </div>
       )}
       {(job.errors || []).length > 0 && (
@@ -259,7 +259,7 @@ function ImageJobBanner({ job, onRetry }) {
           </summary>
           <div style={{ maxHeight: 150, overflowY: 'auto', marginTop: 6 }}>
             {job.errors.slice(0, 50).map((e, i) => (
-              <div key={i} style={{ fontSize: 11, color: '#8A8278', padding: '3px 0', borderBottom: '1px solid #EFEBE6' }}>
+              <div key={i} style={{ fontSize: 11, color: 'var(--text-muted)', padding: '3px 0', borderBottom: '1px solid var(--surface2)' }}>
                 <strong>{e.product || '—'}</strong>: {e.error}
               </div>
             ))}
@@ -279,12 +279,12 @@ function ProductCard({ product, collectionName, onEdit, onDelete, selectable = f
     <div onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       // In select mode the whole card is the hit target — clicking anywhere toggles.
       onClick={selectable ? onToggleSelect : undefined}
-      style={{ border: `1px solid ${selected ? '#7A8C6E' : '#E4E0DB'}`, borderRadius: 10, overflow: 'hidden', background: '#fff', position: 'relative', boxShadow: selected ? '0 0 0 2px #C8D9C4' : hover ? '0 4px 16px rgba(0,0,0,.1)' : 'none', opacity: product.is_hidden ? 0.7 : 1, cursor: selectable ? 'pointer' : 'default' }}>
-      <div style={{ height: 110, position: 'relative', overflow: 'hidden', background: photo ? '#F0EDE8' : tintFor(product.id) }}>
+      style={{ border: `1px solid ${selected ? 'var(--sage)' : 'var(--surface4)'}`, borderRadius: 'var(--r-10)', overflow: 'hidden', background: '#fff', position: 'relative', boxShadow: selected ? '0 0 0 2px var(--sage-pale)' : hover ? '0 4px 16px rgba(0,0,0,.1)' : 'none', opacity: product.is_hidden ? 0.7 : 1, cursor: selectable ? 'pointer' : 'default' }}>
+      <div style={{ height: 110, position: 'relative', overflow: 'hidden', background: photo ? 'var(--surface2)' : tintFor(product.id) }}>
         {photo && <img src={mediaUrl(photo.thumbnail || photo.file)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />}
 
         {selectable && (
-          <div style={{ position: 'absolute', top: 7, left: 7, width: 20, height: 20, borderRadius: 5, border: `1.5px solid ${selected ? '#7A8C6E' : 'rgba(0,0,0,.25)'}`, background: selected ? '#7A8C6E' : 'rgba(255,255,255,.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', top: 7, left: 7, width: 20, height: 20, borderRadius: 'var(--r-5)', border: `1.5px solid ${selected ? 'var(--sage)' : 'rgba(0,0,0,.25)'}`, background: selected ? 'var(--sage)' : 'rgba(255,255,255,.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
             {selected && (
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
             )}
@@ -294,13 +294,13 @@ function ProductCard({ product, collectionName, onEdit, onDelete, selectable = f
         {/* Edit / delete are hidden in select mode so a stray click can't destroy a row */}
         {!selectable && (
           <div style={{ position: 'absolute', inset: 0, background: hover ? 'rgba(0,0,0,.05)' : 'transparent', display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start', padding: 7, gap: 4, opacity: hover ? 1 : 0, transition: 'opacity .15s' }}>
-            <button onClick={onEdit} style={{ background: 'rgba(255,255,255,.95)', border: '1px solid rgba(0,0,0,.1)', borderRadius: 5, padding: '3px 8px', fontSize: 10, cursor: 'pointer', color: '#555' }}>Edit</button>
-            <button onClick={onDelete} style={{ background: 'rgba(255,255,255,.95)', border: '1px solid rgba(0,0,0,.1)', borderRadius: 5, padding: '3px 8px', fontSize: 10, cursor: 'pointer', color: '#C0392B' }}>×</button>
+            <button onClick={onEdit} style={{ background: 'rgba(255,255,255,.95)', border: '1px solid rgba(0,0,0,.1)', borderRadius: 'var(--r-5)', padding: '3px 8px', fontSize: 10, cursor: 'pointer', color: '#555' }}>Edit</button>
+            <button onClick={onDelete} style={{ background: 'rgba(255,255,255,.95)', border: '1px solid rgba(0,0,0,.1)', borderRadius: 'var(--r-5)', padding: '3px 8px', fontSize: 10, cursor: 'pointer', color: 'var(--red-d)' }}>×</button>
           </div>
         )}
       </div>
       <div style={{ padding: '10px 12px 12px' }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: '#1A1A1A', lineHeight: 1.3, marginBottom: 2 }}>{product.name || 'Untitled product'}</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', lineHeight: 1.3, marginBottom: 2 }}>{product.name || 'Untitled product'}</div>
         <div style={{ fontSize: 10, color: '#999', marginBottom: 7 }}>{[product.garment_type, product.gender].filter(Boolean).join(' · ') || '—'}</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
           <span style={collectionName ? S.ptagColl : S.ptagNone}>{collectionName || 'No collection'}</span>
@@ -336,10 +336,10 @@ function CollectionForm({ initial, products, onSave, onCancel }) {
         <div style={{ marginBottom: 12 }}><label style={S.label}>Collection Name *</label><input style={inputStyle} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Colour Studies SS23, Festive Capsule" /></div>
         <div style={{ marginBottom: 16 }}><label style={S.label}>About <span style={{ color: '#BBB', fontWeight: 400 }}>(optional)</span></label><textarea rows={2} style={textareaStyle} value={form.about || ''} onChange={e => setForm(f => ({ ...f, about: e.target.value }))} placeholder="What was the theme or brief behind this collection?" /></div>
 
-        <div style={{ borderTop: '1px solid #F0EDE8', paddingTop: 16, marginBottom: 16 }}>
+        <div style={{ borderTop: '1px solid var(--surface2)', paddingTop: 16, marginBottom: 16 }}>
           <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#1A1A1A' }}>Pick products for this collection</div>
-            <div style={{ fontSize: 11, color: '#AAA', marginTop: 2 }}>Select from your product library. <span style={{ color: '#7A8C6E', fontWeight: 500 }}>{form.product_ids.length} selected</span></div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Pick products for this collection</div>
+            <div style={{ fontSize: 11, color: '#AAA', marginTop: 2 }}>Select from your product library. <span style={{ color: 'var(--sage)', fontWeight: 500 }}>{form.product_ids.length} selected</span></div>
           </div>
           {products.length === 0 ? (
             <div style={{ fontSize: 12, color: '#AAA', fontStyle: 'italic' }}>Add a product first, then group it here.</div>
@@ -350,15 +350,15 @@ function CollectionForm({ initial, products, onSave, onCancel }) {
                 const photo = (p.photos || [])[0];
                 return (
                   <div key={p.id} onClick={() => toggle(p.id)}
-                    style={{ border: `2px solid ${sel ? '#7A8C6E' : '#E4E0DB'}`, borderRadius: 8, overflow: 'hidden', cursor: 'pointer', position: 'relative', background: sel ? '#F4F7F3' : '#fff' }}>
-                    <div style={{ height: 72, background: photo ? '#F0EDE8' : tintFor(p.id) }}>
+                    style={{ border: `2px solid ${sel ? 'var(--sage)' : 'var(--surface4)'}`, borderRadius: 'var(--r-8)', overflow: 'hidden', cursor: 'pointer', position: 'relative', background: sel ? 'var(--surface)' : '#fff' }}>
+                    <div style={{ height: 72, background: photo ? 'var(--surface2)' : tintFor(p.id) }}>
                       {photo && <img src={mediaUrl(photo.thumbnail || photo.file)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />}
                     </div>
                     <div style={{ padding: '7px 9px 9px' }}>
-                      <div style={{ fontSize: 11, fontWeight: 500, color: '#1A1A1A', lineHeight: 1.3 }}>{p.name || 'Untitled'}</div>
+                      <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--text)', lineHeight: 1.3 }}>{p.name || 'Untitled'}</div>
                       <div style={{ fontSize: 9, color: '#AAA', marginTop: 2 }}>{[p.garment_type, p.gender].filter(Boolean).join(' · ') || '—'}</div>
                     </div>
-                    <div style={{ position: 'absolute', top: 5, right: 5, width: 18, height: 18, borderRadius: '50%', border: `2px solid ${sel ? '#7A8C6E' : '#D8D4CF'}`, background: sel ? '#7A8C6E' : '#fff', color: sel ? '#fff' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>✓</div>
+                    <div style={{ position: 'absolute', top: 5, right: 5, width: 18, height: 18, borderRadius: '50%', border: `2px solid ${sel ? 'var(--sage)' : 'var(--border-l)'}`, background: sel ? 'var(--sage)' : '#fff', color: sel ? '#fff' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>✓</div>
                   </div>
                 );
               })}
@@ -369,7 +369,7 @@ function CollectionForm({ initial, products, onSave, onCancel }) {
         <div style={S.greenBox}>
           <div style={{ marginTop: 2 }}><CollabToggle checked={!!form.open_for_collab} onChange={v => setForm(f => ({ ...f, open_for_collab: v }))} /></div>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#3A6B3A', marginBottom: 2 }}>Open for Collaboration</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--green-deep)', marginBottom: 2 }}>Open for Collaboration</div>
             <div style={{ fontSize: 11, color: '#666', lineHeight: 1.5 }}>Buyers can request their own version of pieces in this collection.</div>
           </div>
         </div>
@@ -393,10 +393,10 @@ function CollectionForm({ initial, products, onSave, onCancel }) {
 function CollectionCard({ collection, onPatch, onEdit, onDelete, onViewProducts }) {
   const members = collection.products || [];
   return (
-    <div style={{ border: '1px solid #E4E0DB', borderRadius: 10, background: '#fff', marginBottom: 12, overflow: 'hidden', opacity: collection.is_hidden ? 0.65 : 1 }}>
-      <div style={{ padding: '13px 16px', borderBottom: '1px solid #F5F3EF', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+    <div style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r-10)', background: '#fff', marginBottom: 12, overflow: 'hidden', opacity: collection.is_hidden ? 0.65 : 1 }}>
+      <div style={{ padding: '13px 16px', borderBottom: '1px solid var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#1A1A1A', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
             {collection.name || 'Untitled collection'}
             {collection.is_hidden && <span style={S.hiddenBadge}>🔒 Hidden</span>}
           </div>
@@ -406,7 +406,7 @@ function CollectionCard({ collection, onPatch, onEdit, onDelete, onViewProducts 
           {!collection.is_hidden && <CollabToggle checked={!!collection.open_for_collab} onChange={v => onPatch({ open_for_collab: v })} label="Open for Collab" />}
           <HideToggle checked={!!collection.is_hidden} onChange={v => onPatch({ is_hidden: v })} label="Hide" />
           <button className="btn btn-ghost" style={{ padding: '5px 12px', fontSize: 11 }} onClick={onEdit}>Edit</button>
-          <button aria-label="Delete collection" onClick={onDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C0392B', padding: '4px 6px', display: 'inline-flex' }}><TrashSvg /></button>
+          <button aria-label="Delete collection" onClick={onDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red-d)', padding: '4px 6px', display: 'inline-flex' }}><TrashSvg /></button>
         </div>
       </div>
       {collection.is_hidden ? (
@@ -417,12 +417,12 @@ function CollectionCard({ collection, onPatch, onEdit, onDelete, onViewProducts 
           <div style={{ padding: '12px 16px', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             {members.slice(0, 4).map(p => {
               const photo = (p.photos || [])[0];
-              return <div key={p.id} style={{ width: 56, height: 56, borderRadius: 6, background: photo ? '#F0EDE8' : tintFor(p.id), overflow: 'hidden', flexShrink: 0 }}>
+              return <div key={p.id} style={{ width: 56, height: 56, borderRadius: 'var(--r)', background: photo ? 'var(--surface2)' : tintFor(p.id), overflow: 'hidden', flexShrink: 0 }}>
                 {photo && <img src={mediaUrl(photo.thumbnail || photo.file)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />}
               </div>;
             })}
             {members.length > 0
-              ? <button onClick={onViewProducts} style={{ background: 'none', border: 'none', color: '#7A8C6E', fontSize: 11, cursor: 'pointer', paddingLeft: 6 }}>View all {members.length} product{members.length === 1 ? '' : 's'} →</button>
+              ? <button onClick={onViewProducts} style={{ background: 'none', border: 'none', color: 'var(--sage)', fontSize: 11, cursor: 'pointer', paddingLeft: 6 }}>View all {members.length} product{members.length === 1 ? '' : 's'} →</button>
               : <span style={{ fontSize: 11, color: '#BBB', fontStyle: 'italic' }}>No products yet — Edit to add some.</span>}
           </div>
         </>
@@ -676,9 +676,9 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
 
   const tabBtn = (key, label, count) => (
     <button onClick={() => { setTab(key); setDdOpen(false); }}
-      style={{ background: tab === key ? '#fff' : 'transparent', border: 'none', padding: '7px 20px', borderRadius: 6, fontSize: 13, cursor: 'pointer', color: tab === key ? '#1A1A1A' : '#888', fontWeight: 500, boxShadow: tab === key ? '0 1px 4px rgba(0,0,0,.1)' : 'none', whiteSpace: 'nowrap' }}>
+      style={{ background: tab === key ? '#fff' : 'transparent', border: 'none', padding: '7px 20px', borderRadius: 'var(--r)', fontSize: 13, cursor: 'pointer', color: tab === key ? 'var(--text)' : '#888', fontWeight: 500, boxShadow: tab === key ? '0 1px 4px rgba(0,0,0,.1)' : 'none', whiteSpace: 'nowrap' }}>
       {label}
-      <span style={{ fontSize: 10, background: tab === key ? '#EEF3EC' : '#E4E0DB', color: tab === key ? '#4A7C4A' : '#777', borderRadius: 8, padding: '1px 6px', marginLeft: 4 }}>{count}</span>
+      <span style={{ fontSize: 10, background: tab === key ? 'var(--surface2)' : 'var(--surface4)', color: tab === key ? 'var(--green-d)' : '#777', borderRadius: 'var(--r-8)', padding: '1px 6px', marginLeft: 4 }}>{count}</span>
     </button>
   );
 
@@ -690,7 +690,7 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
 
       {/* Top bar: tabs + primary action */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', background: '#F5F3EF', borderRadius: 8, padding: 3, gap: 2 }}>
+        <div style={{ display: 'flex', background: 'var(--surface)', borderRadius: 'var(--r-8)', padding: 3, gap: 2 }}>
           {tabBtn('products', 'Products', products.length)}
           {tabBtn('collections', 'Collections', collections.length)}
         </div>
@@ -699,15 +699,15 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
             <div ref={ddRef} style={{ position: 'relative' }}>
               <button className="btn btn-primary" onClick={() => setDdOpen(o => !o)}>+ Add Product ▾</button>
               {ddOpen && (
-                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, background: '#fff', border: '1px solid #D8D4CF', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,.14)', minWidth: 230, zIndex: 200, overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, background: '#fff', border: '1px solid var(--border-l)', borderRadius: 'var(--r-10)', boxShadow: '0 8px 24px rgba(0,0,0,.14)', minWidth: 230, zIndex: 200, overflow: 'hidden' }}>
                   <div onClick={() => { setProdMode('single'); setEditingProduct(null); setDdOpen(false); }} style={{ padding: '11px 14px', cursor: 'pointer', display: 'flex', gap: 11, alignItems: 'flex-start' }}>
                     <div style={{ fontSize: 18 }}>✏️</div>
-                    <div><div style={{ fontSize: 12, fontWeight: 600, color: '#1A1A1A' }}>Add one product</div><div style={{ fontSize: 10, color: '#AAA', marginTop: 2, lineHeight: 1.4 }}>Fill in a quick form — name, type, fabrics, photos</div></div>
+                    <div><div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>Add one product</div><div style={{ fontSize: 10, color: '#AAA', marginTop: 2, lineHeight: 1.4 }}>Fill in a quick form — name, type, fabrics, photos</div></div>
                   </div>
-                  <div style={{ height: 1, background: '#F0EDE8' }} />
+                  <div style={{ height: 1, background: 'var(--surface2)' }} />
                   <div onClick={() => { setProdMode('bulk'); setDdOpen(false); }} style={{ padding: '11px 14px', cursor: 'pointer', display: 'flex', gap: 11, alignItems: 'flex-start' }}>
                     <div style={{ fontSize: 18 }}>📋</div>
-                    <div><div style={{ fontSize: 12, fontWeight: 600, color: '#1A1A1A' }}>Import via Excel</div><div style={{ fontSize: 10, color: '#AAA', marginTop: 2, lineHeight: 1.4 }}>Add many products at once from a spreadsheet</div></div>
+                    <div><div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>Import via Excel</div><div style={{ fontSize: 10, color: '#AAA', marginTop: 2, lineHeight: 1.4 }}>Add many products at once from a spreadsheet</div></div>
                   </div>
                 </div>
               )}
@@ -728,33 +728,33 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
           {prodMode === 'bulk' && !editingProduct && <BulkZone onImport={bulkImport} onDownloadTemplate={downloadTemplate} onCancel={() => setProdMode(null)} />}
 
           {products.length === 0 && !prodMode && !editingProduct ? (
-            <div style={{ border: '1px dashed #D8D4CF', borderRadius: 10, padding: '32px', textAlign: 'center', color: '#AAA', fontSize: 13 }}>
-              No products yet. Use <strong style={{ color: '#D97520' }}>+ Add Product</strong> to start your library.
+            <div style={{ border: '1px dashed var(--border-l)', borderRadius: 'var(--r-10)', padding: '32px', textAlign: 'center', color: '#AAA', fontSize: 13 }}>
+              No products yet. Use <strong style={{ color: 'var(--sage)' }}>+ Add Product</strong> to start your library.
             </div>
           ) : (
             <>
               {/* Selection toolbar — only shown when there's something to select */}
               {products.length > 0 && !prodMode && !editingProduct && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap',
-                  padding: selectMode ? '9px 12px' : 0, borderRadius: 8,
-                  background: selectMode ? '#F4F7F3' : 'transparent',
-                  border: selectMode ? '1px solid #C8D9C4' : 'none' }}>
+                  padding: selectMode ? '9px 12px' : 0, borderRadius: 'var(--r-8)',
+                  background: selectMode ? 'var(--surface)' : 'transparent',
+                  border: selectMode ? '1px solid var(--sage-pale)' : 'none' }}>
                   {!selectMode ? (
                     <button type="button" onClick={() => setSelectMode(true)}
-                      style={{ background: 'none', border: '1px solid #D8D4CF', borderRadius: 6, padding: '5px 12px', fontSize: 11, color: '#666', cursor: 'pointer' }}>
+                      style={{ background: 'none', border: '1px solid var(--border-l)', borderRadius: 'var(--r)', padding: '5px 12px', fontSize: 11, color: '#666', cursor: 'pointer' }}>
                       Select
                     </button>
                   ) : (
                     <>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: '#3A6B3A' }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--green-deep)' }}>
                         {selectedIds.size} selected
                       </span>
                       <button type="button" onClick={selectedIds.size === products.length ? clearSel : selectAll}
-                        style={{ background: 'none', border: '1px solid #C8D9C4', borderRadius: 6, padding: '5px 11px', fontSize: 11, color: '#3A6B3A', cursor: 'pointer' }}>
+                        style={{ background: 'none', border: '1px solid var(--sage-pale)', borderRadius: 'var(--r)', padding: '5px 11px', fontSize: 11, color: 'var(--green-deep)', cursor: 'pointer' }}>
                         {selectedIds.size === products.length ? 'Clear all' : `Select all (${products.length})`}
                       </button>
                       <button type="button" disabled={!selectedIds.size} onClick={deleteSelected}
-                        style={{ background: selectedIds.size ? '#C0392B' : '#E4E0DB', border: 'none', borderRadius: 6, padding: '5px 13px', fontSize: 11, color: '#fff', cursor: selectedIds.size ? 'pointer' : 'default', fontWeight: 500 }}>
+                        style={{ background: selectedIds.size ? 'var(--red-d)' : 'var(--surface4)', border: 'none', borderRadius: 'var(--r)', padding: '5px 13px', fontSize: 11, color: '#fff', cursor: selectedIds.size ? 'pointer' : 'default', fontWeight: 500 }}>
                         Delete selected
                       </button>
                       <button type="button" onClick={exitSelect}
@@ -782,7 +782,7 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
           {products.length > 0 && (
             <div style={{ fontSize: 11, color: '#AAA', textAlign: 'center', padding: '8px 0' }}>
               {products.length} product{products.length === 1 ? '' : 's'} &nbsp;·&nbsp;
-              <button onClick={() => { setEditingProduct(null); setProdMode('single'); }} style={{ background: 'none', border: 'none', color: '#7A8C6E', cursor: 'pointer', fontSize: 11, padding: 0 }}>+ Add product</button>
+              <button onClick={() => { setEditingProduct(null); setProdMode('single'); }} style={{ background: 'none', border: 'none', color: 'var(--sage)', cursor: 'pointer', fontSize: 11, padding: 0 }}>+ Add product</button>
             </div>
           )}
         </div>
@@ -809,7 +809,7 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
 
           {!collFormOpen && !editingCollection && (
             <button onClick={() => { setEditingCollection(null); setCollFormOpen(true); }}
-              style={{ width: '100%', padding: 14, border: '2px dashed #D8D4CF', borderRadius: 10, background: 'transparent', fontSize: 13, color: '#999', cursor: 'pointer' }}>
+              style={{ width: '100%', padding: 14, border: '2px dashed var(--border-l)', borderRadius: 'var(--r-10)', background: 'transparent', fontSize: 13, color: '#999', cursor: 'pointer' }}>
               {collections.length ? '+ Create another collection' : '+ Create Collection'}
             </button>
           )}

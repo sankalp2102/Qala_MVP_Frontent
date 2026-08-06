@@ -396,9 +396,9 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
 
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '12px 16px', marginBottom: 24, borderRadius: 8,
-        background: acceptingProjects ? '#F3F6F1' : '#F7F1EC',
-        border: `1px solid ${acceptingProjects ? '#7A8C6E' : '#D8D4CF'}`,
+        padding: '12px 16px', marginBottom: 24, borderRadius: 'var(--r-8)',
+        background: acceptingProjects ? 'var(--surface)' : 'var(--surface)',
+        border: `1px solid ${acceptingProjects ? 'var(--sage)' : 'var(--border-l)'}`,
       }}>
         <div>
           <div style={{ fontSize: 13, fontWeight: 600, color: '#333' }}>
@@ -440,9 +440,9 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
 
         <QCard qref="B.3" title="Garment Types" desc="Select all garment types you produce. Check your best 5 first — they'll be highlighted as your top garment types on your profile.">
           <div style={{
-            fontSize: 11, borderRadius: 5, padding: '6px 12px', marginBottom: 12, display: 'inline-block',
-            background: top5Count >= TOP5_MAX ? '#FEF0EC' : '#EEF3EC',
-            color: top5Count >= TOP5_MAX ? '#C0392B' : '#4A7C4A',
+            fontSize: 11, borderRadius: 'var(--r-5)', padding: '6px 12px', marginBottom: 12, display: 'inline-block',
+            background: top5Count >= TOP5_MAX ? 'var(--surface)' : 'var(--surface2)',
+            color: top5Count >= TOP5_MAX ? 'var(--red-d)' : 'var(--green-d)',
           }}>
             Top 5 slots: <strong>{Math.max(0, TOP5_MAX - top5Count)}</strong> remaining
           </div>

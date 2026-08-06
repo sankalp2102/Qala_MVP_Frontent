@@ -29,11 +29,11 @@ export default function PublicProposalView() {
   };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [token]);
 
-  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ADA7A2', fontFamily: fb, fontSize: 14 }}>Loading…</div>;
+  if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--taupe)', fontFamily: fb, fontSize: 14 }}>Loading…</div>;
   if (error || !proposal) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 20, textAlign: 'center', fontFamily: fb }}>
-        <div style={{ fontFamily: fh, fontSize: 24, color: '#1A1714' }}>This link isn't valid</div>
+        <div style={{ fontFamily: fh, fontSize: 24, color: 'var(--text)' }}>This link isn't valid</div>
         <div style={{ fontSize: 14, color: '#7A736E', maxWidth: 360 }}>{error || 'The proposal could not be found.'}</div>
       </div>
     );

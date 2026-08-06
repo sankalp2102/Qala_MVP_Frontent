@@ -20,7 +20,7 @@ function getGreeting(name) {
 const LANDING_FIRST_MSG  = 'qala_landing_first_msg';
 const LANDING_FIRST_IMG  = 'qala_landing_first_img';
 const LANDING_FIRST_MIME = 'qala_landing_first_mime';
-const ACCENT = '#7A8C6E';
+const ACCENT = 'var(--sage)';
 
 const GARMENTS = [
   { key: 'g1', src: g1, hideInPhase2: false, style: { top: '2vh',    left: '3vw',  width: 'clamp(140px,22vw,420px)', transform: 'rotate(-6deg)' } },
@@ -160,7 +160,7 @@ export default function Landing() {
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#FFFFFF',
+      minHeight: '100vh', background: 'var(--bg)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       position: 'relative', overflow: 'hidden',
       fontFamily: 'var(--font-body)',
@@ -237,7 +237,7 @@ export default function Landing() {
           <>
             <h1 style={{
               fontFamily: 'var(--font-display)',
-              fontWeight: 400, color: '#1A1612',
+              fontWeight: 400, color: 'var(--text)',
               textAlign: 'center', lineHeight: 1.28,
               marginBottom: 28, letterSpacing: '-0.01em',
             }}>
@@ -247,8 +247,8 @@ export default function Landing() {
 
             <div style={{
               width: '100%',
-              border: `1.5px solid ${keyError ? '#C94040' : 'rgba(122,140,110,0.5)'}`,
-              borderRadius: 14, background: '#F9F9F8',
+              border: `1.5px solid ${keyError ? 'var(--red)' : 'rgba(122,140,110,0.5)'}`,
+              borderRadius: 'var(--r-lg)', background: 'var(--surface)',
               display: 'flex', alignItems: 'center',
               padding: '6px 6px 6px 18px', gap: 0,
               animation: keyShake ? 'shake 0.5s ease' : 'none',
@@ -271,7 +271,7 @@ export default function Landing() {
                 autoFocus
                 style={{
                   flex: 1, border: 'none', background: 'transparent',
-                  fontSize: 14, color: '#1A1612',
+                  fontSize: 14, color: 'var(--text)',
                   fontFamily: 'var(--font-body)', outline: 'none',
                   padding: '9px 0', letterSpacing: '0.1em',
                 }}
@@ -280,7 +280,7 @@ export default function Landing() {
                 onClick={handleKeySubmit}
                 disabled={!canSendKey}
                 style={{
-                  width: 40, height: 40, borderRadius: 10, border: 'none',
+                  width: 40, height: 40, borderRadius: 'var(--r-10)', border: 'none',
                   background: canSendKey ? ACCENT : 'rgba(122,140,110,0.25)',
                   cursor: canSendKey ? 'pointer' : 'not-allowed',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -295,7 +295,7 @@ export default function Landing() {
             </div>
 
             {keyError && (
-              <p style={{ fontSize:12, color:'#C94040', marginTop:8, textAlign:'center' }}>{keyError}</p>
+              <p style={{ fontSize:12, color:'var(--red)', marginTop:8, textAlign:'center' }}>{keyError}</p>
             )}
 
             <button
@@ -322,7 +322,7 @@ export default function Landing() {
           <>
             <h1 style={{
               fontFamily: 'var(--font-display)',
-              fontWeight: 400, color: '#1A1612',
+              fontWeight: 400, color: 'var(--text)',
               textAlign: 'center', lineHeight: 1.28,
               marginBottom: 12, letterSpacing: '-0.01em',
             }}>
@@ -337,7 +337,7 @@ export default function Landing() {
             <div style={{
               width: '100%',
               border: '1.5px solid rgba(26,22,18,0.15)',
-              borderRadius: 16, background: '#FFFFFF',
+              borderRadius: 'var(--r-16)', background: 'var(--bg)',
               padding: '14px 14px 10px',
               boxSizing: 'border-box',
               boxShadow: '0 4px 24px rgba(26,22,18,0.07)',
@@ -349,7 +349,7 @@ export default function Landing() {
                   <img
                     src={`data:${pendingImg.mime};base64,${pendingImg.data}`}
                     alt=""
-                    style={{ height:48, borderRadius:6, border:'1px solid rgba(26,22,18,0.1)' }}
+                    style={{ height:48, borderRadius: 'var(--r)', border:'1px solid rgba(26,22,18,0.1)' }}
                   />
                   <button onClick={() => setPendingImg(null)} style={{ fontSize:11, color:'rgba(26,22,18,0.4)', background:'none', border:'none', cursor:'pointer' }}>
                     remove
@@ -372,7 +372,7 @@ export default function Landing() {
                 className="landing-textarea"
                 style={{
                   width:'100%', border:'none', background:'transparent',
-                  fontSize:13, color:'#1A1612', lineHeight:1.65,
+                  fontSize:13, color:'var(--text)', lineHeight:1.65,
                   fontFamily:'var(--font-body)', resize:'none', outline:'none',
                   minHeight:80, maxHeight:160, scrollbarWidth:'none',
                 }}
@@ -406,7 +406,7 @@ export default function Landing() {
                   onClick={handleMessageSubmit}
                   disabled={!canSendMsg}
                   style={{
-                    width:36, height:36, borderRadius:9, border:'none',
+                    width:36, height:36, borderRadius: 'var(--r-8)', border:'none',
                     background: canSendMsg ? ACCENT : 'rgba(122,140,110,0.22)',
                     cursor: canSendMsg ? 'pointer' : 'not-allowed',
                     display:'flex', alignItems:'center', justifyContent:'center',
@@ -447,9 +447,9 @@ export default function Landing() {
                   }}
                   style={{
                     padding: '8px 16px',
-                    borderRadius: 999,
+                    borderRadius: 'var(--r-full)',
                     border: '1px solid rgba(26,22,18,0.15)',
-                    background: '#FFFFFF',
+                    background: 'var(--bg)',
                     fontSize: 13, color: 'rgba(26,22,18,0.7)',
                     cursor: 'pointer',
                     fontFamily: 'var(--font-body)',
@@ -492,9 +492,9 @@ export default function Landing() {
             position: 'fixed', top: '50%', left: '50%',
             transform: 'translate(-50%,-50%)',
             zIndex: 401,
-            background: '#FFFFFF',
+            background: 'var(--bg)',
             border: '1px solid rgba(26,22,18,0.1)',
-            borderRadius: 18,
+            borderRadius: 'var(--r-20)',
             padding: '32px 28px 26px',
             width: 'min(420px, 92vw)',
             boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
@@ -504,7 +504,7 @@ export default function Landing() {
                 <div style={{ fontSize: 36, marginBottom: 14 }}>&#10003;</div>
                 <p style={{
                   fontFamily: 'var(--font-display)',
-                  fontSize: 20, fontWeight: 500, color: '#1A1612', marginBottom: 8,
+                  fontSize: 20, fontWeight: 500, color: 'var(--text)', marginBottom: 8,
                 }}>
                   Request received
                 </p>
@@ -515,9 +515,9 @@ export default function Landing() {
                   onClick={() => setShowAccessReq(false)}
                   style={{
                     marginTop: 22, padding: '10px 28px',
-                    borderRadius: 8, border: '1px solid rgba(26,22,18,0.15)',
+                    borderRadius: 'var(--r-8)', border: '1px solid rgba(26,22,18,0.15)',
                     background: 'none', fontSize: 13, cursor: 'pointer',
-                    fontFamily: 'var(--font-body)', color: '#1A1612',
+                    fontFamily: 'var(--font-body)', color: 'var(--text)',
                   }}
                 >
                   Close
@@ -527,7 +527,7 @@ export default function Landing() {
               <>
                 <p style={{
                   margin: '0 0 5px', fontSize: 20, fontWeight: 500,
-                  color: '#1A1612', fontFamily: 'var(--font-display)',
+                  color: 'var(--text)', fontFamily: 'var(--font-display)',
                 }}>
                   Request Access
                 </p>
@@ -555,17 +555,17 @@ export default function Landing() {
                       placeholder={placeholder}
                       style={{
                         width: '100%', padding: '10px 13px', boxSizing: 'border-box',
-                        border: `1px solid ${accessReqErr[key] ? '#C94040' : 'rgba(26,22,18,0.15)'}`,
-                        borderRadius: 9, background: '#F9F9F8',
-                        fontSize: 14, color: '#1A1612',
+                        border: `1px solid ${accessReqErr[key] ? 'var(--red)' : 'rgba(26,22,18,0.15)'}`,
+                        borderRadius: 'var(--r-8)', background: 'var(--surface)',
+                        fontSize: 14, color: 'var(--text)',
                         fontFamily: 'var(--font-body)', outline: 'none',
                         transition: 'border-color 0.15s',
                       }}
                       onFocus={e  => { e.target.style.borderColor = ACCENT; }}
-                      onBlur={e   => { e.target.style.borderColor = accessReqErr[key] ? '#C94040' : 'rgba(26,22,18,0.15)'; }}
+                      onBlur={e   => { e.target.style.borderColor = accessReqErr[key] ? 'var(--red)' : 'rgba(26,22,18,0.15)'; }}
                     />
                     {accessReqErr[key] && (
-                      <span style={{ fontSize: 11, color: '#C94040', marginTop: 3, display: 'block' }}>
+                      <span style={{ fontSize: 11, color: 'var(--red)', marginTop: 3, display: 'block' }}>
                         {accessReqErr[key]}
                       </span>
                     )}
@@ -576,7 +576,7 @@ export default function Landing() {
                   <button
                     onClick={() => setShowAccessReq(false)}
                     style={{
-                      flex: 1, padding: '11px', borderRadius: 8,
+                      flex: 1, padding: '11px', borderRadius: 'var(--r-8)',
                       border: '1px solid rgba(26,22,18,0.15)', background: 'none',
                       fontSize: 13, color: 'rgba(26,22,18,0.5)', cursor: 'pointer',
                       fontFamily: 'var(--font-body)',
@@ -588,7 +588,7 @@ export default function Landing() {
                     onClick={handleAccessReqSubmit}
                     disabled={accessReqSending}
                     style={{
-                      flex: 2, padding: '11px', borderRadius: 8, border: 'none',
+                      flex: 2, padding: '11px', borderRadius: 'var(--r-8)', border: 'none',
                       background: accessReqSending ? 'rgba(122,140,110,0.4)' : ACCENT,
                       color: '#fff', fontSize: 13, fontWeight: 500,
                       cursor: accessReqSending ? 'not-allowed' : 'pointer',

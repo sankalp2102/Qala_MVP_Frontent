@@ -52,7 +52,7 @@ export default function AuthGateModal({ onClose, onSuccess, studioName }) {
         transform: 'translate(-50%, -50%)',
         width: '100%', maxWidth: 440,
         background: 'var(--surface)', border: '1px solid var(--border)',
-        borderRadius: 20, padding: '36px',
+        borderRadius: 'var(--r-20)', padding: '36px',
         zIndex: 1001, animation: 'modalIn 0.25s ease',
       }}>
         <style>{`
@@ -89,13 +89,13 @@ export default function AuthGateModal({ onClose, onSuccess, studioName }) {
         {/* Tab switcher */}
         <div style={{
           display: 'flex', background: 'var(--surface2)',
-          borderRadius: 8, padding: 3, marginBottom: 24,
+          borderRadius: 'var(--r-8)', padding: 3, marginBottom: 24,
           border: '1px solid var(--border)',
         }}>
           {[['signup','Create Account'],['signin','Sign In']].map(([k,l]) => (
             <button key={k} onClick={() => { setTab(k); setErr(''); }}
               style={{
-                flex: 1, padding: '8px', borderRadius: 6,
+                flex: 1, padding: '8px', borderRadius: 'var(--r)',
                 border: 'none', fontSize: 13, fontWeight: 600,
                 cursor: 'pointer', transition: 'all 0.15s',
                 background: tab === k ? 'var(--surface4)' : 'transparent',
@@ -123,7 +123,7 @@ export default function AuthGateModal({ onClose, onSuccess, studioName }) {
           {err && (
             <div style={{
               background: 'var(--red-dim)', border: '1px solid rgba(255,85,85,0.3)',
-              borderLeft: '3px solid var(--red)', borderRadius: 8,
+              borderLeft: '3px solid var(--red)', borderRadius: 'var(--r-8)',
               padding: '10px 14px', fontSize: 13, color: 'var(--red)',
             }}>{err}</div>
           )}

@@ -50,10 +50,10 @@ function BuyerSearch({ value, onChange, buyers, onSearch }) {
         onFocus={() => { setOpen(true); setQuery(''); }}
         onChange={e => { search(e.target.value); }}
         placeholder="Search by name or email…"
-        style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)', boxSizing: 'border-box' }}
+        style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r-8)', border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)', boxSizing: 'border-box' }}
       />
       {open && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: 'var(--shadow-lg)', maxHeight: 220, overflowY: 'auto', marginTop: 4 }}>
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-8)', boxShadow: 'var(--shadow-lg)', maxHeight: 220, overflowY: 'auto', marginTop: 4 }}>
           <div
             onClick={() => { onChange(''); setOpen(false); setQuery(''); }}
             style={{ padding: '9px 14px', fontSize: 13, color: 'var(--text3)', cursor: 'pointer', borderBottom: '1px solid var(--border)' }}
@@ -197,7 +197,7 @@ export default function AdminProjectsList() {
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <select value={stageFilter} onChange={e => setStageFilter(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)' }}>
+            style={{ padding: '8px 12px', borderRadius: 'var(--r-8)', border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)' }}>
             <option value="">All Stages</option>
             {['draft','brief_submitted','studio_assigned','in_production','completed','cancelled'].map(s => (
               <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
@@ -209,7 +209,7 @@ export default function AdminProjectsList() {
 
       {/* Buyers who contacted a studio directly — convert to a project here */}
       {!inqLoading && pendingInquiries.length > 0 && (
-        <div style={{ background: 'var(--gold-dim)', border: '1px solid var(--gold)', borderRadius: 12, marginBottom: 20, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--gold-dim)', border: '1px solid var(--gold)', borderRadius: 'var(--r-lg)', marginBottom: 20, overflow: 'hidden' }}>
           <div
             onClick={() => setInqOpen(o => !o)}
             style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
@@ -223,7 +223,7 @@ export default function AdminProjectsList() {
             <div style={{ padding: '0 20px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
               {pendingInquiries.map(inq => (
                 <div key={inq.id} style={{
-                  background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10,
+                  background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)',
                   padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap',
                 }}>
                   <div style={{ minWidth: 0 }}>
@@ -259,13 +259,13 @@ export default function AdminProjectsList() {
         <input
           value={searchQ} onChange={e => setSearchQ(e.target.value)}
           placeholder="Search projects by name, buyer, or studio…"
-          style={{ width: '100%', padding: '9px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)', boxSizing: 'border-box' }}
+          style={{ width: '100%', padding: '9px 14px', borderRadius: 'var(--r-8)', border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)', boxSizing: 'border-box' }}
         />
       </div>
 
       {/* Create form */}
       {showCreate && (
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '24px 28px', marginBottom: 24, borderLeft: '3px solid var(--gold)' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '24px 28px', marginBottom: 24, borderLeft: '3px solid var(--gold)' }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600, color: 'var(--text)', marginBottom: 20 }}>Create Project</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
 
@@ -301,7 +301,7 @@ export default function AdminProjectsList() {
             <div className="field">
               <label style={{ fontSize: 11 }}>Buyer Currency</label>
               <select value={form.budget_currency} onChange={e => set('budget_currency', e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)' }}>
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r-8)', border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)' }}>
                 {['USD','EUR','GBP','INR','AED'].map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
@@ -325,7 +325,7 @@ export default function AdminProjectsList() {
               <label style={{ fontSize: 11 }}>Additional Notes</label>
               <textarea rows={3} value={form.additional_specs} onChange={e => set('additional_specs', e.target.value)}
                 placeholder="Fabrics, techniques, certifications, special requirements…"
-                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text)', resize: 'vertical' }} />
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--r-8)', border: '1px solid var(--border)', background: 'var(--surface2)', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text)', resize: 'vertical' }} />
             </div>
 
             {/* Change 2: Reference link */}
@@ -358,14 +358,14 @@ export default function AdminProjectsList() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {filtered.length === 0 && (
-            <div style={{ padding: '48px 32px', textAlign: 'center', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12 }}>
+            <div style={{ padding: '48px 32px', textAlign: 'center', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)' }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
               <div style={{ fontSize: 14, color: 'var(--text3)' }}>{searchQ ? 'No projects match your search.' : 'No projects yet.'}</div>
             </div>
           )}
           {filtered.map(p => (
             <div key={p.id} onClick={() => nav(`/admin/projects/${p.id}`)}
-              style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, transition: 'box-shadow 0.15s' }}
+              style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', padding: '16px 20px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, transition: 'box-shadow 0.15s' }}
               onMouseEnter={e => e.currentTarget.style.boxShadow = 'var(--shadow-lg)'}
               onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
             >
@@ -375,7 +375,7 @@ export default function AdminProjectsList() {
                   {p.buyer_name || p.buyer_email || 'No buyer'} · {p.studio_name ? `Studio: ${p.studio_name}` : 'No studio'} · Updated {fmt(p.updated_at)}
                 </div>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: `${STAGE_COLORS[p.stage] || 'var(--text3)'}22`, color: STAGE_COLORS[p.stage] || 'var(--text3)', textTransform: 'uppercase', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 'var(--r-20)', background: `${STAGE_COLORS[p.stage] || 'var(--text3)'}22`, color: STAGE_COLORS[p.stage] || 'var(--text3)', textTransform: 'uppercase', whiteSpace: 'nowrap', flexShrink: 0 }}>
                 {p.stage?.replace(/_/g, ' ')}
               </span>
             </div>

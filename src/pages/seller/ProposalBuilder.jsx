@@ -33,7 +33,7 @@ function Toggle({ opts, val, onChange }) {
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
       {opts.map(([v, l]) => (
         <button key={v} onClick={() => onChange(v)} style={{
-          padding: '7px 16px', borderRadius: 6, border: '1px solid var(--border)', cursor: 'pointer',
+          padding: '7px 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', cursor: 'pointer',
           fontFamily: 'var(--font-body)', fontSize: 13, fontWeight: val === v ? 600 : 400, transition: 'all 0.15s',
           background: val === v ? 'var(--gold)' : 'var(--surface2)',
           color:      val === v ? '#fff' : 'var(--text2)',
@@ -82,7 +82,7 @@ function StepNav({ current, onChange, completedSteps }) {
         return (
           <div key={s.n} onClick={() => onChange(s.n)} style={{
             display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
-            borderRadius: 8, marginBottom: 4, cursor: 'pointer',
+            borderRadius: 'var(--r-8)', marginBottom: 4, cursor: 'pointer',
             background: active ? 'var(--gold-dim)' : 'transparent',
             transition: 'background 0.15s',
           }}
@@ -116,8 +116,8 @@ function StepNav({ current, onChange, completedSteps }) {
 // #default-right divs, swapped by current step rather than JS show/hide.
 function PayTrack({ pct, onChange, disabled }) {
   return (
-    <div style={{ position: 'relative', height: 5, background: 'var(--surface3)', borderRadius: 3, margin: '4px 0 6px', cursor: disabled ? 'default' : 'pointer' }}>
-      <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', background: 'var(--gold)', borderRadius: 3, pointerEvents: 'none', transition: 'width .05s', width: `${pct}%` }} />
+    <div style={{ position: 'relative', height: 5, background: 'var(--surface3)', borderRadius: 'var(--r-4)', margin: '4px 0 6px', cursor: disabled ? 'default' : 'pointer' }}>
+      <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', background: 'var(--gold)', borderRadius: 'var(--r-4)', pointerEvents: 'none', transition: 'width .05s', width: `${pct}%` }} />
       <input type="range" min="0" max="100" step="5" value={pct} disabled={disabled} onChange={onChange}
         style={{ position: 'absolute', width: '100%', top: -6, left: 0, margin: 0, opacity: 0, cursor: disabled ? 'default' : 'pointer', height: 18 }} />
     </div>
@@ -125,9 +125,9 @@ function PayTrack({ pct, onChange, disabled }) {
 }
 
 const PHASE_META = {
-  designing:  { label: 'Design',     color: '#7A8C6E' },
-  sampling:   { label: 'Sampling',   color: '#C4953A' },
-  production: { label: 'Production', color: '#5B4B8A' },
+  designing:  { label: 'Design',     color: 'var(--sage)' },
+  sampling:   { label: 'Sampling',   color: 'var(--amber-d)' },
+  production: { label: 'Production', color: 'var(--purple)' },
 };
 
 function RightPanel({ step, result, forex, currency, setCurrency, exp, toggleExp, advPctDesign, setAdvPctDesign, advPctProduction, setAdvPctProduction, enquiry, brief, designDate, sampleDate, bulkDate }) {
@@ -155,17 +155,17 @@ function RightPanel({ step, result, forex, currency, setCurrency, exp, toggleExp
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--text4)' }}>Buyer landing cost</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ fontSize: 10, color: 'var(--terra, #D4836A)', background: 'rgba(212,131,106,.08)', border: '1px solid rgba(212,131,106,.2)', borderRadius: 4, padding: '2px 7px' }}>1 USD = ₹{forex.toFixed(2)}</div>
-              <div style={{ display: 'flex', border: '1px solid var(--border2)', borderRadius: 8, overflow: 'hidden' }}>
+              <div style={{ fontSize: 10, color: 'var(--terra, var(--terra))', background: 'rgba(212,131,106,.08)', border: '1px solid rgba(212,131,106,.2)', borderRadius: 'var(--r-4)', padding: '2px 7px' }}>1 USD = ₹{forex.toFixed(2)}</div>
+              <div style={{ display: 'flex', border: '1px solid var(--border2)', borderRadius: 'var(--r-8)', overflow: 'hidden' }}>
                 <button onClick={() => setCurrency('usd')} style={{ padding: '4px 10px', fontSize: 11, border: 'none', cursor: 'pointer', background: currency === 'usd' ? 'var(--gold)' : 'var(--bg)', color: currency === 'usd' ? '#fff' : 'var(--text2)' }}>USD</button>
                 <button onClick={() => setCurrency('inr')} style={{ padding: '4px 10px', fontSize: 11, border: 'none', borderLeft: '1px solid var(--border2)', cursor: 'pointer', background: currency === 'inr' ? 'var(--gold)' : 'var(--bg)', color: currency === 'inr' ? '#fff' : 'var(--text2)' }}>INR</button>
               </div>
             </div>
           </div>
-          <div style={{ background: 'var(--bg)', border: '1px solid var(--border2)', borderLeft: '3px solid var(--terra, #D4836A)', borderRadius: 10, padding: '16px 18px' }}>
+          <div style={{ background: 'var(--bg)', border: '1px solid var(--border2)', borderLeft: '3px solid var(--terra, var(--terra))', borderRadius: 'var(--r-10)', padding: '16px 18px' }}>
             <div style={{ marginBottom: 12 }}>
               <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--text4)', marginBottom: 4 }}>Landing cost</div>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 600, color: 'var(--terra, #D4836A)', lineHeight: 1 }}>{result.hasItems ? c(result.landingCostUSD) : '—'}</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 600, color: 'var(--terra, var(--terra))', lineHeight: 1 }}>{result.hasItems ? c(result.landingCostUSD) : '—'}</div>
             </div>
             {items.length === 0 ? (
               <div style={{ textAlign: 'center', color: 'var(--text4)', padding: 12, fontSize: 11 }}>Add items to see pricing</div>
@@ -199,7 +199,7 @@ function RightPanel({ step, result, forex, currency, setCurrency, exp, toggleExp
                             <td style={{ fontSize: 11, padding: '3px 0', color: 'var(--text2)', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={it.name}>{it.name || '—'}</td>
                             <td style={{ fontSize: 11, padding: '3px 0', textAlign: 'right', color: 'var(--text3)' }}>{it.qty}</td>
                             <td style={{ fontSize: 12, padding: '3px 0', textAlign: 'right', fontWeight: 500 }}>{c(it.qty > 0 ? landing / it.qty : 0)}</td>
-                            <td style={{ fontSize: 12, padding: '3px 0', textAlign: 'right', fontWeight: 600, color: 'var(--terra, #D4836A)' }}>{c(landing)}</td>
+                            <td style={{ fontSize: 12, padding: '3px 0', textAlign: 'right', fontWeight: 600, color: 'var(--terra, var(--terra))' }}>{c(landing)}</td>
                           </tr>
                         );
                       }),
@@ -221,7 +221,7 @@ function RightPanel({ step, result, forex, currency, setCurrency, exp, toggleExp
             )}
             {result.hasItems && (
               <div style={{ marginTop: 8, borderTop: '1px solid var(--border2)', paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontWeight: 600, fontSize: 13 }}>
-                <span>Total</span><span style={{ color: 'var(--terra, #D4836A)' }}>{c(result.landingCostUSD)}</span>
+                <span>Total</span><span style={{ color: 'var(--terra, var(--terra))' }}>{c(result.landingCostUSD)}</span>
               </div>
             )}
           </div>
@@ -305,7 +305,7 @@ function RightPanel({ step, result, forex, currency, setCurrency, exp, toggleExp
                 <span style={{ color: 'var(--text3)' }}>Trade & Compliance <span style={{ color: 'var(--text4)', fontSize: 10 }}>(+5%)</span></span>
                 <span style={{ color: 'var(--text3)' }}>{c(result.tcAmt)}</span>
               </div>
-              <div style={{ marginTop: 8, padding: '8px 10px', background: 'var(--surface)', borderRadius: 6, fontSize: 10, color: 'var(--text3)', lineHeight: 1.6 }}>
+              <div style={{ marginTop: 8, padding: '8px 10px', background: 'var(--surface)', borderRadius: 'var(--r)', fontSize: 10, color: 'var(--text3)', lineHeight: 1.6 }}>
                 Fee applies per phase — Design 4% · Sampling 10% · Production 15%
               </div>
             </div>
@@ -320,7 +320,7 @@ function RightPanel({ step, result, forex, currency, setCurrency, exp, toggleExp
           <div onClick={() => toggleExp('payout')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', paddingBottom: 6, marginBottom: 10 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <span style={{ fontSize: 11, color: 'var(--text3)', display: 'inline-block', transform: exp.payout ? 'rotate(90deg)' : 'none' }}>›</span>
-              <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--terra, #D4836A)' }}>Your payout</span>
+              <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--terra, var(--terra))' }}>Your payout</span>
             </span>
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)' }}>{fmtINR(result.payoutTotalINR)}</span>
           </div>
@@ -345,8 +345,8 @@ function RightPanel({ step, result, forex, currency, setCurrency, exp, toggleExp
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>{fmtINR(result.payoutByPhase.designing)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 8 }}>
-                <div><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text4)', display: 'block' }}>Advance</span><span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>{Math.round(advPctDesign * 100)}%</span><span style={{ fontSize: 11, fontWeight: 500, color: 'var(--terra, #D4836A)', display: 'block' }}>{fmtINR(result.payoutByPhase.designing * advPctDesign)}</span></div>
-                <div style={{ textAlign: 'right' }}><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text4)', display: 'block' }}>On approval</span><span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>{Math.round((1 - advPctDesign) * 100)}%</span><span style={{ fontSize: 11, fontWeight: 500, color: 'var(--terra, #D4836A)', display: 'block' }}>{fmtINR(result.payoutByPhase.designing * (1 - advPctDesign))}</span></div>
+                <div><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text4)', display: 'block' }}>Advance</span><span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>{Math.round(advPctDesign * 100)}%</span><span style={{ fontSize: 11, fontWeight: 500, color: 'var(--terra, var(--terra))', display: 'block' }}>{fmtINR(result.payoutByPhase.designing * advPctDesign)}</span></div>
+                <div style={{ textAlign: 'right' }}><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text4)', display: 'block' }}>On approval</span><span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>{Math.round((1 - advPctDesign) * 100)}%</span><span style={{ fontSize: 11, fontWeight: 500, color: 'var(--terra, var(--terra))', display: 'block' }}>{fmtINR(result.payoutByPhase.designing * (1 - advPctDesign))}</span></div>
               </div>
               <PayTrack pct={Math.round(advPctDesign * 100)} onChange={e => setAdvPctDesign(parseInt(e.target.value) / 100)} />
             </div>
@@ -360,8 +360,8 @@ function RightPanel({ step, result, forex, currency, setCurrency, exp, toggleExp
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>{fmtINR(result.payoutByPhase.sampling)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 8 }}>
-                <div><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text4)', display: 'block' }}>Advance</span><span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>100%</span><span style={{ fontSize: 11, fontWeight: 500, color: 'var(--terra, #D4836A)', display: 'block' }}>{fmtINR(result.payoutByPhase.sampling)}</span></div>
-                <div style={{ textAlign: 'right' }}><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text4)', display: 'block' }}>On dispatch</span><span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>0%</span><span style={{ fontSize: 11, fontWeight: 500, color: 'var(--terra, #D4836A)', display: 'block' }}>{fmtINR(0)}</span></div>
+                <div><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text4)', display: 'block' }}>Advance</span><span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>100%</span><span style={{ fontSize: 11, fontWeight: 500, color: 'var(--terra, var(--terra))', display: 'block' }}>{fmtINR(result.payoutByPhase.sampling)}</span></div>
+                <div style={{ textAlign: 'right' }}><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text4)', display: 'block' }}>On dispatch</span><span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>0%</span><span style={{ fontSize: 11, fontWeight: 500, color: 'var(--terra, var(--terra))', display: 'block' }}>{fmtINR(0)}</span></div>
               </div>
               <PayTrack pct={100} disabled />
               <div style={{ fontSize: 10, color: 'var(--text4)', marginTop: 4 }}>Paid in full before sampling begins</div>
@@ -376,8 +376,8 @@ function RightPanel({ step, result, forex, currency, setCurrency, exp, toggleExp
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>{fmtINR(result.payoutByPhase.production)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 8 }}>
-                <div><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text4)', display: 'block' }}>Advance</span><span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>{Math.round(advPctProduction * 100)}%</span><span style={{ fontSize: 11, fontWeight: 500, color: 'var(--terra, #D4836A)', display: 'block' }}>{fmtINR(result.payoutByPhase.production * advPctProduction)}</span></div>
-                <div style={{ textAlign: 'right' }}><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text4)', display: 'block' }}>On dispatch</span><span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>{Math.round((1 - advPctProduction) * 100)}%</span><span style={{ fontSize: 11, fontWeight: 500, color: 'var(--terra, #D4836A)', display: 'block' }}>{fmtINR(result.payoutByPhase.production * (1 - advPctProduction))}</span></div>
+                <div><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text4)', display: 'block' }}>Advance</span><span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>{Math.round(advPctProduction * 100)}%</span><span style={{ fontSize: 11, fontWeight: 500, color: 'var(--terra, var(--terra))', display: 'block' }}>{fmtINR(result.payoutByPhase.production * advPctProduction)}</span></div>
+                <div style={{ textAlign: 'right' }}><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text4)', display: 'block' }}>On dispatch</span><span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--text)' }}>{Math.round((1 - advPctProduction) * 100)}%</span><span style={{ fontSize: 11, fontWeight: 500, color: 'var(--terra, var(--terra))', display: 'block' }}>{fmtINR(result.payoutByPhase.production * (1 - advPctProduction))}</span></div>
               </div>
               <PayTrack pct={Math.round(advPctProduction * 100)} onChange={e => setAdvPctProduction(parseInt(e.target.value) / 100)} />
             </div>
@@ -426,7 +426,7 @@ function BoxesTable({ boxes, onChange }) {
   const rm  = (id) => onChange(boxes.filter(b => b._id !== id));
   const add = (std) => onChange([...boxes, { ...mkBox(), ...std, qty: 1 }]);
   const addCustom = () => onChange([...boxes, mkBox()]);
-  const inp = (w) => ({ padding:'5px 6px',borderRadius:5,border:'1px solid var(--border)',background:'var(--surface2)',fontSize:11,color:'var(--text)',fontFamily:'var(--font-body)',width:w });
+  const inp = (w) => ({ padding:'5px 6px',borderRadius: 'var(--r-5)',border:'1px solid var(--border)',background:'var(--surface2)',fontSize:11,color:'var(--text)',fontFamily:'var(--font-body)',width:w });
 
   // Display/input conversion only — boxes[].length_cm etc always stay in
   // cm internally (the volumetric weight formula L×W×H÷5000 is cm-based),
@@ -440,7 +440,7 @@ function BoxesTable({ boxes, onChange }) {
         <div style={{ fontSize: 11, color: 'var(--text4)' }}>Standard sizes — 5-ply corrugated</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontSize: 11, color: 'var(--text3)' }}>Unit:</span>
-          <div style={{ display: 'flex', border: '1px solid var(--border2)', borderRadius: 8, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', border: '1px solid var(--border2)', borderRadius: 'var(--r-8)', overflow: 'hidden' }}>
             <button onClick={() => setUnit('cm')} style={{ padding: '3px 10px', fontSize: 11, border: 'none', cursor: 'pointer', background: unit === 'cm' ? 'var(--gold)' : 'var(--bg)', color: unit === 'cm' ? '#fff' : 'var(--text2)' }}>cm</button>
             <button onClick={() => setUnit('in')} style={{ padding: '3px 10px', fontSize: 11, border: 'none', borderLeft: '1px solid var(--border2)', cursor: 'pointer', background: unit === 'in' ? 'var(--gold)' : 'var(--bg)', color: unit === 'in' ? '#fff' : 'var(--text2)' }}>inch</button>
           </div>
@@ -450,12 +450,12 @@ function BoxesTable({ boxes, onChange }) {
       <div style={{ marginBottom: 14 }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {STD_BOXES.map(b => (
-            <button key={b.label} onClick={() => add(b)} style={{ fontSize: 12, padding: '6px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text2)', cursor: 'pointer', fontFamily: 'var(--font-body)', textAlign: 'left' }}>
+            <button key={b.label} onClick={() => add(b)} style={{ fontSize: 12, padding: '6px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text2)', cursor: 'pointer', fontFamily: 'var(--font-body)', textAlign: 'left' }}>
               <div style={{ fontWeight: 600 }}>{b.label} — {unit === 'in' ? `${(b.length_cm/2.54).toFixed(1)}×${(b.width_cm/2.54).toFixed(1)}×${(b.height_cm/2.54).toFixed(1)} in` : `${b.length_cm}×${b.width_cm}×${b.height_cm} cm`}</div>
               <div style={{ fontSize: 10, color: 'var(--text4)' }}>Vol {b.vol} kg · Box {b.box} kg</div>
             </button>
           ))}
-          <button onClick={addCustom} style={{ fontSize: 12, padding: '6px 12px', borderRadius: 6, border: '1px dashed var(--border)', background: 'none', color: 'var(--text3)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+          <button onClick={addCustom} style={{ fontSize: 12, padding: '6px 12px', borderRadius: 'var(--r)', border: '1px dashed var(--border)', background: 'none', color: 'var(--text3)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
             Custom size
           </button>
         </div>
@@ -493,7 +493,7 @@ function BoxesTable({ boxes, onChange }) {
           </tbody>
         </table>
       )}
-      <div style={{ display: 'flex', gap: 8, background: 'rgba(201,168,76,.08)', border: '1px solid rgba(201,168,76,.20)', borderRadius: 6, padding: '9px 11px', fontSize: 12, color: '#C9A84C', marginTop: 10, lineHeight: 1.5 }}>
+      <div style={{ display: 'flex', gap: 8, background: 'rgba(201,168,76,.08)', border: '1px solid rgba(201,168,76,.20)', borderRadius: 'var(--r)', padding: '9px 11px', fontSize: 12, color: 'var(--deco-gold)', marginTop: 10, lineHeight: 1.5 }}>
         <span>ⓘ</span>
         <span>Vol. wt = L×W×H ÷ 5000 · Chargeable = max(actual, vol) + 10% margin · Rounds to 0.5 kg (≤30 kg) or 1 kg (&gt;30 kg)</span>
       </div>
@@ -744,14 +744,14 @@ export default function ProposalBuilder() {
             <SLabel>Concept description</SLabel>
             <textarea rows={4} value={conceptDesc} onChange={e => setConceptDesc(e.target.value)}
               placeholder="Describe your creative direction, materials, mood, colour story…"
-              style={{ width: '100%', padding: '10px 13px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text)', resize: 'vertical', boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '10px 13px', borderRadius: 'var(--r-8)', border: '1px solid var(--border)', background: 'var(--surface2)', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text)', resize: 'vertical', boxSizing: 'border-box' }} />
           </div>
 
           <div>
             <SLabel>Concept PDF / moodboard</SLabel>
             <input ref={pdfRef} type="file" accept=".pdf,image/*" onChange={e => { const f = e.target.files?.[0]; if(f) { setConceptPdf(f); setConceptPdfName(f.name); } }} style={{ display: 'none' }} />
             {conceptPdfName ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'var(--surface2)', borderRadius: 8, border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'var(--surface2)', borderRadius: 'var(--r-8)', border: '1px solid var(--border)' }}>
                 <span style={{ fontSize: 20 }}>📄</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{conceptPdfName}</div>
@@ -760,7 +760,7 @@ export default function ProposalBuilder() {
                 <button onClick={() => { setConceptPdf(null); setConceptPdfName(''); }} style={{ background: 'none', border: 'none', color: 'var(--text4)', cursor: 'pointer', fontSize: 18 }}>×</button>
               </div>
             ) : (
-              <button onClick={() => pdfRef.current?.click()} style={{ width: '100%', padding: '24px', borderRadius: 8, border: '2px dashed var(--border)', background: 'var(--surface2)', color: 'var(--text3)', cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: 13, textAlign: 'center' }}>
+              <button onClick={() => pdfRef.current?.click()} style={{ width: '100%', padding: '24px', borderRadius: 'var(--r-8)', border: '2px dashed var(--border)', background: 'var(--surface2)', color: 'var(--text3)', cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: 13, textAlign: 'center' }}>
                 📎 Drop your concept PDF here, or browse<br/>
                 <span style={{ fontSize: 11, color: 'var(--text4)' }}>PDF up to 20 MB</span>
               </button>
@@ -827,7 +827,7 @@ export default function ProposalBuilder() {
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>03 — Past work</h2>
           <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 20 }}>Show buyer your past work closest to this project. Select from your existing collections, or add a project manually.</div>
 
-          <div style={{ display: 'flex', gap: 10, background: 'var(--admin-dim, var(--gold-dim))', border: '1px solid var(--gold-dim2, var(--border))', borderRadius: 8, padding: '12px 16px', marginBottom: 24, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+          <div style={{ display: 'flex', gap: 10, background: 'var(--admin-dim, var(--gold-dim))', border: '1px solid var(--gold-dim2, var(--border))', borderRadius: 'var(--r-8)', padding: '12px 16px', marginBottom: 24, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
             <span style={{ fontSize: 16, flexShrink: 0 }}>🗂</span>
             <span>Collections and products you add here become part of your <strong>portfolio</strong> — visible to buyers browsing the platform. You can control visibility per item: keep it <strong>private</strong> (only you see it) or mark it <strong>open for collaboration</strong> (buyers can pitch projects around it).</span>
           </div>
@@ -848,7 +848,7 @@ export default function ProposalBuilder() {
                       key={coll.id}
                       onClick={() => toggleCollection(coll)}
                       style={{
-                        position: 'relative', border: `1px solid ${isSelected ? 'var(--gold)' : 'var(--border)'}`, borderRadius: 12,
+                        position: 'relative', border: `1px solid ${isSelected ? 'var(--gold)' : 'var(--border)'}`, borderRadius: 'var(--r-lg)',
                         padding: 14, cursor: atCap && !isSelected ? 'not-allowed' : 'pointer', background: 'var(--surface)',
                         opacity: atCap && !isSelected ? 0.5 : 1, transition: 'border-color .15s',
                       }}
@@ -859,13 +859,13 @@ export default function ProposalBuilder() {
                           const photoUrl = p.photos?.[0]?.thumbnail || p.photos?.[0]?.file;
                           return (
                             <div key={p.id} style={{
-                              position: 'absolute', left: i * 28, top: 0, width: 56, height: 56, borderRadius: 8,
+                              position: 'absolute', left: i * 28, top: 0, width: 56, height: 56, borderRadius: 'var(--r-8)',
                               background: photoUrl ? `url(${photoUrl}) center/cover` : 'var(--surface3)',
                               border: '2px solid var(--surface)', zIndex: 3 - i,
                             }} />
                           );
                         }) : (
-                          <div style={{ width: 56, height: 56, borderRadius: 8, background: 'var(--surface3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🧵</div>
+                          <div style={{ width: 56, height: 56, borderRadius: 'var(--r-8)', background: 'var(--surface3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🧵</div>
                         )}
                       </div>
 
@@ -876,7 +876,7 @@ export default function ProposalBuilder() {
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
                           {tags.map(({ tag, matched }, i) => (
                             <span key={i} style={{
-                              fontSize: 10, padding: '2px 8px', borderRadius: 20,
+                              fontSize: 10, padding: '2px 8px', borderRadius: 'var(--r-20)',
                               background: matched ? 'var(--green-dim)' : 'var(--surface2)',
                               color: matched ? 'var(--green)' : 'var(--text3)',
                               fontWeight: matched ? 600 : 400,
@@ -892,7 +892,7 @@ export default function ProposalBuilder() {
                         const label = vis === 'open_for_collaboration' ? 'Open for collaboration' : vis === 'private' ? 'Private' : 'Public';
                         const bg = vis === 'open_for_collaboration' ? 'var(--green-dim)' : vis === 'private' ? 'var(--surface2)' : 'var(--gold-dim)';
                         const color = vis === 'open_for_collaboration' ? 'var(--green)' : vis === 'private' ? 'var(--text4)' : 'var(--gold)';
-                        return <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: bg, color }}>{label}</span>;
+                        return <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 'var(--r-20)', background: bg, color }}>{label}</span>;
                       })()}
 
                       {isSelected && (
@@ -906,7 +906,7 @@ export default function ProposalBuilder() {
               <button onClick={() => setShowCreateColl(true)} className="btn btn-ghost" style={{ fontSize: 12, marginTop: 14 }}>+ Create new collection</button>
             </div>
           ) : (
-            <div style={{ background: 'var(--surface2)', borderRadius: 10, padding: '16px 18px', marginBottom: 20, fontSize: 12, color: 'var(--text3)' }}>
+            <div style={{ background: 'var(--surface2)', borderRadius: 'var(--r-10)', padding: '16px 18px', marginBottom: 20, fontSize: 12, color: 'var(--text3)' }}>
               You don't have any portfolio collections yet — add products and collections from your Past Work section, or add a project manually below.
               <div style={{ marginTop: 10 }}>
                 <button onClick={() => setShowCreateColl(true)} className="btn btn-ghost" style={{ fontSize: 12 }}>+ Create new collection</button>
@@ -919,9 +919,9 @@ export default function ProposalBuilder() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Added to this proposal</div>
               {pastProjects.map((p, i) => (
-                <div key={i} style={{ background: 'var(--surface2)', borderRadius: 10, padding: '16px 18px', border: '1px solid var(--border)', position: 'relative', display: 'flex', gap: 14 }}>
+                <div key={i} style={{ background: 'var(--surface2)', borderRadius: 'var(--r-10)', padding: '16px 18px', border: '1px solid var(--border)', position: 'relative', display: 'flex', gap: 14 }}>
                   {p.image_url && (
-                    <div style={{ width: 56, height: 56, borderRadius: 8, background: `url(${p.image_url}) center/cover`, flexShrink: 0 }} />
+                    <div style={{ width: 56, height: 56, borderRadius: 'var(--r-8)', background: `url(${p.image_url}) center/cover`, flexShrink: 0 }} />
                   )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     {p._collection_id && (
@@ -951,7 +951,7 @@ export default function ProposalBuilder() {
           )}
 
           {pastProjects.length < 3 && (
-            <button onClick={addPP} style={{ fontSize: 13, color: 'var(--gold)', background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', borderRadius: 8, padding: '8px 18px', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+            <button onClick={addPP} style={{ fontSize: 13, color: 'var(--gold)', background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', borderRadius: 'var(--r-8)', padding: '8px 18px', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
               + Add a project manually
             </button>
           )}
@@ -972,15 +972,15 @@ export default function ProposalBuilder() {
             )}
 
             {/* Order config — only shipping is global now */}
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '18px 20px', marginBottom: 16 }}>
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', padding: '18px 20px', marginBottom: 16 }}>
               <div><SLabel>Shipping method</SLabel><Toggle opts={SHIP_OPTIONS} val={shipping} onChange={setShipping} /></div>
-              <div style={{ marginTop: 12, fontSize: 11, color: 'var(--text4)', background: 'var(--surface2)', borderRadius: 7, padding: '8px 12px' }}>
+              <div style={{ marginTop: 12, fontSize: 11, color: 'var(--text4)', background: 'var(--surface2)', borderRadius: 'var(--r)', padding: '8px 12px' }}>
                 ℹ Shipping, import duties, and insurance are handled end-to-end by Qala. Enter your studio costs only — the calculator adds everything else automatically. Order type and product domain are set per item below.
               </div>
             </div>
 
             {/* Line items */}
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '18px 20px', marginBottom: 16 }}>
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', padding: '18px 20px', marginBottom: 16 }}>
               <SLabel required>Items & costing</SLabel>
               <div style={{ fontSize: 11, color: 'var(--text4)', marginBottom: 12 }}>Add each product. For every item, pick its order type and domain first, then fill the details. You can mix types and domains in one proposal.</div>
               <LineItemCards items={lineItems} onChange={setLineItems} phaseNotes={phaseNotes} onPhaseNoteChange={setPhaseNote} />
@@ -988,16 +988,16 @@ export default function ProposalBuilder() {
 
             {/* Boxes — shown when any item ships (i.e. not all designing) */}
             {hasShippable && (
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '18px 20px', marginBottom: 16 }}>
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', padding: '18px 20px', marginBottom: 16 }}>
                 <SLabel>Shipping box details</SLabel>
                 <div style={{ fontSize: 11, color: 'var(--text4)', marginBottom: 12 }}>Box dimensions determine volumetric weight, which affects shipping cost.</div>
                 <BoxesTable boxes={boxes} onChange={setBoxes} />
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: 10, background: 'rgba(91,75,138,0.06)', border: '1px solid rgba(91,75,138,0.18)', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
-              <span style={{ fontSize: 16, flexShrink: 0, color: '#5B4B8A' }}>ℹ</span>
-              <span><strong style={{ color: '#5B4B8A' }}>Note —</strong> Shipping and duties are estimated here for <strong>production only</strong>. For sampling, both are billed at actuals after dispatch and are not included in this quote.</span>
+            <div style={{ display: 'flex', gap: 10, background: 'rgba(91,75,138,0.06)', border: '1px solid rgba(91,75,138,0.18)', borderRadius: 'var(--r-8)', padding: '12px 16px', marginBottom: 16, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
+              <span style={{ fontSize: 16, flexShrink: 0, color: 'var(--purple)' }}>ℹ</span>
+              <span><strong style={{ color: 'var(--purple)' }}>Note —</strong> Shipping and duties are estimated here for <strong>production only</strong>. For sampling, both are billed at actuals after dispatch and are not included in this quote.</span>
             </div>
 
             <NavBtns n={4}
@@ -1012,13 +1012,13 @@ export default function ProposalBuilder() {
         <div>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>05 — Timelines</h2>
           <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 8 }}>Enter dispatch dates — when goods leave your studio. Qala adds 7 days shipping + 3 days buffer to show estimated delivery.</div>
-          <div style={{ fontSize: 12, color: 'var(--text4)', background: 'var(--surface2)', borderRadius: 7, padding: '10px 14px', marginBottom: 24 }}>
+          <div style={{ fontSize: 12, color: 'var(--text4)', background: 'var(--surface2)', borderRadius: 'var(--r)', padding: '10px 14px', marginBottom: 24 }}>
             📦 Dates you commit to are <strong>dispatch dates</strong> (when goods leave your studio). Qala handles transit.
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {hasDesigning && (
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '18px 20px' }}>
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', padding: '18px 20px' }}>
                 <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}>Designing</div>
                 <div className="field">
                   <label style={{ fontSize: 12 }}>Design completion / handover date</label>
@@ -1028,7 +1028,7 @@ export default function ProposalBuilder() {
             )}
 
             {hasShippable && (
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '18px 20px' }}>
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', padding: '18px 20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                 <div style={{ fontWeight: 600, color: 'var(--text)' }}>
                   Sampling (all pieces)
@@ -1050,7 +1050,7 @@ export default function ProposalBuilder() {
             )}
 
             {hasProduction && (
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '18px 20px' }}>
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', padding: '18px 20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                   <div style={{ fontWeight: 600, color: 'var(--text)' }}>
                     Bulk production ({brief.bulk_quantity ? `${brief.bulk_quantity} sets` : ''})
@@ -1085,10 +1085,10 @@ export default function ProposalBuilder() {
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>06 — Terms (SOW)</h2>
           <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 24 }}>A standard Qala SOW applies to all engagements. Add project-specific clauses here if needed.</div>
 
-          <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px', marginBottom: 20 }}>
+          <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', padding: '16px 18px', marginBottom: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 14 }}>Qala standard SOW</div>
-              <span style={{ fontSize: 11, color: 'var(--green)', background: 'var(--green-dim)', padding: '2px 8px', borderRadius: 10 }}>Auto-included</span>
+              <span style={{ fontSize: 11, color: 'var(--green)', background: 'var(--green-dim)', padding: '2px 8px', borderRadius: 'var(--r-10)' }}>Auto-included</span>
             </div>
             <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.6 }}>
               The standard Qala Statement of Work governs all projects — covering payment milestones, quality standards, dispute resolution, IP ownership, and delivery obligations. It is automatically attached to every proposal.
@@ -1103,12 +1103,12 @@ export default function ProposalBuilder() {
               <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                 <textarea rows={2} value={clause} onChange={e => updSOW(i, e.target.value)}
                   placeholder="e.g. Indigo-dyed fabric may exhibit colour bleeding in initial washes, characteristic of natural indigo…"
-                  style={{ flex: 1, padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text)', resize: 'vertical' }} />
+                  style={{ flex: 1, padding: '9px 12px', borderRadius: 'var(--r-8)', border: '1px solid var(--border)', background: 'var(--surface2)', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text)', resize: 'vertical' }} />
                 <button onClick={() => rmSOW(i)} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 18, paddingTop: 6 }}>×</button>
               </div>
             ))}
           </div>
-          <button onClick={addSOW} style={{ fontSize: 13, color: 'var(--gold)', background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', borderRadius: 8, padding: '8px 18px', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+          <button onClick={addSOW} style={{ fontSize: 13, color: 'var(--gold)', background: 'var(--gold-dim)', border: '1px solid rgba(200,165,90,0.2)', borderRadius: 'var(--r-8)', padding: '8px 18px', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
             + Add
           </button>
 
@@ -1134,7 +1134,7 @@ export default function ProposalBuilder() {
               ['Landing cost',   result.hasItems ? fmtUSD(result.landingCostUSD) : '—'],
               ['Studio payout',  result.hasItems ? fmtINR(result.payoutTotalINR) : '—'],
             ].map(([l, v]) => (
-              <div key={l} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
+              <div key={l} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', padding: '14px 16px' }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{l}</div>
                 <div style={{ fontSize: 14, color: v.startsWith('⚠') ? 'var(--red)' : 'var(--text)', fontWeight: 500 }}>{v}</div>
               </div>
@@ -1146,7 +1146,7 @@ export default function ProposalBuilder() {
             <SLabel>Clarifications / Questions for Qala</SLabel>
             <textarea rows={3} value={clarNotes} onChange={e => setClarNotes(e.target.value)}
               placeholder="Any questions about the brief, or notes you'd like Qala to pass on to the buyer…"
-              style={{ width: '100%', padding: '10px 13px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface2)', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text)', resize: 'vertical', boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '10px 13px', borderRadius: 'var(--r-8)', border: '1px solid var(--border)', background: 'var(--surface2)', fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--text)', resize: 'vertical', boxSizing: 'border-box' }} />
           </div>
 
           <div style={{ display: 'flex', gap: 10, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
@@ -1182,7 +1182,7 @@ export default function ProposalBuilder() {
       </div>
 
       {saveError && (
-        <div style={{ background: 'var(--red-dim)', border: '1px solid var(--red)', color: 'var(--red)', borderRadius: 8, padding: '10px 16px', fontSize: 13, marginBottom: 20 }}>
+        <div style={{ background: 'var(--red-dim)', border: '1px solid var(--red)', color: 'var(--red)', borderRadius: 'var(--r-8)', padding: '10px 16px', fontSize: 13, marginBottom: 20 }}>
           ⚠ {saveError}
         </div>
       )}
@@ -1280,54 +1280,54 @@ function CreateCollectionModal({ onClose, onCreated }) {
 
   return (
     <div onClick={(e) => e.target === e.currentTarget && onClose()} style={{ position: 'fixed', inset: 0, background: 'rgba(26,22,18,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-      <div style={{ background: '#fff', borderRadius: 14, maxWidth: 560, width: '100%', maxHeight: '86vh', display: 'flex', flexDirection: 'column', boxShadow: 'var(--shadow-lg)' }}>
+      <div style={{ background: '#fff', borderRadius: 'var(--r-lg)', maxWidth: 560, width: '100%', maxHeight: '86vh', display: 'flex', flexDirection: 'column', boxShadow: 'var(--shadow-lg)' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600 }}>Create a new collection</div>
           <span onClick={onClose} style={{ cursor: 'pointer', fontSize: 20, color: 'var(--text4)' }}>×</span>
         </div>
         <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
-          {error && <div style={{ background: 'var(--red-dim)', color: 'var(--red)', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 16 }}>{error}</div>}
+          {error && <div style={{ background: 'var(--red-dim)', color: 'var(--red)', padding: '10px 14px', borderRadius: 'var(--r-8)', fontSize: 13, marginBottom: 16 }}>{error}</div>}
 
           <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', display: 'block', marginBottom: 6 }}>Collection name</label>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. SS26 Resort Collection"
-            style={{ width: '100%', padding: '10px 13px', borderRadius: 8, border: '1px solid var(--border2)', fontSize: 13, marginBottom: 18, boxSizing: 'border-box' }} />
+            style={{ width: '100%', padding: '10px 13px', borderRadius: 'var(--r-8)', border: '1px solid var(--border2)', fontSize: 13, marginBottom: 18, boxSizing: 'border-box' }} />
 
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Pieces in this collection</div>
           {pieces.map((p, i) => (
-            <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 14, marginBottom: 10, background: 'var(--surface)' }}>
+            <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-10)', padding: 14, marginBottom: 10, background: 'var(--surface)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)' }}>Piece {i + 1}</span>
                 {pieces.length > 1 && <span onClick={() => removePiece(i)} style={{ cursor: 'pointer', color: 'var(--red)', fontSize: 12 }}>Remove</span>}
               </div>
               <input value={p.name} onChange={e => updatePiece(i, 'name', e.target.value)} placeholder="Product name *"
-                style={{ width: '100%', padding: '8px 11px', borderRadius: 7, border: '1px solid var(--border2)', fontSize: 13, marginBottom: 8, boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: '8px 11px', borderRadius: 'var(--r)', border: '1px solid var(--border2)', fontSize: 13, marginBottom: 8, boxSizing: 'border-box' }} />
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
                 {GARMENT_TYPES.map(g => (
                   <span key={g} onClick={() => updatePiece(i, 'garment_type', g)}
-                    style={{ fontSize: 12, padding: '5px 12px', borderRadius: 20, cursor: 'pointer', border: `1px solid ${p.garment_type === g ? 'var(--gold-d)' : 'var(--border2)'}`, background: p.garment_type === g ? 'var(--gold)' : '#fff', color: p.garment_type === g ? '#fff' : 'var(--text2)' }}>
+                    style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--r-20)', cursor: 'pointer', border: `1px solid ${p.garment_type === g ? 'var(--gold-d)' : 'var(--border2)'}`, background: p.garment_type === g ? 'var(--gold)' : '#fff', color: p.garment_type === g ? '#fff' : 'var(--text2)' }}>
                     {g}
                   </span>
                 ))}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
                 <input value={p.fabrics_used} onChange={e => updatePiece(i, 'fabrics_used', e.target.value)} placeholder="Fabrics used"
-                  style={{ padding: '8px 11px', borderRadius: 7, border: '1px solid var(--border2)', fontSize: 13, boxSizing: 'border-box' }} />
+                  style={{ padding: '8px 11px', borderRadius: 'var(--r)', border: '1px solid var(--border2)', fontSize: 13, boxSizing: 'border-box' }} />
                 <input value={p.dyes_used} onChange={e => updatePiece(i, 'dyes_used', e.target.value)} placeholder="Dyes used"
-                  style={{ padding: '8px 11px', borderRadius: 7, border: '1px solid var(--border2)', fontSize: 13, boxSizing: 'border-box' }} />
+                  style={{ padding: '8px 11px', borderRadius: 'var(--r)', border: '1px solid var(--border2)', fontSize: 13, boxSizing: 'border-box' }} />
               </div>
               <input value={p.craft_techniques_used} onChange={e => updatePiece(i, 'craft_techniques_used', e.target.value)} placeholder="Craft techniques used"
-                style={{ width: '100%', padding: '8px 11px', borderRadius: 7, border: '1px solid var(--border2)', fontSize: 13, boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: '8px 11px', borderRadius: 'var(--r)', border: '1px solid var(--border2)', fontSize: 13, boxSizing: 'border-box' }} />
             </div>
           ))}
           <button onClick={addPiece} className="btn btn-ghost" style={{ fontSize: 12, marginBottom: 18 }}>+ Add another piece</button>
 
           <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', display: 'block', marginBottom: 6 }}>Description <span style={{ fontWeight: 400, color: 'var(--text4)' }}>(optional)</span></label>
           <textarea value={about} onChange={e => setAbout(e.target.value)} rows={3} placeholder="What makes this collection special? Describe the craft process, inspiration, materials…"
-            style={{ width: '100%', padding: '10px 13px', borderRadius: 8, border: '1px solid var(--border2)', fontSize: 13, marginBottom: 18, resize: 'vertical', boxSizing: 'border-box' }} />
+            style={{ width: '100%', padding: '10px 13px', borderRadius: 'var(--r-8)', border: '1px solid var(--border2)', fontSize: 13, marginBottom: 18, resize: 'vertical', boxSizing: 'border-box' }} />
 
           <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', display: 'block', marginBottom: 6 }}>Visibility</label>
           <select value={visibility} onChange={e => setVisibility(e.target.value)}
-            style={{ width: '100%', padding: '10px 13px', borderRadius: 8, border: '1px solid var(--border2)', fontSize: 13 }}>
+            style={{ width: '100%', padding: '10px 13px', borderRadius: 'var(--r-8)', border: '1px solid var(--border2)', fontSize: 13 }}>
             <option value="public">Public — visible to any buyer</option>
             <option value="private">Private — proposal-only</option>
             <option value="open_for_collaboration">Open for collaboration</option>

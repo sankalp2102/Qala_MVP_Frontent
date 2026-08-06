@@ -51,7 +51,7 @@ function renderText(text, isUser) {
       const tableEl = renderMarkdownTable(lines.slice(i, j));
       result.push(tableEl
         ? <div key={i}>{tableEl}</div>
-        : lines.slice(i, j).map((l, k) => <p key={i+k} style={{ margin:0,fontSize:14,lineHeight:1.65,color:isUser?'#F5F0E8':'var(--text)',fontFamily:'var(--font-body)' }}>{l}</p>)
+        : lines.slice(i, j).map((l, k) => <p key={i+k} style={{ margin:0,fontSize:14,lineHeight:1.65,color:isUser?'var(--surface2)':'var(--text)',fontFamily:'var(--font-body)' }}>{l}</p>)
       );
       i = j;
     } else if (lines[i].trim() === '---' || lines[i].trim() === '———') {
@@ -63,7 +63,7 @@ function renderText(text, isUser) {
     } else {
       const parts = lines[i].split(/\*\*([^*]+)\*\*/g);
       result.push(
-        <p key={i} style={{ margin:0,fontSize:14,lineHeight:1.65,color:isUser?'#F5F0E8':'var(--text)',fontFamily:'var(--font-body)' }}>
+        <p key={i} style={{ margin:0,fontSize:14,lineHeight:1.65,color:isUser?'var(--surface2)':'var(--text)',fontFamily:'var(--font-body)' }}>
           {parts.map((p, j) => j%2===1 ? <strong key={j} style={{ fontWeight:600 }}>{p}</strong> : p)}
         </p>
       );
@@ -123,7 +123,7 @@ export default function ChatMessage({
             <img key={i}
               src={`data:${img.mime || 'image/jpeg'};base64,${img.data}`}
               alt="attachment"
-              style={{ maxHeight:180, maxWidth:'100%', borderRadius:10, border:'0.5px solid var(--border)', display:'block', objectFit:'cover' }}
+              style={{ maxHeight:180, maxWidth:'100%', borderRadius: 'var(--r-10)', border:'0.5px solid var(--border)', display:'block', objectFit:'cover' }}
             />
           ))}
         </div>
@@ -133,7 +133,7 @@ export default function ChatMessage({
         <img
           src={`data:${attachedMime || 'image/jpeg'};base64,${attachedImage}`}
           alt="Reference"
-          style={{ maxWidth:180, borderRadius:10, marginBottom:6, border:'0.5px solid var(--border)', display:'block' }}
+          style={{ maxWidth:180, borderRadius: 'var(--r-10)', marginBottom:6, border:'0.5px solid var(--border)', display:'block' }}
         />
       )}
 
@@ -143,7 +143,7 @@ export default function ChatMessage({
           maxWidth: '84%',
           padding: '9px 13px',
           borderRadius: isAI ? '3px 14px 14px 14px' : '14px 14px 3px 14px',
-          background: isUser ? '#1A1612' : 'var(--surface2)',
+          background: isUser ? 'var(--text)' : 'var(--surface2)',
           border: '0.5px solid var(--border)',
           boxSizing: 'border-box',
         }}>

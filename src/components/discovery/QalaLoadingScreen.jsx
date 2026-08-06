@@ -184,12 +184,12 @@ export default function QalaLoadingScreen({ onDone, dataReady, sessionToken }) {
         @keyframes qFormIn   { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
         .q-weft::before {
           content:'';position:absolute;height:4px;width:35px;
-          background:#7A8C6E;border-radius:2px;
+          background:var(--sage);border-radius: var(--r-2);
           animation:weaveOver 3s ease-in-out infinite;
         }
         .q-weft::after {
           content:'';position:absolute;height:4px;width:35px;
-          background:#7A8C6E;border-radius:2px;
+          background:var(--sage);border-radius: var(--r-2);
           animation:weaveUnder 3s ease-in-out infinite;animation-delay:1.5s;
         }
         .q-weft-0::before{animation-delay:0s}   .q-weft-0::after{animation-delay:1.5s}
@@ -199,28 +199,28 @@ export default function QalaLoadingScreen({ onDone, dataReady, sessionToken }) {
         .q-weft-4::before{animation-delay:1.6s} .q-weft-4::after{animation-delay:3.1s}
         .q-input {
           padding:11px 13px;font-size:13px;font-family:var(--font-body);
-          border:1.5px solid rgba(26,22,18,0.12);border-radius:8px;
+          border:1.5px solid rgba(26,22,18,0.12);border-radius: var(--r-8);
           background:#fff;color:var(--text);width:100%;
           transition:border-color 0.2s,box-shadow 0.2s;outline:none;
           box-sizing:border-box;
         }
         .q-input::placeholder{color:rgba(26,22,18,0.35);}
-        .q-input:focus{border-color:#7A8C6E;box-shadow:0 0 0 3px rgba(122,140,110,0.08);}
+        .q-input:focus{border-color:var(--sage);box-shadow:0 0 0 3px rgba(122,140,110,0.08);}
         .q-btn {
           width:100%;padding:12px;font-size:14px;font-weight:600;
-          font-family:var(--font-body);background:#1A1612;color:#F5F0E8;
-          border:none;border-radius:8px;cursor:pointer;
+          font-family:var(--font-body);background:var(--text);color:var(--surface2);
+          border:none;border-radius: var(--r-8);cursor:pointer;
           transition:background 0.2s;letter-spacing:0.02em;
         }
-        .q-btn:hover:not(:disabled){background:#7A8C6E;}
+        .q-btn:hover:not(:disabled){background:var(--sage);}
         .q-btn:disabled{opacity:0.55;cursor:not-allowed;}
         .q-link {
           background:none;border:none;cursor:pointer;
-          color:#7A8C6E;font-size:13px;font-family:var(--font-body);
+          color:var(--sage);font-size:13px;font-family:var(--font-body);
           padding:0;text-decoration:underline;
           transition:color 0.15s;
         }
-        .q-link:hover{color:#6A7A5E;}
+        .q-link:hover{color:var(--sage-d);}
         @media(max-width:640px){
           .q-name-row{flex-direction:column!important;}
         }
@@ -266,15 +266,15 @@ export default function QalaLoadingScreen({ onDone, dataReady, sessionToken }) {
         </div>
 
         {/* Progress bar */}
-        <div style={{ width:'100%', maxWidth:300, height:3, background:'var(--border)', borderRadius:2, marginBottom:28 }}>
-          <div style={{ height:'100%', borderRadius:2, background:'var(--gold)', width:`${progress*100}%`, transition:'width 0.3s ease' }} />
+        <div style={{ width:'100%', maxWidth:300, height:3, background:'var(--border)', borderRadius: 'var(--r-2)', marginBottom:28 }}>
+          <div style={{ height:'100%', borderRadius: 'var(--r-2)', background:'var(--gold)', width:`${progress*100}%`, transition:'width 0.3s ease' }} />
         </div>
 
         {/* ── Form card — only for non-logged-in users ── */}
         {showForm && (
           <div style={{
             background:'#fff', border:'1.5px solid rgba(26,22,18,0.08)',
-            borderRadius:12, padding:'28px 32px',
+            borderRadius: 'var(--r-lg)', padding:'28px 32px',
             width:'100%', maxWidth:520,
             animation:'qFormIn 0.5s ease both',
           }}>
@@ -350,7 +350,7 @@ export default function QalaLoadingScreen({ onDone, dataReady, sessionToken }) {
 
                     {/* Error */}
                     {error && (
-                      <div style={{ fontSize:12, color:'var(--red)', background:'var(--red-dim)', border:'1px solid rgba(201,64,64,0.2)', borderRadius:6, padding:'8px 12px', lineHeight:1.5 }}>
+                      <div style={{ fontSize:12, color:'var(--red)', background:'var(--red-dim)', border:'1px solid rgba(201,64,64,0.2)', borderRadius: 'var(--r)', padding:'8px 12px', lineHeight:1.5 }}>
                         {error}{' '}
                         {error.includes('already registered') && (
                           <button type="button" className="q-link" onClick={() => { setError(''); setView('signin'); setPassword(''); }}>
@@ -415,7 +415,7 @@ export default function QalaLoadingScreen({ onDone, dataReady, sessionToken }) {
 
                     {/* Error */}
                     {error && (
-                      <div style={{ fontSize:12, color:'var(--red)', background:'var(--red-dim)', border:'1px solid rgba(201,64,64,0.2)', borderRadius:6, padding:'8px 12px' }}>
+                      <div style={{ fontSize:12, color:'var(--red)', background:'var(--red-dim)', border:'1px solid rgba(201,64,64,0.2)', borderRadius: 'var(--r)', padding:'8px 12px' }}>
                         {error}
                       </div>
                     )}

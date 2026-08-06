@@ -30,7 +30,7 @@ function StageBadge({ stage }) {
   return (
     <span style={{
       fontSize: 11, fontWeight: 600, letterSpacing: '0.04em',
-      padding: '3px 10px', borderRadius: 20,
+      padding: '3px 10px', borderRadius: 'var(--r-20)',
       background: c.bg, color: c.text,
       textTransform: 'uppercase', whiteSpace: 'nowrap',
     }}>
@@ -45,7 +45,7 @@ function ProjectCard({ project, onClick }) {
       onClick={onClick}
       style={{
         background: 'var(--surface)', border: '1px solid var(--border)',
-        borderRadius: 12, padding: '20px 24px', cursor: 'pointer',
+        borderRadius: 'var(--r-lg)', padding: '20px 24px', cursor: 'pointer',
         transition: 'box-shadow 0.18s, border-color 0.18s',
         display: 'flex', flexDirection: 'column', gap: 12,
       }}
@@ -145,7 +145,7 @@ export default function ProjectsList() {
       {showForm && (
         <div style={{
           background: 'var(--surface)', border: '1px solid var(--border)',
-          borderRadius: 12, padding: '20px 24px', marginBottom: 24,
+          borderRadius: 'var(--r-lg)', padding: '20px 24px', marginBottom: 24,
           borderLeft: '3px solid var(--gold)',
         }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 12 }}>
@@ -159,7 +159,7 @@ export default function ProjectsList() {
               onKeyDown={e => e.key === 'Enter' && handleCreate()}
               placeholder="e.g. Resort Shirts SS26"
               style={{
-                flex: 1, padding: '9px 14px', borderRadius: 8,
+                flex: 1, padding: '9px 14px', borderRadius: 'var(--r-8)',
                 border: '1px solid var(--border)', background: 'var(--surface2)',
                 fontSize: 14, color: 'var(--text)', fontFamily: 'var(--font-body)',
               }}
@@ -177,7 +177,7 @@ export default function ProjectsList() {
       {projects.length === 0 ? (
         <div style={{
           background: 'var(--surface)', border: '1px solid var(--border)',
-          borderRadius: 12, padding: '48px 32px', textAlign: 'center',
+          borderRadius: 'var(--r-lg)', padding: '48px 32px', textAlign: 'center',
         }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>📋</div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--text)', marginBottom: 8 }}>

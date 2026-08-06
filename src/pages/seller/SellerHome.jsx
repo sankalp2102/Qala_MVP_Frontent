@@ -37,20 +37,20 @@ const S = {
   topbarSub: { fontSize: 12, color: 'var(--text3)', marginTop: 1 },
   content: { padding: 28 },
 
-  qalawatiPanel: { background: 'linear-gradient(135deg, #2a3d28 0%, #3d5538 100%)', borderRadius: 12, padding: 24, marginBottom: 24, position: 'relative', overflow: 'hidden' },
+  qalawatiPanel: { background: 'linear-gradient(135deg, #2a3d28 0%, #3d5538 100%)', borderRadius: 'var(--r-lg)', padding: 24, marginBottom: 24, position: 'relative', overflow: 'hidden' },
   qalawatiName: { fontSize: 11, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,.45)', marginBottom: 8 },
   qalawatiMsg: { fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, color: '#fff', lineHeight: 1.4, marginBottom: 14, maxWidth: 680 },
   qalawatiChips: { display: 'flex', gap: 8, flexWrap: 'wrap' },
-  qalawatiChip: { fontSize: 12, padding: '6px 14px', borderRadius: 20, background: 'rgba(255,255,255,.10)', color: 'rgba(255,255,255,.85)', border: '1px solid rgba(255,255,255,.15)', cursor: 'pointer' },
+  qalawatiChip: { fontSize: 12, padding: '6px 14px', borderRadius: 'var(--r-20)', background: 'rgba(255,255,255,.10)', color: 'rgba(255,255,255,.85)', border: '1px solid rgba(255,255,255,.15)', cursor: 'pointer' },
 
   statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16, marginBottom: 28 },
-  statCard: (primary) => ({ background: primary ? 'var(--gold)' : 'var(--surface)', color: primary ? '#fff' : 'var(--text)', borderRadius: 10, padding: '20px 22px', border: '1.5px solid transparent', cursor: 'pointer' }),
+  statCard: (primary) => ({ background: primary ? 'var(--gold)' : 'var(--surface)', color: primary ? '#fff' : 'var(--text)', borderRadius: 'var(--r-10)', padding: '20px 22px', border: '1.5px solid transparent', cursor: 'pointer' }),
   statNum: { fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 600, lineHeight: 1 },
   statLabel: (primary) => ({ fontSize: 11, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: primary ? 'rgba(255,255,255,.7)' : 'var(--text4)', marginTop: 8 }),
   statDelta: (primary, color) => ({ fontSize: 12, color: primary ? 'rgba(255,255,255,.85)' : (color || 'var(--green)'), marginTop: 4 }),
 
   dashGrid: { display: 'grid', gridTemplateColumns: '1fr 300px', gap: 24 },
-  card: { background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', marginBottom: 16 },
+  card: { background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', overflow: 'hidden', marginBottom: 16 },
   cardHeader: { padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   cardHeaderH3: { fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 600 },
   cardBody: { padding: 20 },
@@ -58,7 +58,7 @@ const S = {
   actionItem: { display: 'flex', alignItems: 'flex-start', gap: 10, padding: '14px 20px', cursor: 'pointer', borderBottom: '1px solid var(--border)' },
   actionDot: (color) => ({ width: 8, height: 8, borderRadius: '50%', background: color || 'var(--gold)', marginTop: 4, flexShrink: 0 }),
 
-  phaseTrack: { display: 'flex', alignItems: 'stretch', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' },
+  phaseTrack: { display: 'flex', alignItems: 'stretch', border: '1px solid var(--border)', borderRadius: 'var(--r-8)', overflow: 'hidden' },
   phase: (state) => ({ flex: 1, padding: '12px 14px', textAlign: 'center', background: state === 'done' ? 'var(--green-dim)' : state === 'current' ? 'var(--gold-dim)' : 'var(--surface)', borderLeft: '1px solid var(--border)' }),
   phaseLabel: (state) => ({ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em', color: state === 'done' ? 'var(--green)' : state === 'current' ? 'var(--gold)' : 'var(--text4)' }),
 
@@ -67,7 +67,7 @@ const S = {
   activityText: { fontSize: 13, color: 'var(--text2)', flex: 1 },
   activityTime: { fontSize: 11, color: 'var(--text4)', marginTop: 2 },
 
-  badge: (bg, color) => ({ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, letterSpacing: '.03em', background: bg, color }),
+  badge: (bg, color) => ({ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 'var(--r-20)', fontSize: 11, fontWeight: 600, letterSpacing: '.03em', background: bg, color }),
 };
 
 function fmtRel(d) {

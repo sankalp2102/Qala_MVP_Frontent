@@ -23,14 +23,14 @@ const S = {
   h1: { fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 600, marginBottom: 6 },
   sub: { fontSize: 13, color: 'var(--text3)', marginBottom: 20 },
 
-  formCard: { background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', marginBottom: 16 },
+  formCard: { background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', overflow: 'hidden', marginBottom: 16 },
   formCardHeader: { padding: '14px 20px', borderBottom: '1px solid var(--border)' },
   formCardBody: { padding: 20 },
   row2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 },
   label: { fontSize: 12, fontWeight: 500, color: 'var(--text2)', display: 'block', marginBottom: 6 },
-  input: { width: '100%', background: 'var(--surface)', border: '1px solid var(--border2)', borderRadius: 7, fontSize: 13, color: 'var(--text)', padding: '8px 11px', outline: 'none', boxSizing: 'border-box' },
+  input: { width: '100%', background: 'var(--surface)', border: '1px solid var(--border2)', borderRadius: 'var(--r)', fontSize: 13, color: 'var(--text)', padding: '8px 11px', outline: 'none', boxSizing: 'border-box' },
 
-  card: { background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' },
+  card: { background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', overflow: 'hidden' },
   cardHeader: { padding: '14px 20px', borderBottom: '1px solid var(--border)' },
 
   accountRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--border)' },

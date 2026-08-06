@@ -4,9 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 const NEEDLE_SHAFT   = '#6B4226';
 const NEEDLE_MID     = '#9F6547';
 const NEEDLE_TIP     = '#9F6547';
-const STOPPER        = '#C46E49';
-const YARN           = '#C46E49';
-const STITCH_DONE    = '#C46E49';       // terracotta — visible on cream
+const STOPPER        = 'var(--terra-l)';
+const YARN           = 'var(--terra-l)';
+const STITCH_DONE    = 'var(--terra-l)';       // terracotta — visible on cream
 const STITCH_NEW     = '#A85A38';       // darker terracotta flash for new rows
 const STITCH_BINDOFF = '#5C9977';       // deeper sage — visible on cream
 const GLOW           = 'rgba(196,110,73,0.10)';
@@ -160,7 +160,7 @@ export default function KnittingAnimation({ rowsKnitted = 0 }) {
 
   return (
     <div style={{
-      width: '100%', height: '100%', background: '#F8F5F1',
+      width: '100%', height: '100%', background: 'var(--surface)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       position: 'relative',
     }}>

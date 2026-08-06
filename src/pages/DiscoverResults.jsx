@@ -95,7 +95,7 @@ function DatePicker({ selectedDates, setSelectedDates }) {
         type="button"
         onClick={() => setOpen(o => !o)}
         style={{
-          width: '100%', padding: '9px 12px', borderRadius: 8,
+          width: '100%', padding: '9px 12px', borderRadius: 'var(--r-8)',
           border: '1px solid var(--border2)', background: 'var(--bg)',
           fontFamily: 'var(--font-body)', fontSize: 13, color: selectedDates.length ? 'var(--text)' : 'var(--text4)',
           cursor: 'pointer', textAlign: 'left',
@@ -116,7 +116,7 @@ function DatePicker({ selectedDates, setSelectedDates }) {
           {selectedDates.map(key => (
             <span key={key} style={{
               display: 'inline-flex', alignItems: 'center', gap: 5,
-              padding: '3px 10px', borderRadius: 20,
+              padding: '3px 10px', borderRadius: 'var(--r-20)',
               background: 'rgba(196,110,73,0.1)', border: '1px solid rgba(196,110,73,0.25)',
               fontSize: 12, color: 'var(--text2)',
             }}>
@@ -141,7 +141,7 @@ function DatePicker({ selectedDates, setSelectedDates }) {
         <div style={{
           position: 'absolute', zIndex: 50, top: 'calc(100% + 8px)', left: 0,
           background: 'var(--surface)', border: '1px solid var(--border2)',
-          borderRadius: 12, padding: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+          borderRadius: 'var(--r-lg)', padding: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
           minWidth: 280,
         }}>
           {/* Month nav */}
@@ -173,8 +173,8 @@ function DatePicker({ selectedDates, setSelectedDates }) {
                   type="button"
                   onClick={() => !isPast && handleDayClick(day)}
                   style={{
-                    width: '100%', aspectRatio: '1', borderRadius: 6, border: 'none',
-                    background: isSelected ? '#8FA083' : 'transparent',
+                    width: '100%', aspectRatio: '1', borderRadius: 'var(--r)', border: 'none',
+                    background: isSelected ? 'var(--sage-muted)' : 'transparent',
                     color: isPast ? 'var(--text4)' : isSelected ? '#fff' : 'var(--text)',
                     cursor: isPast ? 'default' : 'pointer',
                     fontSize: 13, fontFamily: 'var(--font-body)',
@@ -220,26 +220,26 @@ function InquiryForm({ name, setName, email, setEmail, selectedDates, setSelecte
         <textarea placeholder="Tell us about your project — fabric preferences, craft, quantity, timeline, design stage, anything that helps..." value={message} onChange={e => setMessage(e.target.value)} style={{ minHeight: 100, resize: 'vertical' }} />
       </div>
       {error && (
-        <div style={{ padding: '10px 14px', fontSize: 13, color: 'var(--red)', background: 'var(--red-dim)', border: '1px solid rgba(255,85,85,0.3)', borderLeft: '3px solid var(--red)', borderRadius: 8 }}>
+        <div style={{ padding: '10px 14px', fontSize: 13, color: 'var(--red)', background: 'var(--red-dim)', border: '1px solid rgba(255,85,85,0.3)', borderLeft: '3px solid var(--red)', borderRadius: 'var(--r-8)' }}>
           {error}
         </div>
       )}
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
         <button type="submit" disabled={submitting} style={{
-          padding: '11px 28px', background: submitting ? 'var(--surface3)' : '#1A1612',
-          color: submitting ? 'var(--text4)' : '#F5F0E8', border: 'none', borderRadius: 8,
+          padding: '11px 28px', background: submitting ? 'var(--surface3)' : 'var(--text)',
+          color: submitting ? 'var(--text4)' : 'var(--surface2)', border: 'none', borderRadius: 'var(--r-8)',
           fontSize: 13, fontWeight: 500, cursor: submitting ? 'default' : 'pointer',
           fontFamily: 'var(--font-body)', transition: 'background 0.18s ease',
           display: 'flex', alignItems: 'center', gap: 8,
         }}
-          onMouseEnter={e => { if (!submitting) e.target.style.background = '#8FA083'; }}
-          onMouseLeave={e => { if (!submitting) e.target.style.background = '#1A1612'; }}
+          onMouseEnter={e => { if (!submitting) e.target.style.background = 'var(--sage-muted)'; }}
+          onMouseLeave={e => { if (!submitting) e.target.style.background = 'var(--text)'; }}
         >
           {submitting && <span className="spinner" style={{ width: 14, height: 14, borderColor: 'var(--surface4)', borderTopColor: '#555' }} />}
           {submitting ? 'Sending…' : 'Send to Qala team →'}
         </button>
         {onCancel && (
-          <button type="button" onClick={onCancel} style={{ padding: '11px 18px', background: 'none', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text3)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Cancel</button>
+          <button type="button" onClick={onCancel} style={{ padding: '11px 18px', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r-8)', color: 'var(--text3)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Cancel</button>
         )}
       </div>
       <p style={{ fontSize: 11, color: 'var(--text4)', lineHeight: 1.6, margin: 0 }}>Your questionnaire answers will be shared with the Qala team automatically.</p>
@@ -255,7 +255,7 @@ function DirectoryCTACard({ onNavigate }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16,
+        background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-16)',
         overflow: 'hidden', display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', height: '100%',
         textAlign: 'center', padding: '48px 36px',
@@ -273,12 +273,12 @@ function DirectoryCTACard({ onNavigate }) {
         Explore every studio on Qala — filter by craft, fabric, and product type at your own pace.
       </p>
       <button onClick={onNavigate} style={{
-        display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 28px', borderRadius: 8,
-        background: '#1A1612', color: '#F5F0E8', border: 'none', fontSize: 13, fontWeight: 500,
+        display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 28px', borderRadius: 'var(--r-8)',
+        background: 'var(--text)', color: 'var(--surface2)', border: 'none', fontSize: 13, fontWeight: 500,
         fontFamily: 'var(--font-body)', letterSpacing: '0.04em', cursor: 'pointer', transition: 'background 0.18s ease',
       }}
-        onMouseEnter={e => e.currentTarget.style.background = '#8FA083'}
-        onMouseLeave={e => e.currentTarget.style.background = '#1A1612'}
+        onMouseEnter={e => e.currentTarget.style.background = 'var(--sage-muted)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'var(--text)'}
       >Browse all studios →</button>
     </div>
   );
@@ -296,7 +296,7 @@ function AestheticCard({ rec, onContact }) {
   // Warm gradient fallback when no images
   const gradients = [
     'linear-gradient(135deg, #C4956A 0%, #8A7560 100%)',
-    'linear-gradient(135deg, #A8956E 0%, #6B7A5C 100%)',
+    'linear-gradient(135deg, #A8956E 0%, var(--sage-d) 100%)',
     'linear-gradient(135deg, #B8826A 0%, #7A6B5A 100%)',
   ];
   const fallbackGradient = gradients[rec.studio_id % gradients.length] || gradients[0];
@@ -306,7 +306,7 @@ function AestheticCard({ rec, onContact }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        borderRadius: 14,
+        borderRadius: 'var(--r-lg)',
         border: `1px solid ${hovered ? 'var(--border3)' : 'var(--border)'}`,
         overflow: 'hidden',
         background: 'var(--surface)',
@@ -504,16 +504,16 @@ export default function DiscoverResults() {
         @keyframes spin   { to { transform: rotate(360deg) } }
         .fade-in { animation: fadeUp 0.5s ease both; }
         .sugg-chip:hover { border-color: rgba(196,110,73,0.5) !important; background: rgba(196,110,73,0.05) !important; }
-        .help-btn:hover { background: #8FA083 !important; }
+        .help-btn:hover { background: var(--sage-muted) !important; }
         .carousel-arrow:hover:not(:disabled) { background: rgba(26,22,18,0.06) !important; border-color: var(--border3) !important; }
         .carousel-scroll::-webkit-scrollbar { display: none; }
-        .pencil-btn:hover { color: #8FA083 !important; }
+        .pencil-btn:hover { color: var(--sage-muted) !important; }
         .help-fab { display: none; }
         @media (max-width: 600px) {
           .help-btn-header { display: none !important; }
           .help-fab { display: flex !important; }
           .results-modal-wrap { align-items: flex-end !important; padding: 0 !important; }
-          .results-modal-inner { border-radius: 16px 16px 0 0 !important; max-height: 85dvh; overflow-y: auto; }
+          .results-modal-inner { border-radius: var(--r-16) 16px 0 0 !important; max-height: 85dvh; overflow-y: auto; }
           .inquiry-bottom-wrap { padding: 16px !important; }
           .results-header { grid-template-columns: auto 1fr !important; }
           .results-header-center { justify-content: flex-end !important; text-align: right; }
@@ -591,20 +591,20 @@ export default function DiscoverResults() {
           {data?.zero_match && recs.length === 0 && suggs.length === 0 ? (
             <button onClick={() => nav('/directory')} style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              padding: '9px 20px', borderRadius: 8, background: '#1A1612', color: '#F5F0E8',
+              padding: '9px 20px', borderRadius: 'var(--r-8)', background: 'var(--text)', color: 'var(--surface2)',
               border: 'none', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-body)',
               letterSpacing: '0.03em', cursor: 'pointer', transition: 'background 0.2s',
               whiteSpace: 'nowrap',
             }}
-              onMouseEnter={e => e.currentTarget.style.background = '#8FA083'}
-              onMouseLeave={e => e.currentTarget.style.background = '#1A1612'}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--sage-muted)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'var(--text)'}
             >
               Show All Studios →
             </button>
           ) : (
             <button className="help-btn help-btn-header" onClick={() => setHeaderInquiryOpen(true)} style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              padding: '9px 20px', borderRadius: 8, background: '#1A1612', color: '#F5F0E8',
+              padding: '9px 20px', borderRadius: 'var(--r-8)', background: 'var(--text)', color: 'var(--surface2)',
               border: 'none', fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-body)',
               letterSpacing: '0.03em', cursor: 'pointer', transition: 'background 0.2s',
               whiteSpace: 'nowrap',
@@ -629,7 +629,7 @@ export default function DiscoverResults() {
           }}
         >
           <div className="results-modal-inner" onClick={e => e.stopPropagation()} style={{
-            width: '100%', maxWidth: 520, background: 'var(--surface)', borderRadius: 16,
+            width: '100%', maxWidth: 520, background: 'var(--surface)', borderRadius: 'var(--r-16)',
             border: '1px solid var(--border)', padding: '32px 28px 8px',
             boxShadow: '0 24px 80px rgba(0,0,0,0.2)',
           }}>
@@ -704,7 +704,7 @@ export default function DiscoverResults() {
                       textDecoration: 'underline', textUnderlineOffset: 3,
                       fontFamily: 'var(--font-body)', transition: 'color 0.2s',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.color = '#7A8C6E'}
+                    onMouseEnter={e => e.currentTarget.style.color = 'var(--sage)'}
                     onMouseLeave={e => e.currentTarget.style.color = 'var(--text3)'}
                   >
                     Browse all studios →
@@ -719,8 +719,8 @@ export default function DiscoverResults() {
                       onClick={() => applySuggestion(s)}
                       disabled={applying === s.change_type}
                       style={{
-                        width: '100%', padding: '24px', borderRadius: 12,
-                        border: '2px solid #A3B898', background: 'var(--surface)',
+                        width: '100%', padding: '24px', borderRadius: 'var(--r-lg)',
+                        border: '2px solid var(--sage-l)', background: 'var(--surface)',
                         cursor: applying === s.change_type ? 'default' : 'pointer',
                         textAlign: 'left', fontFamily: 'var(--font-body)',
                         transition: 'all 0.3s ease', position: 'relative',
@@ -728,13 +728,13 @@ export default function DiscoverResults() {
                       }}
                       onMouseEnter={e => {
                         if (applying !== s.change_type) {
-                          e.currentTarget.style.borderColor = '#7A8C6E';
+                          e.currentTarget.style.borderColor = 'var(--sage)';
                           e.currentTarget.style.transform = 'translateX(8px)';
                           e.currentTarget.style.boxShadow = '-8px 8px 24px rgba(184,92,56,0.15)';
                         }
                       }}
                       onMouseLeave={e => {
-                        e.currentTarget.style.borderColor = '#A3B898';
+                        e.currentTarget.style.borderColor = 'var(--sage-l)';
                         e.currentTarget.style.transform = 'none';
                         e.currentTarget.style.boxShadow = 'none';
                       }}
@@ -742,14 +742,14 @@ export default function DiscoverResults() {
                       {/* Top row: badge + arrow */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                         <span style={{
-                          background: 'rgba(122,140,110,0.1)', color: '#7A8C6E',
-                          padding: '4px 10px', borderRadius: 100,
+                          background: 'rgba(122,140,110,0.1)', color: 'var(--sage)',
+                          padding: '4px 10px', borderRadius: 'var(--r-full)',
                           fontSize: 11, fontWeight: 500, textTransform: 'uppercase',
                           letterSpacing: '0.08em',
                         }}>
                           {i === 0 ? 'Best Match' : 'Option'}
                         </span>
-                        <span style={{ color: '#7A8C6E', fontSize: 20 }}>
+                        <span style={{ color: 'var(--sage)', fontSize: 20 }}>
                           {applying === s.change_type
                             ? <span className="spinner" style={{ width: 14, height: 14 }} />
                             : '→'
@@ -778,7 +778,7 @@ export default function DiscoverResults() {
               <div style={{ marginBottom: 24 }}>
                 {!inquiryDone ? (
                   <div style={{
-                    padding: '32px 28px', borderRadius: 14,
+                    padding: '32px 28px', borderRadius: 'var(--r-lg)',
                     background: 'var(--surface)', border: '1px solid var(--border2)',
                   }}>
                     <div style={{ textAlign: 'center', marginBottom: 28 }}>
@@ -803,7 +803,7 @@ export default function DiscoverResults() {
                   </div>
                 ) : (
                   <div style={{
-                    padding: '40px 28px', borderRadius: 14,
+                    padding: '40px 28px', borderRadius: 'var(--r-lg)',
                     background: 'var(--surface)', border: '1px solid var(--border2)',
                     textAlign: 'center',
                   }}>
@@ -1005,12 +1005,12 @@ export default function DiscoverResults() {
             {!inquiryOpen && !inquiryDone && (
               <button onClick={() => setInquiryOpen(true)} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
-                padding: '12px 28px', background: '#1A1612', color: '#F5F0E8',
-                border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 500,
+                padding: '12px 28px', background: 'var(--text)', color: 'var(--surface2)',
+                border: 'none', borderRadius: 'var(--r-8)', fontSize: 13, fontWeight: 500,
                 cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'background 0.2s', letterSpacing: '0.03em',
               }}
-                onMouseEnter={e => e.currentTarget.style.background = '#8FA083'}
-                onMouseLeave={e => e.currentTarget.style.background = '#1A1612'}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--sage-muted)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'var(--text)'}
               ><CalendarIcon /> Send a custom requirement →</button>
             )}
 
@@ -1018,7 +1018,7 @@ export default function DiscoverResults() {
               <div style={{
                 display: 'flex', alignItems: 'flex-start', gap: 16, padding: '20px 24px',
                 background: 'rgba(90,232,122,0.06)', border: '1px solid rgba(90,232,122,0.2)',
-                borderLeft: '3px solid var(--green)', borderRadius: 10, animation: 'fadeUp 0.4s ease both', textAlign: 'left',
+                borderLeft: '3px solid var(--green)', borderRadius: 'var(--r-10)', animation: 'fadeUp 0.4s ease both', textAlign: 'left',
               }}>
                 <div style={{ fontSize: 22, lineHeight: 1 }}>✓</div>
                 <div>
@@ -1031,7 +1031,7 @@ export default function DiscoverResults() {
             )}
 
             {inquiryOpen && !inquiryDone && (
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border2)', borderRadius: 12, padding: '28px', animation: 'fadeUp 0.3s ease both' }}>
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border2)', borderRadius: 'var(--r-lg)', padding: '28px', animation: 'fadeUp 0.3s ease both' }}>
                 <InquiryForm
                   name={inquiryName} setName={setInquiryName}
                   email={inquiryEmail} setEmail={setInquiryEmail}
@@ -1055,8 +1055,8 @@ export default function DiscoverResults() {
           style={{
             position: 'fixed', bottom: 24, right: 20, zIndex: 90,
             alignItems: 'center', gap: 8,
-            padding: '13px 20px', borderRadius: 50,
-            background: '#1A1612', color: '#F5F0E8',
+            padding: '13px 20px', borderRadius: 'var(--r-full)',
+            background: 'var(--text)', color: 'var(--surface2)',
             border: 'none', fontSize: 13, fontWeight: 500,
             fontFamily: 'var(--font-body)', cursor: 'pointer',
             boxShadow: '0 8px 32px rgba(26,22,18,0.25)',

@@ -203,8 +203,8 @@ function Overview() {
             disabled={downloading}
             style={{
               display:'flex', alignItems:'center', gap:8,
-              padding:'10px 20px', borderRadius:8, fontSize:13, fontWeight:600,
-              background: downloading ? 'var(--border)' : '#8FA083',
+              padding:'10px 20px', borderRadius: 'var(--r-8)', fontSize:13, fontWeight:600,
+              background: downloading ? 'var(--border)' : 'var(--sage-muted)',
               color: downloading ? 'var(--text3)' : '#fff',
               border:'none', cursor: downloading ? 'not-allowed' : 'pointer',
               fontFamily:'var(--font-body)', transition:'all 0.2s', flexShrink:0,
@@ -251,7 +251,7 @@ function Overview() {
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                   <div style={{ flex:1 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:4 }}>
-                      <div style={{ width:36, height:36, borderRadius:9, background:'linear-gradient(135deg,var(--teal),var(--teal-l))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'var(--bg)', flexShrink:0 }}>
+                      <div style={{ width:36, height:36, borderRadius: 'var(--r-8)', background:'linear-gradient(135deg,var(--teal),var(--teal-l))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'var(--bg)', flexShrink:0 }}>
                         {(p.business_name||p.email||'S')[0].toUpperCase()}
                       </div>
                       <div>
@@ -399,7 +399,7 @@ function ProfileReview() {
     if (typeof v === 'object')                     return null;
     if (v === null || v === undefined || v === '') return null;
     return (
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', padding:'9px 12px', background:'var(--surface2)', borderRadius:7, marginBottom:5, gap:16 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', padding:'9px 12px', background:'var(--surface2)', borderRadius: 'var(--r)', marginBottom:5, gap:16 }}>
         <span style={{ fontSize:11, fontWeight:600, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'0.06em', flexShrink:0 }}>{k.replace(/_/g,' ')}</span>
         <span style={{ fontSize:13, color:'var(--text)', textAlign:'right', wordBreak:'break-word', maxWidth:'65%' }}>{String(v)}</span>
       </div>
@@ -545,7 +545,7 @@ function ProfileReview() {
                 key={t.value}
                 onClick={() => setTier(t.value)}
                 style={{
-                  padding: '8px 16px', borderRadius: 8, cursor: 'pointer',
+                  padding: '8px 16px', borderRadius: 'var(--r-8)', cursor: 'pointer',
                   fontFamily: 'var(--font-body)', fontSize: 13,
                   border: `1px solid ${tier === t.value ? 'rgba(200,165,90,0.5)' : 'var(--border2)'}`,
                   background: tier === t.value ? 'var(--gold-dim)' : 'var(--surface3)',
@@ -620,13 +620,13 @@ function ProfileReview() {
                   value={it.strength}
                   onChange={e => setItem(i, e.target.value)}
                   placeholder={`Strength ${i + 1}`}
-                  style={{ flex:1, fontSize:13, padding:'7px 10px', borderRadius:6, border:'1px solid var(--border)', background:'var(--surface)', fontFamily:'var(--font-body)', color:'var(--text)' }}
+                  style={{ flex:1, fontSize:13, padding:'7px 10px', borderRadius: 'var(--r)', border:'1px solid var(--border)', background:'var(--surface)', fontFamily:'var(--font-body)', color:'var(--text)' }}
                 />
                 <button onClick={() => removeItem(i)} style={{ background:'none', border:'none', color:'var(--text4)', fontSize:16, cursor:'pointer', padding:'0 4px', lineHeight:1 }}>×</button>
               </div>
             ))}
             {items.length < 5 && (
-              <button onClick={addItem} style={{ alignSelf:'flex-start', fontSize:12, color:'var(--teal)', background:'none', border:'1px dashed var(--teal)', borderRadius:6, padding:'5px 12px', cursor:'pointer', fontFamily:'var(--font-body)' }}>+ Add Strength</button>
+              <button onClick={addItem} style={{ alignSelf:'flex-start', fontSize:12, color:'var(--teal)', background:'none', border:'1px dashed var(--teal)', borderRadius: 'var(--r)', padding:'5px 12px', cursor:'pointer', fontFamily:'var(--font-body)' }}>+ Add Strength</button>
             )}
             <div style={{ display:'flex', gap:8, marginTop:4 }}>
               <button className="btn btn-ghost btn-sm" style={{ fontSize:11, color:'var(--teal)', borderColor:'var(--teal)' }} onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
@@ -636,7 +636,7 @@ function ProfileReview() {
         ) : (
           <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
             {usps.map((u, i) => (
-              <div key={u.id || i} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'8px 12px', background:'var(--surface2)', borderRadius:7, border:'1px solid var(--border)' }}>
+              <div key={u.id || i} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'8px 12px', background:'var(--surface2)', borderRadius: 'var(--r)', border:'1px solid var(--border)' }}>
                 <span style={{ fontSize:11, fontWeight:700, color:'var(--gold)', minWidth:18 }}>{i + 1}.</span>
                 <span style={{ fontSize:13, color:'var(--text2)', lineHeight:1.5 }}>{u.strength}</span>
               </div>
@@ -698,13 +698,13 @@ function ProfileReview() {
                   value={it.question}
                   onChange={e => setItem(i, e.target.value)}
                   placeholder={`Question ${i + 1}`}
-                  style={{ flex:1, fontSize:13, padding:'7px 10px', borderRadius:6, border:'1px solid var(--border)', background:'var(--surface)', fontFamily:'var(--font-body)', color:'var(--text)' }}
+                  style={{ flex:1, fontSize:13, padding:'7px 10px', borderRadius: 'var(--r)', border:'1px solid var(--border)', background:'var(--surface)', fontFamily:'var(--font-body)', color:'var(--text)' }}
                 />
                 <button onClick={() => removeItem(i)} style={{ background:'none', border:'none', color:'var(--text4)', fontSize:16, cursor:'pointer', padding:'0 4px', lineHeight:1 }}>×</button>
               </div>
             ))}
             {items.length < 5 && (
-              <button onClick={addItem} style={{ alignSelf:'flex-start', fontSize:12, color:'var(--teal)', background:'none', border:'1px dashed var(--teal)', borderRadius:6, padding:'5px 12px', cursor:'pointer', fontFamily:'var(--font-body)' }}>+ Add Question</button>
+              <button onClick={addItem} style={{ alignSelf:'flex-start', fontSize:12, color:'var(--teal)', background:'none', border:'1px dashed var(--teal)', borderRadius: 'var(--r)', padding:'5px 12px', cursor:'pointer', fontFamily:'var(--font-body)' }}>+ Add Question</button>
             )}
             <div style={{ display:'flex', gap:8, marginTop:4 }}>
               <button className="btn btn-ghost btn-sm" style={{ fontSize:11, color:'var(--teal)', borderColor:'var(--teal)' }} onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
@@ -714,7 +714,7 @@ function ProfileReview() {
         ) : (
           <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
             {requirements.map((r, i) => (
-              <div key={r.id || i} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'8px 12px', background:'var(--surface2)', borderRadius:7, border:'1px solid var(--border)' }}>
+              <div key={r.id || i} style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'8px 12px', background:'var(--surface2)', borderRadius: 'var(--r)', border:'1px solid var(--border)' }}>
                 <span style={{ fontSize:11, fontWeight:700, color:'var(--teal)', minWidth:18 }}>Q{i + 1}</span>
                 <span style={{ fontSize:13, color:'var(--text2)', lineHeight:1.5 }}>{r.question}</span>
               </div>
@@ -767,7 +767,7 @@ function ProfileReview() {
         </div>
 
         {editing ? (
-          <div style={{ display:'flex', flexDirection:'column', gap:10, padding:'12px 14px', background:'var(--surface2)', borderRadius:8, border:'1px solid var(--border)' }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:10, padding:'12px 14px', background:'var(--surface2)', borderRadius: 'var(--r-8)', border:'1px solid var(--border)' }}>
             <div className="field" style={{ margin:0 }}>
               <label style={{ fontSize:11 }}>Name</label>
               <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Coordinator name" />
@@ -778,7 +778,7 @@ function ProfileReview() {
             </div>
             <div className="field" style={{ margin:0 }}>
               <label style={{ fontSize:11 }}>Writeup</label>
-              <textarea value={form.writeup} onChange={e => setForm(f => ({ ...f, writeup: e.target.value }))} placeholder="Short bio or description…" rows={3} style={{ resize:'vertical', fontSize:13, padding:'8px 10px', borderRadius:6, border:'1px solid var(--border)', background:'var(--surface)', fontFamily:'var(--font-body)', color:'var(--text)', width:'100%' }} />
+              <textarea value={form.writeup} onChange={e => setForm(f => ({ ...f, writeup: e.target.value }))} placeholder="Short bio or description…" rows={3} style={{ resize:'vertical', fontSize:13, padding:'8px 10px', borderRadius: 'var(--r)', border:'1px solid var(--border)', background:'var(--surface)', fontFamily:'var(--font-body)', color:'var(--text)', width:'100%' }} />
             </div>
             {imgSrc && <div style={{ fontSize:11, color:'var(--text4)' }}>Photo is set by the studio — not editable here.</div>}
             <div style={{ display:'flex', gap:8, marginTop:2 }}>
@@ -787,7 +787,7 @@ function ProfileReview() {
             </div>
           </div>
         ) : (
-          <div style={{ display:'flex', alignItems:'flex-start', gap:14, padding:'12px 14px', background:'var(--surface2)', borderRadius:8, border:'1px solid var(--border)' }}>
+          <div style={{ display:'flex', alignItems:'flex-start', gap:14, padding:'12px 14px', background:'var(--surface2)', borderRadius: 'var(--r-8)', border:'1px solid var(--border)' }}>
             {imgSrc ? (
               <img src={imgSrc} alt={coordinator.name} style={{ width:52, height:52, borderRadius:'50%', objectFit:'cover', flexShrink:0, border:'1px solid var(--border)' }} onError={e => { e.target.style.display='none'; }} />
             ) : (
@@ -818,7 +818,7 @@ function ProfileReview() {
 
     const Chip = ({ label, color }) => (
       <span style={{
-        fontSize: 11, padding: '3px 10px', borderRadius: 6, textTransform: 'capitalize',
+        fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r)', textTransform: 'capitalize',
         background: color === 'gold' ? 'var(--gold-dim)' : color === 'teal' ? 'var(--teal-dim)' : 'var(--surface)',
         color: color === 'gold' ? 'var(--gold)' : color === 'teal' ? 'var(--teal)' : 'var(--text3)',
       }}>{label}</span>
@@ -844,7 +844,7 @@ function ProfileReview() {
               {(fabrics || []).filter(f => f.works_with).map(f => {
                 const pub = !togglePublish || itemPublished('fabric_answer', f.id);
                 return (
-                  <span key={f.id} style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:11, padding:'3px 10px', borderRadius:6,
+                  <span key={f.id} style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:11, padding:'3px 10px', borderRadius: 'var(--r)',
                     background: pub ? 'var(--teal-dim)' : 'var(--surface)', color: pub ? 'var(--teal)' : 'var(--text4)',
                     opacity: pub ? 1 : 0.6, border: pub ? 'none' : '1px dashed var(--border)',
                   }}>
@@ -869,9 +869,9 @@ function ProfileReview() {
               {brandList.map(b => {
                 const pub = !togglePublish || itemPublished('brand_experience', b.id);
                 return (
-                  <div key={b.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 12px', background:'var(--surface2)', borderRadius:7, gap:12, opacity: pub ? 1 : 0.55, border: pub ? '1px solid transparent' : '1px dashed var(--red)' }}>
+                  <div key={b.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 12px', background:'var(--surface2)', borderRadius: 'var(--r)', gap:12, opacity: pub ? 1 : 0.55, border: pub ? '1px solid transparent' : '1px dashed var(--red)' }}>
                     <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                      {b.image && <img src={mediaUrl(b.image)} alt={b.brand_name} style={{ width:36, height:36, objectFit:'cover', borderRadius:5, border:'1px solid var(--border)' }} onError={e => { e.target.style.display='none'; }} />}
+                      {b.image && <img src={mediaUrl(b.image)} alt={b.brand_name} style={{ width:36, height:36, objectFit:'cover', borderRadius: 'var(--r-5)', border:'1px solid var(--border)' }} onError={e => { e.target.style.display='none'; }} />}
                       <span style={{ fontWeight:600, fontSize:13, color: pub ? 'var(--text)' : 'var(--text3)' }}>{b.brand_name}</span>
                       {!pub && <span style={{ fontSize:9, fontWeight:700, color:'var(--red)', letterSpacing:'0.04em' }}>HIDDEN</span>}
                     </div>
@@ -898,7 +898,7 @@ function ProfileReview() {
               {awardList.map(a => {
                 const pub = !togglePublish || itemPublished('award_mention', a.id);
                 return (
-                  <span key={a.id} style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:11, padding:'3px 10px', borderRadius:6,
+                  <span key={a.id} style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:11, padding:'3px 10px', borderRadius: 'var(--r)',
                     background: pub ? 'var(--gold-dim)' : 'var(--surface)', color: pub ? 'var(--gold)' : 'var(--text4)',
                     opacity: pub ? 1 : 0.6, border: pub ? 'none' : '1px dashed var(--border)',
                   }}>
@@ -957,7 +957,7 @@ function ProfileReview() {
             const published  = !togglePublish || !f.id || itemPublished(mediaModel, f.id);
             if (!src) return null;
             return (
-              <div key={f.id || i} style={{ position:'relative', width:88, height:88, borderRadius:8, overflow:'hidden', background:'var(--surface3)', border:`1px solid ${published ? 'var(--border)' : 'var(--red)'}`, flexShrink:0, opacity: published ? 1 : 0.55 }}>
+              <div key={f.id || i} style={{ position:'relative', width:88, height:88, borderRadius: 'var(--r-8)', overflow:'hidden', background:'var(--surface3)', border:`1px solid ${published ? 'var(--border)' : 'var(--red)'}`, flexShrink:0, opacity: published ? 1 : 0.55 }}>
                 <div onClick={() => setLightbox({ src, isVideo })} style={{ cursor:'pointer', width:'100%', height:'100%' }}>
                   {isVideo
                     ? <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:4 }}>
@@ -967,8 +967,8 @@ function ProfileReview() {
                     : <img src={src} alt={f.caption || f.file_name || ''} style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e => { e.target.style.display='none'; }} />
                   }
                 </div>
-                {f.media_type && <span style={{ position:'absolute', bottom:3, left:3, fontSize:8, fontWeight:700, background:'rgba(0,0,0,0.6)', color:'#fff', padding:'1px 5px', borderRadius:3, textTransform:'uppercase' }}>{f.media_type}</span>}
-                {!published && <span style={{ position:'absolute', bottom:3, right:3, fontSize:7, fontWeight:700, background:'var(--red)', color:'#fff', padding:'1px 4px', borderRadius:3, letterSpacing:'0.04em' }}>HIDDEN</span>}
+                {f.media_type && <span style={{ position:'absolute', bottom:3, left:3, fontSize:8, fontWeight:700, background:'rgba(0,0,0,0.6)', color:'#fff', padding:'1px 5px', borderRadius: 'var(--r-4)', textTransform:'uppercase' }}>{f.media_type}</span>}
+                {!published && <span style={{ position:'absolute', bottom:3, right:3, fontSize:7, fontWeight:700, background:'var(--red)', color:'#fff', padding:'1px 4px', borderRadius: 'var(--r-4)', letterSpacing:'0.04em' }}>HIDDEN</span>}
                 {/* Eye toggle */}
                 {togglePublish && f.id && (
                   <button
@@ -1017,12 +1017,12 @@ function ProfileReview() {
             {lightbox.isVideo
               ? <video
                   src={lightbox.src} controls autoPlay
-                  style={{ maxWidth:'90vw', maxHeight:'85vh', borderRadius:8, display:'block' }}
+                  style={{ maxWidth:'90vw', maxHeight:'85vh', borderRadius: 'var(--r-8)', display:'block' }}
                   onClick={e => e.stopPropagation()}
                 />
               : <img
                   src={lightbox.src} alt=""
-                  style={{ maxWidth:'90vw', maxHeight:'85vh', borderRadius:8, objectFit:'contain', display:'block', width:'auto', height:'auto' }}
+                  style={{ maxWidth:'90vw', maxHeight:'85vh', borderRadius: 'var(--r-8)', objectFit:'contain', display:'block', width:'auto', height:'auto' }}
                   onClick={e => e.stopPropagation()}
                   onError={e => { e.target.src = ''; e.target.alt = 'Failed to load image'; e.target.style.background = 'var(--surface3)'; e.target.style.padding = '40px'; e.target.style.color = 'var(--text3)'; }}
                 />
@@ -1178,7 +1178,7 @@ function ProfileReview() {
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5,
                     fontSize: 11, fontWeight: 700, letterSpacing: '0.04em',
-                    padding: '3px 10px', borderRadius: 20,
+                    padding: '3px 10px', borderRadius: 'var(--r-20)',
                     background: selected.is_verified ? 'rgba(58,158,98,0.1)' : 'rgba(26,22,18,0.06)',
                     color: selected.is_verified ? 'var(--green)' : 'var(--text4)',
                     border: `1px solid ${selected.is_verified ? 'rgba(58,158,98,0.25)' : 'var(--border)'}`,
@@ -1197,7 +1197,7 @@ function ProfileReview() {
                   onClick={() => setVerifyConfirm(true)}
                   disabled={toggling}
                   style={{
-                    padding:'9px 16px', borderRadius:8, fontSize:12, fontWeight:600,
+                    padding:'9px 16px', borderRadius: 'var(--r-8)', fontSize:12, fontWeight:600,
                     background: selected.is_verified ? 'rgba(201,64,64,0.08)' : 'rgba(58,158,98,0.1)',
                     color: selected.is_verified ? 'var(--red)' : 'var(--green)',
                     border: `1px solid ${selected.is_verified ? 'rgba(201,64,64,0.3)' : 'rgba(58,158,98,0.3)'}`,
@@ -1215,9 +1215,9 @@ function ProfileReview() {
                     onClick={downloadSingle}
                     disabled={downloading}
                     style={{
-                      padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:600,
-                      background:'transparent', color:'#8FA083',
-                      border:'1px solid #8FA083', cursor:'pointer',
+                      padding:'9px 18px', borderRadius: 'var(--r-8)', fontSize:12, fontWeight:600,
+                      background:'transparent', color:'var(--sage-muted)',
+                      border:'1px solid var(--sage-muted)', cursor:'pointer',
                       fontFamily:'var(--font-body)', transition:'all 0.2s',
                     }}
                   >
@@ -1241,7 +1241,7 @@ function ProfileReview() {
               <div
                 onClick={e => e.stopPropagation()}
                 style={{
-                  background:'var(--surface)', borderRadius:16,
+                  background:'var(--surface)', borderRadius: 'var(--r-16)',
                   padding:'32px 36px', width:'100%', maxWidth:420,
                   border:'1px solid var(--border)', boxShadow:'var(--shadow-lg)',
                 }}
@@ -1263,7 +1263,7 @@ function ProfileReview() {
                     onClick={toggleVerified}
                     disabled={toggling}
                     style={{
-                      flex:1, padding:'12px', borderRadius:8, fontSize:13, fontWeight:600,
+                      flex:1, padding:'12px', borderRadius: 'var(--r-8)', fontSize:13, fontWeight:600,
                       background: selected.is_verified ? 'var(--red)' : 'var(--green)',
                       color:'#fff', border:'none', cursor: toggling ? 'not-allowed' : 'pointer',
                       fontFamily:'var(--font-body)', transition:'all 0.2s',
@@ -1516,8 +1516,8 @@ function DiscoveryOverview() {
                     <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500, textTransform: 'capitalize' }}>{c.craft}</span>
                     <span style={{ fontSize: 12, color: 'var(--text3)' }}>{c.count}</span>
                   </div>
-                  <div style={{ height: 3, background: 'var(--surface3)', borderRadius: 2 }}>
-                    <div style={{ height: '100%', borderRadius: 2, background: 'var(--gold)', width: `${Math.round((c.count / (top_crafts[0]?.count || 1)) * 100)}%` }} />
+                  <div style={{ height: 3, background: 'var(--surface3)', borderRadius: 'var(--r-2)' }}>
+                    <div style={{ height: '100%', borderRadius: 'var(--r-2)', background: 'var(--gold)', width: `${Math.round((c.count / (top_crafts[0]?.count || 1)) * 100)}%` }} />
                   </div>
                 </div>
               </div>
@@ -1536,8 +1536,8 @@ function DiscoveryOverview() {
                     <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500, textTransform: 'capitalize' }}>{p.product.replace(/_/g, ' ')}</span>
                     <span style={{ fontSize: 12, color: 'var(--text3)' }}>{p.count}</span>
                   </div>
-                  <div style={{ height: 3, background: 'var(--surface3)', borderRadius: 2 }}>
-                    <div style={{ height: '100%', borderRadius: 2, background: 'var(--teal)', width: `${Math.round((p.count / (top_products[0]?.count || 1)) * 100)}%` }} />
+                  <div style={{ height: 3, background: 'var(--surface3)', borderRadius: 'var(--r-2)' }}>
+                    <div style={{ height: '100%', borderRadius: 'var(--r-2)', background: 'var(--teal)', width: `${Math.round((p.count / (top_products[0]?.count || 1)) * 100)}%` }} />
                   </div>
                 </div>
               </div>
@@ -1555,7 +1555,7 @@ function DiscoveryOverview() {
             placeholder="Search by name, email, product, craft..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 14px', fontSize: 13, color: 'var(--text)', width: 280, fontFamily: 'var(--font-body)' }}
+            style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--r-8)', padding: '8px 14px', fontSize: 13, color: 'var(--text)', width: 280, fontFamily: 'var(--font-body)' }}
           />
         </div>
         {filtered.length === 0
@@ -1564,19 +1564,19 @@ function DiscoveryOverview() {
             <div style={{ display: 'grid', gap: 10 }}>
               {filtered.map(b => (
                 <div key={b.id} onClick={() => nav(`/admin/discovery/${b.id}`)} className="card-hover"
-                  style={{ padding: '16px 20px', background: 'var(--surface2)', borderRadius: 10, cursor: 'pointer', border: `1px solid ${b.zero_match ? 'rgba(224,85,85,0.25)' : b.rec_count > 0 ? 'rgba(90,232,122,0.15)' : 'var(--border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                  style={{ padding: '16px 20px', background: 'var(--surface2)', borderRadius: 'var(--r-10)', cursor: 'pointer', border: `1px solid ${b.zero_match ? 'rgba(224,85,85,0.25)' : b.rec_count > 0 ? 'rgba(90,232,122,0.15)' : 'var(--border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
                       <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{b.name || b.user_email || 'Anonymous'}</span>
                       {b.user_email && b.name && <span style={{ fontSize: 12, color: 'var(--text4)' }}>{b.user_email}</span>}
-                      <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', padding: '2px 8px', borderRadius: 10, textTransform: 'uppercase', background: b.zero_match ? 'var(--red-dim)' : b.rec_count > 0 ? 'rgba(90,232,122,0.1)' : 'var(--surface3)', color: b.zero_match ? 'var(--red)' : b.rec_count > 0 ? 'var(--green)' : 'var(--text4)' }}>
+                      <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', padding: '2px 8px', borderRadius: 'var(--r-10)', textTransform: 'uppercase', background: b.zero_match ? 'var(--red-dim)' : b.rec_count > 0 ? 'rgba(90,232,122,0.1)' : 'var(--surface3)', color: b.zero_match ? 'var(--red)' : b.rec_count > 0 ? 'var(--green)' : 'var(--text4)' }}>
                         {b.zero_match ? 'No match' : b.rec_count > 0 ? `${b.rec_count} match${b.rec_count !== 1 ? 'es' : ''}` : 'Pending'}
                       </span>
-                      {b.journey_stage && <span style={{ fontSize: 10, color: 'var(--text4)', padding: '2px 8px', borderRadius: 10, background: 'var(--surface3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{journeyLabel[b.journey_stage] || b.journey_stage}</span>}
+                      {b.journey_stage && <span style={{ fontSize: 10, color: 'var(--text4)', padding: '2px 8px', borderRadius: 'var(--r-10)', background: 'var(--surface3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{journeyLabel[b.journey_stage] || b.journey_stage}</span>}
                     </div>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {(b.product_types || []).slice(0, 4).map(p => <span key={p} style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 6, textTransform: 'capitalize' }}>{p.replace(/_/g, ' ')}</span>)}
-                      {(b.crafts || []).slice(0, 3).map(c => <span key={c} style={{ fontSize: 11, color: 'var(--gold)', background: 'var(--gold-dim)', padding: '2px 8px', borderRadius: 6 }}>{c}</span>)}
+                      {(b.product_types || []).slice(0, 4).map(p => <span key={p} style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 'var(--r)', textTransform: 'capitalize' }}>{p.replace(/_/g, ' ')}</span>)}
+                      {(b.crafts || []).slice(0, 3).map(c => <span key={c} style={{ fontSize: 11, color: 'var(--gold)', background: 'var(--gold-dim)', padding: '2px 8px', borderRadius: 'var(--r)' }}>{c}</span>)}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -1618,7 +1618,7 @@ function DiscoveryBuyerDetail() {
   const Field = ({ label, value }) => {
     if (!value || (Array.isArray(value) && value.length === 0)) return null;
     return (
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '9px 12px', background: 'var(--surface2)', borderRadius: 7, marginBottom: 5, gap: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '9px 12px', background: 'var(--surface2)', borderRadius: 'var(--r)', marginBottom: 5, gap: 16 }}>
         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>{label}</span>
         <span style={{ fontSize: 13, color: 'var(--text)', textAlign: 'right', wordBreak: 'break-word' }}>{Array.isArray(value) ? value.join(', ') : String(value)}</span>
       </div>
@@ -1638,7 +1638,7 @@ function DiscoveryBuyerDetail() {
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {buyer.journey_stage && <span className="badge badge-teal" style={{ fontSize: 11 }}>{{ figuring_it_out:'Figuring It Out', build_with_support:'Build with Support', ready_to_produce:'Ready to Produce' }[buyer.journey_stage] || buyer.journey_stage.replace(/_/g, ' ')}</span>}
-            <span style={{ fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 12, background: recommendations.length > 0 ? 'rgba(90,232,122,0.1)' : 'var(--red-dim)', color: recommendations.length > 0 ? 'var(--green)' : 'var(--red)' }}>
+            <span style={{ fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 'var(--r-lg)', background: recommendations.length > 0 ? 'rgba(90,232,122,0.1)' : 'var(--red-dim)', color: recommendations.length > 0 ? 'var(--green)' : 'var(--red)' }}>
               {recommendations.length > 0 ? `${recommendations.length} match${recommendations.length !== 1 ? 'es' : ''}` : 'No match'}
             </span>
           </div>
@@ -1664,7 +1664,7 @@ function DiscoveryBuyerDetail() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
                 {visual_images.map(img => (
-                  <div key={img.id} style={{ position: 'relative', aspectRatio: '1', borderRadius: 6, overflow: 'hidden', background: 'var(--surface3)', border: '1px solid var(--border)' }}
+                  <div key={img.id} style={{ position: 'relative', aspectRatio: '1', borderRadius: 'var(--r)', overflow: 'hidden', background: 'var(--surface3)', border: '1px solid var(--border)' }}
                     title={img.studio_name || ''}>
                     {img.image_url
                       ? <img src={img.image_url} alt={img.studio_name || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={e => { e.target.style.display = 'none'; }} />
@@ -1681,7 +1681,7 @@ function DiscoveryBuyerDetail() {
             </div>
           )}
           {visual_images.length === 0 && buyer.visual_selection_ids?.length > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: 'var(--surface2)', borderRadius: 7, marginBottom: 5 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: 'var(--surface2)', borderRadius: 'var(--r)', marginBottom: 5 }}>
               <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Visual Selections</span>
               <span style={{ fontSize: 13, color: 'var(--text4)' }}>{buyer.visual_selection_ids.length} selected (images unavailable)</span>
             </div>
@@ -1695,7 +1695,7 @@ function DiscoveryBuyerDetail() {
             <div style={{ marginTop: 16 }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--red)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>Zero Match Suggestions</div>
               {buyer.zero_match_suggestions.map((s, i) => (
-                <div key={i} style={{ fontSize: 12, color: 'var(--text3)', padding: '8px 12px', background: 'var(--surface2)', borderRadius: 6, marginBottom: 6, borderLeft: '2px solid var(--amber)' }}>
+                <div key={i} style={{ fontSize: 12, color: 'var(--text3)', padding: '8px 12px', background: 'var(--surface2)', borderRadius: 'var(--r)', marginBottom: 6, borderLeft: '2px solid var(--amber)' }}>
                   {s.message} <span style={{ color: 'var(--green)' }}>({s.studios_count} studios)</span>
                 </div>
               ))}
@@ -1709,7 +1709,7 @@ function DiscoveryBuyerDetail() {
             {recommendations.length === 0
               ? <div style={{ fontSize: 13, color: 'var(--text4)' }}>No matches found for this buyer.</div>
               : recommendations.map(r => (
-                <div key={r.rank_position} style={{ padding: '12px 14px', background: 'var(--surface2)', borderRadius: 8, marginBottom: 8, borderLeft: `3px solid ${rankColor(r.ranking)}` }}>
+                <div key={r.rank_position} style={{ padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--r-8)', marginBottom: 8, borderLeft: `3px solid ${rankColor(r.ranking)}` }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                     <div>
                       <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>#{r.rank_position} {r.studio_name || `Studio #${r.studio_id}`}</span>
@@ -1719,7 +1719,7 @@ function DiscoveryBuyerDetail() {
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {[{label:'Capability',value:r.core_capability_fit},{label:'MOQ',value:r.moq_fit},{label:'Craft',value:r.craft_approach_fit},{label:'Visual',value:r.visual_affinity}].map(f => (
-                      <span key={f.label} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: 'var(--surface)', color: rankColor(f.value) }}>{f.label}: {f.value}</span>
+                      <span key={f.label} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 'var(--r)', background: 'var(--surface)', color: rankColor(f.value) }}>{f.label}: {f.value}</span>
                     ))}
                   </div>
                   {r.what_best_at?.length > 0 && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>{r.what_best_at.join(' · ')}</div>}
@@ -1732,7 +1732,7 @@ function DiscoveryBuyerDetail() {
             <div className="card fade-up">
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)', marginBottom: 16 }}>Custom Inquiries ({inquiries.length})</div>
               {inquiries.map(inq => (
-                <div key={inq.id} style={{ padding: '12px 14px', background: 'var(--surface2)', borderRadius: 8, marginBottom: 10, borderLeft: '3px solid var(--teal)' }}>
+                <div key={inq.id} style={{ padding: '12px 14px', background: 'var(--surface2)', borderRadius: 'var(--r-8)', marginBottom: 10, borderLeft: '3px solid var(--teal)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                     <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>{inq.name}</span>
                     <span style={{ fontSize: 11, color: 'var(--text4)' }}>{new Date(inq.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
@@ -1782,14 +1782,14 @@ function DiscoveryInquiries() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--gold)' }}>{data.count} Inquir{data.count !== 1 ? 'ies' : 'y'}</div>
           <input placeholder="Search name, email, message..." value={search} onChange={e => setSearch(e.target.value)}
-            style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 14px', fontSize: 13, color: 'var(--text)', width: 280, fontFamily: 'var(--font-body)' }} />
+            style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--r-8)', padding: '8px 14px', fontSize: 13, color: 'var(--text)', width: 280, fontFamily: 'var(--font-body)' }} />
         </div>
         {filtered.length === 0
           ? <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text4)', fontSize: 13 }}>No inquiries found.</div>
           : (
             <div style={{ display: 'grid', gap: 14 }}>
               {filtered.map(inq => (
-                <div key={inq.id} style={{ padding: '20px 24px', background: 'var(--surface2)', borderRadius: 10, border: '1px solid var(--border)', borderLeft: '3px solid var(--teal)' }}>
+                <div key={inq.id} style={{ padding: '20px 24px', background: 'var(--surface2)', borderRadius: 'var(--r-10)', border: '1px solid var(--border)', borderLeft: '3px solid var(--teal)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)', marginBottom: 2 }}>{inq.name}</div>
@@ -1804,9 +1804,9 @@ function DiscoveryInquiries() {
                   {inq.buyer && (
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
                       <span style={{ fontSize: 10, color: 'var(--text4)', alignSelf: 'center' }}>Their brief:</span>
-                      {(inq.buyer.product_types || []).map(p => <span key={p} style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 6, textTransform: 'capitalize' }}>{p.replace(/_/g, ' ')}</span>)}
-                      {(inq.buyer.crafts || []).map(c => <span key={c} style={{ fontSize: 11, color: 'var(--gold)', background: 'var(--gold-dim)', padding: '2px 8px', borderRadius: 6 }}>{c}</span>)}
-                      {inq.buyer.batch_size && <span style={{ fontSize: 11, color: 'var(--text4)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 6 }}>{inq.buyer.batch_size.replace(/_/g, ' ')}</span>}
+                      {(inq.buyer.product_types || []).map(p => <span key={p} style={{ fontSize: 11, color: 'var(--text3)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 'var(--r)', textTransform: 'capitalize' }}>{p.replace(/_/g, ' ')}</span>)}
+                      {(inq.buyer.crafts || []).map(c => <span key={c} style={{ fontSize: 11, color: 'var(--gold)', background: 'var(--gold-dim)', padding: '2px 8px', borderRadius: 'var(--r)' }}>{c}</span>)}
+                      {inq.buyer.batch_size && <span style={{ fontSize: 11, color: 'var(--text4)', background: 'var(--surface)', padding: '2px 8px', borderRadius: 'var(--r)' }}>{inq.buyer.batch_size.replace(/_/g, ' ')}</span>}
                     </div>
                   )}
                 </div>
@@ -1886,7 +1886,7 @@ function StudioDescriptions() {
         </p>
         <div style={{
           marginTop: 14, display: 'inline-flex', alignItems: 'center', gap: 8,
-          padding: '6px 14px', borderRadius: 20,
+          padding: '6px 14px', borderRadius: 'var(--r-20)',
           background: filled === total ? 'rgba(90,232,122,0.08)' : 'rgba(232,184,80,0.08)',
           border: `1px solid ${filled === total ? 'rgba(90,232,122,0.2)' : 'rgba(232,184,80,0.2)'}`,
           fontSize: 12, color: filled === total ? 'var(--green)' : 'var(--amber)',
@@ -1910,7 +1910,7 @@ function StudioDescriptions() {
             <div key={pid} style={{
               background: 'var(--surface)',
               border: `1px solid ${hasDesc ? 'var(--border)' : 'rgba(232,184,80,0.25)'}`,
-              borderRadius: 12, padding: '20px 22px',
+              borderRadius: 'var(--r-lg)', padding: '20px 22px',
               transition: 'border-color 0.2s',
             }}>
               {/* Studio name + status */}
@@ -1927,7 +1927,7 @@ function StudioDescriptions() {
                   <span style={{
                     fontSize: 10, fontWeight: 600, letterSpacing: '0.08em',
                     textTransform: 'uppercase', color: 'var(--amber)',
-                    padding: '3px 8px', borderRadius: 4,
+                    padding: '3px 8px', borderRadius: 'var(--r-4)',
                     background: 'rgba(232,184,80,0.1)',
                     border: '1px solid rgba(232,184,80,0.2)',
                   }}>No description</span>
@@ -1948,7 +1948,7 @@ function StudioDescriptions() {
                   width: '100%', minHeight: 80, resize: 'vertical',
                   fontFamily: 'var(--font-body)', fontSize: 13,
                   color: 'var(--text)', background: 'var(--bg)',
-                  border: '1px solid var(--border2)', borderRadius: 8,
+                  border: '1px solid var(--border2)', borderRadius: 'var(--r-8)',
                   padding: '10px 12px', lineHeight: 1.6,
                   outline: 'none', boxSizing: 'border-box',
                 }}
@@ -1974,16 +1974,16 @@ function StudioDescriptions() {
                     onClick={() => handleSave(pid)}
                     disabled={isSaving}
                     style={{
-                      padding: '8px 20px', borderRadius: 6,
-                      background: isSaving ? 'var(--surface3)' : '#1A1612',
-                      color: isSaving ? 'var(--text4)' : '#F5F0E8',
+                      padding: '8px 20px', borderRadius: 'var(--r)',
+                      background: isSaving ? 'var(--surface3)' : 'var(--text)',
+                      color: isSaving ? 'var(--text4)' : 'var(--surface2)',
                       border: 'none', fontSize: 12, fontWeight: 500,
                       cursor: isSaving ? 'default' : 'pointer',
                       fontFamily: 'var(--font-body)', transition: 'background 0.18s',
                       display: 'flex', alignItems: 'center', gap: 6,
                     }}
-                    onMouseEnter={e => { if (!isSaving) e.currentTarget.style.background = '#8FA083'; }}
-                    onMouseLeave={e => { if (!isSaving) e.currentTarget.style.background = '#1A1612'; }}
+                    onMouseEnter={e => { if (!isSaving) e.currentTarget.style.background = 'var(--sage-muted)'; }}
+                    onMouseLeave={e => { if (!isSaving) e.currentTarget.style.background = 'var(--text)'; }}
                   >
                     {isSaving ? 'Saving…' : 'Save'}
                   </button>
@@ -2072,9 +2072,9 @@ function AccessKeys() {
   }
 
   const statusColor = s => ({
-    active:  { bg: 'rgba(90,210,120,0.1)',  text: '#3a9e5a' },
-    revoked: { bg: 'rgba(232,80,80,0.1)',   text: '#c94040' },
-    expired: { bg: 'rgba(200,160,60,0.1)',  text: '#a07a20' },
+    active:  { bg: 'rgba(90,210,120,0.1)',  text: 'var(--green)' },
+    revoked: { bg: 'rgba(232,80,80,0.1)',   text: 'var(--red)' },
+    expired: { bg: 'rgba(200,160,60,0.1)',  text: 'var(--amber-deep)' },
   }[s] || { bg: 'var(--surface2)', text: 'var(--text3)' });
 
   const active  = keys.filter(k => k.status === 'active').length;
@@ -2092,10 +2092,10 @@ function AccessKeys() {
             Generate keys to share with buyers. Keys gate access to the chat — no account needed.
           </p>
           <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-            <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 12, background: 'rgba(90,210,120,0.1)', color: '#3a9e5a', fontWeight: 500 }}>
+            <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 'var(--r-lg)', background: 'rgba(90,210,120,0.1)', color: 'var(--green)', fontWeight: 500 }}>
               {active} active
             </span>
-            <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 12, background: 'rgba(232,80,80,0.1)', color: '#c94040', fontWeight: 500 }}>
+            <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 'var(--r-lg)', background: 'rgba(232,80,80,0.1)', color: 'var(--red)', fontWeight: 500 }}>
               {revoked} revoked
             </span>
           </div>
@@ -2103,14 +2103,14 @@ function AccessKeys() {
         <button
           onClick={() => { setShowModal(true); setNewKeys([]); }}
           style={{
-            padding: '9px 18px', borderRadius: 8, border: 'none',
-            background: '#1A1612', color: '#F5F0E8',
+            padding: '9px 18px', borderRadius: 'var(--r-8)', border: 'none',
+            background: 'var(--text)', color: 'var(--surface2)',
             fontSize: 13, fontWeight: 500, cursor: 'pointer',
             fontFamily: 'var(--font-body)', whiteSpace: 'nowrap',
             transition: 'background 0.15s',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = '#7A8C6E'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = '#1A1612'; }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--sage)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--text)'; }}
         >
           + Generate Keys
         </button>
@@ -2124,7 +2124,7 @@ function AccessKeys() {
           No keys yet. Generate some above.
         </div>
       ) : (
-        <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
           {/* Table header */}
           <div style={{
             display: 'grid', gridTemplateColumns: '200px 1fr 90px 150px 100px 90px',
@@ -2161,9 +2161,9 @@ function AccessKeys() {
                     <button
                       onClick={() => copyKey(k.key_code, k.id)}
                       style={{
-                        fontSize: 10, padding: '2px 7px', borderRadius: 4,
+                        fontSize: 10, padding: '2px 7px', borderRadius: 'var(--r-4)',
                         border: '1px solid var(--border)', background: 'var(--surface2)',
-                        cursor: 'pointer', color: copied[k.id] ? '#3a9e5a' : 'var(--text3)',
+                        cursor: 'pointer', color: copied[k.id] ? 'var(--green)' : 'var(--text3)',
                         fontFamily: 'var(--font-body)', transition: 'all 0.15s', flexShrink: 0,
                       }}
                     >
@@ -2190,7 +2190,7 @@ function AccessKeys() {
                   {/* Status */}
                   <span style={{
                     fontSize: 11, fontWeight: 600, padding: '3px 10px',
-                    borderRadius: 12, background: sc.bg, color: sc.text,
+                    borderRadius: 'var(--r-lg)', background: sc.bg, color: sc.text,
                     textTransform: 'capitalize', display: 'inline-block',
                   }}>
                     {k.status}
@@ -2202,8 +2202,8 @@ function AccessKeys() {
                       <span style={{ fontSize: 10, color: 'var(--text4)' }}>{(k.tokens_used||0).toLocaleString()} used</span>
                       <span style={{ fontSize: 10, color: 'var(--text4)' }}>{pct}%</span>
                     </div>
-                    <div style={{ height: 3, background: 'var(--surface3)', borderRadius: 2, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', borderRadius: 2, width: `${pct}%`, background: pct>80?'#c94040':pct>50?'#a07a20':'#3a9e5a' }} />
+                    <div style={{ height: 3, background: 'var(--surface3)', borderRadius: 'var(--r-2)', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', borderRadius: 'var(--r-2)', width: `${pct}%`, background: pct>80?'var(--red)':pct>50?'var(--amber-deep)':'var(--green)' }} />
                     </div>
                   </div>
 
@@ -2216,7 +2216,7 @@ function AccessKeys() {
                       <button
                         onClick={() => setExpanded(p => ({ ...p, [k.id]: !p[k.id] }))}
                         style={{
-                          fontSize: 10, padding: '3px 8px', borderRadius: 4,
+                          fontSize: 10, padding: '3px 8px', borderRadius: 'var(--r-4)',
                           border: '1px solid var(--border)', background: isOpen ? 'var(--surface3)' : 'var(--surface2)',
                           cursor: 'pointer', color: 'var(--text3)', fontFamily: 'var(--font-body)',
                         }}
@@ -2225,11 +2225,11 @@ function AccessKeys() {
                       </button>
                     )}
                     {k.status === 'active' ? (
-                      <button onClick={() => handleRevoke(k.id)} style={{ fontSize: 11, padding: '4px 9px', borderRadius: 6, border: '1px solid rgba(232,80,80,0.3)', background: 'rgba(232,80,80,0.06)', color: '#c94040', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                      <button onClick={() => handleRevoke(k.id)} style={{ fontSize: 11, padding: '4px 9px', borderRadius: 'var(--r)', border: '1px solid rgba(232,80,80,0.3)', background: 'rgba(232,80,80,0.06)', color: 'var(--red)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                         Revoke
                       </button>
                     ) : k.status === 'revoked' ? (
-                      <button onClick={() => handleActivate(k.id)} style={{ fontSize: 11, padding: '4px 9px', borderRadius: 6, border: '1px solid rgba(90,210,120,0.3)', background: 'rgba(90,210,120,0.06)', color: '#3a9e5a', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                      <button onClick={() => handleActivate(k.id)} style={{ fontSize: 11, padding: '4px 9px', borderRadius: 'var(--r)', border: '1px solid rgba(90,210,120,0.3)', background: 'rgba(90,210,120,0.06)', color: 'var(--green)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                         Activate
                       </button>
                     ) : null}
@@ -2246,7 +2246,7 @@ function AccessKeys() {
                       {k.sessions.map(s => (
                         <div key={s.session_id} style={{
                           display: 'flex', alignItems: 'center', gap: 12,
-                          padding: '7px 12px', borderRadius: 8,
+                          padding: '7px 12px', borderRadius: 'var(--r-8)',
                           background: 'var(--surface)', border: '0.5px solid var(--border)',
                           fontSize: 12,
                         }}>
@@ -2254,9 +2254,9 @@ function AccessKeys() {
                             {s.session_id.slice(0, 8)}…
                           </span>
                           <span style={{
-                            fontSize: 10, padding: '2px 8px', borderRadius: 10,
+                            fontSize: 10, padding: '2px 8px', borderRadius: 'var(--r-10)',
                             background: s.stage === 'matched' ? 'rgba(90,210,120,0.1)' : 'var(--surface3)',
-                            color: s.stage === 'matched' ? '#3a9e5a' : 'var(--text3)',
+                            color: s.stage === 'matched' ? 'var(--green)' : 'var(--text3)',
                             fontWeight: 500, textTransform: 'capitalize', flexShrink: 0,
                           }}>
                             {s.stage}
@@ -2292,7 +2292,7 @@ function AccessKeys() {
             position: 'fixed', top: '50%', left: '50%',
             transform: 'translate(-50%,-50%)',
             background: 'var(--bg)', border: '1px solid var(--border)',
-            borderRadius: 16, padding: '28px 28px 24px',
+            borderRadius: 'var(--r-16)', padding: '28px 28px 24px',
             width: 420, zIndex: 101,
             boxShadow: '0 12px 48px rgba(0,0,0,0.2)',
           }}>
@@ -2311,7 +2311,7 @@ function AccessKeys() {
                   value={form.count}
                   onChange={e => setForm(f => ({ ...f, count: Math.min(50, Math.max(1, parseInt(e.target.value) || 1)) }))}
                   style={{
-                    width: '100%', padding: '9px 12px', borderRadius: 8,
+                    width: '100%', padding: '9px 12px', borderRadius: 'var(--r-8)',
                     border: '1px solid var(--border)', background: 'var(--surface2)',
                     fontSize: 14, color: 'var(--text)', fontFamily: 'var(--font-body)',
                     outline: 'none', boxSizing: 'border-box',
@@ -2326,7 +2326,7 @@ function AccessKeys() {
                   value={form.tokens_allocated}
                   onChange={e => setForm(f => ({ ...f, tokens_allocated: parseInt(e.target.value) }))}
                   style={{
-                    width: '100%', padding: '9px 12px', borderRadius: 8,
+                    width: '100%', padding: '9px 12px', borderRadius: 'var(--r-8)',
                     border: '1px solid var(--border)', background: 'var(--surface2)',
                     fontSize: 14, color: 'var(--text)', fontFamily: 'var(--font-body)',
                     outline: 'none', boxSizing: 'border-box', cursor: 'pointer',
@@ -2348,7 +2348,7 @@ function AccessKeys() {
                   onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                   placeholder="e.g. Spring 2026 buyers, Lakme buyers..."
                   style={{
-                    width: '100%', padding: '9px 12px', borderRadius: 8,
+                    width: '100%', padding: '9px 12px', borderRadius: 'var(--r-8)',
                     border: '1px solid var(--border)', background: 'var(--surface2)',
                     fontSize: 14, color: 'var(--text)', fontFamily: 'var(--font-body)',
                     outline: 'none', boxSizing: 'border-box',
@@ -2361,7 +2361,7 @@ function AccessKeys() {
               <button
                 onClick={() => setShowModal(false)}
                 style={{
-                  flex: 1, padding: '10px', borderRadius: 8,
+                  flex: 1, padding: '10px', borderRadius: 'var(--r-8)',
                   border: '1px solid var(--border)', background: 'none',
                   fontSize: 13, color: 'var(--text)', cursor: 'pointer',
                   fontFamily: 'var(--font-body)',
@@ -2373,9 +2373,9 @@ function AccessKeys() {
                 onClick={handleGenerate}
                 disabled={generating}
                 style={{
-                  flex: 2, padding: '10px', borderRadius: 8, border: 'none',
-                  background: generating ? 'var(--surface3)' : '#1A1612',
-                  color: generating ? 'var(--text3)' : '#F5F0E8',
+                  flex: 2, padding: '10px', borderRadius: 'var(--r-8)', border: 'none',
+                  background: generating ? 'var(--surface3)' : 'var(--text)',
+                  color: generating ? 'var(--text3)' : 'var(--surface2)',
                   fontSize: 13, fontWeight: 500,
                   cursor: generating ? 'not-allowed' : 'pointer',
                   fontFamily: 'var(--font-body)', transition: 'background 0.15s',
@@ -2395,7 +2395,7 @@ function AccessKeys() {
                   <button
                     onClick={copyAll}
                     style={{
-                      fontSize: 11, padding: '3px 10px', borderRadius: 6,
+                      fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r)',
                       border: '1px solid var(--border)', background: 'var(--surface2)',
                       cursor: 'pointer', color: 'var(--text2)', fontFamily: 'var(--font-body)',
                     }}
@@ -2405,7 +2405,7 @@ function AccessKeys() {
                 </div>
                 <div style={{
                   background: 'var(--surface2)', border: '1px solid var(--border)',
-                  borderRadius: 8, padding: '12px 14px',
+                  borderRadius: 'var(--r-8)', padding: '12px 14px',
                   display: 'flex', flexDirection: 'column', gap: 6,
                   maxHeight: 180, overflowY: 'auto',
                 }}>
@@ -2417,9 +2417,9 @@ function AccessKeys() {
                       <button
                         onClick={() => copyKey(k.key_code, `new-${i}`)}
                         style={{
-                          fontSize: 10, padding: '2px 8px', borderRadius: 4,
+                          fontSize: 10, padding: '2px 8px', borderRadius: 'var(--r-4)',
                           border: '1px solid var(--border)', background: 'var(--surface)',
-                          cursor: 'pointer', color: copied[`new-${i}`] ? '#3a9e5a' : 'var(--text3)',
+                          cursor: 'pointer', color: copied[`new-${i}`] ? 'var(--green)' : 'var(--text3)',
                           fontFamily: 'var(--font-body)',
                         }}
                       >
@@ -2511,7 +2511,7 @@ function Contacts() {
             onChange={e => setSearch(e.target.value)}
             placeholder="Search name, email, brand…"
             style={{
-              padding: '8px 12px', borderRadius: 8,
+              padding: '8px 12px', borderRadius: 'var(--r-8)',
               border: '1px solid var(--border)', background: 'var(--surface2)',
               fontSize: 13, color: 'var(--text)', fontFamily: 'var(--font-body)',
               outline: 'none', width: 220,
@@ -2521,7 +2521,7 @@ function Contacts() {
             onClick={exportCSV}
             disabled={filtered.length === 0}
             style={{
-              padding: '8px 16px', borderRadius: 8,
+              padding: '8px 16px', borderRadius: 'var(--r-8)',
               border: '1px solid var(--border)', background: 'var(--surface2)',
               fontSize: 13, color: 'var(--text)', cursor: filtered.length === 0 ? 'not-allowed' : 'pointer',
               fontFamily: 'var(--font-body)', opacity: filtered.length === 0 ? 0.4 : 1,
@@ -2545,7 +2545,7 @@ function Contacts() {
           <div key={s.label} style={{
             flex: 1, padding: '12px 16px',
             background: 'var(--surface)', border: '1px solid var(--border)',
-            borderRadius: 10,
+            borderRadius: 'var(--r-10)',
           }}>
             <div style={{ fontSize: 22, fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-display)' }}>
               {s.value}
@@ -2563,7 +2563,7 @@ function Contacts() {
           {contacts.length === 0 ? 'No contacts yet.' : 'No results for that search.'}
         </div>
       ) : (
-        <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
           {/* Header row */}
           <div style={{
             display: 'grid',
@@ -2608,9 +2608,9 @@ function Contacts() {
                   {ct.contact_country || '—'}
                 </span>
                 <span style={{
-                  fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10,
+                  fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 'var(--r-10)',
                   background: ct.stage === 'matched' ? 'rgba(90,210,120,0.1)' : 'var(--surface3)',
-                  color: ct.stage === 'matched' ? '#3a9e5a' : 'var(--text3)',
+                  color: ct.stage === 'matched' ? 'var(--green)' : 'var(--text3)',
                   textTransform: 'capitalize', display: 'inline-block', whiteSpace: 'nowrap',
                 }}>
                   {ct.stage}
@@ -2620,10 +2620,10 @@ function Contacts() {
                   onClick={() => copyEmail(ct.contact_email, ct.session_id)}
                   title="Copy email"
                   style={{
-                    width: 28, height: 28, borderRadius: 6,
+                    width: 28, height: 28, borderRadius: 'var(--r)',
                     border: '1px solid var(--border)', background: 'var(--surface2)',
                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: copied[ct.session_id] ? '#3a9e5a' : 'var(--text3)',
+                    color: copied[ct.session_id] ? 'var(--green)' : 'var(--text3)',
                     fontSize: 11, fontFamily: 'var(--font-body)',
                     transition: 'all 0.15s',
                   }}
@@ -2702,9 +2702,9 @@ function AccessRequests() {
   }
 
   const statusColor = s => ({
-    pending:  { bg: 'rgba(200,160,60,0.1)',  text: '#a07a20' },
-    approved: { bg: 'rgba(90,210,120,0.1)',  text: '#3a9e5a' },
-    rejected: { bg: 'rgba(232,80,80,0.1)',   text: '#c94040' },
+    pending:  { bg: 'rgba(200,160,60,0.1)',  text: 'var(--amber-deep)' },
+    approved: { bg: 'rgba(90,210,120,0.1)',  text: 'var(--green)' },
+    rejected: { bg: 'rgba(232,80,80,0.1)',   text: 'var(--red)' },
   }[s] || { bg: 'var(--surface2)', text: 'var(--text3)' });
 
   const pending  = requests.filter(r => r.status === 'pending').length;
@@ -2721,10 +2721,10 @@ function AccessRequests() {
           Brands requesting an access code from the landing page.
         </p>
         <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
-          <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 12, background: 'rgba(200,160,60,0.1)', color: '#a07a20', fontWeight: 500 }}>
+          <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 'var(--r-lg)', background: 'rgba(200,160,60,0.1)', color: 'var(--amber-deep)', fontWeight: 500 }}>
             {pending} pending
           </span>
-          <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 12, background: 'rgba(90,210,120,0.1)', color: '#3a9e5a', fontWeight: 500 }}>
+          <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 'var(--r-lg)', background: 'rgba(90,210,120,0.1)', color: 'var(--green)', fontWeight: 500 }}>
             {approved} approved
           </span>
         </div>
@@ -2744,7 +2744,7 @@ function AccessRequests() {
             return (
               <div key={r.id} style={{
                 background: 'var(--surface)', border: '1px solid var(--border)',
-                borderRadius: 14, padding: '18px 20px',
+                borderRadius: 'var(--r-lg)', padding: '18px 20px',
               }}>
                 {/* Top row */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
@@ -2752,7 +2752,7 @@ function AccessRequests() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{r.name}</span>
                       <span style={{
-                        fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 10,
+                        fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 'var(--r-10)',
                         background: sc.bg, color: sc.text, textTransform: 'capitalize',
                       }}>
                         {r.status}
@@ -2764,7 +2764,7 @@ function AccessRequests() {
                       <span style={{ fontSize: 13, color: 'var(--text2)' }}>{r.email}</span>
                       <button
                         onClick={() => copyEmail(r.email, r.id)}
-                        style={{ fontSize: 10, padding: '2px 7px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--surface2)', cursor: 'pointer', color: copied[r.id] ? '#3a9e5a' : 'var(--text3)', fontFamily: 'var(--font-body)' }}
+                        style={{ fontSize: 10, padding: '2px 7px', borderRadius: 'var(--r-4)', border: '1px solid var(--border)', background: 'var(--surface2)', cursor: 'pointer', color: copied[r.id] ? 'var(--green)' : 'var(--text3)', fontFamily: 'var(--font-body)' }}
                       >
                         {copied[r.id] ? '✓' : 'Copy'}
                       </button>
@@ -2779,9 +2779,9 @@ function AccessRequests() {
                     )}
                     {/* Generated key badge */}
                     {genKey[r.id] && (
-                      <div style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 12px', borderRadius: 8, background: 'rgba(90,210,120,0.08)', border: '1px solid rgba(90,210,120,0.25)' }}>
-                        <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700, color: '#3a9e5a', letterSpacing: '0.08em' }}>{genKey[r.id]}</span>
-                        <span style={{ fontSize: 11, color: '#3a9e5a' }}>copied ✓</span>
+                      <div style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 12px', borderRadius: 'var(--r-8)', background: 'rgba(90,210,120,0.08)', border: '1px solid rgba(90,210,120,0.25)' }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700, color: 'var(--green)', letterSpacing: '0.08em' }}>{genKey[r.id]}</span>
+                        <span style={{ fontSize: 11, color: 'var(--green)' }}>copied ✓</span>
                       </div>
                     )}
                   </div>
@@ -2792,13 +2792,13 @@ function AccessRequests() {
                       <>
                         <button
                           onClick={() => handleGenerateKey(r)}
-                          style={{ padding: '7px 14px', borderRadius: 7, border: 'none', background: 'var(--gold)', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+                          style={{ padding: '7px 14px', borderRadius: 'var(--r)', border: 'none', background: 'var(--gold)', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
                         >
                           Generate &amp; Approve
                         </button>
                         <button
                           onClick={() => handleStatus(r.id, 'rejected')}
-                          style={{ padding: '7px 12px', borderRadius: 7, border: '1px solid rgba(232,80,80,0.3)', background: 'rgba(232,80,80,0.06)', color: '#c94040', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+                          style={{ padding: '7px 12px', borderRadius: 'var(--r)', border: '1px solid rgba(232,80,80,0.3)', background: 'rgba(232,80,80,0.06)', color: 'var(--red)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
                         >
                           Reject
                         </button>
@@ -2807,7 +2807,7 @@ function AccessRequests() {
                     {r.status === 'approved' && !genKey[r.id] && (
                       <button
                         onClick={() => handleGenerateKey(r)}
-                        style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text2)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+                        style={{ padding: '7px 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text2)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
                       >
                         Generate Key
                       </button>
@@ -2815,7 +2815,7 @@ function AccessRequests() {
                     {r.status === 'rejected' && (
                       <button
                         onClick={() => handleStatus(r.id, 'pending')}
-                        style={{ padding: '7px 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text3)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+                        style={{ padding: '7px 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text3)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
                       >
                         Reconsider
                       </button>
@@ -2831,7 +2831,7 @@ function AccessRequests() {
                     placeholder="Internal notes…"
                     rows={1}
                     style={{
-                      flex: 1, padding: '7px 10px', borderRadius: 7, resize: 'vertical',
+                      flex: 1, padding: '7px 10px', borderRadius: 'var(--r)', resize: 'vertical',
                       border: '1px solid var(--border)', background: 'var(--surface2)',
                       fontSize: 12, color: 'var(--text)', fontFamily: 'var(--font-body)',
                       outline: 'none', minHeight: 32,
@@ -2839,7 +2839,7 @@ function AccessRequests() {
                   />
                   <button
                     onClick={() => handleSaveNotes(r.id)}
-                    style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 12, color: 'var(--text2)', cursor: 'pointer', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap' }}
+                    style={{ padding: '7px 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 12, color: 'var(--text2)', cursor: 'pointer', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap' }}
                   >
                     Save notes
                   </button>

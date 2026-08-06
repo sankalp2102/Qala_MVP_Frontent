@@ -34,14 +34,14 @@ import { calcLandingCost, sanitizeForex } from '../../utils/calculator';
 
 // ── Prototype's own palette — NOT the shared app tokens ──
 const C = {
-  sage: '#7A8C6E', sageD: '#5C6D52', sageDim: '#EFF3EC', sageDim2: '#C8D4C2',
-  gold: '#C4953A', goldD: '#9A7020', goldDim: '#FDF5E8', goldDim2: '#E8C87A',
-  purple: '#5B4B8A', purpleDim: '#F0EDF8', purpleDim2: '#C4BAE0',
-  red: '#C0392B', redDim: '#FDECEA',
-  text: '#1A1714', text2: '#4A4540', text3: '#7A736E', text4: '#ADA7A2',
-  border: '#EDE9E4', border2: '#DDD7D0',
-  surface: '#F8F6F3', surface2: '#F2EEE9', bg: '#FFFFFF',
-  phD: '#7A8C6E', phS: '#C4953A', phP: '#5B4B8A',
+  sage: 'var(--sage)', sageD: '#5C6D52', sageDim: 'var(--surface2)', sageDim2: 'var(--sage-pale)',
+  gold: 'var(--amber-d)', goldD: 'var(--amber-deep)', goldDim: 'var(--surface)', goldDim2: '#E8C87A',
+  purple: 'var(--purple)', purpleDim: 'var(--surface)', purpleDim2: '#C4BAE0',
+  red: 'var(--red-d)', redDim: 'var(--surface)',
+  text: 'var(--text)', text2: 'var(--text2)', text3: '#7A736E', text4: 'var(--taupe)',
+  border: 'var(--surface3)', border2: 'var(--border-l)',
+  surface: 'var(--surface)', surface2: 'var(--surface2)', bg: 'var(--bg)',
+  phD: 'var(--sage)', phS: 'var(--amber-d)', phP: 'var(--purple)',
 };
 const fh = "'Cormorant Garamond', serif";
 const fb = "'DM Sans', sans-serif";
@@ -74,19 +74,19 @@ const S = {
   heroEye: { fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.12em', color: C.sage, marginBottom: 10 },
   heroTitle: { fontFamily: fh, fontSize: 38, fontWeight: 500, color: C.text, lineHeight: 1.15, marginBottom: 8 },
   heroBy: { fontSize: 15, color: C.text3, marginBottom: 18 },
-  heroChip: { fontSize: 12, color: C.text3, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20, padding: '4px 12px' },
+  heroChip: { fontSize: 12, color: C.text3, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 'var(--r-20)', padding: '4px 12px' },
 
-  actionCard: { background: C.sageDim, border: `1px solid ${C.sageDim2}`, borderRadius: 10, padding: '22px 22px 18px', marginBottom: 28 },
+  actionCard: { background: C.sageDim, border: `1px solid ${C.sageDim2}`, borderRadius: 'var(--r-10)', padding: '22px 22px 18px', marginBottom: 28 },
   actionCardTitle: { fontSize: 13, fontWeight: 600, color: C.sageD, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.08em' },
   actionCardSub: { fontSize: 13, color: C.text3, marginBottom: 18, lineHeight: 1.6 },
 
-  btn: { fontFamily: fb, fontSize: 15, fontWeight: 500, borderRadius: 8, padding: '13px 20px', cursor: 'pointer', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 8, lineHeight: 1, width: '100%', justifyContent: 'center' },
+  btn: { fontFamily: fb, fontSize: 15, fontWeight: 500, borderRadius: 'var(--r-8)', padding: '13px 20px', cursor: 'pointer', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 8, lineHeight: 1, width: '100%', justifyContent: 'center' },
   btnAccept: { background: C.sage, color: '#fff', fontSize: 16, fontWeight: 600, padding: '15px 20px' },
   btnOutline: { background: C.bg, color: C.text2, border: `1.5px solid ${C.border2}` },
   btnDecline: { background: 'none', color: C.text4, border: 'none', fontSize: 13, textDecoration: 'underline', padding: '6px 0', width: 'auto', justifyContent: 'flex-start' },
   actionNote: { fontSize: 12, color: C.text4, marginTop: 12, lineHeight: 1.5 },
 
-  sbox: { border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden', background: C.bg, marginBottom: 16 },
+  sbox: { border: `1px solid ${C.border}`, borderRadius: 'var(--r-10)', overflow: 'hidden', background: C.bg, marginBottom: 16 },
   sboxHd: { padding: '14px 20px', background: C.surface, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   sboxLbl: { fontSize: 13, fontWeight: 600, color: C.text2 },
   sboxBd: { padding: 20 },
@@ -104,22 +104,22 @@ const S = {
   accBody: { borderTop: `2px solid ${C.border2}`, background: C.bg },
 
   pwThumbWrap: { position: 'relative', width: 76, height: 48, flexShrink: 0 },
-  pwThumb: (bg, left, z) => ({ position: 'absolute', width: 48, height: 48, borderRadius: 6, border: '2px solid #fff', background: bg, left, top: z === 3 ? 0 : 1, zIndex: z }),
-  pwTag: { fontSize: 12, color: C.text3, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20, padding: '2px 10px' },
+  pwThumb: (bg, left, z) => ({ position: 'absolute', width: 48, height: 48, borderRadius: 'var(--r)', border: '2px solid #fff', background: bg, left, top: z === 3 ? 0 : 1, zIndex: z }),
+  pwTag: { fontSize: 12, color: C.text3, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 'var(--r-20)', padding: '2px 10px' },
   pwDetail: { padding: '16px 20px', background: C.surface },
   piecesGrid: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginBottom: 12 },
-  piece: { border: `1px solid ${C.border}`, borderRadius: 7, overflow: 'hidden', background: C.bg, cursor: 'pointer' },
+  piece: { border: `1px solid ${C.border}`, borderRadius: 'var(--r)', overflow: 'hidden', background: C.bg, cursor: 'pointer' },
   pieceName: { fontSize: 11, padding: '4px 7px', color: C.text3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  pwNote: { fontSize: 13, color: C.text3, lineHeight: 1.65, fontStyle: 'italic', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 7, padding: '10px 14px' },
+  pwNote: { fontSize: 13, color: C.text3, lineHeight: 1.65, fontStyle: 'italic', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 'var(--r)', padding: '10px 14px' },
 
-  phDivider: { padding: '10px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.1em', color: C.text3, background: '#E8E4DE', borderTop: `2px solid ${C.border2}`, borderBottom: `2px solid ${C.border2}` },
+  phDivider: { padding: '10px 20px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.1em', color: C.text3, background: 'var(--surface3)', borderTop: `2px solid ${C.border2}`, borderBottom: `2px solid ${C.border2}` },
   phDot: (bg) => ({ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: bg }),
   phTotal: { fontSize: 14, fontWeight: 600, color: C.text },
   phItem: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '14px 20px', borderBottom: `1px solid ${C.border}`, background: C.bg },
   phItemName: { fontSize: 15, fontWeight: 500, color: C.text, marginBottom: 5 },
-  phItemTag: { fontSize: 12, color: C.text3, background: '#EDEAE5', borderRadius: 20, padding: '2px 9px' },
+  phItemTag: { fontSize: 12, color: C.text3, background: 'var(--surface2)', borderRadius: 'var(--r-20)', padding: '2px 9px' },
   phItemPrice: { fontFamily: fh, fontSize: 22, fontWeight: 500, color: C.text, whiteSpace: 'nowrap', flexShrink: 0 },
-  phDesc: { margin: '12px 16px 16px', padding: '12px 14px', fontSize: 13, color: C.text3, lineHeight: 1.7, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 7 },
+  phDesc: { margin: '12px 16px 16px', padding: '12px 14px', fontSize: 13, color: C.text3, lineHeight: 1.7, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 'var(--r)' },
   ddpNote: { display: 'flex', alignItems: 'flex-start', gap: 9, background: C.sageDim, borderTop: `2px solid ${C.border2}`, padding: '12px 20px', fontSize: 13, color: C.sageD, lineHeight: 1.6 },
 
   tlTrack: { padding: '20px 20px 8px', position: 'relative' },
@@ -130,31 +130,31 @@ const S = {
   tlSub: { fontSize: 13, color: C.text3, marginTop: 2, lineHeight: 1.55 },
 
   table: { width: '100%', borderCollapse: 'collapse' },
-  th: { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em', color: C.text4, padding: '10px 20px', textAlign: 'left', background: '#EDEAE5', borderBottom: `2px solid ${C.border2}` },
+  th: { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.07em', color: C.text4, padding: '10px 20px', textAlign: 'left', background: 'var(--surface2)', borderBottom: `2px solid ${C.border2}` },
   td: { fontSize: 13, color: C.text2, padding: '12px 20px', borderBottom: `1px solid ${C.border}`, verticalAlign: 'middle' },
-  badge: (bg, color) => ({ display: 'inline-flex', alignItems: 'center', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', padding: '3px 9px', borderRadius: 20, background: bg, color }),
+  badge: (bg, color) => ({ display: 'inline-flex', alignItems: 'center', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', padding: '3px 9px', borderRadius: 'var(--r-20)', background: bg, color }),
   payNote: { padding: '14px 20px', fontSize: 12, color: C.text4, lineHeight: 1.65, borderTop: `1px solid ${C.border}`, background: C.surface },
 
   termsDesc: { padding: '16px 20px', fontSize: 13, color: C.text2, lineHeight: 1.7, borderBottom: `1px solid ${C.border}` },
   termLi: { display: 'flex', gap: 12, fontSize: 14, color: C.text2, lineHeight: 1.65, padding: '13px 20px', borderBottom: `1px solid ${C.border}`, listStyle: 'none' },
   sowRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 20px', background: C.surface, borderTop: `1px solid ${C.border}` },
-  sowLink: { fontSize: 13, fontWeight: 500, color: C.sage, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.sageDim2}`, borderRadius: 7, padding: '7px 14px', background: C.sageDim, cursor: 'pointer' },
+  sowLink: { fontSize: 13, fontWeight: 500, color: C.sage, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, border: `1px solid ${C.sageDim2}`, borderRadius: 'var(--r)', padding: '7px 14px', background: C.sageDim, cursor: 'pointer' },
 
   studioCard: { display: 'flex', gap: 16, alignItems: 'flex-start', padding: 20 },
-  studioAv: { width: 52, height: 52, borderRadius: 10, background: 'linear-gradient(135deg,#D8C9B5,#B09A84)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: fh, fontSize: 20, fontWeight: 600, color: '#7A6A55' },
+  studioAv: { width: 52, height: 52, borderRadius: 'var(--r-10)', background: 'linear-gradient(135deg,#D8C9B5,#B09A84)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: fh, fontSize: 20, fontWeight: 600, color: '#7A6A55' },
   studioName: { fontFamily: fh, fontSize: 18, fontWeight: 600, color: C.text, marginBottom: 3 },
   studioLoc: { fontSize: 12, color: C.text3, marginBottom: 10 },
-  stag: { fontSize: 12, color: C.text2, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20, padding: '3px 10px' },
+  stag: { fontSize: 12, color: C.text2, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 'var(--r-20)', padding: '3px 10px' },
   studioNote: { fontSize: 13, color: C.text4, lineHeight: 1.6, fontStyle: 'italic', marginBottom: 12 },
 
   footerActs: { borderTop: `2px solid ${C.border}`, background: C.bg, padding: '16px 24px 20px', position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100 },
   footerActsEmbedded: { borderTop: `2px solid ${C.border}`, background: C.bg, padding: '16px 0 4px', marginTop: 12 },
   faInner: { maxWidth: 600, margin: '0 auto' },
   faLabel: { fontSize: 12, color: C.text3, marginBottom: 10, textAlign: 'center' },
-  faBtnSm: { fontSize: 13, padding: '10px 16px', whiteSpace: 'nowrap', flexShrink: 0, borderRadius: 7, cursor: 'pointer', fontFamily: fb, border: `1.5px solid ${C.border2}`, background: C.bg, color: C.text2 },
+  faBtnSm: { fontSize: 13, padding: '10px 16px', whiteSpace: 'nowrap', flexShrink: 0, borderRadius: 'var(--r)', cursor: 'pointer', fontFamily: fb, border: `1.5px solid ${C.border2}`, background: C.bg, color: C.text2 },
 
   modalBd: { position: 'fixed', inset: 0, background: 'rgba(15,12,20,.45)', zIndex: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  modal: { background: C.bg, borderRadius: 12, width: '100%', maxWidth: 460, boxShadow: '0 16px 56px rgba(0,0,0,.22)', overflow: 'hidden', position: 'relative' },
+  modal: { background: C.bg, borderRadius: 'var(--r-lg)', width: '100%', maxWidth: 460, boxShadow: '0 16px 56px rgba(0,0,0,.22)', overflow: 'hidden', position: 'relative' },
   modalHd: { padding: '22px 22px 16px', borderBottom: `1px solid ${C.border}` },
   modalTitle: { fontFamily: fh, fontSize: 22, fontWeight: 500, color: C.text },
   modalSub: { fontSize: 13, color: C.text3, marginTop: 5, lineHeight: 1.6 },
@@ -162,10 +162,10 @@ const S = {
   modalFt: { padding: '14px 22px', borderTop: `1px solid ${C.border}`, display: 'flex', gap: 10, justifyContent: 'flex-end' },
   modalX: { position: 'absolute', top: 16, right: 18, background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: C.text3, padding: '2px 6px', lineHeight: 1 },
   mLbl: { fontSize: 12, fontWeight: 600, color: C.text3, marginBottom: 7, display: 'block' },
-  mta: { width: '100%', height: 100, border: `1.5px solid ${C.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, fontFamily: fb, color: C.text, background: C.bg, resize: 'none', outline: 'none', boxSizing: 'border-box', lineHeight: 1.55 },
+  mta: { width: '100%', height: 100, border: `1.5px solid ${C.border}`, borderRadius: 'var(--r-8)', padding: '10px 12px', fontSize: 14, fontFamily: fb, color: C.text, background: C.bg, resize: 'none', outline: 'none', boxSizing: 'border-box', lineHeight: 1.55 },
   mIcon: { fontSize: 40, textAlign: 'center', marginBottom: 12 },
-  btnModalMain: { fontFamily: fb, fontSize: 14, fontWeight: 600, borderRadius: 8, padding: '11px 20px', cursor: 'pointer', border: 'none', background: C.sage, color: '#fff' },
-  btnModalSec: { fontFamily: fb, fontSize: 14, fontWeight: 400, borderRadius: 8, padding: '11px 20px', cursor: 'pointer', border: `1.5px solid ${C.border2}`, background: C.bg, color: C.text2 },
+  btnModalMain: { fontFamily: fb, fontSize: 14, fontWeight: 600, borderRadius: 'var(--r-8)', padding: '11px 20px', cursor: 'pointer', border: 'none', background: C.sage, color: '#fff' },
+  btnModalSec: { fontFamily: fb, fontSize: 14, fontWeight: 400, borderRadius: 'var(--r-8)', padding: '11px 20px', cursor: 'pointer', border: `1.5px solid ${C.border2}`, background: C.bg, color: C.text2 },
 };
 
 function Accordion({ first, dot, title, sub, right, children, isOpen, onToggle }) {
@@ -413,7 +413,7 @@ export default function ProposalCarbonCopy({ proposal, onAccept, onAction, navCo
               {proposal.milestones.map(m => {
                 const b = PHASE_BADGE[m.phase] || PHASE_BADGE.production;
                 return (
-                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '12px 14px' }}>
+                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 'var(--r-8)', padding: '12px 14px' }}>
                     <span style={S.badge(b.bg, b.color)}>{b.label}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{m.trigger_label}</div>
@@ -422,7 +422,7 @@ export default function ProposalCarbonCopy({ proposal, onAccept, onAction, navCo
                     {m.is_paid ? (
                       <span style={{ fontSize: 12, fontWeight: 600, color: C.sageD, whiteSpace: 'nowrap' }}>✓ Paid</span>
                     ) : m.payment_link_url ? (
-                      <a href={m.payment_link_url} target="_blank" rel="noreferrer" style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: C.sage, borderRadius: 7, padding: '8px 16px', textDecoration: 'none', whiteSpace: 'nowrap' }}>Pay now →</a>
+                      <a href={m.payment_link_url} target="_blank" rel="noreferrer" style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: C.sage, borderRadius: 'var(--r)', padding: '8px 16px', textDecoration: 'none', whiteSpace: 'nowrap' }}>Pay now →</a>
                     ) : (
                       <span style={{ fontSize: 12, color: C.text4, whiteSpace: 'nowrap' }}>Link coming soon</span>
                     )}
@@ -713,7 +713,7 @@ export default function ProposalCarbonCopy({ proposal, onAccept, onAction, navCo
                 <div style={{ padding: '16px 22px 6px' }}>
                   {proposal.milestones[0].payment_link_url ? (
                     <a href={proposal.milestones[0].payment_link_url} target="_blank" rel="noreferrer"
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: C.sage, color: '#fff', fontFamily: fb, fontSize: 16, fontWeight: 600, padding: '14px 20px', borderRadius: 8, textDecoration: 'none', width: '100%', boxSizing: 'border-box' }}>
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: C.sage, color: '#fff', fontFamily: fb, fontSize: 16, fontWeight: 600, padding: '14px 20px', borderRadius: 'var(--r-8)', textDecoration: 'none', width: '100%', boxSizing: 'border-box' }}>
                       Pay now — {fmtUSD(milestoneAmountUSD(proposal.milestones[0]))} →
                     </a>
                   ) : (

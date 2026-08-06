@@ -15,10 +15,10 @@ export default function ChipSelect({ options, selected, onToggle, multi = true, 
             onClick={() => onToggle(val)}
             style={{
               padding: icon ? '14px 20px' : '12px 22px',
-              border: `1px solid ${isSelected ? '#C46E49' : 'var(--border2)'}`,
-              borderRadius: 100,
+              border: `1px solid ${isSelected ? 'var(--terra-l)' : 'var(--border2)'}`,
+              borderRadius: 'var(--r-full)',
               background: isSelected ? 'rgba(196,110,73,0.10)' : 'transparent',
-              color: isSelected ? '#C46E49' : 'var(--text2)',
+              color: isSelected ? 'var(--terra-l)' : 'var(--text2)',
               fontSize: 15, fontWeight: isSelected ? 600 : 400,
               cursor: 'pointer', transition: 'all 0.15s',
               display: 'flex', alignItems: 'center', gap: 8,

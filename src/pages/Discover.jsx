@@ -281,7 +281,7 @@ export default function Discover() {
           sessionToken={sessionTokenRef.current}
         />
       )}
-    <div className="discover-root" style={{ height: '100vh', background: '#F8F5F1', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="discover-root" style={{ height: '100vh', background: 'var(--surface)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <style>{`
         @keyframes slideInFwd  { from{opacity:0;transform:translateX(40px)}  to{opacity:1;transform:none} }
         @keyframes slideInBack { from{opacity:0;transform:translateX(-40px)} to{opacity:1;transform:none} }
@@ -292,10 +292,10 @@ export default function Discover() {
         .step-exit       { animation: slideOut    0.18s ease both; }
         .inline-step-reveal { animation: fadeSlideIn 0.28s cubic-bezier(0.4,0,0.2,1) both; }
         .option-card:hover { border-color: rgba(196,110,73,0.5) !important; background: rgba(196,110,73,0.04) !important; }
-        .option-card.sel  { border-color: #C46E49 !important; background: rgba(196,110,73,0.08) !important; }
-        .option-card.sel div { color: #C46E49 !important; }
+        .option-card.sel  { border-color: var(--terra-l) !important; background: rgba(196,110,73,0.08) !important; }
+        .option-card.sel div { color: var(--terra-l) !important; }
         .nav-btn:hover { background: rgba(196,110,73,0.06) !important; }
-        .continue-btn:not(:disabled):hover { background: #C46E49 !important; }
+        .continue-btn:not(:disabled):hover { background: var(--terra-l) !important; }
         @media (max-width: 600px) {
           .discover-topbar { padding: 10px 16px !important; position: sticky !important; top: 0 !important; z-index: 20 !important; }
           .qala-logo       { height: 18px !important; width: auto !important; }
@@ -314,7 +314,7 @@ export default function Discover() {
       <div className="discover-topbar" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '16px 32px', borderBottom: '1px solid var(--border)',
-        background: '#F8F5F1', zIndex: 20, flexShrink: 0,
+        background: 'var(--surface)', zIndex: 20, flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
           <button onClick={() => nav('/')} style={{
@@ -413,7 +413,7 @@ export default function Discover() {
                 <div style={{
                   marginTop: 24, padding: '12px 16px',
                   background: 'var(--red-dim)', border: '1px solid rgba(255,85,85,0.3)',
-                  borderLeft: '3px solid var(--red)', borderRadius: 8,
+                  borderLeft: '3px solid var(--red)', borderRadius: 'var(--r-8)',
                   fontSize: 13, color: 'var(--red)',
                 }}>
                   {error}
@@ -438,7 +438,7 @@ export default function Discover() {
             style={{
               background: 'none', border: '1px solid var(--border)',
               color: step === 1 ? 'var(--text4)' : 'var(--text2)',
-              padding: '11px 24px', borderRadius: 10,
+              padding: '11px 24px', borderRadius: 'var(--r-10)',
               fontSize: 13, cursor: step === 1 ? 'default' : 'pointer',
               fontFamily: 'var(--font-body)', transition: 'all 0.2s',
             }}
@@ -452,9 +452,9 @@ export default function Discover() {
               onClick={() => goTo(getNextStep())}
               disabled={!canProceed()}
               style={{
-                background: canProceed() ? '#1A1612' : 'var(--border)',
-                color: canProceed() ? '#F5F0E8' : 'var(--text3)',
-                border: 'none', padding: '11px 30px', borderRadius: 10,
+                background: canProceed() ? 'var(--text)' : 'var(--border)',
+                color: canProceed() ? 'var(--surface2)' : 'var(--text3)',
+                border: 'none', padding: '11px 30px', borderRadius: 'var(--r-10)',
                 fontSize: 13, fontWeight: 700,
                 cursor: canProceed() ? 'pointer' : 'not-allowed',
                 fontFamily: 'var(--font-body)', transition: 'all 0.2s',
@@ -469,9 +469,9 @@ export default function Discover() {
               onClick={handleSubmit}
               disabled={submitting || !canProceed()}
               style={{
-                background: submitting || !canProceed() ? 'var(--border)' : '#1A1612',
-                color: submitting || !canProceed() ? 'var(--text3)' : '#F5F0E8',
-                border: 'none', padding: '11px 30px', borderRadius: 10,
+                background: submitting || !canProceed() ? 'var(--border)' : 'var(--text)',
+                color: submitting || !canProceed() ? 'var(--text3)' : 'var(--surface2)',
+                border: 'none', padding: '11px 30px', borderRadius: 'var(--r-10)',
                 fontSize: 13, fontWeight: 700,
                 cursor: submitting || !canProceed() ? 'not-allowed' : 'pointer',
                 fontFamily: 'var(--font-body)', transition: 'all 0.2s',
@@ -548,9 +548,9 @@ function StepBody({ step, answers, set, prefetchedImages, prefetchLoading }) {
               <div
                 onClick={() => set('fabric_is_flexible', !answers.fabric_is_flexible)}
                 style={{
-                  width: 18, height: 18, borderRadius: 4, flexShrink: 0,
-                  border: `2px solid ${answers.fabric_is_flexible ? '#C46E49' : '#B0A89A'}`,
-                  background: answers.fabric_is_flexible ? '#C46E49' : 'transparent',
+                  width: 18, height: 18, borderRadius: 'var(--r-4)', flexShrink: 0,
+                  border: `2px solid ${answers.fabric_is_flexible ? 'var(--terra-l)' : 'var(--taupe)'}`,
+                  background: answers.fabric_is_flexible ? 'var(--terra-l)' : 'transparent',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'all 0.15s', cursor: 'pointer',
                 }}
@@ -563,7 +563,7 @@ function StepBody({ step, answers, set, prefetchedImages, prefetchLoading }) {
               </div>
               <span
                 onClick={() => set('fabric_is_flexible', !answers.fabric_is_flexible)}
-                style={{ fontSize: 13, fontWeight: 600, color: answers.fabric_is_flexible ? '#C46E49' : 'var(--text2)', transition: 'color 0.15s' }}
+                style={{ fontSize: 13, fontWeight: 600, color: answers.fabric_is_flexible ? 'var(--terra-l)' : 'var(--text2)', transition: 'color 0.15s' }}
               >
                 I'm flexible
               </span>
@@ -572,10 +572,10 @@ function StepBody({ step, answers, set, prefetchedImages, prefetchLoading }) {
               onClick={() => !notSureDisabled3 && set('fabric_not_sure', !answers.fabric_not_sure)}
               disabled={notSureDisabled3}
               style={{
-                alignSelf: 'flex-start', padding: '12px 22px', borderRadius: 100,
-                border: `1.5px solid ${answers.fabric_not_sure ? '#C46E49' : notSureDisabled3 ? 'var(--border)' : '#B0A89A'}`,
+                alignSelf: 'flex-start', padding: '12px 22px', borderRadius: 'var(--r-full)',
+                border: `1.5px solid ${answers.fabric_not_sure ? 'var(--terra-l)' : notSureDisabled3 ? 'var(--border)' : 'var(--taupe)'}`,
                 background: answers.fabric_not_sure ? 'rgba(196,110,73,0.10)' : 'transparent',
-                color: notSureDisabled3 ? 'var(--text4)' : answers.fabric_not_sure ? '#C46E49' : 'var(--text2)',
+                color: notSureDisabled3 ? 'var(--text4)' : answers.fabric_not_sure ? 'var(--terra-l)' : 'var(--text2)',
                 fontSize: 13, fontWeight: 600,
                 cursor: notSureDisabled3 ? 'not-allowed' : 'pointer',
                 fontFamily: 'var(--font-body)', transition: 'all 0.15s',
@@ -627,9 +627,9 @@ function StepBody({ step, answers, set, prefetchedImages, prefetchLoading }) {
             <div
               onClick={() => !noCraftsMode && toggleFlexible()}
               style={{
-                width: 18, height: 18, borderRadius: 4, flexShrink: 0,
-                border: `2px solid ${flexibleActive ? '#C46E49' : '#B0A89A'}`,
-                background: flexibleActive ? '#C46E49' : 'transparent',
+                width: 18, height: 18, borderRadius: 'var(--r-4)', flexShrink: 0,
+                border: `2px solid ${flexibleActive ? 'var(--terra-l)' : 'var(--taupe)'}`,
+                background: flexibleActive ? 'var(--terra-l)' : 'transparent',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'all 0.15s', cursor: noCraftsMode ? 'not-allowed' : 'pointer',
               }}
@@ -642,7 +642,7 @@ function StepBody({ step, answers, set, prefetchedImages, prefetchLoading }) {
             </div>
             <span
               onClick={() => !noCraftsMode && toggleFlexible()}
-              style={{ fontSize: 13, fontWeight: 600, color: flexibleActive ? '#C46E49' : 'var(--text2)', transition: 'color 0.15s' }}
+              style={{ fontSize: 13, fontWeight: 600, color: flexibleActive ? 'var(--terra-l)' : 'var(--text2)', transition: 'color 0.15s' }}
             >
               I'm flexible
             </span>
@@ -673,7 +673,7 @@ function StepBody({ step, answers, set, prefetchedImages, prefetchLoading }) {
                 }}
                 style={{
                   padding: '14px 24px', border: '1px solid var(--border)',
-                  borderRadius: 12, background: 'transparent',
+                  borderRadius: 'var(--r-lg)', background: 'transparent',
                   cursor: 'pointer', textAlign: 'center',
                   fontFamily: 'var(--font-body)', transition: 'all 0.15s',
                 }}
@@ -696,7 +696,7 @@ function StepBody({ step, answers, set, prefetchedImages, prefetchLoading }) {
               onClick={() => set('process_stage', s.value)}
               style={{
                 width: '100%', padding: '20px 24px',
-                border: '1px solid var(--border)', borderRadius: 12,
+                border: '1px solid var(--border)', borderRadius: 'var(--r-lg)',
                 background: 'transparent', cursor: 'pointer',
                 textAlign: 'left', fontFamily: 'var(--font-body)', transition: 'all 0.15s',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -730,10 +730,10 @@ function StepBody({ step, answers, set, prefetchedImages, prefetchLoading }) {
                   key={t.value}
                   onClick={() => set('timeline', t.value)}
                   style={{
-                    padding: '10px 20px', borderRadius: 8,
-                    border: `1px solid ${answers.timeline === t.value ? '#C46E49' : 'var(--border2)'}`,
+                    padding: '10px 20px', borderRadius: 'var(--r-8)',
+                    border: `1px solid ${answers.timeline === t.value ? 'var(--terra-l)' : 'var(--border2)'}`,
                     background: answers.timeline === t.value ? 'rgba(196,110,73,0.10)' : 'transparent',
-                    color: answers.timeline === t.value ? '#C46E49' : 'var(--text2)',
+                    color: answers.timeline === t.value ? 'var(--terra-l)' : 'var(--text2)',
                     fontSize: 13, fontWeight: answers.timeline === t.value ? 700 : 400,
                     cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s',
                   }}
@@ -754,10 +754,10 @@ function StepBody({ step, answers, set, prefetchedImages, prefetchLoading }) {
                   key={b.value}
                   onClick={() => set('batch_size', b.value)}
                   style={{
-                    padding: '10px 20px', borderRadius: 8,
-                    border: `1px solid ${answers.batch_size === b.value ? '#C46E49' : 'var(--border2)'}`,
+                    padding: '10px 20px', borderRadius: 'var(--r-8)',
+                    border: `1px solid ${answers.batch_size === b.value ? 'var(--terra-l)' : 'var(--border2)'}`,
                     background: answers.batch_size === b.value ? 'rgba(196,110,73,0.10)' : 'transparent',
-                    color: answers.batch_size === b.value ? '#C46E49' : 'var(--text2)',
+                    color: answers.batch_size === b.value ? 'var(--terra-l)' : 'var(--text2)',
                     fontSize: 13, fontWeight: answers.batch_size === b.value ? 700 : 400,
                     cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s',
                   }}
@@ -779,7 +779,7 @@ function StepBody({ step, answers, set, prefetchedImages, prefetchLoading }) {
                 onChange={e => set('first_name', e.target.value)}
                 style={{
                   flex: 1, padding: '11px 14px', background: 'rgba(255,255,255,0.7)',
-                  border: '1px solid var(--border2)', borderRadius: 8,
+                  border: '1px solid var(--border2)', borderRadius: 'var(--r-8)',
                   color: 'var(--text)', fontSize: 13, fontFamily: 'var(--font-body)',
                 }}
               />
@@ -789,7 +789,7 @@ function StepBody({ step, answers, set, prefetchedImages, prefetchLoading }) {
                 onChange={e => set('last_name', e.target.value)}
                 style={{
                   flex: 1, padding: '11px 14px', background: 'rgba(255,255,255,0.7)',
-                  border: '1px solid var(--border2)', borderRadius: 8,
+                  border: '1px solid var(--border2)', borderRadius: 'var(--r-8)',
                   color: 'var(--text)', fontSize: 13, fontFamily: 'var(--font-body)',
                 }}
               />

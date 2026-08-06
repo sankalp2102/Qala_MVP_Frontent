@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { discoveryAPI, chatAPI, authTokens } from '../../api/client';
 
-const SAGE = '#7A8C6E';
+const SAGE = 'var(--sage)';
 const BASE = import.meta.env.VITE_API_URL || 'https://api.qala.studio';
 
 function parseFields(text) {
@@ -225,7 +225,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
   return (
     <div style={{
       border: '1px solid var(--border2)',
-      borderRadius: 12, overflow: 'hidden',
+      borderRadius: 'var(--r-lg)', overflow: 'hidden',
       marginTop: 10, maxWidth: 420, width: '100%',
       position: 'relative',
     }}>
@@ -294,7 +294,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
                 style={{
                   height: 72, width: 72,
                   objectFit: 'cover',
-                  borderRadius: 8,
+                  borderRadius: 'var(--r-8)',
                   border: '0.5px solid var(--border)',
                   flexShrink: 0,
                 }}
@@ -310,7 +310,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
           onClick={handleFindStudios}
           disabled={matching}
           style={{
-            flex: 1, padding: '11px', borderRadius: 8, border: 'none',
+            flex: 1, padding: '11px', borderRadius: 'var(--r-8)', border: 'none',
             background: SAGE, color: '#fff', fontSize: 13, fontWeight: 500,
             cursor: matching ? 'not-allowed' : 'pointer',
             fontFamily: 'var(--font-body)', transition: 'opacity 0.15s, box-shadow 0.15s',
@@ -327,7 +327,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
           onClick={handleAdjust}
           disabled={matching}
           style={{
-            flex: 1, padding: '11px', borderRadius: 8,
+            flex: 1, padding: '11px', borderRadius: 'var(--r-8)',
             border: '1px solid var(--border2)', background: 'none',
             color: 'var(--text)', fontSize: 13,
             cursor: matching ? 'not-allowed' : 'pointer',
@@ -355,7 +355,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
             position: 'fixed', top: '50%', left: '50%',
             transform: 'translate(-50%,-50%)',
             zIndex: 201, background: 'var(--bg)',
-            border: '1px solid var(--border)', borderRadius: 16,
+            border: '1px solid var(--border)', borderRadius: 'var(--r-16)',
             padding: '26px 24px 20px',
             width: 'min(400px, 92vw)',
             boxShadow: '0 16px 56px rgba(0,0,0,0.22)',
@@ -379,7 +379,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
                 <p style={{ fontSize: 12.5, color: 'var(--text3)', lineHeight: 1.55, animation: 'modalPulse 1.4s ease-in-out infinite' }}>
                   {LOADING_MESSAGES[loadingStep]}
                 </p>
-                {matchError && <p style={{ fontSize: 12, color: '#C94040', marginTop: 12 }}>{matchError}</p>}
+                {matchError && <p style={{ fontSize: 12, color: 'var(--red)', marginTop: 12 }}>{matchError}</p>}
               </div>
             ) : (
               <>
@@ -409,17 +409,17 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
                       placeholder={placeholder}
                       style={{
                         width: '100%', padding: '9px 12px', boxSizing: 'border-box',
-                        border: `1px solid ${contactErr[key] ? '#C94040' : 'var(--border)'}`,
-                        borderRadius: 8, background: 'var(--surface2)',
+                        border: `1px solid ${contactErr[key] ? 'var(--red)' : 'var(--border)'}`,
+                        borderRadius: 'var(--r-8)', background: 'var(--surface2)',
                         fontSize: 13, color: 'var(--text)',
                         fontFamily: 'var(--font-body)', outline: 'none',
                         transition: 'border-color 0.15s',
                       }}
                       onFocus={e  => { e.target.style.borderColor = SAGE; }}
-                      onBlur={e   => { e.target.style.borderColor = contactErr[key] ? '#C94040' : 'var(--border)'; }}
+                      onBlur={e   => { e.target.style.borderColor = contactErr[key] ? 'var(--red)' : 'var(--border)'; }}
                     />
                     {contactErr[key] && (
-                      <span style={{ fontSize: 11, color: '#C94040', marginTop: 3, display: 'block' }}>
+                      <span style={{ fontSize: 11, color: 'var(--red)', marginTop: 3, display: 'block' }}>
                         {contactErr[key]}
                       </span>
                     )}
@@ -431,7 +431,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
                     onClick={handleContactSubmit}
                     disabled={savingContact}
                     style={{
-                      flex: 1, padding: '10px', borderRadius: 8,
+                      flex: 1, padding: '10px', borderRadius: 'var(--r-8)',
                       border: 'none', background: SAGE, color: '#fff',
                       fontSize: 13, fontWeight: 500,
                       cursor: savingContact ? 'not-allowed' : 'pointer',

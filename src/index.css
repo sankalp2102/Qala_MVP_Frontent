@@ -19,61 +19,136 @@
   --text3:     rgba(26, 22, 18, 0.6);
   --text4:     rgba(26, 22, 18, 0.4);
 
-  /* ── Primary accent: Rust (CTAs, active, emphasis) ── */
-  --gold:      #7A8C6E;   /* --rust: primary CTA colour */
-  --gold-l:    #A3B898;   /* --rust-light: hover */
-  --gold-d:    #6A7A5E;   /* darker rust for active hover */
-  --gold-dim:  rgba(184, 92, 56, 0.08);
-  --gold-glow: rgba(184, 92, 56, 0.15);
+  /* ── Primary accent: Sage (CTAs, active, emphasis) ──
+     Correctly-named per the design system doc. This IS the same color
+     that --gold below has been holding under the wrong name — value is
+     unchanged, only the name is now accurate. */
+  --sage:      #7A8C6E;
+  --sage-l:    #A3B898;   /* hover */
+  --sage-d:    #6A7A5E;   /* active/pressed */
+  --sage-dim:  rgba(122, 140, 110, 0.08);
+  --sage-dim2: rgba(122, 140, 110, 0.16);
+
+  /* ── LEGACY — DO NOT USE IN NEW CODE ──
+     "--gold" has held the sage color, not an actual gold, since before
+     this token rename. ~36 files still reference these names directly,
+     so they stay defined here as a bridge until Phase 2 repoints every
+     one of those files to --sage above and these get deleted for good.
+     Same story for --admin/--teal, both of which are just older aliases
+     for the same sage color under different names. */
+  --gold:       var(--sage);
+  --gold-l:     var(--sage-l);
+  --gold-d:     var(--sage-d);
+  --gold-dim:   rgba(184, 92, 56, 0.08);   /* unchanged from original — NOT sage-dim, kept as-is on purpose */
+  --gold-dim2:  var(--sage-dim2);
+  --gold-glow:  rgba(184, 92, 56, 0.15);   /* unchanged from original — NOT sage-dim, kept as-is on purpose */
+  --admin:      var(--sage);
+  --admin-l:    var(--sage-l);
+  --admin-dim:  var(--sage-dim);
+  --admin-dim2: var(--sage-dim2);
+  --teal:       var(--sage);
+  --teal-l:     var(--sage-d);
+  --teal-dim:   rgba(122, 140, 110, 0.1);   /* unchanged from original (0.1 alpha, not 0.08) */
 
   /* ── Decorative gold (premium indicators) ── */
   --deco-gold: #C9A84C;
 
-  /* ── Admin accent ── aliased to --gold rather than a separate color:
-     every pre-existing admin page already just uses var(--gold) directly
-     with no distinct "admin purple" identity, so these are here purely
-     for backward-compat with admin-side components that reference
-     --admin explicitly — they resolve to the same sage green, not a
-     new color. */
-  --admin:      var(--gold);
-  --admin-l:    var(--gold-l);
-  --admin-dim:  rgba(122, 140, 110, 0.08);
-  --admin-dim2: rgba(122, 140, 110, 0.16);
-  --gold-dim2:  rgba(122, 140, 110, 0.16);
-
-  /* ── Sage green (success, positive, material tags) ── */
-  --teal:      #7A8C6E;   /* --sage */
-  --teal-l:    #6A7A5E;
-  --teal-dim:  rgba(122, 140, 110, 0.1);
-
-  /* ── Clay / secondary accent ── */
-  --terra:     #D4836A;   /* --clay */
+  /* ── Clay / secondary accent ──
+     NOTE: keeping the existing value unchanged here — I don't have a
+     confirmed "corrected" hex for this from the design doc in front of
+     me. If the doc specifies a different terra value, send it over and
+     I'll update this in the same pass as Phase 2. */
+  --terra:     #D4836A;
   --terra-l:   #C07050;
 
   /* ── Status ── */
   --green:     #3A9E62;
   --green-dim: rgba(58, 158, 98, 0.08);
+  --green-d:   #4A7C4A;   /* darker green — hover/active on success states */
   --red:       #C94040;
   --red-dim:   rgba(201, 64, 64, 0.08);
+  --red-d:     #C0392B;   /* darker red — hover/active on error/destructive states */
   --amber:     #C88A28;
   --amber-dim: rgba(200, 138, 40, 0.08);
+  --amber-d:   #C4953A;   /* darker amber — hover/active on warning states */
 
-  /* ── Fonts ── */
-  --font-display: 'Cormorant Garamond', Georgia, serif;
-  --font-body:    'DM Sans', system-ui, sans-serif;
+  /* ── New tokens (Phase 2) — inferred from repeated hardcoded usage across
+     the codebase (each appears 12+ times), NOT sourced from a confirmed
+     design doc value. Naming is my best call based on where each color
+     was actually being used — rename freely if the real spec differs. */
+  --border-l:    #D8D4CF;   /* light warm border, distinct from --border above */
+  --text-heading: #2C2822;  /* sits between --text and --text2 — used for headings/labels */
+  --text-muted:  #9A8F82;   /* muted warm gray — secondary/placeholder text */
+  --sage-muted:  #8FA083;   /* desaturated sage — secondary sage-tinted elements */
+  --purple:      #5B4B8A;   /* accent purple — no prior token existed for this at all */
 
-  /* ── Border Radius ── */
-  --radius:    6px;    /* buttons, inputs */
-  --radius-lg: 12px;   /* cards */
-  --radius-xl: 100px;  /* pills, chips, tags */
+  /* ── New tokens, round 2 — same "inferred from repeated usage, not from
+     a confirmed doc value" caveat as round 1 above. Only minted for
+     colors appearing 5+ times; anything rarer stayed as a literal value
+     rather than force a name onto what's very likely a genuine one-off. */
+  --taupe:        #B0A89A;
+  --green-bright: #5AE87A;   /* success flash / highlight, distinct from --green */
+  --amber-l:      #E8B850;
+  --green-deep:   #3A6B3A;   /* darker than --green-d */
+  --sage-pale:    #C8D9C4;
+  --amber-deep:   #A07A20;
+  --warm-gray:    #C8C4BF;
+  --red-l:        #E85050;
+  --text-dark:    #3C3630;   /* distinct from --text-heading, not a rounding dupe */
 
-  /* ── Spacing ── */
-  --space-xs:  4px;
-  --space-s:   8px;
-  --space-m:   12px;
-  --space-l:   20px;
-  --space-xl:  48px;
-  --space-xxl: 64px;
+  /* ── Fonts ──
+     --fh/--fb are the spec's names. --font-display/--font-body stay
+     defined too (33-40+ files still reference them directly) until
+     Phase 2 sweeps those over — same bridging approach as the colors
+     above, not a permanent parallel system. */
+  --fh: 'Cormorant Garamond', Georgia, serif;
+  --fb: 'DM Sans', system-ui, sans-serif;
+  --font-display: var(--fh);
+  --font-body:    var(--fb);
+
+  /* ── Border Radius ──
+     Renamed to the spec's --r-* naming. Only carrying over the 3 values
+     that already existed and are confirmed — I don't have confirmed
+     numbers for extra steps (e.g. a small/medium rung between these)
+     from the design doc, so not inventing them here.  */
+  --r:      6px;    /* buttons, inputs — was --radius */
+  --r-lg:   12px;   /* cards — was --radius-lg */
+  --r-full: 100px;  /* pills, chips, tags — was --radius-xl */
+
+  /* ── Additional radius tokens — pixel-named, same convention as --sp-*
+     spacing above. These preserve each distinct value used in the wild
+     rather than forcing components onto a single shared scale (the data
+     showed multiple legitimate radii for different component types, not
+     drift — see the design-system conversation notes). Zero visual
+     change: same numbers, just named instead of hardcoded. */
+  --r-2:  2px;
+  --r-4:  4px;
+  --r-5:  5px;
+  --r-8:  8px;
+  --r-10: 10px;
+  --r-16: 16px;
+  --r-20: 20px;
+  --radius:    var(--r);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-full);
+
+  /* ── Spacing ──
+     Renamed to the spec's --sp-* (pixel-value) naming, same caveat as
+     radius above — only renaming the 6 steps that already existed and
+     are confirmed, not inventing intermediate rungs (16/24/32/40px etc.)
+     without a confirmed source. */
+  --sp-4:  4px;
+  --sp-8:  8px;
+  --sp-12: 12px;
+  --sp-20: 20px;
+  --sp-48: 48px;
+  --sp-64: 64px;
+  --space-xs:  var(--sp-4);
+  --space-s:   var(--sp-8);
+  --space-m:   var(--sp-12);
+  --space-l:   var(--sp-20);
+  --space-xl:  var(--sp-48);
+  --space-xxl: var(--sp-64);
 
   /* ── Shadows ── */
   --shadow:      0 2px 8px rgba(0, 0, 0, 0.08);
@@ -387,21 +462,29 @@ textarea:focus-visible, select:focus-visible {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   STUDIO DASHBOARD THEME — terracotta + warm cream
+   STUDIO DASHBOARD THEME — warm cream background, sage accent
    ──────────────────────────────────────────────────────────────────────────
    Scoped to .qala-form-theme, which now wraps the ENTIRE seller DashLayout
    (Overview, Sections A–H, Inquiries, Project Enquiries, Active Projects,
    Proposal Builder). Buyer and admin dashboards are untouched.
 
-   Where the prototype pins an exact hex, we use the hex. Where it doesn't,
-   we fall through to the existing design tokens.
-   ══════════════════════════════════════════════════════════════════════════ */
+   REVERTED from a terracotta accent back to sage (2026-08) to match the
+   design system doc, which specifies sage as the single primary CTA color
+   app-wide — terracotta is a milestone/secondary accent, never a button
+   color. Worth noting for the record: the terracotta version wasn't an
+   accident, its own comments show it was built directly against a
+   prototype file that specified terracotta buttons for this screen
+   specifically. If that prototype reflected a deliberate, newer design
+   direction rather than one the spec doc just hasn't caught up with yet,
+   this is worth a second look — flagging it here rather than silently
+   erasing that context.
+
+   Where the prototype pins an exact non-color value (padding, radius,
+   font-size), we keep the hex/px as before. Colors now reference the
+   shared --gold family (sage, per the Phase 0 rename) instead of being
+   hardcoded twice. */
 .qala-form-theme {
-  --bg:       #F5F3EF;                    /* warm cream page background */
-  --gold:     #D97520;                    /* terracotta accent (was sage #7A8C6E) */
-  --gold-l:   #E08A3C;
-  --gold-d:   #C06818;
-  --gold-dim: rgba(217, 117, 32, 0.08);
+  --bg: #F5F3EF;   /* warm cream page background */
   background: #F5F3EF;
   color: #1A1A1A;
   font-size: 14px;
@@ -415,8 +498,8 @@ textarea:focus-visible, select:focus-visible {
 .qala-form-theme .dash-navlink { color: #555; border-color: transparent; }
 .qala-form-theme .dash-navlink:hover { background: #F5F3EF; }
 .qala-form-theme .dash-navlink.active {
-  background: #D97520; color: #fff;
-  border-color: #D97520; border-radius: 4px; font-weight: 500;
+  background: var(--gold); color: #fff;
+  border-color: var(--gold); border-radius: 4px; font-weight: 500;
 }
 
 /* ── Section header ── */
@@ -428,7 +511,7 @@ textarea:focus-visible, select:focus-visible {
 .qala-form-theme .section-title {
   font-family: var(--font-display);
   font-size: 36px; font-weight: 500; font-style: italic;
-  color: #D97520; margin-bottom: 6px; line-height: 1.1;
+  color: var(--gold); margin-bottom: 6px; line-height: 1.1;
 }
 .qala-form-theme .section-desc {
   font-size: 13px; color: #888; margin-bottom: 32px; line-height: 1.5;
@@ -466,7 +549,7 @@ textarea:focus-visible, select:focus-visible {
 .qala-form-theme textarea:focus,
 .qala-form-theme select:focus { border-color: #1A1A1A; outline: none; }
 .qala-form-theme input[type="checkbox"],
-.qala-form-theme input[type="radio"] { accent-color: #D97520; }
+.qala-form-theme input[type="radio"] { accent-color: var(--gold); }
 
 /* ── Buttons: prototype geometry (11px 24px / r5 / 13px) ── */
 .qala-form-theme .btn {
@@ -476,13 +559,12 @@ textarea:focus-visible, select:focus-visible {
 .qala-form-theme .btn-sm { padding: 6px 12px; font-size: 11px; }
 .qala-form-theme .btn-lg { padding: 11px 24px; font-size: 13px; }
 
-.qala-form-theme .btn-primary { background: #D97520; color: #fff; border: none; }
-.qala-form-theme .btn-primary:hover  { background: #C06818; }
-.qala-form-theme .btn-primary:active { background: #C06818; }
+.qala-form-theme .btn-primary { background: var(--gold); color: #fff; border: none; }
+.qala-form-theme .btn-primary:hover  { background: var(--gold-d); }
+.qala-form-theme .btn-primary:active { background: var(--gold-d); }
 
-/* "Add" affordances in the prototype are solid terracotta, not sage. */
-.qala-form-theme .btn-teal { background: #D97520; color: #fff; border: none; }
-.qala-form-theme .btn-teal:hover { background: #C06818; }
+.qala-form-theme .btn-teal { background: var(--gold); color: #fff; border: none; }
+.qala-form-theme .btn-teal:hover { background: var(--gold-d); }
 
 .qala-form-theme .btn-ghost,
 .qala-form-theme .btn-outline,
@@ -494,7 +576,7 @@ textarea:focus-visible, select:focus-visible {
 .qala-form-theme .btn-secondary:hover {
   background: #FAFAF8; color: #1A1A1A; border-color: #888;
 }
-.qala-form-theme .btn-tertiary:hover { color: #D97520; }
+.qala-form-theme .btn-tertiary:hover { color: var(--gold); }
 
 /* ── Overview status badges ── */
 .qala-form-theme .ov-badge {

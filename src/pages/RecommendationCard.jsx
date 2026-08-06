@@ -14,7 +14,7 @@ export default function RecommendationCard({ rec, position, isBonus }) {
     <div style={{
       background: 'var(--surface)',
       border: '1px solid var(--border)',
-      borderRadius: 16,
+      borderRadius: 'var(--r-16)',
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
@@ -39,7 +39,7 @@ export default function RecommendationCard({ rec, position, isBonus }) {
       {/* ranking badge */}
       <div style={{
         position: 'absolute', top: 14, right: 14, zIndex: 2,
-        padding: '4px 10px', borderRadius: 20,
+        padding: '4px 10px', borderRadius: 'var(--r-20)',
         background: rank.bg, color: rank.color,
         border: `1px solid ${rank.border}`,
         fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
@@ -83,7 +83,7 @@ export default function RecommendationCard({ rec, position, isBonus }) {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {rec.primary_crafts.slice(0, 4).map(c => (
               <span key={c} style={{
-                padding: '3px 10px', borderRadius: 12,
+                padding: '3px 10px', borderRadius: 'var(--r-lg)',
                 background: 'var(--surface3)', border: '1px solid var(--border)',
                 fontSize: 11, color: 'var(--text2)',
               }}>{c}</span>
@@ -94,7 +94,7 @@ export default function RecommendationCard({ rec, position, isBonus }) {
         {/* Match reasoning */}
         {rec.match_reasoning && Object.keys(rec.match_reasoning).length > 0 && (
           <div style={{
-            background: 'var(--surface2)', borderRadius: 10,
+            background: 'var(--surface2)', borderRadius: 'var(--r-10)',
             padding: '14px 16px', fontSize: 13, color: 'var(--text2)', lineHeight: 1.7,
           }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>
@@ -126,7 +126,7 @@ export default function RecommendationCard({ rec, position, isBonus }) {
         {isBonus && rec.mismatches?.length > 0 && (
           <div style={{
             background: 'rgba(232,184,80,0.05)', border: '1px solid rgba(232,184,80,0.15)',
-            borderRadius: 8, padding: '10px 12px',
+            borderRadius: 'var(--r-8)', padding: '10px 12px',
           }}>
             <div style={{ fontSize: 10, color: 'var(--amber)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>
               Visual match — some differences
@@ -145,9 +145,9 @@ export default function RecommendationCard({ rec, position, isBonus }) {
           className="cta-btn"
           style={{
             display: 'block', width: '100%', padding: '14px 24px',
-            borderRadius: 8,
-            background: '#1A1612',
-            color: '#F5F0E8',
+            borderRadius: 'var(--r-8)',
+            background: 'var(--text)',
+            color: 'var(--surface2)',
             border: 'none',
             fontSize: 12, fontWeight: 500, cursor: 'pointer',
             fontFamily: 'var(--font-body)',
@@ -156,8 +156,8 @@ export default function RecommendationCard({ rec, position, isBonus }) {
             boxSizing: 'border-box',
             transition: 'transform 0.2s, box-shadow 0.2s, background 0.2s',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = '#C46E49'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 40px rgba(196,110,73,0.3)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = '#1A1612'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--terra-l)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 40px rgba(196,110,73,0.3)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--text)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
         >
           View Profile →
         </a>

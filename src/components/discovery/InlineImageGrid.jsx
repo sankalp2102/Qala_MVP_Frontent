@@ -55,7 +55,7 @@ export default function InlineImageGrid({
                 border: isSelected
                   ? '2.5px solid var(--gold)'
                   : '2px solid transparent',
-                borderRadius: 8,
+                borderRadius: 'var(--r-8)',
                 overflow: 'hidden',
                 cursor: 'pointer',
                 background: 'var(--surface2)',
@@ -128,9 +128,9 @@ export default function InlineImageGrid({
             style={{
               width: '100%',
               padding: '10px 16px',
-              borderRadius: 8,
-              background: '#1A1612',
-              color: '#F5F0E8',
+              borderRadius: 'var(--r-8)',
+              background: 'var(--text)',
+              color: 'var(--surface2)',
               border: 'none',
               fontSize: 12,
               fontWeight: 600,
@@ -143,8 +143,8 @@ export default function InlineImageGrid({
               gap: 8,
               transition: 'background 0.15s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#C46E49'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#1A1612'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--terra-l)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--text)'; }}
           >
             <span style={{
               width: 20, height: 20, borderRadius: '50%',

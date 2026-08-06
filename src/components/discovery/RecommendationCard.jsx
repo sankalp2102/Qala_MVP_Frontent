@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { mediaUrl, mediaOnError } from '../../utils/mediaUrl';
 
 const RANKING_STYLES = {
-  high:   { bg: 'rgba(90,232,122,0.08)', color: '#5AE87A', border: 'rgba(90,232,122,0.2)',  label: 'Strong Match' },
-  medium: { bg: 'rgba(232,184,80,0.08)', color: '#E8B850', border: 'rgba(232,184,80,0.2)',  label: 'Good Match' },
+  high:   { bg: 'rgba(90,232,122,0.08)', color: 'var(--green-bright)', border: 'rgba(90,232,122,0.2)',  label: 'Strong Match' },
+  medium: { bg: 'rgba(232,184,80,0.08)', color: 'var(--amber-l)', border: 'rgba(232,184,80,0.2)',  label: 'Good Match' },
   low:    { bg: 'rgba(160,160,160,0.08)',color: '#A0A0A0', border: 'rgba(160,160,160,0.2)', label: 'Possible Match' },
 };
 
@@ -89,7 +89,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
     <div className="rec-card" style={{
       background: 'var(--surface)',
       border: '1px solid var(--border)',
-      borderRadius: 16,
+      borderRadius: 'var(--r-16)',
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
@@ -187,14 +187,14 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
             {(rec.primary_crafts || []).slice(0, 3).map(c => (
               <span key={c} style={{
-                padding: '4px 12px', borderRadius: 12,
+                padding: '4px 12px', borderRadius: 'var(--r-lg)',
                 background: 'rgba(122,140,110,0.08)', border: '1px solid rgba(196,110,73,0.2)',
-                fontSize: 11, color: '#7A8C6E', fontWeight: 500,
+                fontSize: 11, color: 'var(--sage)', fontWeight: 500,
               }}>{c}</span>
             ))}
             {(rec.primary_fabrics || []).slice(0, 2).map(f => (
               <span key={f} style={{
-                padding: '4px 12px', borderRadius: 12,
+                padding: '4px 12px', borderRadius: 'var(--r-lg)',
                 background: 'var(--surface3)', border: '1px solid var(--border)',
                 fontSize: 11, color: 'var(--text2)',
               }}>{f}</span>
@@ -210,9 +210,9 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
               onClick={() => setActiveTab(t.key)}
               style={{
                 padding: '10px 16px', fontSize: 13, fontWeight: 500,
-                color: activeTab === t.key ? '#7A8C6E' : 'var(--text3)',
+                color: activeTab === t.key ? 'var(--sage)' : 'var(--text3)',
                 background: 'none', border: 'none', cursor: 'pointer',
-                borderBottom: activeTab === t.key ? '2px solid #7A8C6E' : '2px solid transparent',
+                borderBottom: activeTab === t.key ? '2px solid var(--sage)' : '2px solid transparent',
                 fontFamily: 'var(--font-body)', transition: 'color 0.15s, border-color 0.15s',
                 marginBottom: -1,
               }}
@@ -244,7 +244,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {bestAt.length > 0 ? bestAt.slice(0, 5).map((w, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13, color: 'var(--text2)', lineHeight: 1.6 }}>
-                  <span style={{ color: '#5AE87A', flexShrink: 0, marginTop: 1 }}>✓</span>
+                  <span style={{ color: 'var(--green-bright)', flexShrink: 0, marginTop: 1 }}>✓</span>
                   <span>{typeof w === 'string' ? w : w.explanation}</span>
                 </div>
               )) : (
@@ -258,7 +258,7 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
         {isBonus && rec.mismatches?.length > 0 && (
           <div style={{
             background: 'rgba(232,184,80,0.05)', border: '1px solid rgba(232,184,80,0.15)',
-            borderRadius: 8, padding: '10px 12px', marginTop: 14,
+            borderRadius: 'var(--r-8)', padding: '10px 12px', marginTop: 14,
           }}>
             <div style={{ fontSize: 10, color: 'var(--amber)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>
               Visual match — some differences
@@ -274,16 +274,16 @@ export default function RecommendationCard({ rec, position, isBonus, onContact, 
           onClick={() => onContact(rec)}
           className="cta-btn"
           style={{
-            display: 'block', width: '100%', padding: '14px 24px', borderRadius: 8,
-            background: '#1A1612', color: '#F5F0E8', border: 'none',
+            display: 'block', width: '100%', padding: '14px 24px', borderRadius: 'var(--r-8)',
+            background: 'var(--text)', color: 'var(--surface2)', border: 'none',
             fontSize: 12, fontWeight: 500, cursor: 'pointer',
             fontFamily: 'var(--font-body)',
             letterSpacing: '0.06em', textTransform: 'uppercase', textAlign: 'center',
             transition: 'transform 0.2s, box-shadow 0.2s, background 0.2s',
             boxSizing: 'border-box', marginTop: 'auto', paddingTop: 14,
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = '#8FA083'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 40px rgba(122,140,110,0.3)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = '#1A1612'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--sage-muted)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 40px rgba(122,140,110,0.3)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--text)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
         >
           View Profile →
         </button>

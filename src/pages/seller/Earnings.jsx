@@ -31,14 +31,14 @@ const S = {
   sub: { fontSize: 13, color: 'var(--text3)', marginBottom: 20 },
 
   walletGrid: { display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16, marginBottom: 20 },
-  walletCard: (primary) => ({ borderRadius: 12, padding: '20px 22px', background: primary ? 'linear-gradient(135deg,#7A8C6E,#5E7050)' : 'var(--surface)', color: primary ? '#fff' : 'var(--text)' }),
+  walletCard: (primary) => ({ borderRadius: 'var(--r-lg)', padding: '20px 22px', background: primary ? 'linear-gradient(135deg,var(--sage),#5E7050)' : 'var(--surface)', color: primary ? '#fff' : 'var(--text)' }),
   walletLabel: (primary) => ({ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.08em', color: primary ? 'rgba(255,255,255,.75)' : 'var(--text4)', marginBottom: 6 }),
   walletAmount: (primary) => ({ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 600, lineHeight: 1.1, color: primary ? '#fff' : 'var(--text)' }),
   walletNote: (primary) => ({ fontSize: 11, color: primary ? 'rgba(255,255,255,.7)' : 'var(--text3)', marginTop: 6, lineHeight: 1.4 }),
 
-  infoBox: { display: 'flex', gap: 9, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--text3)', lineHeight: 1.6, marginBottom: 20 },
+  infoBox: { display: 'flex', gap: 9, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-8)', padding: '10px 14px', fontSize: 12, color: 'var(--text3)', lineHeight: 1.6, marginBottom: 20 },
 
-  card: { background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' },
+  card: { background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', overflow: 'hidden' },
   cardHeader: { padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   cardHeaderH3: { fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 600 },
 
@@ -47,7 +47,7 @@ const S = {
   td: { padding: 14, borderBottom: '1px solid var(--border)', verticalAlign: 'middle' },
   cellTitle: { fontWeight: 500, color: 'var(--text)', fontSize: 14 },
   cellSub: { display: 'block', fontSize: 12, color: 'var(--text3)', fontWeight: 400, marginTop: 2 },
-  badge: (bg, color) => ({ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: bg, color }),
+  badge: (bg, color) => ({ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 'var(--r-20)', fontSize: 11, fontWeight: 600, background: bg, color }),
 };
 
 function fmtDate(d) { return d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'; }
@@ -114,7 +114,7 @@ export default function Earnings() {
             <h3 style={S.cardHeaderH3}>Transaction History</h3>
             <div style={{ display: 'flex', gap: 8 }}>
               {['all', 'received', 'pending'].map(f => (
-                <div key={f} onClick={() => setFilter(f)} style={{ fontSize: 11, padding: '4px 12px', borderRadius: 20, cursor: 'pointer', border: `1px solid ${filter === f ? 'var(--gold)' : 'var(--border2)'}`, background: filter === f ? 'var(--gold)' : 'transparent', color: filter === f ? '#fff' : 'var(--text2)', textTransform: 'capitalize' }}>{f}</div>
+                <div key={f} onClick={() => setFilter(f)} style={{ fontSize: 11, padding: '4px 12px', borderRadius: 'var(--r-20)', cursor: 'pointer', border: `1px solid ${filter === f ? 'var(--gold)' : 'var(--border2)'}`, background: filter === f ? 'var(--gold)' : 'transparent', color: filter === f ? '#fff' : 'var(--text2)', textTransform: 'capitalize' }}>{f}</div>
               ))}
             </div>
           </div>

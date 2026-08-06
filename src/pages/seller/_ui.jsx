@@ -155,8 +155,8 @@ export function useAutosave(persistFn, deps, delay = 900) {
 
 export const inputStyle = {
   width: '100%', padding: '9px 12px',
-  border: '1px solid #D8D4CF', borderRadius: 5,
-  background: '#fff', color: '#1A1A1A',
+  border: '1px solid var(--border-l)', borderRadius: 'var(--r-5)',
+  background: '#fff', color: 'var(--text)',
   fontSize: 13, fontFamily: "'DM Sans', sans-serif",
   outline: 'none', transition: 'border-color .15s',
   appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'textfield',
@@ -164,8 +164,8 @@ export const inputStyle = {
 
 export const textareaStyle = {
   width: '100%', padding: '9px 12px',
-  border: '1px solid #D8D4CF', borderRadius: 5,
-  background: '#fff', color: '#1A1A1A',
+  border: '1px solid var(--border-l)', borderRadius: 'var(--r-5)',
+  background: '#fff', color: 'var(--text)',
   fontSize: 13, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6,
   outline: 'none', transition: 'border-color .15s', resize: 'vertical',
 };
@@ -198,8 +198,8 @@ export function TrashBtn({ onClick, label = 'Remove', size = 16, danger = false 
       onMouseLeave={() => setHover(false)}
       style={{
         background: 'none', border: 'none', cursor: 'pointer',
-        color: hover || danger ? '#C0392B' : '#CCC',
-        padding: '4px 6px', borderRadius: 4,
+        color: hover || danger ? 'var(--red-d)' : '#CCC',
+        padding: '4px 6px', borderRadius: 'var(--r-4)',
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         lineHeight: 1, transition: 'color .12s',
       }}>
@@ -264,8 +264,8 @@ export function InfoBox({ children }) {
   return (
     <div style={{
       marginTop: 10, fontSize: 11, color: '#AAAAAA',
-      background: '#FAFAF8', border: '1px solid #F0EDE8',
-      borderRadius: 5, padding: '10px 12px', lineHeight: 1.5,
+      background: 'var(--bg)', border: '1px solid var(--surface2)',
+      borderRadius: 'var(--r-5)', padding: '10px 12px', lineHeight: 1.5,
     }}>
       {children}
     </div>
@@ -277,7 +277,7 @@ export function FlagBanner({ reason }) {
   return (
     <div style={{
       background: 'var(--red-dim)', border: '1px solid rgba(224,85,85,0.25)',
-      borderLeft: '3px solid var(--red)', borderRadius: 6,
+      borderLeft: '3px solid var(--red)', borderRadius: 'var(--r)',
       padding: '8px 12px', fontSize: 12, color: 'var(--red)', marginBottom: 12,
     }}>
       Admin flagged: {reason}
@@ -308,17 +308,17 @@ export function AutosaveIndicator({ status }) {
 
   if (error && !saving) {
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#C0392B' }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--red-d)' }}>
         <span style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          width: 15, height: 15, borderRadius: '50%', background: '#FBEDEC', color: '#C0392B',
+          width: 15, height: 15, borderRadius: '50%', background: 'var(--surface)', color: 'var(--red-d)',
           fontSize: 10, fontWeight: 700,
         }}>!</span>
         Couldn't save your changes
         {retry && (
           <button onClick={retry} style={{
             background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-            fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: '#C0392B',
+            fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: 'var(--red-d)',
             textDecoration: 'underline',
           }}>
             Retry
@@ -329,14 +329,14 @@ export function AutosaveIndicator({ status }) {
   }
 
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: saving ? '#AAA' : '#4A8A4A' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: saving ? '#AAA' : 'var(--green-d)' }}>
       {saving ? (
         <><span className="spinner" style={{ width: 12, height: 12 }} /> Saving…</>
       ) : (
         <>
           <span style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 15, height: 15, borderRadius: '50%', background: '#E8F5E2', color: '#4A8A4A',
+            width: 15, height: 15, borderRadius: '50%', background: 'var(--surface2)', color: 'var(--green-d)',
             fontSize: 10, fontWeight: 700,
           }}>✓</span>
           Changes saved automatically
@@ -389,9 +389,9 @@ export function SectionFooter({ onNext, saving, autoSaving, nextLabel = 'Save & 
  * backend `ExpertiseLevel` TextChoices exactly: moderate / high / pro.
  */
 export const EXPERTISE_LEVELS = [
-  { value: 'moderate', label: 'Moderate', bg: '#EBF5E8', text: '#5C845C', border: '#9EC09E' },
+  { value: 'moderate', label: 'Moderate', bg: 'var(--surface2)', text: '#5C845C', border: 'var(--sage-l)' },
   { value: 'high',     label: 'High',     bg: '#A8D4A8', text: '#2A5E2A', border: '#7AB47A' },
-  { value: 'pro',      label: 'Pro',      bg: '#4A7C4A', text: '#FFFFFF', border: '#4A7C4A' },
+  { value: 'pro',      label: 'Pro',      bg: 'var(--green-d)', text: 'var(--bg)', border: 'var(--green-d)' },
 ];
 
 /*
@@ -436,8 +436,8 @@ export function ExpertiseButtons({ value, onChange, disabled = false, tooltips =
     <div style={{
       position: 'fixed', left: tip.x, top: tip.y,
       transform: 'translate(-50%, calc(-100% - 6px))',
-      background: '#1A1A1A', color: '#fff', fontSize: 10,
-      padding: '4px 8px', borderRadius: 4, whiteSpace: 'nowrap',
+      background: 'var(--text)', color: '#fff', fontSize: 10,
+      padding: '4px 8px', borderRadius: 'var(--r-4)', whiteSpace: 'nowrap',
       zIndex: 9999, pointerEvents: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
     }}>
       {tip.text}
@@ -458,9 +458,9 @@ export function ExpertiseButtons({ value, onChange, disabled = false, tooltips =
               onMouseEnter={e => enter(e, tooltips[l.value])}
               onMouseLeave={leave}
               style={{
-                padding: '4px 11px', borderRadius: 4, fontSize: 11, fontWeight: 500,
+                padding: '4px 11px', borderRadius: 'var(--r-4)', fontSize: 11, fontWeight: 500,
                 fontFamily: "'DM Sans', sans-serif",
-                border: `1px solid ${disabled ? '#EEE' : selected ? l.border : '#D8D4CF'}`,
+                border: `1px solid ${disabled ? '#EEE' : selected ? l.border : 'var(--border-l)'}`,
                 background: selected && !disabled ? l.bg : '#fff',
                 color: disabled ? '#DDD' : selected ? l.text : '#999',
                 cursor: disabled ? 'default' : 'pointer',
@@ -485,13 +485,13 @@ export function ExpertiseRow({ name, level, checked, onToggle, onLevel, onDelete
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       padding: '9px 0', gap: 12,
-      borderBottom: isLast ? 'none' : '1px solid #F5F3EF',
+      borderBottom: isLast ? 'none' : '1px solid var(--surface)',
     }}>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', flex: 1, fontSize: 13, color: '#1A1A1A' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', flex: 1, fontSize: 13, color: 'var(--text)' }}>
         <input type="checkbox" checked={checked} onChange={onToggle} style={{ width: 'auto', cursor: 'pointer' }} />
         <span>{name}</span>
         {checked && !level && (
-          <span style={{ fontSize: 10, color: '#D97520', marginLeft: 4 }}>— select level</span>
+          <span style={{ fontSize: 10, color: 'var(--sage)', marginLeft: 4 }}>— select level</span>
         )}
       </label>
       <ExpertiseButtons value={level} onChange={onLevel} disabled={!checked} tooltips={tooltips} />
@@ -515,19 +515,19 @@ export function RankRow({ name, rank, onToggle, isLast, onRemove }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', padding: '10px 0',
-      borderBottom: isLast ? 'none' : '1px solid #F5F3EF',
+      borderBottom: isLast ? 'none' : '1px solid var(--surface)',
     }}>
       <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', flex: 1 }}>
         <span style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-          background: checked ? '#D97520' : 'transparent',
+          background: checked ? 'var(--sage)' : 'transparent',
           color: '#fff', fontSize: 11, fontWeight: 700,
         }}>
           {checked ? rank : ''}
         </span>
         <input type="checkbox" checked={checked} onChange={() => onToggle(name)} style={{ width: 'auto', cursor: 'pointer' }} />
-        <span style={{ fontSize: 13, color: '#1A1A1A' }}>{name}</span>
+        <span style={{ fontSize: 13, color: 'var(--text)' }}>{name}</span>
       </label>
       {/* Only passed for studio-added entries — built-in options aren't removable */}
       {onRemove && <TrashBtn label={`Remove ${name}`} size={13} onClick={onRemove} />}
@@ -548,7 +548,7 @@ export function Top5Row({ name, checked, top5, capReached, onToggle, isLast, onR
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '9px 0', borderBottom: isLast ? 'none' : '1px solid #F5F3EF',
+      padding: '9px 0', borderBottom: isLast ? 'none' : '1px solid var(--surface)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
         {/* ★ Top badge — LEFT of the name, per prototype */}
@@ -559,10 +559,10 @@ export function Top5Row({ name, checked, top5, capReached, onToggle, isLast, onR
             type="button"
             onClick={() => canPromote && onToggle(name, 'top5')}
             style={{
-              fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 4,
-              background: top5 ? '#EEF3EC' : 'transparent',
-              color: top5 ? '#4A7C4A' : !checked ? '#DDD' : '#AAA',
-              border: `1px solid ${top5 ? '#9EC09E' : checked ? '#D8D4CF' : '#EEE'}`,
+              fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 'var(--r-4)',
+              background: top5 ? 'var(--surface2)' : 'transparent',
+              color: top5 ? 'var(--green-d)' : !checked ? '#DDD' : '#AAA',
+              border: `1px solid ${top5 ? 'var(--sage-l)' : checked ? 'var(--border-l)' : '#EEE'}`,
               cursor: !checked ? 'default' : canPromote ? 'pointer' : 'not-allowed',
               fontFamily: "'DM Sans', sans-serif",
             }}>
@@ -571,8 +571,8 @@ export function Top5Row({ name, checked, top5, capReached, onToggle, isLast, onR
           {capTip && (
             <div style={{
               position: 'absolute', bottom: 'calc(100% + 6px)', left: 0,
-              background: '#1A1A1A', color: '#fff', fontSize: 10,
-              padding: '4px 8px', borderRadius: 4, whiteSpace: 'nowrap',
+              background: 'var(--text)', color: '#fff', fontSize: 10,
+              padding: '4px 8px', borderRadius: 'var(--r-4)', whiteSpace: 'nowrap',
               zIndex: 200, pointerEvents: 'none',
             }}>
               Deselect one Top to mark this
@@ -581,7 +581,7 @@ export function Top5Row({ name, checked, top5, capReached, onToggle, isLast, onR
         </div>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', flex: 1 }}>
           <input type="checkbox" checked={checked} onChange={() => onToggle(name)} style={{ width: 'auto', cursor: 'pointer' }} />
-          <span style={{ fontSize: 13, color: '#1A1A1A' }}>{name}</span>
+          <span style={{ fontSize: 13, color: 'var(--text)' }}>{name}</span>
         </label>
         {/* Only passed for studio-added entries — built-in options aren't removable */}
         {onRemove && <TrashBtn label={`Remove ${name}`} size={13} onClick={onRemove} />}
@@ -595,9 +595,9 @@ export function CheckRow({ name, checked, onToggle, isLast, onRemove }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', padding: '9px 0',
-      borderBottom: isLast ? 'none' : '1px solid #F5F3EF',
+      borderBottom: isLast ? 'none' : '1px solid var(--surface)',
     }}>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', flex: 1, fontSize: 13, color: '#1A1A1A' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', flex: 1, fontSize: 13, color: 'var(--text)' }}>
         <input type="checkbox" checked={checked} onChange={() => onToggle(name)} style={{ width: 'auto', cursor: 'pointer' }} />
         <span>{name}</span>
       </label>
@@ -616,7 +616,7 @@ export function CategoryAccordion({ icon, name, sub, count, defaultOpen, childre
   const [open, setOpen] = useState(!!defaultOpen);
   const [hover, setHover] = useState(false);
   return (
-    <div style={{ border: '1px solid #E0DCDA', borderRadius: 10, marginBottom: 12, overflow: 'hidden' }}>
+    <div style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r-10)', marginBottom: 12, overflow: 'hidden' }}>
       <div
         onClick={() => setOpen(o => !o)}
         onMouseEnter={() => setHover(true)}
@@ -624,18 +624,18 @@ export function CategoryAccordion({ icon, name, sub, count, defaultOpen, childre
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '16px 18px', cursor: 'pointer', userSelect: 'none',
-          background: hover ? '#F5F1EB' : '#FAFAF8', transition: 'background .1s',
+          background: hover ? 'var(--surface)' : 'var(--bg)', transition: 'background .1s',
         }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {icon && <span style={{ fontSize: 20 }}>{icon}</span>}
           <div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: '#1A1A1A' }}>{name}</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{name}</div>
             {sub && <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>{sub}</div>}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {count > 0 && (
-            <span style={{ fontSize: 11, background: '#EEF3EC', color: '#4A7C4A', borderRadius: 10, padding: '1px 8px' }}>
+            <span style={{ fontSize: 11, background: 'var(--surface2)', color: 'var(--green-d)', borderRadius: 'var(--r-10)', padding: '1px 8px' }}>
               {count} selected
             </span>
           )}
@@ -643,7 +643,7 @@ export function CategoryAccordion({ icon, name, sub, count, defaultOpen, childre
         </div>
       </div>
       {open && (
-        <div style={{ padding: '12px 12px 4px', borderTop: '1px solid #F0EDE8', background: '#F9F8F6' }}>
+        <div style={{ padding: '12px 12px 4px', borderTop: '1px solid var(--surface2)', background: 'var(--surface)' }}>
           {children}
         </div>
       )}
@@ -656,7 +656,7 @@ export function GroupAccordion({ label, count, defaultOpen, onDelete, deleteLabe
   const [open, setOpen] = useState(!!defaultOpen);
   const [hover, setHover] = useState(false);
   return (
-    <div style={{ border: '1px solid #EDE8E2', borderRadius: 7, marginBottom: 8, overflow: 'hidden' }}>
+    <div style={{ border: '1px solid var(--surface3)', borderRadius: 'var(--r)', marginBottom: 8, overflow: 'hidden' }}>
       <div
         onClick={() => setOpen(o => !o)}
         onMouseEnter={() => setHover(true)}
@@ -664,14 +664,14 @@ export function GroupAccordion({ label, count, defaultOpen, onDelete, deleteLabe
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '11px 14px', cursor: 'pointer', userSelect: 'none', gap: 8,
-          background: hover ? '#F5F1EB' : '#FAFAF8', transition: 'background .1s',
+          background: hover ? 'var(--surface)' : 'var(--bg)', transition: 'background .1s',
         }}>
         <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#888', fontWeight: 600 }}>
           {label}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {count > 0 && (
-            <span style={{ fontSize: 11, background: '#EEF3EC', color: '#4A7C4A', borderRadius: 10, padding: '1px 8px' }}>
+            <span style={{ fontSize: 11, background: 'var(--surface2)', color: 'var(--green-d)', borderRadius: 'var(--r-10)', padding: '1px 8px' }}>
               {count} selected
             </span>
           )}
@@ -680,8 +680,8 @@ export function GroupAccordion({ label, count, defaultOpen, onDelete, deleteLabe
               role="button"
               aria-label={deleteLabel}
               onClick={e => { e.stopPropagation(); onDelete(); }}
-              style={{ display: 'inline-flex', alignItems: 'center', color: '#CCC', padding: '2px', borderRadius: 4, cursor: 'pointer', lineHeight: 1 }}
-              onMouseEnter={e => e.currentTarget.style.color = '#C0392B'}
+              style={{ display: 'inline-flex', alignItems: 'center', color: '#CCC', padding: '2px', borderRadius: 'var(--r-4)', cursor: 'pointer', lineHeight: 1 }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--red-d)'}
               onMouseLeave={e => e.currentTarget.style.color = '#CCC'}>
               <TrashIcon size={13} />
             </span>
@@ -690,7 +690,7 @@ export function GroupAccordion({ label, count, defaultOpen, onDelete, deleteLabe
         </div>
       </div>
       {open && (
-        <div style={{ padding: '0 14px 10px', background: '#fff', borderTop: '1px solid #F0EDE8' }}>
+        <div style={{ padding: '0 14px 10px', background: '#fff', borderTop: '1px solid var(--surface2)' }}>
           {children}
         </div>
       )}
@@ -714,9 +714,9 @@ export function AddButton({ onClick, children, inline = false, style }) {
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 5,
         padding: inline ? '6px 12px' : '7px 14px',
-        border: `1px dashed ${inline ? '#F0C890' : hover ? '#888' : '#C8C4BF'}`,
-        borderRadius: 5, fontSize: inline ? 11 : 12,
-        color: inline ? '#D97520' : hover ? '#555' : '#888',
+        border: `1px dashed ${inline ? '#F0C890' : hover ? '#888' : 'var(--warm-gray)'}`,
+        borderRadius: 'var(--r-5)', fontSize: inline ? 11 : 12,
+        color: inline ? 'var(--sage)' : hover ? '#555' : '#888',
         cursor: 'pointer', background: 'transparent',
         fontFamily: "'DM Sans', sans-serif", marginTop: 10,
         ...style,
@@ -731,8 +731,8 @@ export function CertTag({ label, href, onRemove }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
-      padding: '4px 10px', border: '1px solid #E4E0DB', borderRadius: 20,
-      fontSize: 12, color: '#555', background: '#FAFAF8',
+      padding: '4px 10px', border: '1px solid var(--surface4)', borderRadius: 'var(--r-20)',
+      fontSize: 12, color: '#555', background: 'var(--bg)',
     }}>
       {href
         ? <a href={href} target="_blank" rel="noreferrer" style={{ color: '#555', textDecoration: 'none' }}>{label} ↗</a>
@@ -750,9 +750,9 @@ export function MediaDropzone({ icon, label, hint, uploading, progress }) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        border: '1px dashed #C8C4BF', borderRadius: 6, padding: 28,
+        border: '1px dashed var(--warm-gray)', borderRadius: 'var(--r)', padding: 28,
         textAlign: 'center', cursor: uploading ? 'default' : 'pointer',
-        background: hover && !uploading ? '#FAFAF8' : 'transparent',
+        background: hover && !uploading ? 'var(--bg)' : 'transparent',
         transition: 'background .1s',
       }}>
       {uploading ? (
@@ -775,12 +775,12 @@ export function MediaDropzone({ icon, label, hint, uploading, progress }) {
 export function MediaThumb({ src, isVideo, onRemove, size = 72 }) {
   return (
     <div style={{
-      width: size, height: size, borderRadius: 5, overflow: 'hidden',
-      position: 'relative', border: '1px solid #E4E0DB', flexShrink: 0,
+      width: size, height: size, borderRadius: 'var(--r-5)', overflow: 'hidden',
+      position: 'relative', border: '1px solid var(--surface4)', flexShrink: 0,
     }}>
       {isVideo ? (
         <div style={{
-          width: '100%', height: '100%', background: '#1A1A1A',
+          width: '100%', height: '100%', background: 'var(--text)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: '#fff', fontSize: 18,
         }}>▶</div>
@@ -806,8 +806,8 @@ export function CollabToggle({ checked, onChange, label }) {
     <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none' }}
       title={checked ? 'Open for Collab — click to disable' : 'Click to mark as Open for Collab'}>
       <div onClick={() => onChange(!checked)} style={{
-        position: 'relative', width: 32, height: 18, borderRadius: 9, flexShrink: 0,
-        background: checked ? '#7A8C6E' : '#CCC', transition: 'background .2s',
+        position: 'relative', width: 32, height: 18, borderRadius: 'var(--r-8)', flexShrink: 0,
+        background: checked ? 'var(--sage)' : '#CCC', transition: 'background .2s',
       }}>
         <div style={{
           position: 'absolute', top: 2, left: checked ? 16 : 2,
@@ -816,7 +816,7 @@ export function CollabToggle({ checked, onChange, label }) {
         }} />
       </div>
       {label && (
-        <span style={{ fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap', color: checked ? '#7A8C6E' : '#AAA' }}>
+        <span style={{ fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap', color: checked ? 'var(--sage)' : '#AAA' }}>
           {label}
         </span>
       )}
@@ -829,8 +829,8 @@ export function HideToggle({ checked, onChange, label }) {
   return (
     <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
       <div onClick={() => onChange(!checked)} style={{
-        position: 'relative', width: 36, height: 20, borderRadius: 20, flexShrink: 0,
-        background: checked ? '#D97520' : '#D8D4CF', transition: 'background .2s',
+        position: 'relative', width: 36, height: 20, borderRadius: 'var(--r-20)', flexShrink: 0,
+        background: checked ? 'var(--sage)' : 'var(--border-l)', transition: 'background .2s',
       }}>
         <div style={{
           position: 'absolute', top: 3, left: checked ? 19 : 3,
@@ -848,10 +848,10 @@ export function YNToggle({ value, onChange }) {
     <div style={{ display: 'flex', gap: 8 }}>
       {[{ v: true, l: 'Yes' }, { v: false, l: 'No' }].map(({ v, l }) => (
         <button key={l} type="button" onClick={() => onChange(v)} style={{
-          padding: '8px 28px', borderRadius: 5, fontSize: 13,
+          padding: '8px 28px', borderRadius: 'var(--r-5)', fontSize: 13,
           fontFamily: "'DM Sans', sans-serif",
-          border: `1px solid ${value === v ? '#D97520' : '#D8D4CF'}`,
-          background: value === v ? '#D97520' : '#fff',
+          border: `1px solid ${value === v ? 'var(--sage)' : 'var(--border-l)'}`,
+          background: value === v ? 'var(--sage)' : '#fff',
           color: value === v ? '#fff' : '#555',
           cursor: 'pointer',
         }}>{l}</button>

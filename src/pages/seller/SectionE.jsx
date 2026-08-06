@@ -32,15 +32,15 @@ const CAPABILITIES = [
 
 function CollabModeCard({ mode, value, onChange }) {
   return (
-    <div style={{ border: '1px solid #E4E0DB', borderRadius: 8, padding: '16px 18px', background: '#fff', marginBottom: 10 }}>
-      <div style={{ fontSize: 15, fontWeight: 600, color: '#1A1A1A', marginBottom: 4 }}>{mode.name}</div>
+    <div style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r-8)', padding: '16px 18px', background: '#fff', marginBottom: 10 }}>
+      <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>{mode.name}</div>
       <p style={{ fontSize: 12, color: '#888', marginBottom: 8, lineHeight: 1.55 }}>{mode.desc}</p>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
         {mode.pills.map(p => (
-          <span key={p} style={{ fontSize: 10, color: '#666', background: '#F2F0EC', border: '1px solid #E5E1DB', borderRadius: 20, padding: '2px 8px', whiteSpace: 'nowrap' }}>{p}</span>
+          <span key={p} style={{ fontSize: 10, color: '#666', background: 'var(--surface2)', border: '1px solid var(--surface3)', borderRadius: 'var(--r-20)', padding: '2px 8px', whiteSpace: 'nowrap' }}>{p}</span>
         ))}
       </div>
-      <div style={{ borderTop: '1px solid #F0EDE8', paddingTop: 10, display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div style={{ borderTop: '1px solid var(--surface2)', paddingTop: 10, display: 'flex', alignItems: 'center', gap: 16 }}>
         <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999', fontWeight: 600, minWidth: 90 }}>Do you offer this?</span>
         <div style={{ marginLeft: 'auto' }}>
           <YNToggle value={value} onChange={onChange} />
@@ -52,10 +52,10 @@ function CollabModeCard({ mode, value, onChange }) {
 
 function CapabilityRow({ cap, checked, onChange, isLast }) {
   return (
-    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '9px 0', borderBottom: isLast ? 'none' : '1px solid #F5F3EF', cursor: 'pointer' }}>
+    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '9px 0', borderBottom: isLast ? 'none' : '1px solid var(--surface)', cursor: 'pointer' }}>
       <input type="checkbox" checked={checked} onChange={onChange} style={{ marginTop: 2, width: 'auto' }} />
       <div>
-        <strong style={{ fontSize: 13, color: '#1A1A1A' }}>{cap.name}</strong>
+        <strong style={{ fontSize: 13, color: 'var(--text)' }}>{cap.name}</strong>
         <span style={{ display: 'block', fontSize: 11, color: '#888', marginTop: 2, lineHeight: 1.5 }}>{cap.desc}</span>
       </div>
     </label>

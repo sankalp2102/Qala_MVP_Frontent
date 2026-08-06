@@ -261,7 +261,7 @@ export default function SectionC({ profileId, initialData, onSave, onNext }) {
         ) : (
           <AddButton inline onClick={() => setAddingType(true)}>+ Add new fabric type (e.g. Wool Based, Regenerated)</AddButton>
         )}
-        <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #F0EDE8' }}>
+        <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--surface2)' }}>
           <label style={notesLabel}>More about the fabrics you work with</label>
           <textarea rows={3} style={textareaStyle} value={fabricNotes} onChange={e => setFabricNotes(e.target.value)}
             placeholder="e.g. We source all our cottons directly from Kutch farmers. Our silks come from Murshidabad weavers we've worked with for 10+ years. We can advise on hand-feel, drape, and weight for different end-uses." />
@@ -290,7 +290,7 @@ export default function SectionC({ profileId, initialData, onSave, onNext }) {
         ) : (
           <AddButton inline onClick={() => setAddingDye(true)}>+ Add dye type</AddButton>
         )}
-        <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #F0EDE8' }}>
+        <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--surface2)' }}>
           <label style={notesLabel}>More about the dyes you work with</label>
           <textarea rows={3} style={textareaStyle} value={dyeNotes} onChange={e => setDyeNotes(e.target.value)}
             placeholder="e.g. All our natural dyes are plant-sourced and processed in-house. We use a fixed mordanting process that achieves consistent colourfastness. We can match Pantone references with natural dyes on most base fabrics." />

@@ -8,7 +8,7 @@ const SCROLL_AHEAD = 400; // px before sentinel — fallback for fast scrollers
 function SkeletonCard() {
   return (
     <div style={{
-      aspectRatio: '3/4', borderRadius: 10, overflow: 'hidden',
+      aspectRatio: '3/4', borderRadius: 'var(--r-10)', overflow: 'hidden',
       background: 'linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%)',
       backgroundSize: '200% 100%',
       animation: 'imgGridShimmer 1.4s infinite',
@@ -35,7 +35,7 @@ function ImageCard({ img, index, isSelected, onToggle, onLoad, isFirstBatch }) {
         onClick={() => onToggle(img.id)}
         style={{
           position: 'relative', aspectRatio: '3/4', overflow: 'hidden',
-          borderRadius: 10,
+          borderRadius: 'var(--r-10)',
           border: `2px solid ${isSelected ? 'rgba(255,255,255,0.8)' : 'transparent'}`,
           cursor: 'pointer', padding: 0, background: 'var(--surface2)',
           transition: 'border-color 0.15s, transform 0.15s',
@@ -50,7 +50,7 @@ function ImageCard({ img, index, isSelected, onToggle, onLoad, isFirstBatch }) {
             background: 'linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%)',
             backgroundSize: '200% 100%',
             animation: 'imgGridShimmer 1.4s infinite',
-            borderRadius: 8,
+            borderRadius: 'var(--r-8)',
           }} />
         )}
 
@@ -173,7 +173,7 @@ export default function ImageGrid({ selected, onToggle, prefetchedImages, prefet
     <div style={{
       textAlign: 'center', padding: '60px 0',
       color: 'var(--text3)', fontSize: 13,
-      border: '1px dashed var(--border2)', borderRadius: 12,
+      border: '1px dashed var(--border2)', borderRadius: 'var(--r-lg)',
     }}>
       <div style={{ fontSize: 32, marginBottom: 12 }}>🖼</div>
       <div>No studio images available yet.</div>
@@ -204,7 +204,7 @@ export default function ImageGrid({ selected, onToggle, prefetchedImages, prefet
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
           <span style={{
-            background: 'var(--gold)', borderRadius: 12,
+            background: 'var(--gold)', borderRadius: 'var(--r-lg)',
             padding: '2px 10px', color: '#fff', fontWeight: 500, fontSize: 11,
           }}>
             {selected.length} selected

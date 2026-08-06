@@ -39,14 +39,14 @@ const S = {
   h1: { fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 600, marginBottom: 6 },
   sub: { fontSize: 13, color: 'var(--text3)', marginBottom: 20 },
   filterRow: { display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' },
-  filterChip: (active) => ({ padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: 'pointer', border: `1px solid ${active ? 'var(--gold)' : 'var(--border2)'}`, background: active ? 'var(--gold)' : 'transparent', color: active ? '#fff' : 'var(--text2)' }),
-  card: { background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' },
+  filterChip: (active) => ({ padding: '6px 14px', borderRadius: 'var(--r-20)', fontSize: 12, fontWeight: 500, cursor: 'pointer', border: `1px solid ${active ? 'var(--gold)' : 'var(--border2)'}`, background: active ? 'var(--gold)' : 'transparent', color: active ? '#fff' : 'var(--text2)' }),
+  card: { background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', overflow: 'hidden' },
   groupLabel: { padding: '10px 20px 6px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--text4)', borderBottom: '1px solid var(--border)', borderTop: '1px solid var(--border)' },
   item: { display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 20px', borderBottom: '1px solid var(--border)' },
   dot: (color) => ({ width: 8, height: 8, borderRadius: '50%', background: color || 'var(--gold)', marginTop: 5, flexShrink: 0 }),
   text: { fontSize: 13, color: 'var(--text2)' },
   time: { fontSize: 11, color: 'var(--text4)', marginTop: 2 },
-  badge: (bg, color) => ({ fontSize: 10, background: bg, color, padding: '2px 8px', borderRadius: 20, fontWeight: 600, flexShrink: 0 }),
+  badge: (bg, color) => ({ fontSize: 10, background: bg, color, padding: '2px 8px', borderRadius: 'var(--r-20)', fontWeight: 600, flexShrink: 0 }),
 };
 
 function dayKey(d) { return new Date(d).toDateString(); }
