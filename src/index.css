@@ -157,6 +157,23 @@
 
   /* ── Brand logo ── */
   --qala-logo-size: 28px;
+
+  /* ── Qalawati flow (passcode gate → intro → chat) ──
+     Matches the design prototype's palette exactly. Kept as distinct
+     tokens (not reusing --sage/--terra) so this flow's look can move
+     independently of the rest of the app. */
+  --qw:      #C4644A;   /* terracotta — primary accent */
+  --qw-l:    #F4EBE6;   /* terracotta, pale bg */
+  --qw-b:    #D9A08A;   /* terracotta, border/hover */
+  --pl:      #5E8A5A;   /* sage — secondary/positive accent */
+  --pl-l:    #EAF2E8;   /* sage, pale bg */
+  --pl-b:    #96C490;   /* sage, border/hover */
+  --cream:   #F6F1EA;   /* warm cream background */
+  --ink-warm:      #2A2420;
+  --ink-warm-mid:  #5A524C;
+  --ink-warm-mute: #9A8E88;
+  --border-warm:   rgba(42,36,32,0.1);
+  --border-warm-s: rgba(42,36,32,0.18);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

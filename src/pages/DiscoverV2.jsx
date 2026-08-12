@@ -19,6 +19,7 @@ import { chatAPI, discoveryAPI } from '../api/client';
 import ChatMessage from '../components/discovery/ChatMessage';
 import ImageUpload from '../components/discovery/ImageUpload';
 import StudiosPanel from '../components/discovery/StudiosPanel';
+import QalawatiIntro from '../components/discovery/QalawatiIntro';
 import qalaLogo   from '../assets/qala-logo.png';
 import UserAvatar from '../components/UserAvatar';
  
@@ -426,38 +427,37 @@ export default function DiscoverV2() {
   }
  
   // ── ACCESS KEY GATE ───────────────────────────────────────────────────────
-  // Show minimal spinner while auth resolves or session starts
+  // While auth resolves or the session starts, introduce Qalawati instead
+  // of a bare spinner — same wait, but it now says something.
   if (phase === 'loading') return (
-    <div style={{
-      minHeight: '100vh', background: 'var(--bg)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }}>
+    <div style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column' }}>
       <div style={{
-        width: 18, height: 18,
-        border: '2px solid var(--border)',
-        borderTopColor: 'var(--text3)',
-        borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite',
-      }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        display: 'flex', alignItems: 'center', gap: 13, padding: '0 22px', height: 60,
+        borderBottom: '0.5px solid var(--border-warm)', flexShrink: 0, background: '#fff',
+      }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, letterSpacing: '0.1em', color: 'var(--ink-warm)' }}>
+          Qala
+        </div>
+      </div>
+      <QalawatiIntro />
     </div>
   );
  
   if (phase === 'error') return (
     <div style={{
-      minHeight: '100vh', background: 'var(--bg)',
+      minHeight: '100vh', background: '#fff',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', gap: 16,
     }}>
-      <p style={{ fontSize: 14, color: 'var(--text2)', fontFamily: 'var(--font-body)' }}>
+      <p style={{ fontSize: 14, color: 'var(--ink-warm-mid)', fontFamily: 'var(--font-body)' }}>
         Something went wrong starting your session.
       </p>
       <button
         onClick={() => { authHandledRef.current = false; setPhase('loading'); startSession(null); }}
         style={{
-          padding: '9px 20px', borderRadius: 'var(--r-8)', border: '1px solid var(--border)',
-          background: 'none', cursor: 'pointer', fontSize: 13,
-          fontFamily: 'var(--font-body)', color: 'var(--text)',
+          padding: '9px 20px', borderRadius: 'var(--r-8)', border: '1px solid var(--border-warm-s)',
+          background: '#fff', cursor: 'pointer', fontSize: 13,
+          fontFamily: 'var(--font-body)', color: 'var(--ink-warm)',
         }}
       >
         Try again
@@ -466,113 +466,102 @@ export default function DiscoverV2() {
   );
  
   if (phase === 'gate') {
+    const canGo = accessKey.trim().length > 0 && !starting;
     return (
       <div style={{
-        minHeight: '100vh', background: 'var(--bg)',
+        minHeight: '100vh', background: '#fff',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 24,
+        padding: 24, fontFamily: 'var(--font-body)',
       }}>
-        <div style={{
-          background: 'var(--surface)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--r-16)', padding: '40px 36px',
-          width: '100%', maxWidth: 420,
-          boxShadow: 'var(--shadow-lg)',
-        }}>
-          {/* Logo */}
-          <div style={{ marginBottom: 28, textAlign: 'center' }}>
-            <img src={qalaLogo} alt="Qala" style={{ height: 22, width: 'auto' }} />
-          </div>
- 
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <div style={{ width: '100%', maxWidth: 440, textAlign: 'center' }}>
           <h1 style={{
-            fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 500,
-            color: 'var(--text)', marginBottom: 8, textAlign: 'center',
+            fontFamily: 'var(--font-display)', fontWeight: 500,
+            fontSize: 'clamp(30px,4.2vw,46px)', color: 'var(--ink-warm)',
+            lineHeight: 1.1, margin: '8px 0 14px',
           }}>
-            Find your studio
+            Get inside.
           </h1>
           <p style={{
-            fontSize: 13, color: 'var(--text3)', lineHeight: 1.6,
-            textAlign: 'center', marginBottom: 28,
+            fontSize: 15, color: 'var(--ink-warm-mid)', lineHeight: 1.65,
+            marginBottom: 28,
           }}>
-            Tell us what you want to make and we'll match you with the right craft studio.
+            Qala stays invite-only, so the network stays curated and the studios stay yours.
           </p>
- 
+
           {/* Key input */}
-          <div style={{ marginBottom: 14 }}>
+          <div style={{
+            width: '100%', border: `1.5px solid ${keyError ? 'var(--red)' : 'rgba(122,140,110,0.5)'}`,
+            borderRadius: 14, background: '#F9F9F8',
+            display: 'flex', alignItems: 'center', padding: '6px 6px 6px 18px', height: 55,
+            boxSizing: 'border-box', transition: 'border-color 0.18s',
+          }}>
             <input
               type="text"
               value={accessKey}
               onChange={e => { setAccessKey(e.target.value); setKeyError(''); }}
               onKeyDown={e => e.key === 'Enter' && accessKey.trim() && startSession(accessKey)}
-              placeholder="Enter your access key  —  QS-0000"
+              placeholder="QS-0000"
               autoFocus
               style={{
-                width: '100%', padding: '11px 14px',
-                border: `1px solid ${keyError ? 'var(--red)' : 'var(--border)'}`,
-                borderRadius: 'var(--r-8)', background: 'var(--surface)',
+                flex: 1, border: 'none', background: 'transparent',
                 fontSize: 14, color: 'var(--text)',
                 fontFamily: 'var(--font-body)', outline: 'none',
-                boxSizing: 'border-box', transition: 'border-color 0.18s',
-                letterSpacing: '0.04em',
+                padding: '0 8px', letterSpacing: '1.4px',
               }}
-              onFocus={e  => { e.currentTarget.style.borderColor = 'var(--gold)'; }}
-              onBlur={e   => { e.currentTarget.style.borderColor = keyError ? 'var(--red)' : 'var(--border)'; }}
             />
-            {keyError && (
-              <p style={{ fontSize: 12, color: 'var(--red)', marginTop: 5 }}>{keyError}</p>
-            )}
+            <button
+              onClick={() => startSession(accessKey)}
+              disabled={!canGo}
+              aria-label="Enter"
+              style={{
+                width: 42, height: 42, borderRadius: 10, border: 'none',
+                background: canGo ? '#7A8C6E' : 'rgba(122,140,110,0.25)',
+                cursor: canGo ? 'pointer' : 'not-allowed',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0, transition: 'background 0.2s',
+              }}
+              onMouseEnter={e => { if (canGo) e.currentTarget.style.background = '#6B7D5F'; }}
+              onMouseLeave={e => { if (canGo) e.currentTarget.style.background = '#7A8C6E'; }}
+            >
+              {starting
+                ? <div style={{ width:14,height:14,border:'2px solid rgba(255,255,255,0.35)',borderTopColor:'#fff',borderRadius:'50%',animation:'spin 0.7s linear infinite' }} />
+                : <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              }
+            </button>
           </div>
- 
-          <button
-            onClick={() => startSession(accessKey)}
-            disabled={!accessKey.trim() || starting}
-            style={{
-              width: '100%', padding: '12px',
-              borderRadius: 'var(--r-8)', border: 'none',
-              background: 'var(--text)', color: 'var(--surface2)',
-              fontSize: 14, fontWeight: 500,
-              cursor: !accessKey.trim() || starting ? 'not-allowed' : 'pointer',
-              fontFamily: 'var(--font-body)',
-              opacity: !accessKey.trim() || starting ? 0.5 : 1,
-              transition: 'background 0.18s, opacity 0.18s',
-            }}
-            onMouseEnter={e => { if (!starting && accessKey.trim()) e.currentTarget.style.background = 'var(--sage-muted)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'var(--text)'; }}
-          >
-            {starting ? 'Starting…' : 'Continue →'}
-          </button>
- 
+          {keyError && (
+            <p style={{ fontSize: 12.5, color: 'var(--red)', marginTop: 14 }}>{keyError}</p>
+          )}
+
           {/* Divider */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            margin: '20px 0',
-          }}>
-            <div style={{ flex: 1, height: '0.5px', background: 'var(--border)' }} />
-            <span style={{ fontSize: 11, color: 'var(--text4)' }}>or</span>
-            <div style={{ flex: 1, height: '0.5px', background: 'var(--border)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '22px 0' }}>
+            <div style={{ flex: 1, height: '0.5px', background: 'var(--border-warm)' }} />
+            <span style={{ fontSize: 11, color: 'var(--ink-warm-mute)' }}>or</span>
+            <div style={{ flex: 1, height: '0.5px', background: 'var(--border-warm)' }} />
           </div>
- 
+
           {/* Login path */}
           <button
             onClick={() => navigate('/login?redirect=/discover')}
             style={{
-              width: '100%', padding: '12px',
-              borderRadius: 'var(--r-8)',
-              border: '1px solid var(--border)',
-              background: 'transparent', color: 'var(--text)',
+              width: '100%', padding: '13px',
+              borderRadius: 14,
+              border: '1px solid var(--border-warm-s)',
+              background: '#fff', color: 'var(--ink-warm)',
               fontSize: 14, fontWeight: 500,
               cursor: 'pointer', fontFamily: 'var(--font-body)',
-              transition: 'background 0.18s, border-color 0.18s',
+              transition: 'border-color 0.18s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface2)'; e.currentTarget.style.borderColor = 'var(--border2)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(122,140,110,0.6)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-warm-s)'; }}
           >
             Log in to your account
           </button>
- 
-          <p style={{ fontSize: 11, color: 'var(--text4)', textAlign: 'center', marginTop: 18 }}>
+
+          <p style={{ fontSize: 12, color: 'var(--ink-warm-mute)', marginTop: 18 }}>
             Don't have a key?{' '}
-            <a href="mailto:hello@qala.studio" style={{ color: 'var(--text3)' }}>Contact us</a>
+            <a href="mailto:hello@qala.studio" style={{ color: 'var(--qw)' }}>Contact us</a>
           </p>
         </div>
       </div>
