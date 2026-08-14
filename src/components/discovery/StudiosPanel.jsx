@@ -86,11 +86,47 @@ function DirectoryCard({ navigate }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
+// ── "See more studios" reveal button ──────────────────────────────────────
+// Shown between the visible cards and the DirectoryCard whenever there are
+// more matches to reveal (up to 5 total) before the "explore everything"
+// step. Matches DirectoryCard's border/hover style for visual consistency.
+function SeeMoreCard({ remaining, onClick }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        borderColor: hovered ? 'var(--border3)' : 'var(--border)',
+        borderRadius: 'var(--r-16)',
+        padding: '16px 20px',
+        textAlign: 'center',
+        cursor: 'pointer',
+        fontSize: 14, fontWeight: 500, color: 'var(--text)',
+        fontFamily: 'var(--font-body)',
+        transition: 'border-color 0.15s',
+      }}
+    >
+      See {remaining} more studio{remaining > 1 ? 's' : ''} →
+    </button>
+  );
+}
+
 export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inline = false }) {
   const [recs, setRecs]             = useState([]);
   const [buyerSummaryAPI, setBuyerSummaryAPI] = useState(null);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState(null);
+  // Bug fix (Aug 2026): display rules call for 3 studios first, "See more"
+  // revealing 2 more (5 total), then the Directory card as the final
+  // "explore everything" step. Previously: inline mode hardcoded
+  // slice(0,3) with no way to reveal more at all, and overlay mode (the
+  // panel actually shown in the app) didn't slice at all — it rendered
+  // every match immediately, skipping the staged reveal entirely.
+  const [visibleCount, setVisibleCount] = useState(3);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -208,8 +244,8 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
                 }
               `}</style>
               <div className="studios-feed" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {/* Matched studio cards */}
-                {recs.slice(0, 3).map((rec, i) => (
+                {/* Matched studio cards — staged reveal: 3 first, then up to 2 more */}
+                {recs.slice(0, visibleCount).map((rec, i) => (
                   <RecommendationCard
                     key={rec.id || i}
                     rec={rec}
@@ -219,6 +255,12 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
                     buyerSummary={buyerSummaryAPI || buyerSummary}
                   />
                 ))}
+                {visibleCount < Math.min(5, recs.length) && (
+                  <SeeMoreCard
+                    remaining={Math.min(5, recs.length) - visibleCount}
+                    onClick={() => setVisibleCount(Math.min(5, recs.length))}
+                  />
+                )}
                 {/* Mandatory directory card — always last */}
                 <DirectoryCard navigate={navigate} />
               </div>
@@ -322,7 +364,8 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
 
           {!loading && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {recs.map((rec, i) => (
+              {/* Staged reveal: 3 first, then up to 2 more via SeeMoreCard */}
+              {recs.slice(0, visibleCount).map((rec, i) => (
                 <RecommendationCard
                   key={rec.id || i}
                   rec={rec}
@@ -332,6 +375,12 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
                   buyerSummary={buyerSummaryAPI || buyerSummary}
                 />
               ))}
+              {visibleCount < Math.min(5, recs.length) && (
+                <SeeMoreCard
+                  remaining={Math.min(5, recs.length) - visibleCount}
+                  onClick={() => setVisibleCount(Math.min(5, recs.length))}
+                />
+              )}
               {/* Mandatory directory card */}
               <DirectoryCard navigate={navigate} />
             </div>
