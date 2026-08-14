@@ -5,7 +5,7 @@
 
 import { useRef } from 'react';
 
-export default function ImageUpload({ onImage, disabled, iconOnly = false }) {
+export default function ImageUpload({ onImage, disabled, iconOnly = false, round = false }) {
   const inputRef = useRef();
 
   function handleFile(e) {
@@ -42,7 +42,31 @@ export default function ImageUpload({ onImage, disabled, iconOnly = false }) {
         style={{ display: 'none' }}
         onChange={handleFile}
       />
-      {iconOnly ? (
+      {round ? (
+        // Circular attach button — matches the passcode-gate/chat reference
+        // design (paperclip in an outlined circle, not a square/pill).
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={disabled}
+          title="Attach a reference image"
+          style={{
+            width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+            border: '1px solid var(--border-warm-s)',
+            background: '#fff',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            opacity: disabled ? 0.4 : 1,
+            transition: 'border-color 0.15s',
+          }}
+          onMouseEnter={e => { if (!disabled) e.currentTarget.style.borderColor = 'var(--qw-b)'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-warm-s)'; }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-warm-mid)" strokeWidth="2" strokeLinecap="round">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66L9.64 16.34a2 2 0 01-2.83-2.83l8.49-8.48"/>
+          </svg>
+        </button>
+      ) : iconOnly ? (
         // Artifact-style: square icon button with image icon
         <button
           type="button"

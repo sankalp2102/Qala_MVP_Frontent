@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, Fragment } from 'react';
 import { createPortal } from 'react-dom';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { discoveryAPI, chatAPI, buyerAPI, authTokens } from '../api/client';
 import qalaLogo from '../assets/qala-logo.png';
 import { mediaUrl, mediaOnError } from '../utils/mediaUrl';
@@ -756,10 +756,10 @@ function FabricTabs({ fabrics, dyes }) {
 }
 
 /* ── Get Introduced modal ─────────────────────────────────────────────────── */
-function IntroPopup({ studio, onClose }) {
+function IntroPopup({ studio, onClose, activeSessionToken }) {
   const [sessions,     setSessions]     = useState([]);
   const [loadingSess,  setLoadingSess]  = useState(true);
-  const [selectedSess, setSelectedSess] = useState('');
+  const [selectedSess, setSelectedSess] = useState(activeSessionToken || '');
   const [submitting,   setSubmitting]   = useState(false);
   const [done,         setDone]         = useState(false);
   const [err,          setErr]          = useState('');
@@ -779,12 +779,22 @@ function IntroPopup({ studio, onClose }) {
     // entirely when there's no token avoids tripping that redirect; the
     // popup just shows "Connect Without Brief" with no project dropdown,
     // same as if the fetch had legitimately come back empty.
+    //
+    // Bug fix: this used to be the ONLY way "Send Project Details" could
+    // ever show — so a buyer who clicked Get Introduced mid-chat, before
+    // ever submitting the contact form, had no token yet, this fetch never
+    // ran, and they only ever saw "Connect Without Brief" despite an actual
+    // active brief existing (just not one this authenticated call could
+    // find). activeSessionToken (passed from StudiosPanel, the one
+    // concrete case where we already know the exact right session) skips
+    // needing this fetch to succeed at all.
+    if (activeSessionToken) { setLoadingSess(false); return; }
     if (!authTokens.access()) { setLoadingSess(false); return; }
     buyerAPI.getSessions()
       .then(r => setSessions(r.data?.sessions || []))
       .catch(() => setSessions([]))
       .finally(() => setLoadingSess(false));
-  }, []);
+  }, [activeSessionToken]);
 
   useEffect(() => {
     const onKey = e => { if (e.key === 'Escape') onClose(); };
@@ -792,7 +802,7 @@ function IntroPopup({ studio, onClose }) {
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const hasSessions = !loadingSess && sessions.length > 0;
+  const hasSessions = !loadingSess && (sessions.length > 0 || !!activeSessionToken);
   // Nothing on file the backend can resolve contact details from — no
   // brief session, no existing account/access key. GetIntroducedView needs
   // a name + email from somewhere, or it 400s with "contact details not
@@ -843,7 +853,11 @@ function IntroPopup({ studio, onClose }) {
             <div className="studio-v3-modal-title">Share your project with {studio.studio_name}?</div>
             <p className="studio-v3-modal-sub">They'll know exactly what you're looking for.</p>
 
-            {hasSessions && (
+            {/* Dropdown only makes sense when there's an actual choice to
+                make (multiple sessions from the authenticated fetch) — a
+                single known session from activeSessionToken needs no
+                picker, selectedSess is already seeded with it. */}
+            {sessions.length > 0 && (
               <>
                 <label className="studio-v3-modal-field-label" htmlFor="sv3-project">Select a project</label>
                 <select id="sv3-project" className="studio-v3-modal-select"
@@ -912,6 +926,11 @@ export default function StudioProfile() {
   // Supports both /studio/:id (legacy) and /:studioSlug (v3)
   const { id, studioSlug } = useParams();
   const nav = useNavigate();
+  // Bug fix: the chat session a buyer just came from (via StudiosPanel's
+  // "Get Introduced" click) is passed here via router state now — see
+  // IntroPopup below for why this needed fixing.
+  const routerLocation = useLocation();
+  const chatSessionToken = routerLocation.state?.chatSessionToken || null;
 
   const [studio,  setStudio]  = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1378,7 +1397,7 @@ export default function StudioProfile() {
         <Lightbox images={s.bts_images} startIndex={btsStartIndex} onClose={() => setBtsLightboxOpen(false)} />
       )}
 
-      {introOpen && <IntroPopup studio={s} onClose={() => setIntroOpen(false)} />}
+      {introOpen && <IntroPopup studio={s} onClose={() => setIntroOpen(false)} activeSessionToken={chatSessionToken} />}
     </div>
   );
 }

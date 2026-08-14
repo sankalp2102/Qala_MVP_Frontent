@@ -151,7 +151,16 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
 
   function handleContact(rec) {
     discoveryAPI.saveSession(sessionToken);
-    navigate(rec.studio_slug ? `/${rec.studio_slug}` : `/studio/${rec.studio_id}`);
+    // Bug fix: this session was never passed along, so IntroPopup on the
+    // studio profile page had no way to know an active brief exists —
+    // buyerAPI.getSessions() only finds sessions for an authenticated buyer,
+    // and someone mid-chat who hasn't gone through the contact form yet has
+    // no token for that lookup. Result: "Send Project Details" never showed,
+    // only the anonymous "Connect Without Brief" fallback, even with a real
+    // brief sitting right here in `sessionToken`.
+    navigate(rec.studio_slug ? `/${rec.studio_slug}` : `/studio/${rec.studio_id}`, {
+      state: { chatSessionToken: sessionToken },
+    });
   }
 
   // ── Inline mode ───────────────────────────────────────────────────────────

@@ -9,6 +9,7 @@
 //   - No studio image dumps — pure conversation UI
 
 import Brief from './Brief';
+import QalawatiAvatar from './QalawatiAvatar';
 
 // ── Text renderer — supports **bold** markdown ────────────────────────────────
 function renderMarkdownTable(rows) {
@@ -51,7 +52,7 @@ function renderText(text, isUser) {
       const tableEl = renderMarkdownTable(lines.slice(i, j));
       result.push(tableEl
         ? <div key={i}>{tableEl}</div>
-        : lines.slice(i, j).map((l, k) => <p key={i+k} style={{ margin:0,fontSize:14,lineHeight:1.65,color:isUser?'var(--surface2)':'var(--text)',fontFamily:'var(--font-body)' }}>{l}</p>)
+        : lines.slice(i, j).map((l, k) => <p key={i+k} style={{ margin:0,fontSize:14,lineHeight:1.65,color:isUser?'#fff':'var(--ink-warm)',fontFamily:'var(--font-body)' }}>{l}</p>)
       );
       i = j;
     } else if (lines[i].trim() === '---' || lines[i].trim() === '———') {
@@ -63,7 +64,7 @@ function renderText(text, isUser) {
     } else {
       const parts = lines[i].split(/\*\*([^*]+)\*\*/g);
       result.push(
-        <p key={i} style={{ margin:0,fontSize:14,lineHeight:1.65,color:isUser?'var(--surface2)':'var(--text)',fontFamily:'var(--font-body)' }}>
+        <p key={i} style={{ margin:0,fontSize:14,lineHeight:1.65,color:isUser?'#fff':'var(--ink-warm)',fontFamily:'var(--font-body)' }}>
           {parts.map((p, j) => j%2===1 ? <strong key={j} style={{ fontWeight:600 }}>{p}</strong> : p)}
         </p>
       );
@@ -139,15 +140,16 @@ export default function ChatMessage({
 
       {/* Bubble — hidden when hasBrief since card replaces it */}
       {visibleText && !hasBrief && (
-        <div style={{
-          maxWidth: '84%',
-          padding: '9px 13px',
-          borderRadius: isAI ? '3px 14px 14px 14px' : '14px 14px 3px 14px',
-          background: isUser ? 'var(--text)' : 'var(--surface2)',
-          border: '0.5px solid var(--border)',
-          boxSizing: 'border-box',
-        }}>
-          {renderText(visibleText, isUser)}
+        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', gap: 8, maxWidth: '84%' }}>
+          {isAI && <QalawatiAvatar size={30} />}
+          <div style={{
+            padding: '10px 14px',
+            borderRadius: 18,
+            background: isUser ? 'var(--qw)' : 'var(--cream)',
+            boxSizing: 'border-box',
+          }}>
+            {renderText(visibleText, isUser)}
+          </div>
         </div>
       )}
 

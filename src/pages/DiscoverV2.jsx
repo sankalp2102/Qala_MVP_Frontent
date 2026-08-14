@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { chatAPI, discoveryAPI } from '../api/client';
 import ChatMessage from '../components/discovery/ChatMessage';
+import QalawatiAvatar from '../components/discovery/QalawatiAvatar';
 import ImageUpload from '../components/discovery/ImageUpload';
 import StudiosPanel from '../components/discovery/StudiosPanel';
 import QalawatiIntro from '../components/discovery/QalawatiIntro';
@@ -137,10 +138,41 @@ export default function DiscoverV2() {
       try {
         const res  = await chatAPI.getSession(savedId);
         const data = res.data;
+
+        // Bug fix: this used to be an unconditional setMessages([]) —
+        // getSession's real prior history (data.messages) was fetched but
+        // never used. For a brand-new session that's harmless (nothing to
+        // lose), but for a returning buyer reusing their passcode, this
+        // silently discarded their entire real conversation and replaced
+        // it with just the new message — indistinguishable from the chat
+        // having reset to brand new, which is exactly what was reported.
+        const resumed = (data.messages || []).map(m => ({
+          role:           m.role,
+          content:        m.content,
+          hasBrief:       typeof m.content === 'string' &&
+                          m.content.includes('BRIEF_START') &&
+                          m.content.includes('BRIEF_END'),
+          attachedImages: m.images || [],
+        }));
+        // The one case still worth skipping: a genuinely fresh session
+        // whose only "history" is the single default opening line nobody's
+        // replied to yet — Landing's own intro screen already greeted them,
+        // showing that generic welcome again here would just be redundant.
+        // Anything with real back-and-forth (more than one message, or a
+        // user message present) is real history and must never be dropped.
+        const isJustDefaultWelcome = resumed.length <= 1 && resumed[0]?.role !== 'user';
+
         setSessionId(savedId);
-        // Skip welcome message when user sent a first message from Landing
-        setMessages([]);
+        setMessages(isJustDefaultWelcome ? [] : resumed);
         setPhase('chat');
+        // Same gap as messages above — resumeSession() restores these,
+        // this path never did, so a returning buyer's brief progress and
+        // reference images silently vanished too.
+        if (!isJustDefaultWelcome) {
+          const lastWithImages = [...resumed].reverse().find(m => m.role === 'user' && m.attachedImages?.length);
+          if (lastWithImages) setBriefImages(lastWithImages.attachedImages);
+          setExtracted(data.extracted || {});
+        }
         // Now send the first message with optional image
         if (firstMsg || firstImg) {
           const imgData = firstImg  || null;
@@ -194,6 +226,20 @@ export default function DiscoverV2() {
         attachedImages: m.images || [],
       }));
       setMessages(resumed);
+
+      // Bug fix: chips were never restored here at all — resumeSession
+      // rehydrates messages/extracted/images/phase but had no setChips call,
+      // so navigating away (e.g. opening a studio profile) and back always
+      // came back to an empty suggested-replies row, even though the same
+      // chips would still be valid for the last message. Same rule as
+      // everywhere else in this file: no chips once a brief card is showing,
+      // since the card has its own CTAs.
+      const lastMsg = resumed[resumed.length - 1];
+      if (lastMsg && lastMsg.role === 'assistant' && !lastMsg.hasBrief) {
+        setChips(parseChips(lastMsg.content));
+      } else {
+        setChips([]);
+      }
  
       // Restore briefImages from the last user message that had images
       const lastWithImages = [...resumed].reverse().find(m => m.role === 'user' && m.attachedImages?.length);
@@ -584,20 +630,20 @@ export default function DiscoverV2() {
         }
         .tdot {
           width: 5px; height: 5px; border-radius: 50%;
-          background: var(--text3);
+          background: var(--qw-b);
           animation: blink 1.2s ease-in-out infinite;
         }
         .tdot:nth-child(2) { animation-delay: .15s; }
         .tdot:nth-child(3) { animation-delay: .3s; }
         .qchip {
           padding: 6px 14px; border-radius: var(--r-20);
-          border: 0.5px solid var(--border2);
-          background: var(--surface);
-          font-size: 12.5px; color: var(--text);
+          border: 0.5px solid var(--border-warm-s);
+          background: #fff;
+          font-size: 12.5px; color: var(--ink-warm-mid);
           cursor: pointer; font-family: var(--font-body);
-          transition: background 0.12s; white-space: nowrap;
+          transition: border-color 0.12s, background 0.12s, color 0.12s; white-space: nowrap;
         }
-        .qchip:hover { background: var(--surface2); }
+        .qchip:hover { border-color: var(--qw-b); background: var(--qw-l); color: var(--qw); }
         .msgs-scroll::-webkit-scrollbar { width: 3px; }
         .msgs-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--r-2); }
         textarea:focus { outline: none; }
@@ -696,13 +742,13 @@ export default function DiscoverV2() {
             ))}
  
             {sending && (
-              <div style={{ marginBottom: 14 }}>
+              <div style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <QalawatiAvatar size={30} />
                 <div style={{
-                  display: 'inline-flex', gap: 4, padding: '9px 13px',
+                  display: 'inline-flex', gap: 4, padding: '11px 14px',
                   alignItems: 'center',
-                  background: 'var(--surface2)',
-                  border: '0.5px solid var(--border)',
-                  borderRadius: '3px 14px 14px 14px',
+                  background: 'var(--cream)',
+                  borderRadius: 18,
                 }}>
                   <div className="tdot" />
                   <div className="tdot" />
@@ -773,61 +819,79 @@ export default function DiscoverV2() {
  
         {/* ── Input bar ── */}
         <div style={{
-          padding: '10px 14px 14px',
-          borderTop: '0.5px solid var(--border)',
-          display: 'flex', gap: 8, alignItems: 'flex-end',
+          padding: '10px 18px 6px',
+          borderTop: '0.5px solid var(--border-warm)',
           flexShrink: 0,
-          background: 'var(--surface)',
+          background: '#fff',
         }}>
-          <ImageUpload
-            onImage={handleImageSelected}
-            disabled={sending}
-          />
-          <textarea
-            ref={taRef}
-            value={input}
-            onChange={e => {
-              setInput(e.target.value);
-              e.target.style.height = 'auto';
-              e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', maxWidth: 680, margin: '0 auto' }}>
+            <ImageUpload
+              onImage={handleImageSelected}
+              disabled={sending}
+              round
+            />
+            <div style={{
+              flex: 1, display: 'flex', alignItems: 'center',
+              borderRadius: 999,
+              border: '1px solid var(--border-warm-s)',
+              background: '#fff',
+              padding: '0 6px 0 16px',
+              transition: 'border-color 0.15s',
             }}
-            onKeyDown={handleKey}
-            placeholder="Reply…"
-            rows={1}
-            disabled={sending}
-            style={{
-              flex: 1, resize: 'none',
-              padding: '8px 12px',
-              borderRadius: 'var(--r-8)',
-              border: '0.5px solid var(--border2)',
-              background: 'var(--surface2)',
-              fontSize: 14, color: 'var(--text)',
-              lineHeight: 1.5,
-              fontFamily: 'var(--font-body)',
-              maxHeight: 100,
-            }}
-          />
-          <button
-            onClick={() => sendMessage()}
-            disabled={sending || (!input.trim() && !pendingImages.length)}
-            style={{
-              padding: '8px 16px',
-              borderRadius: 'var(--r-8)',
-              border: '0.5px solid var(--border2)',
-              background: 'var(--surface2)',
-              fontSize: 13, color: 'var(--text)',
-              cursor: sending || (!input.trim() && !pendingImages.length) ? 'not-allowed' : 'pointer',
-              fontFamily: 'var(--font-body)',
-              whiteSpace: 'nowrap',
-              opacity: sending || (!input.trim() && !pendingImages.length) ? 0.35 : 1,
-              transition: 'background 0.12s, opacity 0.12s',
-              flexShrink: 0,
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface3)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface2)'; }}
-          >
-            Send
-          </button>
+              onFocus={e => { e.currentTarget.style.borderColor = 'var(--qw-b)'; }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'var(--border-warm-s)'; }}
+            >
+              <textarea
+                ref={taRef}
+                value={input}
+                onChange={e => {
+                  setInput(e.target.value);
+                  e.target.style.height = 'auto';
+                  e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
+                }}
+                onKeyDown={handleKey}
+                placeholder="Reply…"
+                rows={1}
+                disabled={sending}
+                style={{
+                  flex: 1, resize: 'none', border: 'none', outline: 'none',
+                  padding: '11px 0',
+                  background: 'transparent',
+                  fontSize: 14, color: 'var(--ink-warm)',
+                  lineHeight: 1.5,
+                  fontFamily: 'var(--font-body)',
+                  maxHeight: 100,
+                }}
+              />
+              <button
+                onClick={() => sendMessage()}
+                disabled={sending || (!input.trim() && !pendingImages.length)}
+                style={{
+                  width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+                  border: 'none',
+                  background: (sending || (!input.trim() && !pendingImages.length)) ? 'var(--qw-b)' : 'var(--qw)',
+                  cursor: sending || (!input.trim() && !pendingImages.length) ? 'not-allowed' : 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  opacity: sending || (!input.trim() && !pendingImages.length) ? 0.5 : 1,
+                  transition: 'background 0.12s, opacity 0.12s',
+                  margin: '4px 0',
+                }}
+                onMouseEnter={e => { if (input.trim() || pendingImages.length) e.currentTarget.style.background = '#B05A42'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--qw)'; }}
+              >
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 13V3M3 7l5-5 5 5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <p style={{
+            textAlign: 'center', fontSize: 11, color: 'var(--ink-warm-mute)',
+            margin: '8px 0 4px', fontFamily: 'var(--font-body)',
+          }}>
+            Your references and brief stay private — never shared with anyone without your consent.
+          </p>
+
         </div>
       </div>
  
