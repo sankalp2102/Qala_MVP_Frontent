@@ -5,14 +5,26 @@ import { useAuth }                      from '../context/AuthContext';
 import { chatAPI }                      from '../api/client';
 import qalaLogo from '../assets/qala-logo.png';
 import QalawatiIntro from '../components/discovery/QalawatiIntro';
-import studioBlockprint from '../assets/studio-blockprint.jpg';
-import studioEmbroidery from '../assets/studio-embroidery.jpg';
-import studioHandloom   from '../assets/studio-handloom.jpg';
-import g1 from '../assets/garment-1.jpg';
-import g2 from '../assets/garment-2.jpg';
-import g3 from '../assets/garment-3.jpg';
-import g4 from '../assets/garment-4.jpg';
-import g5 from '../assets/garment-5.jpg';
+import studioBlockprint from '../assets/Block-print houses.jpg';
+import craftHandblock   from '../assets/Handblock printing.jpg';
+import craftEmbroidery  from '../assets/Hand embroidery.jpg';
+import craftNaturalDye  from '../assets/Natural dye and resist.jpg';
+// Hero swatches — background-removed versions of the existing garment-N.jpg
+// photos (garment-N.png, now replacing the old garment-N.jpg files directly). The original JPGs are fully opaque
+// rectangles, so the drop-shadow filter was casting a shadow around the
+// whole white backdrop, not just the garment — that's what made them look
+// like boxy cards despite the white roughly matching the page background.
+// These PNGs have real alpha transparency (flood-fill cutout, connectivity-
+// restricted so white pattern details fully enclosed by the garment, e.g.
+// garment-4's white checks/stripes, survive even though they're the same
+// color as the true background).
+import heroGarment1 from '../assets/garment-1.png';  // blue shirt
+import heroGarment2 from '../assets/garment-2.png';  // pink/tan bag
+import heroGarment3 from '../assets/garment-3.png';  // magenta tie-dye garment
+import heroGarment4 from '../assets/garment-4.png';  // teal/yellow checkered fabric
+import heroGarment5 from '../assets/garment-5.png';  // striped embroidered shirt
+import studioEmbroidery from '../assets/Embroidery collectives.jpg';
+import studioHandloom   from '../assets/Handloom weavers.jpg';
 
 const CHAT_SESSION_KEY   = 'qala_chat_session_id';
 
@@ -58,7 +70,22 @@ function ScrollArrow({ to }) {
     </a>
   );
 }
-function Swatch({ fill, label, style, className }) {
+function Swatch({ fill, img, label, style, className }) {
+  // Real garment photos: plain floating image, no card box, no float
+  // animation, no hover label — just the photo with a soft drop-shadow so
+  // it doesn't look like a boxed thumbnail.
+  if (img) {
+    return (
+      <div className={className} style={{ position: 'absolute', width: 118, height: 150, ...style }}>
+        <img src={img} alt="" style={{
+          width: '100%', height: '100%', objectFit: 'contain',
+          filter: 'drop-shadow(0 14px 28px rgba(42,36,32,0.16))',
+        }} />
+      </div>
+    );
+  }
+
+  // SVG pattern fills (gate section) keep the original card treatment.
   return (
     <div className={className} style={{
       position: 'absolute', width: 118, height: 150, borderRadius: 10, overflow: 'hidden',
@@ -79,32 +106,24 @@ function Swatch({ fill, label, style, className }) {
   );
 }
 const STEPS = [
-  { t: 'Share your vision', d: "Tell Qala what you want to make, in plain words — it becomes a precise, production-ready brief." },
-  { t: 'Matched to the studio', d: 'Qala finds the studios that can truly make it — right craft, quality, minimums and timeline.' },
+  { t: 'Share your vision', d: "Tell Qala what you want to make, in plain words, and it becomes a precise, production-ready brief." },
+  { t: 'Matched to the studio', d: 'Qala finds the studios that can truly make it: right craft, quality, minimums and timeline.' },
   { t: 'Co-create the piece', d: 'Refine every detail together in a shared studio space, with a live render before anything is cut.' },
-  { t: 'Sample, then sign off', d: "Approve a virtual render, then a physical sample — nothing goes to production until it's right." },
-  { t: 'Made & delivered', d: 'Qala oversees production and quality checks, then handles export, duties and delivery — to your door.' },
+  { t: 'Sample, then sign off', d: "Approve a virtual render, then a physical sample. Nothing goes to production until it's right." },
+  { t: 'Made & delivered', d: 'Qala oversees production and quality checks, then handles export, duties and delivery, right to your door.' },
 ];
 const CRAFTS = [
-  { fill: 'p-block', t: 'Handblock printing', d: 'Hand-carved wooden blocks, natural dyes, the slight human variation that reads unmistakably handmade.', m: 'Bagru · Sanganer · Ajrakh' },
-  { fill: 'p-kantha', t: 'Hand embroidery', d: 'Chikankari, Kantha, Phulkari, Kutch mirror work — surface that reads special, not costume.', m: 'Lucknow · Bengal · Kutch' },
-  { fill: 'p-shibori', t: 'Natural dye & resist', d: 'Indigo vats, madder, shibori and Bandhani — colour grown, not just printed on.', m: 'Kutch · Gujarat · Rajasthan' },
+  { img: craftHandblock, pos: 'center', t: 'Handblock printing', d: 'Hand-carved wooden blocks, natural dyes, the slight human variation that reads unmistakably handmade.', m: 'Bagru · Sanganer · Ajrakh' },
+  { img: craftEmbroidery, pos: 'center', t: 'Hand embroidery', d: 'Chikankari, Kantha, Phulkari, Kutch mirror work: surface that reads special, not costume.', m: 'Lucknow · Bengal · Kutch' },
+  { img: craftNaturalDye, pos: 'center', t: 'Natural dye & resist', d: 'Indigo vats, madder, shibori and Bandhani: colour grown, not just printed on.', m: 'Kutch · Gujarat · Rajasthan' },
 ];
 const PAINS = [
-  { t: 'No more ghosting', d: "Vetted studios and Qala in the middle — you're never left chasing a reply." },
-  { t: 'Your design stays yours', d: 'Designs and IP are protected — never leaked, shared, or quietly copied.' },
-  { t: 'Consistent, every run', d: 'What you approve is what ships — sample, bulk and every reorder held to one standard.' },
+  { t: 'No more ghosting', d: "Vetted studios and Qala in the middle, so you're never left chasing a reply." },
+  { t: 'Your design stays yours', d: 'Designs and IP are protected: never leaked, shared, or quietly copied.' },
+  { t: 'Consistent, every run', d: 'What you approve is what ships: sample, bulk and every reorder held to one standard.' },
   { t: 'Delivered on time', d: 'Realistic dates up front and a timeline Qala manages, so you never miss a season.' },
-  { t: 'One accountable partner', d: "Qala oversees production, QC, export and delivery — if it slips, it's on us, not you." },
-  { t: 'Authentic craft, always', d: 'The real technique from genuine artisan studios — never a factory imitation.' },
-];
-
-const GARMENTS = [
-  { key: 'g1', src: g1, hideInPhase2: false, style: { top: '2vh',    left: '3vw',  width: 'clamp(140px,22vw,420px)', transform: 'rotate(-6deg)' } },
-  { key: 'g2', src: g2, hideInPhase2: true,  style: { top: '1vh',    left: '50%',  width: 'clamp(60px,8vw,150px)',   transform: 'translateX(-50%) rotate(4deg)' } },
-  { key: 'g3', src: g3, hideInPhase2: false, style: { top: '4vh',    right: '4vw', width: 'clamp(100px,13vw,240px)', transform: 'rotate(3deg)' } },
-  { key: 'g4', src: g4, hideInPhase2: false, style: { bottom: '2vh', left: '5vw',  width: 'clamp(140px,21vw,400px)', transform: 'rotate(5deg)', mixBlendMode: 'multiply' } },
-  { key: 'g5', src: g5, hideInPhase2: false, style: { bottom: '1vh', right: '3vw', width: 'clamp(80px,10vw,190px)',  transform: 'rotate(-4deg)', mixBlendMode: 'multiply' } },
+  { t: 'One accountable partner', d: "Qala oversees production, QC, export and delivery; if it slips, it's on us, not you." },
+  { t: 'Authentic craft, always', d: 'The real technique from genuine artisan studios, never a factory imitation.' },
 ];
 
 export default function Landing() {
@@ -413,7 +432,7 @@ export default function Landing() {
   if (phase === 'key') {
     const shell = { maxWidth: 1180, margin: '0 auto', padding: '0 clamp(16px,4vw,28px)' };
     const eyebrow = { fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--qw)', textAlign: 'center', marginBottom: 14 };
-    const secH = { fontFamily: 'var(--font-display)', fontSize: 'clamp(24px,3.6vw,34px)', fontWeight: 500, textAlign: 'center', maxWidth: 640, margin: '0 auto 8px' };
+    const secH = { fontFamily: 'var(--font-display)', fontSize: 'clamp(22px,3.2vw,32px)', fontWeight: 500, textAlign: 'center', maxWidth: 780, margin: '0 auto 8px', whiteSpace: 'normal' };
     const secSub = { fontSize: 14, color: 'var(--ink-warm-mid)', textAlign: 'center', maxWidth: 560, margin: '0 auto 46px' };
     return (
       <div style={{ background: '#fff', color: 'var(--ink-warm)', fontFamily: 'var(--font-body)', fontSize: 14, lineHeight: 1.6 }}>
@@ -452,17 +471,17 @@ export default function Landing() {
 
         {/* ── Hero ── */}
         <section style={{ position: 'relative', overflow: 'hidden', minHeight: 'calc(100vh - 58px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 0', textAlign: 'center' }}>
-          <Swatch className="land-swatch" fill="p-shibori" label="Indigo shibori · Kutch" style={{ top: '16%', left: '2%', transform: 'rotate(-6deg)', animationDelay: '0s' }} />
-          <Swatch className="land-swatch" fill="p-bandhani" label="Bandhani · Gujarat" style={{ top: '7%', left: '25%', width: 96, height: 120, transform: 'rotate(5deg)', animationDelay: '1.1s' }} />
-          <Swatch className="land-swatch" fill="p-block" label="Handblock · Bagru" style={{ bottom: '12%', left: '6%', width: 104, height: 132, transform: 'rotate(7deg)', animationDelay: '0.5s' }} />
-          <Swatch className="land-swatch" fill="p-tiedye" label="Tie-dye · Rajasthan" style={{ top: '15%', right: '3%', transform: 'rotate(6deg)', animationDelay: '0.8s' }} />
-          <Swatch className="land-swatch" fill="p-check" label="Handloom check · Bengaluru" style={{ bottom: '13%', right: '7%', width: 100, height: 128, transform: 'rotate(-7deg)', animationDelay: '1.6s' }} />
+          <Swatch className="land-swatch" img={heroGarment1} label="Indigo shibori · Kutch" style={{ top: '16%', left: '2%', transform: 'rotate(-6deg)', animationDelay: '0s' }} />
+          <Swatch className="land-swatch" img={heroGarment2} label="Bandhani · Gujarat" style={{ top: '7%', left: '25%', width: 96, height: 120, transform: 'rotate(5deg)', animationDelay: '1.1s' }} />
+          <Swatch className="land-swatch" img={heroGarment4} label="Handblock · Bagru" style={{ bottom: '12%', left: '6%', width: 104, height: 132, transform: 'rotate(7deg)', animationDelay: '0.5s' }} />
+          <Swatch className="land-swatch" img={heroGarment3} label="Tie-dye · Rajasthan" style={{ top: '15%', right: '3%', transform: 'rotate(6deg)', animationDelay: '0.8s' }} />
+          <Swatch className="land-swatch" img={heroGarment5} label="Handloom check · Bengaluru" style={{ bottom: '13%', right: '7%', width: 100, height: 128, transform: 'rotate(-7deg)', animationDelay: '1.6s' }} />
           <div style={shell}>
             <h1 className="land-hero-h" style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(32px,5.2vw,54px)', fontWeight: 500, lineHeight: 1.08, maxWidth: 780, margin: '0 auto', letterSpacing: '-0.01em' }}>
               Manufacture with the world's <span style={{ fontStyle: 'italic', color: 'var(--qw)' }}>finest craft.</span>
             </h1>
             <p style={{ fontSize: 15, color: 'var(--ink-warm-mid)', maxWidth: 540, margin: '20px auto 0', lineHeight: 1.65 }}>
-              Qala is the platform where independent brands and retailers manufacture seamlessly with India's finest craft studios — handblock print, natural dye, handloom, hand embroidery.
+              Qala is the platform where independent brands and retailers manufacture seamlessly with India's finest craft studios: handblock print, natural dye, handloom, hand embroidery.
             </p>
           </div>
           <ScrollArrow to="land-how" />
@@ -473,7 +492,7 @@ export default function Landing() {
           <div style={shell}>
             <div style={eyebrow}>How Qala works</div>
             <h2 className="land-sec-h" style={secH}>Your vision, taken all the way.</h2>
-            <p style={secSub}>You bring the idea — Qala runs the entire make. The right studio, the spec, the samples, production, compliance and shipping — all taken care of.</p>
+            <p style={secSub}>You bring the idea; Qala runs the entire make. The right studio, the spec, the samples, production, compliance and shipping, all taken care of.</p>
             <div className="land-steps" style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 18 }}>
               {STEPS.map((s, i) => (
                 <div key={i} style={{ textAlign: 'center' }}>
@@ -492,11 +511,11 @@ export default function Landing() {
           <div style={shell}>
             <div style={eyebrow}>The craft</div>
             <h2 className="land-sec-h" style={secH}>Heritage techniques, made for a contemporary wardrobe.</h2>
-            <p style={secSub}>Centuries-old techniques — the kind global fashion is turning back to. A few of the traditions you can build with:</p>
+            <p style={secSub}>Centuries-old techniques, the kind global fashion is turning back to. A few of the traditions you can build with:</p>
             <div className="land-crafts" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 18 }}>
               {CRAFTS.map((c, i) => (
-                <div key={i} className="land-craft" style={{ background: '#fff' }}>
-                  <div style={{ position: 'relative', height: 140 }}><svg width="100%" height="100%"><rect width="100%" height="100%" fill={`url(#${c.fill})`} /></svg></div>
+                <div key={i} className="land-craft">
+                  <div style={{ height: 140, backgroundImage: `url(${c.img})`, backgroundSize: 'cover', backgroundPosition: c.pos }} />
                   <div style={{ padding: '15px 17px' }}>
                     <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600 }}>{c.t}</div>
                     <div style={{ fontSize: 12, color: 'var(--ink-warm-mid)', marginTop: 5, lineHeight: 1.55 }}>{c.d}</div>
@@ -514,14 +533,14 @@ export default function Landing() {
           <div style={shell}>
             <div style={eyebrow}>The studios</div>
             <h2 className="land-sec-h" style={secH}>Vetted studios, not faceless factories.</h2>
-            <p style={secSub}>Every studio in Qala's network is chosen by hand — for craft mastery and integrity, not just capacity. Many carry GI-tagged heritage, fair-trade practice, and skills passed down generations.</p>
+            <p style={secSub}>Every studio in Qala's network is chosen by hand, for craft mastery and integrity, not just capacity. Many carry GI-tagged heritage, fair-trade practice, and skills passed down generations.</p>
             <div className="land-crafts" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 18 }}>
               {[
-                { img: studioBlockprint, pos: 'center', t: 'Block-print houses', d: 'Families who have carved blocks and printed by hand for generations — with their own in-house dye.', m: 'Bagru · Sanganer · Kutch' },
+                { img: studioBlockprint, pos: 'center', t: 'Block-print houses', d: 'Families who have carved blocks and printed by hand for generations, with their own in-house dye.', m: 'Bagru · Sanganer · Kutch' },
                 { img: studioEmbroidery, pos: 'center', t: 'Embroidery collectives', d: 'Women-led ateliers carrying Chikankari, mirror work and Suf, often hundreds of artisans deep.', m: 'Lucknow · Kutch · Punjab' },
-                { img: studioHandloom, pos: 'center 38%', t: 'Handloom weavers', d: 'Looms that build the pattern into the cloth itself — Chanderi, Kota Doria, fine cotton-silks.', m: 'Bengal · Madhya Pradesh · South' },
+                { img: studioHandloom, pos: 'center 38%', t: 'Handloom weavers', d: 'Looms that build the pattern into the cloth itself: Chanderi, Kota Doria, fine cotton-silks.', m: 'Bengal · Madhya Pradesh · South' },
               ].map((c, i) => (
-                <div key={i} className="land-craft" style={{ background: '#fff' }}>
+                <div key={i} className="land-craft">
                   <div style={{ height: 140, backgroundImage: `url(${c.img})`, backgroundSize: 'cover', backgroundPosition: c.pos }} />
                   <div style={{ padding: '15px 17px' }}>
                     <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600 }}>{c.t}</div>
