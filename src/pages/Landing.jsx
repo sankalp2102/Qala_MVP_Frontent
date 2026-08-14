@@ -274,7 +274,7 @@ export default function Landing() {
           <img src={qalaLogo} alt="Qala" style={{ height: 18, width: 'auto' }} />
         </div>
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', padding: '20px 0' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', padding: '10px 0' }}>
           <style>{`
             .landing-textarea::placeholder { color: var(--ink-warm-mute); }
             @keyframes spin  { to { transform: rotate(360deg); } }
@@ -293,13 +293,13 @@ export default function Landing() {
                 width: '100%',
                 border: '1.5px solid var(--border-warm-s)',
                 borderRadius: 'var(--r-16)', background: '#fff',
-                padding: '12px 14px 8px',
+                padding: '9px 14px',
                 boxSizing: 'border-box',
                 boxShadow: '0 4px 24px rgba(42,36,32,0.06)',
                 transition: 'border-color 0.2s, box-shadow 0.2s',
               }}>
                 {pendingImg && (
-                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
                     <img
                       src={`data:${pendingImg.mime};base64,${pendingImg.data}`}
                       alt=""
@@ -317,24 +317,24 @@ export default function Landing() {
                   onChange={e => {
                     setMessage(e.target.value);
                     e.target.style.height = 'auto';
-                    e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 90) + 'px';
                   }}
                   onKeyDown={handleKeyDown}
-                  placeholder="Share your ideas with us. We will help you shape them and find the right production partner."
-                  rows={2}
+                  placeholder=""
+                  rows={1}
                   autoFocus
                   className="landing-textarea"
                   style={{
                     width:'100%', border:'none', background:'transparent',
-                    fontSize:13, color:'var(--ink-warm)', lineHeight:1.65,
+                    fontSize:13, color:'var(--ink-warm)', lineHeight:1.5,
                     fontFamily:'var(--font-body)', resize:'none', outline:'none',
-                    minHeight:44, maxHeight:100, scrollbarWidth:'none',
+                    minHeight:22, maxHeight:90, scrollbarWidth:'none',
                   }}
                 />
 
                 <div style={{
                   display:'flex', alignItems:'center', justifyContent:'space-between',
-                  marginTop:8, paddingTop:8,
+                  marginTop:6, paddingTop:6,
                   borderTop:'1px solid var(--border-warm)',
                 }}>
                   <button
@@ -378,7 +378,7 @@ export default function Landing() {
               {/* Suggestion chips */}
               <div style={{
                 display: 'flex', flexWrap: 'wrap', gap: 8,
-                justifyContent: 'center', marginTop: 14,
+                justifyContent: 'center', marginTop: 10,
               }}>
                 {['Make a collection', 'Make some samples', 'Get some pieces made'].map(chip => (
                   <button
@@ -417,7 +417,7 @@ export default function Landing() {
                 ))}
               </div>
 
-              <div style={{ marginTop:20, opacity:0.3 }}>
+              <div style={{ marginTop:12, opacity:0.3 }}>
                 <img src={qalaLogo} alt="Qala" style={{ height:15, width:'auto' }} />
               </div>
             </div>

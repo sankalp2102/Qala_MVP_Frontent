@@ -41,20 +41,20 @@ export default function QalawatiIntro({ onComplete }) {
     <div style={{
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      padding: '40px 24px 24px', textAlign: 'center', fontFamily: 'var(--font-body)',
+      padding: '22px 24px 14px', textAlign: 'center', fontFamily: 'var(--font-body)',
     }}>
       <style>{`
         @keyframes qwAvIn { 0% { opacity: 0; transform: scale(0.84) translateY(10px); } 100% { opacity: 1; transform: none; } }
-        .qw-ew-line { font-size: 15.5px; line-height: 1.7; color: var(--ink-warm-mid); margin-bottom: 14px; opacity: 0; transform: translateY(8px); transition: opacity 0.6s ease, transform 0.6s ease; }
+        .qw-ew-line { font-size: 15.5px; line-height: 1.6; color: var(--ink-warm-mid); margin-bottom: 10px; opacity: 0; transform: translateY(8px); transition: opacity 0.6s ease, transform 0.6s ease; }
         .qw-ew-line.in { opacity: 1; transform: none; }
-        .qw-ew-h { font-family: var(--font-display); font-size: 23px; font-weight: 500; color: var(--ink-warm); line-height: 1.32; margin-bottom: 18px; }
-        .qw-ew-q { font-family: var(--font-display); font-size: 21px; font-weight: 500; color: var(--ink-warm); line-height: 1.25; margin-top: 22px; margin-bottom: 6px; }
-        .qw-ew-soft { font-size: 13.5px; color: var(--ink-warm-mute); line-height: 1.6; margin-bottom: 0; }
+        .qw-ew-h { font-family: var(--font-display); font-size: 20px; font-weight: 500; color: var(--ink-warm); line-height: 1.3; margin-bottom: 12px; }
+        .qw-ew-q { font-family: var(--font-display); font-size: 19px; font-weight: 500; color: var(--ink-warm); line-height: 1.25; margin-top: 12px; margin-bottom: 4px; }
+        .qw-ew-soft { font-size: 13px; color: var(--ink-warm-mute); line-height: 1.5; margin-bottom: 0; }
       `}</style>
 
       <div
         style={{
-          width: 90, height: 90, margin: '0 auto 26px',
+          width: 64, height: 64, margin: '0 auto 14px',
           filter: 'drop-shadow(0 10px 26px rgba(196,100,74,0.28))',
           opacity: avatarIn ? 1 : 0,
           animation: avatarIn ? 'qwAvIn 1s cubic-bezier(0.2,0.7,0.3,1) both' : 'none',
