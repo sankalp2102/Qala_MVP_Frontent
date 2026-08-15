@@ -202,8 +202,15 @@ export default function DiscoverV2() {
  
   // ── Resume session from sessionStorage ───────────────────────────────────
   // Skip if Landing pre-loaded a first message — that effect handles it.
+  // Bug fix: this used to also skip `if (user) return`, on the assumption
+  // the auth-effect above would handle logged-in users instead. It doesn't
+  // — that effect explicitly bails whenever hasLandingSession is true,
+  // deferring to "the landing flow." Each effect assumed the other had it
+  // covered, so a logged-in buyer with a saved session (exactly this
+  // scenario: came from Landing, already has an account, navigates to a
+  // studio profile and back) hit neither path — resumeSession() (and the
+  // chip-restoration fix inside it) never actually ran.
   useEffect(() => {
-    if (user) return;
     if (hasLandingMsg) return;
     const saved = sessionStorage.getItem(CHAT_SESSION_KEY);
     if (saved) resumeSession(saved);
@@ -245,6 +252,20 @@ export default function DiscoverV2() {
       const lastWithImages = [...resumed].reverse().find(m => m.role === 'user' && m.attachedImages?.length);
       if (lastWithImages) setBriefImages(lastWithImages.attachedImages);
       setExtracted(data.extracted || {});
+
+      // Bug fix: same class of issue as chips above — this never corrected
+      // skipContactForm against the CURRENT session's real state, only
+      // ever trusting whatever was cached in qala_has_contact from
+      // whichever session last wrote to it (possibly a different one
+      // entirely). Now that the backend actually returns has_contact here
+      // (see ChatSessionView), sync against it every time a session loads.
+      if (data.has_contact) {
+        localStorage.setItem('qala_has_contact', 'true');
+        setSkipContactForm(true);
+      } else {
+        localStorage.removeItem('qala_has_contact');
+        setSkipContactForm(false);
+      }
       if (data.session_token) {
         setSessionToken(data.session_token);
         setPhase('matched');
@@ -272,10 +293,20 @@ export default function DiscoverV2() {
       // Keys are anonymous — no login. Just open the chat.
       if (key) setKeyUsedEmail(key.trim());
  
-      // Mark contact as collected if key already has details
+      // Bug fix: this used to only ever handle the `true` case, meaning
+      // skipContactForm could get stuck true forever from a stale
+      // `qala_has_contact` flag left over from a completely different
+      // earlier session on this browser (e.g. testing multiple passcodes)
+      // — nothing ever corrected it back to false for a session whose real
+      // backend state says contact details are NOT actually on file. That
+      // silently skipped the Find Studios contact-form popup for buyers
+      // who genuinely needed to see it.
       if (data.has_contact) {
         localStorage.setItem('qala_has_contact', 'true');
         setSkipContactForm(true);
+      } else {
+        localStorage.removeItem('qala_has_contact');
+        setSkipContactForm(false);
       }
  
       // Resume previous session if one exists for this key
