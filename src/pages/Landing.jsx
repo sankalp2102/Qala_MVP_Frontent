@@ -19,7 +19,6 @@ import craftNaturalDye  from '../assets/Natural dye and resist.jpg';
 // garment-4's white checks/stripes, survive even though they're the same
 // color as the true background).
 import heroGarment1 from '../assets/garment-1.png';  // blue shirt
-import heroGarment2 from '../assets/garment-2.png';  // pink/tan bag
 import heroGarment3 from '../assets/garment-3.png';  // magenta tie-dye garment
 import heroGarment4 from '../assets/garment-4.png';  // teal/yellow checkered fabric
 import heroGarment5 from '../assets/garment-5.png';  // striped embroidered shirt
@@ -188,6 +187,23 @@ export default function Landing() {
       // Store the full key code so studio profile can send it with Get Introduced
       localStorage.setItem('qala_access_key', `QS-${accessKey.trim()}`);
       if (data.access_token && data.user) loginWithAccessKey(data.access_token, data.user);
+
+      // Bug fix (Aug 2026): a passcode with a real prior session used to
+      // always play the Qalawati welcome animation before showing anything
+      // — the same "meet Qalawati" intro a genuinely first-time user sees.
+      // For a returning buyer that's not an intro, it's a several-second
+      // detour in front of a conversation they already had. DiscoverV2
+      // already resumes automatically the moment CHAT_SESSION_KEY is in
+      // sessionStorage (see its "Resume session from sessionStorage"
+      // effect) — that path was just never reached from here, since this
+      // always routed to the local `intro` phase instead. Route a returning
+      // session straight there; only a brand-new session still gets the
+      // intro animation.
+      if (resumeId) {
+        navigate('/discover');
+        return;
+      }
+
       setTransition(true);
       setTimeout(() => { setPhase('intro'); setTransition(false); }, 320);
     } catch (err) {
@@ -471,11 +487,10 @@ export default function Landing() {
 
         {/* ── Hero ── */}
         <section style={{ position: 'relative', overflow: 'hidden', minHeight: 'calc(100vh - 58px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 0', textAlign: 'center' }}>
-          <Swatch className="land-swatch" img={heroGarment1} label="Indigo shibori · Kutch" style={{ top: '16%', left: '2%', transform: 'rotate(-6deg)', animationDelay: '0s' }} />
-          <Swatch className="land-swatch" img={heroGarment2} label="Bandhani · Gujarat" style={{ top: '7%', left: '25%', width: 96, height: 120, transform: 'rotate(5deg)', animationDelay: '1.1s' }} />
-          <Swatch className="land-swatch" img={heroGarment4} label="Handblock · Bagru" style={{ bottom: '12%', left: '6%', width: 104, height: 132, transform: 'rotate(7deg)', animationDelay: '0.5s' }} />
-          <Swatch className="land-swatch" img={heroGarment3} label="Tie-dye · Rajasthan" style={{ top: '15%', right: '3%', transform: 'rotate(6deg)', animationDelay: '0.8s' }} />
-          <Swatch className="land-swatch" img={heroGarment5} label="Handloom check · Bengaluru" style={{ bottom: '13%', right: '7%', width: 100, height: 128, transform: 'rotate(-7deg)', animationDelay: '1.6s' }} />
+          <Swatch className="land-swatch" img={heroGarment1} label="Indigo shibori · Kutch" style={{ top: '14%', left: '5%', width: 172, height: 205, transform: 'rotate(-6deg)', animationDelay: '0s' }} />
+          <Swatch className="land-swatch" img={heroGarment4} label="Handblock · Bagru" style={{ bottom: '10%', left: '2%', width: 200, height: 210, transform: 'rotate(7deg)', animationDelay: '0.5s' }} />
+          <Swatch className="land-swatch" img={heroGarment3} label="Tie-dye · Rajasthan" style={{ top: '10%', right: '4%', width: 150, height: 195, transform: 'rotate(6deg)', animationDelay: '0.8s' }} />
+          <Swatch className="land-swatch" img={heroGarment5} label="Handloom check · Bengaluru" style={{ bottom: '10%', right: '7%', width: 128, height: 165, transform: 'rotate(-7deg)', animationDelay: '1.6s' }} />
           <div style={shell}>
             <h1 className="land-hero-h" style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(32px,5.2vw,54px)', fontWeight: 500, lineHeight: 1.08, maxWidth: 780, margin: '0 auto', letterSpacing: '-0.01em' }}>
               Manufacture with the world's <span style={{ fontStyle: 'italic', color: 'var(--qw)' }}>finest craft.</span>

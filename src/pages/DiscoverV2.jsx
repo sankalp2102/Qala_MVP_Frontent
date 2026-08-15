@@ -35,6 +35,61 @@ function parseChips(text) {
   const m = text.match(/\[CHIPS:\s*([^\]]+)\]/);
   return m ? m[1].split('|').map(s => s.trim()).filter(Boolean) : [];
 }
+
+const MATCH_SUMMARY_CHIPS = ['Tell me more about these studios', 'I want to connect with one', 'Show me more studios', "I don't see what I'm looking for"];
+
+// Bug fix (Aug 2026): the "Here are your top 3 matches" message shown right
+// after Find Studios completes is built entirely client-side (from the
+// recommendations endpoint, not from Claude) and was never saved to the
+// backend — so it only ever existed in this component's React state. The
+// moment a buyer navigated away (e.g. "View Profile →" to a studio's full
+// page, a real route change that unmounts this component) and came back,
+// resumeSession() rebuilt `messages` purely from session.messages in the
+// DB — which never had this message — and it silently vanished, even
+// though matching had genuinely completed and the studios were still
+// showing on the right. Extracted here (unchanged logic) so both
+// handleMatchComplete (the first time) and resumeSession (every time
+// after) build the exact same message from the same source data.
+function buildMatchSummaryMessage(recs) {
+  const lines = recs.map((r, i) => {
+    const why = r.match_reasoning?.product_match
+      ? r.match_reasoning.product_match.replace(/^Strong match for /i, 'Can make ')
+      : (r.what_best_at?.[0] || '');
+    const crafts  = (r.primary_crafts  || []).slice(0, 2).join(', ');
+    const fabrics = (r.primary_fabrics || []).slice(0, 2).join(', ');
+    const detail  = [why, crafts, fabrics].filter(Boolean).join(' · ');
+    const loc = r.location ? ` — ${r.location}` : '';
+    return `**${i + 1}. ${r.studio_name}${loc}**\n${detail}`;
+  });
+  return {
+    role: 'assistant',
+    content:
+      'Here are your top 3 matches — browse full profiles on the right:' +
+      '\n\n———' +
+      lines.map(l => '\n\n' + l).join('\n\n———') +
+      '\n\n———\n\nWould you like help deciding between them, or are you happy to browse?',
+    hasBrief: false,
+  };
+}
+
+// Re-fetches the same recommendations handleMatchComplete used, and
+// re-derives the identical summary message from them — best-effort, never
+// throws, since a resume must never hard-fail just because this
+// reconstruction couldn't complete.
+async function fetchMatchSummaryMessage(token) {
+  try {
+    const res = await discoveryAPI.getRecommendations(token);
+    if (res.data?.status !== 'ok' || !res.data?.recommendations?.length) return null;
+    const recs = res.data.recommendations
+      .filter(r => !r.is_bonus_visual)
+      .sort((a, b) => (a.rank_position ?? 99) - (b.rank_position ?? 99))
+      .slice(0, 3);
+    if (recs.length === 0) return null;
+    return buildMatchSummaryMessage(recs);
+  } catch {
+    return null;
+  }
+}
  
 export default function DiscoverV2() {
   const { user, loginWithAccessKey, loading: authLoading } = useAuth();
@@ -232,7 +287,34 @@ export default function DiscoverV2() {
         // Restore images stored in DB — survives page refresh
         attachedImages: m.images || [],
       }));
-      setMessages(resumed);
+
+      // Reconstruct the match-summary message (see buildMatchSummaryMessage
+      // above) when matching completed for this session but the summary
+      // isn't part of the real transcript — true for every session today,
+      // since it was never persisted. Inserted right after the last
+      // hasBrief message: that's always where it originally appeared, and
+      // anything the buyer said/heard AFTER matching (a real, persisted
+      // message) has to stay after it, not get pushed behind it.
+      let withSummary = resumed;
+      let insertedSummaryAtEnd = false;
+      if (data.session_token) {
+        const alreadyPresent = resumed.some(
+          m => typeof m.content === 'string' && m.content.startsWith('Here are your top 3 matches')
+        );
+        if (!alreadyPresent) {
+          const summaryMsg = await fetchMatchSummaryMessage(data.session_token);
+          if (summaryMsg) {
+            let insertAt = resumed.length;
+            for (let i = resumed.length - 1; i >= 0; i--) {
+              if (resumed[i].hasBrief) { insertAt = i + 1; break; }
+            }
+            withSummary = resumed.slice();
+            withSummary.splice(insertAt, 0, summaryMsg);
+            insertedSummaryAtEnd = insertAt === resumed.length;
+          }
+        }
+      }
+      setMessages(withSummary);
 
       // Bug fix: chips were never restored here at all — resumeSession
       // rehydrates messages/extracted/images/phase but had no setChips call,
@@ -241,8 +323,12 @@ export default function DiscoverV2() {
       // chips would still be valid for the last message. Same rule as
       // everywhere else in this file: no chips once a brief card is showing,
       // since the card has its own CTAs.
-      const lastMsg = resumed[resumed.length - 1];
-      if (lastMsg && lastMsg.role === 'assistant' && !lastMsg.hasBrief) {
+      const lastMsg = withSummary[withSummary.length - 1];
+      if (insertedSummaryAtEnd) {
+        // The reconstructed summary IS the last message — same chips
+        // handleMatchComplete shows the first time matching completes.
+        setChips(MATCH_SUMMARY_CHIPS);
+      } else if (lastMsg && lastMsg.role === 'assistant' && !lastMsg.hasBrief) {
         setChips(parseChips(lastMsg.content));
       } else {
         setChips([]);
@@ -478,29 +564,11 @@ export default function DiscoverV2() {
       }
     });
  
-    // Build chat summary message
-    const lines = recs.map((r, i) => {
-      const why = r.match_reasoning?.product_match
-        ? r.match_reasoning.product_match.replace(/^Strong match for /i, 'Can make ')
-        : (r.what_best_at?.[0] || '');
-      const crafts  = (r.primary_crafts  || []).slice(0, 2).join(', ');
-      const fabrics = (r.primary_fabrics || []).slice(0, 2).join(', ');
-      const detail  = [why, crafts, fabrics].filter(Boolean).join(' · ');
-      const loc = r.location ? ` — ${r.location}` : '';
-      return `**${i + 1}. ${r.studio_name}${loc}**\n${detail}`;
-    });
- 
-    const summaryMsg = {
-      role: 'assistant',
-      content:
-        'Here are your top 3 matches — browse full profiles on the right:' +
-        '\n\n———' +
-        lines.map(l => '\n\n' + l).join('\n\n———') +
-        '\n\n———\n\nWould you like help deciding between them, or are you happy to browse?',
-      hasBrief: false,
-    };
+    // Build chat summary message — shared with resumeSession's
+    // reconstruction, see buildMatchSummaryMessage above.
+    const summaryMsg = buildMatchSummaryMessage(recs);
     setMessages(prev => [...prev, summaryMsg]);
-    setChips(['Tell me more about these studios', 'I want to connect with one', 'Show me more studios', "I don't see what I'm looking for"]);
+    setChips(MATCH_SUMMARY_CHIPS);
   }
  
   // ── ACCESS KEY GATE ───────────────────────────────────────────────────────
