@@ -745,21 +745,33 @@ export default function StudioDirectory() {
 
       {/* ── LOGO BAR — sticky, always visible ───────────────────────────── */}
       <div style={{
-        background: 'var(--text)', borderBottom: '1px solid rgba(245,240,232,0.08)',
+        background: 'var(--bg)', borderBottom: '1px solid var(--border)',
         padding: '0 48px', height: 58, position: 'sticky', top: 0, zIndex: 101,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         flexShrink: 0,
       }}>
         <img src={qalaLogo} alt="Qala" className="qala-logo"
           onClick={() => nav('/')}
-          style={{ filter: 'brightness(0) invert(1)', opacity: 0.9, cursor: 'pointer' }}
+          style={{ opacity: 0.9, cursor: 'pointer' }}
         />
         <UserAvatar hideWhenLoggedOut />
       </div>
 
       {/* ── HEADER ──────────────────────────────────────────────────────── */}
+      {/* Bug fix (Aug 2026): this whole header (and the sticky logo bar
+          above it) used to be styled with background: var(--text) — the
+          same token used everywhere else in the app as the dark INK
+          color for text, not as a background fill. Nowhere else in the
+          platform uses a dark header; every other page sits on the
+          normal light var(--bg). Switched both to var(--bg) and flipped
+          every color that was tuned for a dark background (white
+          breadcrumb text, an inverted-to-white logo, light title color)
+          back to the same tokens the rest of the site uses on light
+          backgrounds. The decorative circles are untouched — they're
+          translucent accent colors, not background/foreground colors,
+          so they read fine on light too. */}
       <div style={{
-        background: 'var(--text)', padding: '32px 48px 48px',
+        background: 'var(--bg)', padding: '32px 48px 48px',
         position: 'relative', overflow: 'hidden',
       }}>
         {/* Decorative circles */}
@@ -777,32 +789,32 @@ export default function StudioDirectory() {
         {/* Breadcrumb */}
         <div style={{
           fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase',
-          color: 'rgba(255,255,255,0.4)', marginBottom: 20, position: 'relative', zIndex: 1,
+          color: 'var(--text3)', marginBottom: 20, position: 'relative', zIndex: 1,
         }}>
           <span
             onClick={() => nav('/')}
             style={{ cursor: 'pointer', transition: 'color 0.15s' }}
-            onMouseEnter={e => e.target.style.color = 'rgba(255,255,255,0.7)'}
-            onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.4)'}
+            onMouseEnter={e => e.target.style.color = 'var(--text)'}
+            onMouseLeave={e => e.target.style.color = 'var(--text3)'}
           >Home</span>
           {' / '}
           <span
             onClick={() => nav('/discover')}
             style={{ cursor: 'pointer', transition: 'color 0.15s' }}
-            onMouseEnter={e => e.target.style.color = 'rgba(255,255,255,0.7)'}
-            onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.4)'}
+            onMouseEnter={e => e.target.style.color = 'var(--text)'}
+            onMouseLeave={e => e.target.style.color = 'var(--text3)'}
           >Discovery</span>
           {' / '}
-          <span style={{ color: 'rgba(255,255,255,0.7)' }}>Craft Studios</span>
+          <span style={{ color: 'var(--text2)' }}>Craft Studios</span>
           {filters.craft && (
-            <> {' / '} <span style={{ color: 'rgba(255,255,255,0.7)' }}>{filters.craft}</span> </>
+            <> {' / '} <span style={{ color: 'var(--text2)' }}>{filters.craft}</span> </>
           )}
         </div>
 
         {/* Title */}
         <h1 style={{
           fontFamily: 'var(--font-display)', fontWeight: 300,
-          fontSize: 'clamp(38px, 5vw, 64px)', color: 'var(--surface2)',
+          fontSize: 'clamp(38px, 5vw, 64px)', color: 'var(--text)',
           lineHeight: 1.1, position: 'relative', zIndex: 1, maxWidth: 560,
           marginBottom: 20,
         }}>
@@ -811,7 +823,7 @@ export default function StudioDirectory() {
 
         {/* Studio count */}
         <div style={{
-          color: 'rgba(255,255,255,0.45)', fontSize: 13, fontWeight: 300,
+          color: 'var(--text3)', fontSize: 13, fontWeight: 300,
           position: 'relative', zIndex: 1,
         }}>
           {loading ? 'Loading studios…' : `${totalStudios} studios across categories & crafts`}

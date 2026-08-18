@@ -250,28 +250,6 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
         </p>
       )}
 
-      {/* Inline loading state for the skipContactForm path — the modal's
-          spinner never renders here since showContact stays false, so
-          without this the button click had zero visible feedback while
-          matching ran. */}
-      {matching && !showContact && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '10px 18px', background: 'var(--surface)',
-          borderTop: '0.5px solid var(--border)',
-        }}>
-          <div style={{
-            width: 16, height: 16, flexShrink: 0,
-            border: '2px solid var(--surface3)', borderTopColor: SAGE,
-            borderRadius: '50%', animation: 'modalSpin 0.85s linear infinite',
-          }} />
-          <span style={{ fontSize: 12.5, color: 'var(--text3)', fontFamily: 'var(--font-body)' }}>
-            {LOADING_MESSAGES[loadingStep]}
-          </span>
-          <style>{`@keyframes modalSpin { to { transform: rotate(360deg); } }`}</style>
-        </div>
-      )}
-
       {/* Reference images — moodboard / sketches / samples shared in chat */}
       {referenceImages?.length > 0 && (
         <div style={{
@@ -340,6 +318,30 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
           Adjust Brief
         </button>
       </div>
+
+      {/* Bug fix (Aug 2026): this loading indicator used to render ABOVE
+          the Find Studios/Adjust Brief buttons (right after the field
+          list) — so clicking "Find Studios" made the spinner appear
+          above the button you'd just clicked, not below it where your
+          eye already is. Moved to directly after the CTA row instead;
+          functionally unchanged (same condition, same content). */}
+      {matching && !showContact && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 18px', background: 'var(--surface)',
+          borderTop: '0.5px solid var(--border)',
+        }}>
+          <div style={{
+            width: 16, height: 16, flexShrink: 0,
+            border: '2px solid var(--surface3)', borderTopColor: SAGE,
+            borderRadius: '50%', animation: 'modalSpin 0.85s linear infinite',
+          }} />
+          <span style={{ fontSize: 12.5, color: 'var(--text3)', fontFamily: 'var(--font-body)' }}>
+            {LOADING_MESSAGES[loadingStep]}
+          </span>
+          <style>{`@keyframes modalSpin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
 
       {/* Contact form modal */}
       {showContact && (

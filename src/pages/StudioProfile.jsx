@@ -217,7 +217,7 @@ const STUDIO_V3_CSS = `
 
 /* ── MODAL ── */
 .studio-v3-modal-overlay { position:fixed; inset:0; background:rgba(30,22,14,0.55); z-index:8500; display:flex; align-items:center; justify-content:center; padding:24px; font-family:'DM Sans',system-ui,sans-serif; animation:sv3In 0.2s ease; }
-.studio-v3-modal-box { background:#fff; border-radius: var(--r-lg); padding:34px; max-width:460px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,0.18); position:relative; }
+.studio-v3-modal-box { background:#fff; border-radius: var(--r-lg); padding:34px; max-width:460px; width:100%; box-shadow:0 20px 60px rgba(0,0,0,0.18); position:relative; max-height:90vh; overflow-y:auto; box-sizing:border-box; }
 .studio-v3-modal-title { font-family:'Cormorant Garamond',Georgia,serif; font-size:24px; font-weight:500; margin-bottom:6px; color:var(--text-heading); line-height:1.2; }
 .studio-v3-modal-sub { font-size:13.5px; color:#6B5F4A; line-height:1.55; margin:0 0 24px; }
 .studio-v3-modal-field-label { font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); margin-bottom:7px; display:block; }
