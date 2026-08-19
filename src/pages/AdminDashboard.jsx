@@ -2177,10 +2177,26 @@ function AccessKeys() {
                       <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)' }}>
                         {k.user.name || k.user.email}
                       </span>
+                    ) : k.access_request ? (
+                      // Bug fix (Aug 2026): "we can't see whom a
+                      // previously-generated key is connected to" — this
+                      // used to have no structured answer at all, only
+                      // whatever text happened to be typed into `notes`
+                      // (which a later manual edit could also overwrite).
+                      // Now reads the real AccessRequest link directly.
+                      <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)' }}>
+                        {k.access_request.name}
+                        <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text4)', marginLeft: 5 }}>
+                          (requested access)
+                        </span>
+                      </span>
                     ) : (
                       <span style={{ fontSize: 11, color: 'var(--text4)', fontStyle: 'italic' }}>
                         Anonymous
                       </span>
+                    )}
+                    {k.access_request?.email && (
+                      <span style={{ fontSize: 11, color: 'var(--text4)' }}>{k.access_request.email}</span>
                     )}
                     {k.notes && (
                       <span style={{ fontSize: 11, color: 'var(--text4)' }}>{k.notes}</span>

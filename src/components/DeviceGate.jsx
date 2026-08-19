@@ -8,18 +8,20 @@
 //     "rotate your device" message instead of the app.
 //   - Desktop/laptop: always allowed, completely unaffected.
 //
-// Classification deliberately does NOT gate on window width alone — a
-// desktop user with a narrow or split-screen browser window must never
-// see a "please use desktop" message; that's a real, common case (this
-// app itself gets tested in a narrow scratch window all the time) and a
-// width-only check would incorrectly block it. Instead this checks for
-// genuine touch-primary hardware first (via the `pointer: coarse` media
-// query, the same signal touch-vs-mouse feature detection generally
-// relies on, backed up by maxTouchPoints/ontouchstart for browsers that
-// don't support the media query) — a mouse/trackpad device is NEVER
-// blocked, regardless of how small its window is. Only once a device is
-// confirmed touch-primary does screen size decide phone vs. tablet, and
-// only for a touch-primary tablet-sized device does orientation matter.
+// Bug fix (Aug 2026) — "the mobile block is showing on Chrome on laptop
+// for a few users": the original version gated on touch HARDWARE
+// capability (`pointer: coarse`, maxTouchPoints, ontouchstart) as a
+// proxy for "is this a phone or tablet." That's the wrong question.
+// Touchscreen Windows laptops (2-in-1s: Surface, HP Spectre x360,
+// Lenovo Yoga, Dell XPS 2-in-1, etc.) are full laptops — keyboard,
+// trackpad, mouse — where touch is a genuine but SECONDARY input.
+// Chrome on Windows reports touch capability as true on these because
+// the hardware exists, regardless of whether the person is actually
+// touching the screen — which is exactly why this was hitting real
+// laptop users. Switched to checking the device's actual OS/platform
+// identity (User-Agent + Chrome/Edge's Client Hints API) instead of
+// hardware capability — "does this device run a phone/tablet operating
+// system" is the right question, not "can this device be touched."
 import { useEffect, useState } from 'react';
 
 const PHONE_MAX_SHORT_SIDE = 600;  // device's short side (constant across rotation) still "phone"
@@ -28,8 +30,34 @@ const PHONE_MAX_SHORT_SIDE = 600;  // device's short side (constant across rotat
                                     // tablet short side (iPad Mini: 744)
 const TABLET_MAX_LONG_SIDE = 1366; // covers iPad Pro 12.9" landscape (1366×1024) at the top end
 
+function isMobileOrTabletOS() {
+  const ua = navigator.userAgent || '';
+
+  // iPadOS 13+ deliberately reports as "Macintosh" in its UA to get
+  // desktop-class sites by default — a well-known, standard quirk. The
+  // established way to still catch it: a real Mac never reports touch
+  // points at all; an iPad, even identifying as "Macintosh", does.
+  const isIPadOS = /Macintosh/i.test(ua) && navigator.maxTouchPoints > 1;
+
+  // Traditional mobile/tablet UA signatures. Deliberately does NOT
+  // match "Windows" or generic "Touch" tokens some Windows UAs carry —
+  // that's exactly the touchscreen-laptop false positive being fixed.
+  const isMobileUA = /Android|iPhone|iPad|iPod|Mobi|Tablet/i.test(ua);
+
+  // Chrome/Edge Client Hints — `mobile` is true only for actual phones
+  // (false for tablets too, and false for every desktop/laptop
+  // regardless of touch hardware). Only used as an extra positive
+  // signal, never to override the UA checks above — plenty of browsers
+  // (Safari, Firefox) don't support it at all.
+  const clientHintsMobile = navigator.userAgentData?.mobile === true;
+
+  return isIPadOS || isMobileUA || clientHintsMobile;
+}
+
 function computeDeviceClass() {
   if (typeof window === 'undefined') return 'desktop';
+
+  if (!isMobileOrTabletOS()) return 'desktop';  // laptop/desktop — never blocked, touch or not
 
   const w = window.innerWidth;
   const h = window.innerHeight;
@@ -46,17 +74,11 @@ function computeDeviceClass() {
   const shortSide = Math.min(w, h);
   const longSide  = Math.max(w, h);
 
-  const isCoarsePointer = window.matchMedia?.('(pointer: coarse)')?.matches;
-  const isTouchCapable = isCoarsePointer
-    || (navigator.maxTouchPoints ?? 0) > 0
-    || 'ontouchstart' in window;
-
-  if (!isTouchCapable) return 'desktop';                    // mouse/trackpad — never blocked
-  if (shortSide < PHONE_MAX_SHORT_SIDE) return 'phone';      // small touch device — always blocked
+  if (shortSide < PHONE_MAX_SHORT_SIDE) return 'phone';      // small mobile-OS device — always blocked
   if (longSide <= TABLET_MAX_LONG_SIDE) {
     return w >= h ? 'tablet-landscape' : 'tablet-portrait';
   }
-  return 'desktop';                                          // large touchscreen (touch laptop/monitor)
+  return 'desktop';                                          // confirmed mobile OS but unusually large viewport — rare; fail safe to desktop
 }
 
 function GateScreen({ title, body, icon }) {
