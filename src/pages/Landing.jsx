@@ -595,8 +595,11 @@ export default function Landing() {
 
         {/* ── Gate ── */}
         <section id="land-gate" style={{ position: 'relative', textAlign: 'center', minHeight: 'calc(100vh - 58px)', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '64px 0' }}>
-          <Swatch className="land-swatch" fill="p-tiedye" label="Tie-dye · Rajasthan" style={{ top: '15%', left: '5%', transform: 'rotate(7deg)' }} />
-          <Swatch className="land-swatch" fill="p-block" label="Handblock · Bagru" style={{ bottom: '15%', right: '6%', transform: 'rotate(-6deg)' }} />
+          {/* Uses the same two garment photos highlighted in the hero
+              section above (heroGarment1, heroGarment5) instead of the
+              solid-color placeholder swatches this had before. */}
+          <Swatch className="land-swatch" img={heroGarment1} label="Indigo shibori · Kutch" style={{ top: '15%', left: '5%', width: 160, height: 195, transform: 'rotate(7deg)' }} />
+          <Swatch className="land-swatch" img={heroGarment5} label="Handloom check · Bengaluru" style={{ bottom: '15%', right: '6%', width: 145, height: 180, transform: 'rotate(-6deg)' }} />
           <div style={shell}>
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(30px,5vw,46px)', fontWeight: 500, lineHeight: 1.1, margin: '8px 0 14px' }}>Get inside.</h2>
             <p style={{ fontSize: 15, color: 'var(--ink-warm-mid)', maxWidth: 510, margin: '0 auto 30px', lineHeight: 1.65 }}>
