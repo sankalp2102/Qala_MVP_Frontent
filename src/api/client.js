@@ -274,6 +274,7 @@ export const adminAPI = {
   listContacts: () => api.get('/api/admin/chat/contacts/'),
   listAccessRequests:       ()       => api.get('/api/admin/access-requests/'),
   updateAccessRequest: (id, data)    => api.patch(`/api/admin/access-requests/${id}/`, data),
+  approveAndGenerateKey: id          => api.post(`/api/admin/access-requests/${id}/generate-key/`),
 };
 
 export const buyerAPI = {

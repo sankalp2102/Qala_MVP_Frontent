@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Spinner } from './components/Spinner';
+import DeviceGate from './components/DeviceGate';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import SellerDashboard from './pages/SellerDashboard';
@@ -76,11 +77,18 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <ScrollToTop />
-        <AppRoutes />
-      </AuthProvider>
-    </BrowserRouter>
+    // Mobile/device gate wraps EVERYTHING — outside BrowserRouter and
+    // AuthProvider, so a blocked phone never even reaches routing or an
+    // auth check. Applies site-wide, every route, with no per-page work
+    // needed: this gate is the entire mobile story by design (see
+    // DeviceGate.jsx) — nothing else in the app is mobile-optimized.
+    <DeviceGate>
+      <BrowserRouter>
+        <AuthProvider>
+          <ScrollToTop />
+          <AppRoutes />
+        </AuthProvider>
+      </BrowserRouter>
+    </DeviceGate>
   );
 }

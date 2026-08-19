@@ -2649,7 +2649,6 @@ function AccessRequests() {
   const [loading, setLoading]   = useState(true);
   const [notes, setNotes]       = useState({});
   const [copied, setCopied]     = useState({});
-  const [genKey, setGenKey]     = useState({}); // generated key per request id
 
   const load = () => {
     setLoading(true);
@@ -2677,20 +2676,24 @@ function AccessRequests() {
 
   async function handleGenerateKey(req) {
     try {
-      const res = await adminAPI.generateAccessKeys({
-        count: 1,
-        tokens_allocated: 500000,
-        notes: `Generated for ${req.name} <${req.email}>`,
-      });
-      const key = res.data.keys?.[0]?.key_code;
-      if (key) {
-        setGenKey(p => ({ ...p, [req.id]: key }));
-        navigator.clipboard.writeText(key);
-        success(`Key ${key} copied to clipboard`);
-        // Also mark as approved
-        await adminAPI.updateAccessRequest(req.id, { status: 'approved' });
-        load();
-      }
+      // Bug fix (Aug 2026): this used to call the generic key-generator
+      // (count/tokens_allocated/notes only — no real link to the
+      // request), copy the code to the admin's own clipboard, and stop
+      // there — nothing ever emailed the code to the requester. The new
+      // endpoint creates the key, links it to this request in the
+      // database, emails it to them as Qalawati (B-03), and returns
+      // that same info — so the persisted `r.generated_key` from the
+      // reloaded list (not local state) is what the UI shows from here
+      // on, surviving refreshes instead of vanishing after one popup.
+      const res = await adminAPI.approveAndGenerateKey(req.id);
+      const { key_code, email_sent, email } = res.data;
+      navigator.clipboard.writeText(key_code);
+      success(
+        email_sent
+          ? `Key ${key_code} emailed to ${email} (also copied)`
+          : `Key ${key_code} generated and copied — email failed to send, share it manually`
+      );
+      load();
     } catch { error('Failed to generate key'); }
   }
 
@@ -2777,11 +2780,22 @@ function AccessRequests() {
                         {r.link}
                       </a>
                     )}
-                    {/* Generated key badge */}
-                    {genKey[r.id] && (
+                    {/* Generated key — read from the persisted, reloaded
+                        request data (r.generated_key), not transient
+                        local state. This is the actual fix for "no past
+                        codes, just a popup that disappears": since this
+                        now comes from the database via listAccessRequests,
+                        it's still here after a refresh, a day later, or
+                        opening this page on a different device. */}
+                    {r.generated_key && (
                       <div style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 12px', borderRadius: 'var(--r-8)', background: 'rgba(90,210,120,0.08)', border: '1px solid rgba(90,210,120,0.25)' }}>
-                        <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700, color: 'var(--green)', letterSpacing: '0.08em' }}>{genKey[r.id]}</span>
-                        <span style={{ fontSize: 11, color: 'var(--green)' }}>copied ✓</span>
+                        <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700, color: 'var(--green)', letterSpacing: '0.08em' }}>{r.generated_key.key_code}</span>
+                        <button
+                          onClick={() => { navigator.clipboard.writeText(r.generated_key.key_code); success('Copied'); }}
+                          style={{ fontSize: 11, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'var(--font-body)', textDecoration: 'underline' }}
+                        >
+                          copy
+                        </button>
                       </div>
                     )}
                   </div>
@@ -2804,12 +2818,31 @@ function AccessRequests() {
                         </button>
                       </>
                     )}
-                    {r.status === 'approved' && !genKey[r.id] && (
+                    {/* Bug fix: this used to check local-only genKey[r.id],
+                        which is always empty after a refresh — so an
+                        already-approved, already-keyed request would show
+                        "Generate Key" again, and clicking it created a
+                        SECOND, orphaned key with no link to this request.
+                        Now checks the persisted r.generated_key instead:
+                        an approved request with no key yet still offers
+                        to generate one; an approved request that already
+                        has one offers to resend the email instead
+                        (handleGenerateKey is safely idempotent on the
+                        backend either way — see AdminApproveAndGenerateKeyView). */}
+                    {r.status === 'approved' && !r.generated_key && (
                       <button
                         onClick={() => handleGenerateKey(r)}
                         style={{ padding: '7px 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text2)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
                       >
                         Generate Key
+                      </button>
+                    )}
+                    {r.status === 'approved' && r.generated_key && (
+                      <button
+                        onClick={() => handleGenerateKey(r)}
+                        style={{ padding: '7px 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--surface2)', color: 'var(--text2)', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+                      >
+                        Resend Email
                       </button>
                     )}
                     {r.status === 'rejected' && (
