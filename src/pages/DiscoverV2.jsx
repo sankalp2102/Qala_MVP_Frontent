@@ -230,16 +230,29 @@ export default function DiscoverV2() {
         }
         // Now send the first message with optional image
         if (firstMsg || firstImg) {
-          const imgData = firstImg  || null;
-          const imgMime = firstMime || 'image/jpeg';
+          // Bug fix (Aug 2026): this sent the raw base64 STRING directly
+          // as `images` — chatAPI.sendMessage's `images` param is meant
+          // to be an ARRAY of {data, mime, name} objects (see the regular
+          // in-chat sendMessage() below, which correctly passes
+          // pendingImages as that array). A bare string still has a
+          // `.length` (its character count), so the client-side "is
+          // there an image" check passed anyway — but the backend's
+          // `for img in images_raw:` then iterated the string CHARACTER
+          // BY CHARACTER, and `img.get('data')` on a single character
+          // threw an AttributeError. Every first message with an image
+          // hit this and failed outright; a first message with text only
+          // never touched this path and always worked — exactly the
+          // reported symptom. Wrapped into the same array shape the
+          // working path already uses.
+          const imgArray = firstImg ? [{ data: firstImg, mime: firstMime || 'image/jpeg', name: 'image' }] : null;
           const userMsg = {
             role: 'user', content: firstMsg || '',
-            attachedImage: imgData, attachedMime: imgMime,
+            attachedImages: imgArray || [],
           };
           setMessages(prev => [...prev, userMsg]);
           setSending(true);
           try {
-            const r    = await chatAPI.sendMessage(savedId, firstMsg || '', imgData);
+            const r    = await chatAPI.sendMessage(savedId, firstMsg || '', imgArray);
             const d    = r.data;
             const aiMsg = { role: 'assistant', content: d.message, hasBrief: d.has_brief || false };
             setMessages(prev => [...prev, aiMsg]);
