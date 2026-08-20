@@ -54,6 +54,37 @@ function TechniqueCard({ craft, onUpdate, onDelete, onImageUpload, onImageRemove
         />
       </div>
 
+      {/* Bug fix (Aug 2026): "timeline only reflecting for 2 crafts" —
+          traced to the actual root cause: these two fields render on the
+          public studio profile (StudioProfile.jsx's craftStats()) but
+          had NO input anywhere in this form. A seller had no way to fill
+          them in for any craft through the normal onboarding flow — the
+          handful that did show a timeline got it through some other
+          channel (bulk import, direct edit), not this form. Added here
+          so every craft can actually have this filled in going forward. */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--border-l)', fontWeight: 600, marginBottom: 4 }}>Sampling time (weeks)</div>
+          <input
+            type="number" min="0" step="0.5"
+            value={craft.sampling_time_weeks ?? ''}
+            onChange={e => onUpdate({ sampling_time_weeks: e.target.value === '' ? null : e.target.value })}
+            placeholder="e.g. 2"
+            style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border-l)', borderRadius: 'var(--r-5)', background: '#fff', color: 'var(--text)', fontSize: 12, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
+          />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--border-l)', fontWeight: 600, marginBottom: 4 }}>Production time for 50 units (months)</div>
+          <input
+            type="number" min="0" step="0.5"
+            value={craft.production_timeline_months_50units ?? ''}
+            onChange={e => onUpdate({ production_timeline_months_50units: e.target.value === '' ? null : e.target.value })}
+            placeholder="e.g. 1"
+            style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border-l)', borderRadius: 'var(--r-5)', background: '#fff', color: 'var(--text)', fontSize: 12, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
+          />
+        </div>
+      </div>
+
       <div style={{ paddingTop: 10, borderTop: '1px solid var(--surface2)' }}>
         <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--border-l)', fontWeight: 600, marginBottom: 6 }}>Thumbnail image (optional)</div>
         <div
@@ -184,7 +215,17 @@ export default function SectionD({ profileId, initialData, onSave, onNext }) {
       // craft_name / specialization the user may still be typing.
       patchCardByKey(type, { tempId: card._tempId, id }, { id, image: r.data?.image, _images: [{ url: r.data?.image }] });
       success('Image uploaded');
-    } catch { error('Image upload failed — please try again.'); }
+    } catch (err) {
+      // Bug fix (Aug 2026) — same silent-catch issue already fixed in
+      // SectionF.jsx's coordinator photo upload: this showed the exact
+      // same generic message regardless of what actually went wrong,
+      // so a HEIC photo (rejected by the backend — now auto-converted
+      // to JPEG server-side, see seller_profile/serializers.py) failed
+      // with no way to tell why. Surface the backend's real reason.
+      const msg = err.response?.data?.image?.[0] || err.response?.data?.detail
+        || 'Image upload failed — please try again.';
+      error(msg);
+    }
   };
 
   const removeImage = async (type, idx) => {
@@ -194,26 +235,48 @@ export default function SectionD({ profileId, initialData, onSave, onNext }) {
   };
 
   const persist = async () => {
-    // Snapshot up-front; ids are written back by key, so index shifts during the
-    // async loop are harmless.
+    // Bug fix (Aug 2026) — carried over from an earlier diagnosis of "D.2
+    // techniques not saving": this loop had no per-card error isolation.
+    // `crafts` is keyed { spinning, weaving, dyeing, printing, surface }
+    // in that insertion order — if any single card in an earlier bucket
+    // failed to save, the exception aborted the WHOLE loop, so every
+    // later bucket was never even attempted in that autosave pass. Every
+    // subsequent autosave cycle would hit the same early failure again,
+    // so a later section could look permanently broken even though
+    // nothing was wrong with it specifically. Isolating each card's save
+    // means one failure never blocks any other card, and every failure
+    // is reported by name instead of one early failure hiding the rest.
     const snapshot = Object.keys(crafts).map(type => [type, crafts[type]]);
+    const failures = [];
     for (const [type, list] of snapshot) {
       for (let i = 0; i < list.length; i++) {
         const card = list[i];
         if (!card.craft_name?.trim()) continue;
-        // Ensure the row exists (de-duplicated), then PATCH its fields. We never
-        // push the server response back into state, so text typed during the
-        // request survives; the next autosave pass reconciles any later edits.
-        const id = card.id || await ensureCraftId(type, card);
-        if (!id) continue;
-        await API.patchCraft(profileId, id, {
-          craft_name: card.craft_name, technique_type: type,
-          expertise_level: card.expertise_level, specialization: card.specialization,
-          order: i + 1,
-        });
+        try {
+          // Ensure the row exists (de-duplicated), then PATCH its fields. We
+          // never push the server response back into state, so text typed
+          // during the request survives; the next autosave pass reconciles
+          // any later edits.
+          const id = card.id || await ensureCraftId(type, card);
+          if (!id) continue;
+          await API.patchCraft(profileId, id, {
+            craft_name: card.craft_name, technique_type: type,
+            expertise_level: card.expertise_level, specialization: card.specialization,
+            sampling_time_weeks: card.sampling_time_weeks,
+            production_timeline_months_50units: card.production_timeline_months_50units,
+            order: i + 1,
+          });
+        } catch (e) {
+          const typeLabel = TYPES.find(t => t.key === type)?.label || type;
+          const detail = e.response?.data?.craft_name?.[0] || e.response?.data?.detail;
+          failures.push(detail ? `${typeLabel}: ${card.craft_name} — ${detail}` : `${typeLabel}: ${card.craft_name}`);
+        }
       }
     }
     await API.patchStudio(profileId, { craft_notes: craftNotes });
+    if (failures.length) {
+      throw new Error(`Couldn't save: ${failures.join('; ')}`);
+    }
   };
 
   const autoSaving = useAutosave(persist, [crafts, craftNotes]);
@@ -226,7 +289,7 @@ export default function SectionD({ profileId, initialData, onSave, onNext }) {
       onSave?.();
       if (andNext) onNext?.();
     } catch (e) {
-      error(e.response?.data ? JSON.stringify(e.response.data) : 'Save failed');
+      error(e.message || (e.response?.data ? JSON.stringify(e.response.data) : 'Save failed'));
     } finally { setSaving(false); }
   };
 

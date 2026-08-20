@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, Fragment } from 'react';
+import { useState, useEffect, useRef, useMemo, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { discoveryAPI, chatAPI, buyerAPI, authTokens } from '../api/client';
@@ -167,7 +167,6 @@ const STUDIO_V3_CSS = `
 .studio-v3 .sustain-block { display:flex; flex-direction:column; gap:22px; }
 .studio-v3 .sustain-q { font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-muted); margin-bottom:7px; }
 .studio-v3 .sustain-a { font-size:14px; color:var(--text-dark); line-height:1.7; white-space:pre-line; }
-.studio-v3 .sustain-a.clamped { display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; }
 .studio-v3 .sustain-more { margin-top:6px; background:none; border:none; padding:0; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:12px; font-weight:600; color:var(--sage); letter-spacing:0.02em; }
 .studio-v3 .sustain-more:hover { color:var(--sage-d); text-decoration:underline; }
 
@@ -468,19 +467,34 @@ function Lightbox({ images, startIndex, onClose }) {
 }
 
 /* ── Sustainability answer ────────────────────────────────────────────────────
-   H.1/H.2 answers are free text and can run long — clamped to 4 lines with a
-   "Read more" toggle so the section doesn't dominate the page. Only shows the
-   toggle when the text is actually long enough to be clamped (a short answer
-   never grows a "Read more" it doesn't need). The char threshold is a rough
-   proxy for "roughly more than 4 lines at this font size/width" — exact
-   overflow detection would need a layout measurement, which isn't worth it
-   here since a few extra/missing characters either way doesn't matter.        */
+   H.1/H.2 answers are free text and can run long — truncated to the first
+   1-2 sentences with a "Read more" toggle so the section doesn't dominate
+   the page.
+   Bug fix (Aug 2026): this used to rely purely on a CSS -webkit-line-clamp:4
+   to decide what showed before "Read more" — clamping by LINE COUNT, not
+   sentence count, which at this font size/line-height fit 3-4 full
+   sentences before truncating, not the 1-2 the truncation was supposed to
+   leave visible. Line-based clamping is also container-width-dependent —
+   the same text clamps differently on a wider vs. narrower screen — so it
+   could never reliably target "1-2 sentences" in the first place. Switched
+   to actual sentence-boundary truncation: content-based, so it's the same
+   1-2 sentences regardless of viewport width.                              */
+function truncateToSentences(text, maxSentences = 2) {
+  // Splits on '.', '!', '?' followed by whitespace or end-of-string,
+  // keeping the punctuation. Doesn't try to special-case abbreviations
+  // (e.g. "Mr.") — this is studio-written marketing copy, not formal
+  // prose likely to be full of those.
+  const sentences = text.match(/[^.!?]+[.!?]+(\s+|$)/g) || [text];
+  if (sentences.length <= maxSentences) return { shown: text, isLong: false };
+  return { shown: sentences.slice(0, maxSentences).join('').trim(), isLong: true };
+}
+
 function SustainAnswer({ text }) {
   const [expanded, setExpanded] = useState(false);
-  const isLong = text.length > 260;
+  const { shown, isLong } = useMemo(() => truncateToSentences(text, 2), [text]);
   return (
     <>
-      <div className={`sustain-a${isLong && !expanded ? ' clamped' : ''}`}>{text}</div>
+      <div className="sustain-a">{expanded || !isLong ? text : `${shown}…`}</div>
       {isLong && (
         <button type="button" className="sustain-more" onClick={() => setExpanded(e => !e)}>
           {expanded ? 'Read less' : 'Read more'}

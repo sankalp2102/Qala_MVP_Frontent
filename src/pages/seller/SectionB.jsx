@@ -13,8 +13,15 @@ const API = onboardingAPI;
 const GENDERS = ['Womenswear', 'Menswear', 'Gender Neutral / Unisex', 'Kidswear'];
 
 const OCCASIONS_DEFAULT = [
-  'Resortwear / Travel', 'Everyday / Casual', 'Occasionwear / Ethnic',
-  'Festive / Bridal', 'Workwear / Contemporary', 'Loungewear / Sleepwear', 'Activewear',
+  // Bug fix (Aug 2026): "Occasionwear / Ethnic" → "Occasionwear",
+  // "Workwear / Contemporary" → "Workwear" — narrowed on request. Any
+  // seller who already selected the old combined label under its old
+  // exact string won't auto-match this new shorter one (string
+  // comparison, not a synonym match) — worth a quick check on existing
+  // seller data if that matters here, same as the note above about
+  // "Accessories / Scarves / Stoles" backward-compat.
+  'Resortwear / Travel', 'Everyday / Casual', 'Occasionwear',
+  'Festive / Bridal', 'Workwear', 'Loungewear / Sleepwear', 'Activewear',
 ];
 
 /* B.3 — "Accessories / Scarves / Stoles" intentionally NOT in this default list.

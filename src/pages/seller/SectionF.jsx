@@ -32,7 +32,7 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
   const [newContact, setNewContact]         = useState({ name: '', role: '', email: '', phone: '' });
   const [editingContact, setEditingContact] = useState(null);
 
-  const [coordinator, setCoordinator] = useState({ name: '', position: '', writeup: '' });
+  const [coordinator, setCoordinator] = useState({ name: '', position: '', writeup: '', image: '' });
   const [coordSaved, setCoordSaved]   = useState(false);
 
   const [form, setForm] = useState({
@@ -49,7 +49,13 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
     if (studio?.contacts) setContacts(studio.contacts);
     if (collab?.buyer_coordinator) {
       const bc = collab.buyer_coordinator;
-      setCoordinator({ name: bc.name || '', position: bc.position || '', writeup: bc.writeup || '' });
+      // Bug fix (Aug 2026): `image` was never read out of the API
+      // response here, on the refetch below, or after a successful
+      // upload — so even a photo that saved correctly on the backend
+      // never showed anywhere in this section. The seller had no way to
+      // tell a working upload from a silently failed one; both looked
+      // identical (the static "+ Upload Photo" button, forever).
+      setCoordinator({ name: bc.name || '', position: bc.position || '', writeup: bc.writeup || '', image: bc.image || '' });
     }
     if (d) {
       setForm(f => ({
@@ -73,7 +79,7 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
     API.getStudio(profileId).then(r => { if (r.data?.contacts) setContacts(r.data.contacts); }).catch(() => {});
     API.getCoordinator(profileId).then(r => {
       const d = r.data;
-      if (d) setCoordinator({ name: d.name || '', position: d.position || '', writeup: d.writeup || '' });
+      if (d) setCoordinator({ name: d.name || '', position: d.position || '', writeup: d.writeup || '', image: d.image || '' });
     }).catch(() => {});
     API.getProduction(profileId).then(r => {
       const d = r.data; if (!d) return;
@@ -115,10 +121,26 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
       fd.append('position', coordinator.position);
       fd.append('writeup', coordinator.writeup);
       fd.append('image', file);
-      await API.putCoordinator(profileId, fd);
+      const r = await API.putCoordinator(profileId, fd);
+      // Bug fix (Aug 2026): the response was discarded entirely — even a
+      // fully successful upload never updated `coordinator.image`, so
+      // the UI still showed nothing. Store it now, the same way any
+      // other field update would.
+      setCoordinator(c => ({ ...c, image: r.data?.image || c.image }));
       setCoordSaved(true); setTimeout(() => setCoordSaved(false), 1500);
       success('Photo uploaded');
-    } catch { error('Upload failed'); }
+    } catch (err) {
+      // Bug fix (Aug 2026) — "unable to upload photos": this used to
+      // show the exact same generic message no matter what actually
+      // went wrong, so a HEIC photo from an iPhone (rejected by the
+      // backend — now fixed separately by auto-converting HEIC to JPEG
+      // server-side, see seller_profile/serializers.py) failed with no
+      // way for the seller to know why. Surface the backend's real
+      // reason when there is one.
+      const msg = err.response?.data?.image?.[0] || err.response?.data?.detail
+        || 'Upload failed — please try again.';
+      error(msg);
+    }
   };
 
   const addContact = async () => {
@@ -267,10 +289,24 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
             placeholder="e.g. Priya has 12 years in textile production. She manages all buyer relationships from brief to delivery. Prefers WhatsApp for quick updates." />
         </Field>
         <Field label="Photo" style={{ marginBottom: 0 }}>
-          <label style={{ display: 'inline-block', cursor: 'pointer' }}>
-            <input type="file" accept="image/*" onChange={uploadCoordPhoto} style={{ display: 'none' }} />
-            <span className="btn btn-outline btn-sm">+ Upload Photo</span>
-          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {/* Bug fix (Aug 2026): this never rendered the current photo
+                at all — on load OR after a successful upload — so a
+                working upload and a silently failed one looked
+                completely identical: the same static button, forever.
+                Now shows the real thumbnail whenever one exists. */}
+            {coordinator.image && (
+              <img
+                src={coordinator.image}
+                alt={coordinator.name || 'Coordinator photo'}
+                style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border)', flexShrink: 0 }}
+              />
+            )}
+            <label style={{ display: 'inline-block', cursor: 'pointer' }}>
+              <input type="file" accept="image/*" onChange={uploadCoordPhoto} style={{ display: 'none' }} />
+              <span className="btn btn-outline btn-sm">{coordinator.image ? 'Change Photo' : '+ Upload Photo'}</span>
+            </label>
+          </div>
         </Field>
       </QCard>
 

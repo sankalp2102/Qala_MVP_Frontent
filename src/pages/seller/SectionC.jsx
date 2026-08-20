@@ -64,15 +64,19 @@ function FabricGroupBody({
    group rather than being stranded; it is never deleted from the backend. */
 const FABRIC_GROUPS = [
   { cat: 'cotton', label: 'Cotton Based', fabrics: [
-    'General Cotton', 'Organic cotton', 'Kala cotton', 'Cotton mulmul / muslin', 'Cotton poplin',
+    // Bug fix (Aug 2026): "General Cotton" removed on request — too
+    // generic next to the specific cotton types already listed here.
+    'Organic cotton', 'Kala cotton', 'Cotton mulmul / muslin', 'Cotton poplin',
     'Cotton cambric', 'Cotton voile', 'Cotton satin', 'Cotton-silk blend', 'Cotton-linen blend',
   ]},
   { cat: 'silk', label: 'Silk Based', fabrics: [
-    'General Silk', 'Mulberry silk', 'Tussar silk', 'Eri silk', 'Muga silk',
+    // Bug fix (Aug 2026): "General Silk" removed, same reason as above.
+    'Mulberry silk', 'Tussar silk', 'Eri silk', 'Muga silk',
     'Silk crepe', 'Silk georgette', 'Silk chiffon', 'Silk satin', 'Silk blends',
   ]},
   { cat: 'linen',       label: 'Linen & Bast',             fabrics: ['Linen', 'Linen blends', 'Hemp', 'Hemp blends'] },
-  { cat: 'wool',        label: 'Wool Based',               fabrics: ['General Wool', 'Pashmina', 'Other Fine wool', 'Wool blends'] },
+  // Bug fix (Aug 2026): "General Wool" removed, same reason as above.
+  { cat: 'wool',        label: 'Wool Based',               fabrics: ['Pashmina', 'Other Fine wool', 'Wool blends'] },
   { cat: 'regenerated', label: 'Regenerated / Cellulosic', fabrics: ['Viscose', 'Rayon', 'Modal', 'Lyocell / Tencel'] },
 ];
 
