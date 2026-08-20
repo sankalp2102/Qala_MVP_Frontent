@@ -61,6 +61,11 @@ function ProductForm({ initial, onSave, onCancel }) {
   const [saving, setSaving] = useState(false);
   const set = p => setForm(f => ({ ...f, ...p }));
 
+  // Bug fix (Aug 2026) — "some studios reported photo upload not
+  // working": a narrow explicit accept list can filter HEIC files out of
+  // the browser's own file picker dialog on desktop before any code here
+  // even runs. Broadened to image/* (matches SectionD/F/A, all already
+  // fixed the same way) — the backend converts HEIC to JPEG automatically.
   const pickPhotos = e => {
     const files = Array.from(e.target.files || []);
     e.target.value = '';
@@ -129,7 +134,7 @@ function ProductForm({ initial, onSave, onCancel }) {
             <div style={{ fontSize: 18, color: '#CCC' }}>📸</div>
             <div style={{ fontSize: 13, color: '#888' }}>Upload product photos</div>
             <div style={{ fontSize: 11, color: '#BBB', marginTop: 4 }}>JPG · PNG · WEBP · up to 10 MB each · multiple allowed</div>
-            <input type="file" accept="image/jpeg,image/png,image/webp" multiple style={{ display: 'none' }} onChange={pickPhotos} />
+            <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={pickPhotos} />
           </label>
         </div>
 
@@ -517,12 +522,17 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
       let saved = r.data;
       const uploaded = [];
       let failed = 0;
+      let lastFailReason = '';
       for (const file of photoFiles) {
-        try { const fd = new FormData(); fd.append('file', file); const pr = await API.uploadProductPhoto(profileId, saved.id, fd); uploaded.push(pr.data); } catch { failed++; }
+        try { const fd = new FormData(); fd.append('file', file); const pr = await API.uploadProductPhoto(profileId, saved.id, fd); uploaded.push(pr.data); }
+        // Bug fix (Aug 2026): reasons collected per-file (not just a
+        // count) so the toast below can name the actual problem instead
+        // of just "N photos didn't upload" with no indication why.
+        catch (e) { failed++; lastFailReason = e.response?.data?.file?.[0] || e.response?.data?.detail || lastFailReason; }
       }
       setProducts(prev => [...prev, { ...saved, photos: uploaded }]);
       setProdMode(null);
-      if (failed) error(`Product saved, but ${failed} photo${failed === 1 ? '' : 's'} didn't upload — edit the product to retry.`);
+      if (failed) error(`Product saved, but ${failed} photo${failed === 1 ? '' : 's'} didn't upload${lastFailReason ? ` — ${lastFailReason}` : ' — edit the product to retry.'}`);
       else success('Product added');
     } catch { error('Failed to save product'); }
   });
@@ -533,12 +543,14 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
       let updated = r.data;
       const uploaded = [];
       let failed = 0;
+      let lastFailReason = '';
       for (const file of photoFiles) {
-        try { const fd = new FormData(); fd.append('file', file); const pr = await API.uploadProductPhoto(profileId, id, fd); uploaded.push(pr.data); } catch { failed++; }
+        try { const fd = new FormData(); fd.append('file', file); const pr = await API.uploadProductPhoto(profileId, id, fd); uploaded.push(pr.data); }
+        catch (e) { failed++; lastFailReason = e.response?.data?.file?.[0] || e.response?.data?.detail || lastFailReason; }
       }
       setProducts(prev => prev.map(p => p.id === id ? { ...updated, photos: [...(photos || []), ...uploaded] } : p));
       setEditingProduct(null);
-      if (failed) error(`Product updated, but ${failed} photo${failed === 1 ? '' : 's'} didn't upload — try adding ${failed === 1 ? 'it' : 'them'} again.`);
+      if (failed) error(`Product updated, but ${failed} photo${failed === 1 ? '' : 's'} didn't upload${lastFailReason ? ` — ${lastFailReason}` : ' — try adding them again.'}`);
       else success('Product updated');
     } catch { error('Failed to update product'); }
   });

@@ -141,7 +141,15 @@ export default function SectionA({ profileId, initialData, onSave, onNext }) {
       fd.append('file', file); fd.append('media_type', 'hero'); fd.append('order', 1);
       const r = await API.uploadStudioMedia(profileId, fd);
       setHeroMedia(r.data); success('Uploaded!');
-    } catch { error('Upload failed'); }
+    } catch (err) {
+      // Bug fix (Aug 2026) — "some studios reported photo upload not
+      // working": same silent-catch pattern already fixed for craft and
+      // coordinator photos. Surface the backend's real reason instead of
+      // a one-size-fits-all message.
+      const msg = err.response?.data?.file?.[0] || err.response?.data?.detail
+        || 'Upload failed — please try again.';
+      error(msg);
+    }
     finally { setUploading(''); }
   };
 
@@ -287,7 +295,15 @@ export default function SectionA({ profileId, initialData, onSave, onNext }) {
           </div>
         )}
         <label style={{ display: 'block', cursor: uploading === 'hero' ? 'default' : 'pointer' }}>
-          <input type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadHero} style={{ display: 'none' }} disabled={uploading === 'hero'} />
+          {/* Bug fix (Aug 2026): "some studios reported photo upload not
+              working" — a narrow explicit accept list like this can filter
+              HEIC files out of the browser's own file picker dialog
+              entirely on desktop, before the file ever reaches any code
+              here — no error to catch, because the file was never
+              selectable. Broadened to image/* (matches SectionD/F, both
+              already fixed the same way) so HEIC is at least selectable;
+              the backend converts it to JPEG automatically once it is. */}
+          <input type="file" accept="image/*" onChange={uploadHero} style={{ display: 'none' }} disabled={uploading === 'hero'} />
           <MediaDropzone icon="🖼" uploading={uploading === 'hero'}
             label={heroMedia ? 'Replace hero image' : 'Upload hero image'}
             hint="JPG · PNG · WEBP up to 10 MB. One image only." />

@@ -47,6 +47,7 @@ export default function SectionH({ profileId, initialData, onSave, onNext }) {
     setUploading(true);
     setUploadProgress({ done: 0, total: files.length, failed: 0 });
     let done = 0, failed = 0;
+    let lastFailReason = '';
 
     for (const file of files) {
       try {
@@ -55,13 +56,19 @@ export default function SectionH({ profileId, initialData, onSave, onNext }) {
         fd.append('order', media.length + done + 1);
         const r = await API.uploadBTS(profileId, fd);
         setMedia(m => [...m, r.data]);
-      } catch { failed++; }
+      } catch (e) {
+        // Bug fix (Aug 2026): counted failures but never recorded WHY —
+        // the toast below could only ever say "N failed," never what
+        // actually went wrong (wrong format, too large, etc).
+        failed++;
+        lastFailReason = e.response?.data?.file?.[0] || e.response?.data?.detail || lastFailReason;
+      }
       done++;
       setUploadProgress({ done, total: files.length, failed });
     }
 
     if (failed === 0) success(`${files.length} file${files.length > 1 ? 's' : ''} uploaded!`);
-    else error(`${failed} of ${files.length} failed`);
+    else error(`${failed} of ${files.length} failed${lastFailReason ? ` — ${lastFailReason}` : ''}`);
 
     setUploading(false);
     setUploadProgress(null);
@@ -118,7 +125,16 @@ export default function SectionH({ profileId, initialData, onSave, onNext }) {
       <QCard qref="H.3" title="Studio & Process Media"
         desc="Good BTS content includes: artisans mid-process, close-ups of craft detail, the studio workspace, materials and tools, finished product packaged for delivery.">
         <label style={{ display: 'block', cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
-          <input type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/x-msvideo" onChange={upload} style={{ display: 'none' }} disabled={uploading} />
+          {/* Bug fix (Aug 2026): "some studios reported photo and video
+              upload not working" — this explicit list can filter HEIC
+              files out of the browser's own file picker on desktop
+              entirely, before any code here runs. image/* lets HEIC
+              through to be selected; the backend converts it to JPEG
+              automatically. Video types are left as an explicit list —
+              unlike images, there's no equivalent "convert whatever
+              format arrives" step for video, so only formats the backend
+              genuinely accepts should be selectable in the first place. */}
+          <input type="file" multiple accept="image/*,video/mp4,video/quicktime,video/x-msvideo" onChange={upload} style={{ display: 'none' }} disabled={uploading} />
           <MediaDropzone icon="🎬" uploading={uploading} progress={uploadProgress}
             label="Upload photos or videos"
             hint="Images: JPG · PNG · WEBP up to 10 MB · Videos: MP4 · MOV · AVI up to 100 MB" />
