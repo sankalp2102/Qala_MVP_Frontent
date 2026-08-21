@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { onboardingAPI } from '../../api/client';
+import { onboardingAPI, extractErrorMessage } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 import {
@@ -160,7 +160,16 @@ export default function SectionD({ profileId, initialData, onSave, onNext }) {
 
   const deleteCard = async (type, idx) => {
     const card = crafts[type][idx];
-    if (card.id) { try { await API.delCraft(profileId, card.id); } catch {} }
+    // Bug fix (Aug 2026): this removed the card from local state
+    // unconditionally, even when the backend delete failed silently
+    // (bare catch {}) — the card would visually disappear while still
+    // existing on the server, and the seller had no idea anything went
+    // wrong. Now only removes it locally once the delete actually
+    // succeeds, and shows why when it doesn't.
+    if (card.id) {
+      try { await API.delCraft(profileId, card.id); }
+      catch (e) { error(extractErrorMessage(e, 'Could not delete — please try again.')); return; }
+    }
     setCrafts(prev => ({ ...prev, [type]: prev[type].filter((_, i) => i !== idx) }));
   };
 
@@ -221,16 +230,19 @@ export default function SectionD({ profileId, initialData, onSave, onNext }) {
       // same generic message regardless of what actually went wrong,
       // so a HEIC photo (rejected by the backend — now auto-converted
       // to JPEG server-side, see seller_profile/serializers.py) failed
-      // with no way to tell why. Surface the backend's real reason.
-      const msg = err.response?.data?.image?.[0] || err.response?.data?.detail
-        || 'Image upload failed — please try again.';
-      error(msg);
+      // with no way to tell why. Uses the shared extractErrorMessage
+      // helper — the flat err.response?.data?.image?.[0] this used to
+      // read never actually matched what the backend returns (field
+      // errors are nested under `details`), on top of a separate
+      // backend bug that made every field error unreadable regardless
+      // (see core/utils.py) — both fixed together.
+      error(extractErrorMessage(err, 'Image upload failed — please try again.'));
     }
   };
 
   const removeImage = async (type, idx) => {
     const card = crafts[type][idx];
-    if (card.id) { try { await API.patchCraft(profileId, card.id, { image: null }); } catch { error('Could not remove image — please try again.'); return; } }
+    if (card.id) { try { await API.patchCraft(profileId, card.id, { image: null }); } catch (e) { error(extractErrorMessage(e, 'Could not remove image — please try again.')); return; } }
     patchCardByKey(type, { tempId: card._tempId, id: card.id }, { image: null, _images: [] });
   };
 
@@ -267,8 +279,12 @@ export default function SectionD({ profileId, initialData, onSave, onNext }) {
             order: i + 1,
           });
         } catch (e) {
+          // Bug fix (Aug 2026): now uses the shared extractErrorMessage
+          // helper — the flat e.response?.data?.craft_name?.[0] this used
+          // to read never actually matched the real (details-nested)
+          // response shape.
           const typeLabel = TYPES.find(t => t.key === type)?.label || type;
-          const detail = e.response?.data?.craft_name?.[0] || e.response?.data?.detail;
+          const detail = extractErrorMessage(e, '');
           failures.push(detail ? `${typeLabel}: ${card.craft_name} — ${detail}` : `${typeLabel}: ${card.craft_name}`);
         }
       }
@@ -289,7 +305,11 @@ export default function SectionD({ profileId, initialData, onSave, onNext }) {
       onSave?.();
       if (andNext) onNext?.();
     } catch (e) {
-      error(e.message || (e.response?.data ? JSON.stringify(e.response.data) : 'Save failed'));
+      // Bug fix (Aug 2026): persist() above already throws a plain Error
+      // with a specific, readable message when techniques fail — e.message
+      // is checked first for that case; extractErrorMessage covers a raw
+      // axios error from anything else that might reach here.
+      error(e.message || extractErrorMessage(e, 'Save failed'));
     } finally { setSaving(false); }
   };
 

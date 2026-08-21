@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { onboardingAPI } from '../../api/client';
+import { onboardingAPI, extractErrorMessage } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 import { SectionHeader, SectionFooter, CollabToggle, HideToggle, inputStyle, textareaStyle } from './_ui';
@@ -525,16 +525,18 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
       let lastFailReason = '';
       for (const file of photoFiles) {
         try { const fd = new FormData(); fd.append('file', file); const pr = await API.uploadProductPhoto(profileId, saved.id, fd); uploaded.push(pr.data); }
-        // Bug fix (Aug 2026): reasons collected per-file (not just a
-        // count) so the toast below can name the actual problem instead
-        // of just "N photos didn't upload" with no indication why.
-        catch (e) { failed++; lastFailReason = e.response?.data?.file?.[0] || e.response?.data?.detail || lastFailReason; }
+        // Bug fix (Aug 2026): now uses the shared extractErrorMessage
+        // helper — the flat field lookup this used to do never actually
+        // matched what the backend returns (nested under `details`), on
+        // top of a separate backend bug that made every field error
+        // unreadable regardless (see core/utils.py) — both fixed together.
+        catch (e) { failed++; lastFailReason = extractErrorMessage(e, lastFailReason); }
       }
       setProducts(prev => [...prev, { ...saved, photos: uploaded }]);
       setProdMode(null);
       if (failed) error(`Product saved, but ${failed} photo${failed === 1 ? '' : 's'} didn't upload${lastFailReason ? ` — ${lastFailReason}` : ' — edit the product to retry.'}`);
       else success('Product added');
-    } catch { error('Failed to save product'); }
+    } catch (e) { error(extractErrorMessage(e, 'Failed to save product')); }
   });
   const saveEditedProduct = (form, photoFiles) => track(async () => {
     try {
@@ -546,16 +548,16 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
       let lastFailReason = '';
       for (const file of photoFiles) {
         try { const fd = new FormData(); fd.append('file', file); const pr = await API.uploadProductPhoto(profileId, id, fd); uploaded.push(pr.data); }
-        catch (e) { failed++; lastFailReason = e.response?.data?.file?.[0] || e.response?.data?.detail || lastFailReason; }
+        catch (e) { failed++; lastFailReason = extractErrorMessage(e, lastFailReason); }
       }
       setProducts(prev => prev.map(p => p.id === id ? { ...updated, photos: [...(photos || []), ...uploaded] } : p));
       setEditingProduct(null);
       if (failed) error(`Product updated, but ${failed} photo${failed === 1 ? '' : 's'} didn't upload${lastFailReason ? ` — ${lastFailReason}` : ' — try adding them again.'}`);
       else success('Product updated');
-    } catch { error('Failed to update product'); }
+    } catch (e) { error(extractErrorMessage(e, 'Failed to update product')); }
   });
   const deleteProduct = id => track(async () => {
-    try { await API.delStudioProduct(profileId, id); } catch { error('Failed to delete product'); return; }
+    try { await API.delStudioProduct(profileId, id); } catch (e) { error(extractErrorMessage(e, 'Failed to delete product')); return; }
     setProducts(prev => prev.filter(p => p.id !== id));
     setCollections(prev => prev.map(c => ({ ...c, products: (c.products || []).filter(p => p.id !== id) })));
   });
@@ -586,7 +588,7 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
       setCollections(prev => prev.map(c => ({ ...c, products: (c.products || []).filter(p => !removed.has(p.id)) })));
       exitSelect();
       success(`Deleted ${r.data?.deleted ?? ids.length} product${(r.data?.deleted ?? ids.length) === 1 ? '' : 's'}`);
-    } catch (e) { error(e.response?.data?.error || 'Could not delete the selected products'); }
+    } catch (e) { error(extractErrorMessage(e, 'Could not delete the selected products')); }
   });
 
   const bulkImport = (file, mode = 'append') => track(async () => {
@@ -617,7 +619,7 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
       (d.warnings || []).slice(0, 4).forEach(w => error(w));
 
       if (d.job) { setImageJob(d.job); pollImageJob(d.job.id); }
-    } catch (e) { error(e.response?.data?.error || 'Import failed'); }
+    } catch (e) { error(extractErrorMessage(e, 'Import failed')); }
   });
 
   // Poll the background image-import job until it finishes.
@@ -643,7 +645,7 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
       const r = await API.retryImageImport(profileId);
       if (r.data?.job) { setImageJob(r.data.job); pollImageJob(r.data.job.id); success('Retrying image download'); }
       else success(r.data?.message || 'No images pending');
-    } catch { error('Could not start retry'); }
+    } catch (e) { error(extractErrorMessage(e, 'Could not start retry')); }
   };
   const downloadTemplate = async () => {
     try {
@@ -653,7 +655,7 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
       a.href = url; a.download = 'qala-product-template.csv';
       document.body.appendChild(a); a.click(); a.remove();
       URL.revokeObjectURL(url);
-    } catch { error('Could not download template'); }
+    } catch (e) { error(extractErrorMessage(e, 'Could not download template')); }
   };
 
   // ── Collections ──
@@ -668,15 +670,15 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
         setCollections(prev => [...prev, r.data]);
         setCollFormOpen(false); success('Collection created');
       }
-    } catch { error('Failed to save collection'); }
+    } catch (e) { error(extractErrorMessage(e, 'Failed to save collection')); }
   });
   const patchCollection = (id, patch) => track(async () => {
     setCollections(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c));
     try { const r = await API.patchCollection(profileId, id, patch); setCollections(prev => prev.map(c => c.id === id ? r.data : c)); }
-    catch { error('Failed to save change'); }
+    catch (e) { error(extractErrorMessage(e, 'Failed to save change')); }
   });
   const deleteCollection = id => track(async () => {
-    try { await API.delCollection(profileId, id); } catch { error('Failed to delete collection'); return; }
+    try { await API.delCollection(profileId, id); } catch (e) { error(extractErrorMessage(e, 'Failed to delete collection')); return; }
     setCollections(prev => prev.filter(c => c.id !== id));
   });
 

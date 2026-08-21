@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { onboardingAPI } from '../../api/client';
+import { onboardingAPI, extractErrorMessage } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 import { SectionHeader, QCard, SectionFooter, MediaDropzone, MediaThumb, useAutosave, textareaStyle } from './_ui';
@@ -59,9 +59,13 @@ export default function SectionH({ profileId, initialData, onSave, onNext }) {
       } catch (e) {
         // Bug fix (Aug 2026): counted failures but never recorded WHY —
         // the toast below could only ever say "N failed," never what
-        // actually went wrong (wrong format, too large, etc).
+        // actually went wrong. Uses the shared extractErrorMessage
+        // helper now — the flat field lookup this used to do never
+        // actually matched what the backend returns, on top of a
+        // separate backend bug that made every field error unreadable
+        // regardless (see core/utils.py) — both fixed together.
         failed++;
-        lastFailReason = e.response?.data?.file?.[0] || e.response?.data?.detail || lastFailReason;
+        lastFailReason = extractErrorMessage(e, lastFailReason);
       }
       done++;
       setUploadProgress({ done, total: files.length, failed });
@@ -75,8 +79,13 @@ export default function SectionH({ profileId, initialData, onSave, onNext }) {
   };
 
   const delMedia = async id => {
-    try { await API.delBTS(profileId, id); setMedia(m => m.filter(x => x.id !== id)); }
-    catch { error('Failed'); }
+    // Bug fix (Aug 2026): same class of issue fixed in SectionD's
+    // deleteCard — this removed the item from local state even when the
+    // backend delete failed, so the UI could silently drift from what's
+    // actually saved. Only removes locally once the delete succeeds.
+    try { await API.delBTS(profileId, id); }
+    catch (e) { error(extractErrorMessage(e, 'Could not delete — please try again.')); return; }
+    setMedia(m => m.filter(x => x.id !== id));
   };
 
   const buildPayload = () => ({
@@ -96,7 +105,7 @@ export default function SectionH({ profileId, initialData, onSave, onNext }) {
       onSave?.();
       if (thenNav) onNext?.();
     } catch (e) {
-      error(e.response?.data ? JSON.stringify(e.response.data) : 'Save failed');
+      error(extractErrorMessage(e, 'Save failed'));
     } finally { setSaving(false); }
   };
 

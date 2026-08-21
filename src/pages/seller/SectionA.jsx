@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { onboardingAPI } from '../../api/client';
+import { onboardingAPI, extractErrorMessage } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 import {
@@ -86,7 +86,12 @@ export default function SectionA({ profileId, initialData, onSave, onNext }) {
 
   const saveCerts = async tags => {
     setCertTags(tags);
-    try { await API.patchStudio(profileId, { certifications: JSON.stringify(tags) }); } catch {}
+    // Bug fix (Aug 2026): silent catch — this PATCH runs independently of
+    // the main form autosave, so a failure here meant the tag showed
+    // locally but silently never actually persisted, with nothing telling
+    // the seller their change didn't save.
+    try { await API.patchStudio(profileId, { certifications: JSON.stringify(tags) }); }
+    catch (e) { error(extractErrorMessage(e, 'Could not save — please try again.')); }
   };
   const addCertTag = () => {
     const v = certInput.trim(); if (!v) return;
@@ -94,13 +99,22 @@ export default function SectionA({ profileId, initialData, onSave, onNext }) {
   };
   const removeCertTag = i => saveCerts(certTags.filter((_, j) => j !== i));
 
+  // Bug fix (Aug 2026) — "unable to add press mentions/links, only 1
+  // works": the backend correctly rejects a link that isn't a fully-formed
+  // URL, but this used to catch {} and swallow that entirely. Normalizes a
+  // scheme-less link automatically (the common case) and shows the
+  // backend's real validation message for anything that still fails.
   const addAward = async () => {
     if (!newAward.award_name.trim()) return;
+    let link = newAward.link.trim();
+    if (link && !/^https?:\/\//i.test(link)) link = `https://${link}`;
     try {
-      const r = await API.addAward(profileId, { ...newAward, order: awards.length + 1 });
+      const r = await API.addAward(profileId, { ...newAward, link, order: awards.length + 1 });
       setAwards(x => [...x, r.data]);
       setNewAward({ award_name: '', link: '' });
-    } catch {}
+    } catch (e) {
+      error(extractErrorMessage(e, 'Could not add — please check the link and try again.'));
+    }
   };
 
   const save = async (andNext = false) => {
@@ -111,13 +125,43 @@ export default function SectionA({ profileId, initialData, onSave, onNext }) {
       onSave?.();
       if (andNext) onNext?.();
     } catch (e) {
-      error(e.response?.data ? JSON.stringify(e.response.data) : 'Save failed');
+      // Bug fix (Aug 2026): this used to dump the raw backend error object
+      // straight into a toast via JSON.stringify — unreadable, and made
+      // worse by a separate backend bug (now fixed — see core/utils.py)
+      // that turned field-validation errors into Python's raw dict repr.
+      // Uses the shared extractErrorMessage helper now, same as every
+      // other upload/save error handler in this file and its siblings.
+      error(extractErrorMessage(e));
     } finally { setSaving(false); }
   };
 
   // Shared by the explicit Save button and the debounced autosave below.
   const persist = async () => {
-    await API.putStudio(profileId, { ...form, certifications: JSON.stringify(certTags) });
+    // Bug fix (Aug 2026): two real, silent-until-now backend rejections —
+    //  - years_in_operation sent as '' (the input's own empty state)
+    //    straight to a nullable IntegerField, which rejects an empty
+    //    string outright ("A valid number is required.") instead of
+    //    treating it the same as "not filled in."
+    //  - website_url / instagram_url sent with no scheme normalization —
+    //    same class of bug as the Awards/Press link fix earlier
+    //    (SectionA's addAward): "studioindaco.com" fails Django's
+    //    URLField validation, "https://studioindaco.com" passes.
+    // Both used to fail on every autosave AND the explicit Save button,
+    // with the raw error only ever shown as unreadable JSON (see save()
+    // above) — easy to miss that either of these was even the cause.
+    const normalizeUrl = u => {
+      const v = (u || '').trim();
+      if (!v) return '';
+      return /^https?:\/\//i.test(v) ? v : `https://${v}`;
+    };
+    const payload = {
+      ...form,
+      years_in_operation: form.years_in_operation === '' ? null : form.years_in_operation,
+      website_url: normalizeUrl(form.website_url),
+      instagram_url: normalizeUrl(form.instagram_url),
+      certifications: JSON.stringify(certTags),
+    };
+    await API.putStudio(profileId, payload);
     // Only send USPs that actually have text. The three rows start empty, and
     // StudioUSP.strength is non-blank on the backend — sending untouched rows
     // made every autosave fail with "This field may not be blank."
@@ -142,20 +186,16 @@ export default function SectionA({ profileId, initialData, onSave, onNext }) {
       const r = await API.uploadStudioMedia(profileId, fd);
       setHeroMedia(r.data); success('Uploaded!');
     } catch (err) {
-      // Bug fix (Aug 2026) — "some studios reported photo upload not
-      // working": same silent-catch pattern already fixed for craft and
-      // coordinator photos. Surface the backend's real reason instead of
-      // a one-size-fits-all message.
-      const msg = err.response?.data?.file?.[0] || err.response?.data?.detail
-        || 'Upload failed — please try again.';
-      error(msg);
+      // Bug fix (Aug 2026): now uses the shared extractErrorMessage
+      // helper — same fix as every other upload/save path in this file.
+      error(extractErrorMessage(err, 'Upload failed — please try again.'));
     }
     finally { setUploading(''); }
   };
 
   const delHero = async () => {
     try { await API.delStudioMedia(profileId, heroMedia.id); setHeroMedia(null); }
-    catch { error('Failed'); }
+    catch (e) { error(extractErrorMessage(e, 'Could not remove the hero image — please try again.')); }
   };
 
   return (

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { onboardingAPI } from '../../api/client';
+import { onboardingAPI, extractErrorMessage } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 import {
@@ -390,7 +390,10 @@ export default function SectionB({ profileId, initialData, onSave, onNext }) {
       onSave?.();
       if (andNext) onNext?.();
     } catch (e) {
-      error(e.response?.data ? JSON.stringify(e.response.data) : 'Save failed');
+      // Bug fix (Aug 2026): dumped raw backend error JSON on save failure —
+      // same fix applied across every section, using the shared
+      // extractErrorMessage helper (see api/client.js).
+      error(extractErrorMessage(e, 'Save failed'));
     } finally { setSaving(false); }
   };
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { onboardingAPI } from '../../api/client';
+import { onboardingAPI, extractErrorMessage } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 import { SectionHeader, QCard, SectionFooter, YNToggle, useAutosave } from './_ui';
@@ -105,7 +105,7 @@ export default function SectionE({ profileId, initialData, onSave, onNext }) {
       onSave?.();
       if (andNext) onNext?.();
     } catch (e) {
-      error(e.response?.data ? JSON.stringify(e.response.data) : 'Save failed');
+      error(extractErrorMessage(e, 'Save failed'));
     } finally { setSaving(false); }
   };
 

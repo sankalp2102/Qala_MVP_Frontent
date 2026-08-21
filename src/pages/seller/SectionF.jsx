@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { onboardingAPI } from '../../api/client';
+import { onboardingAPI, extractErrorMessage } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
 import {
@@ -105,6 +105,21 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
   // focus lost the text outright — while the footer claimed "Changes saved
   // automatically". It now goes through the shared hook like everything else.
   const persistCoordinator = useCallback(() => {
+    // Bug fix (Aug 2026): BuyerCoordinator.name is required (non-blank)
+    // on the backend, but this used to attempt the save unconditionally
+    // on every autosave cycle — so a coordinator whose name simply
+    // hadn't been filled in yet (position/writeup edited first, or the
+    // seller working on MOQ further down this same combined section)
+    // guaranteed a repeating validation failure. Since this section
+    // merges the coordinator and production autosave indicators into
+    // one (see mergeAutosave), that failure showed as a generic
+    // "Couldn't save your changes" even while the seller was looking at
+    // and had correctly filled in a completely different, unrelated
+    // part of the page (MOQ/pieces-per-batch) — no way to connect the
+    // error to "the coordinator's name field, elsewhere, is empty."
+    // Matches the same "don't save an incomplete row" guard already
+    // used for craft cards in SectionD.jsx.
+    if (!coordinator.name?.trim()) return Promise.resolve();
     const fd = new FormData();
     fd.append('name', coordinator.name || '');
     fd.append('position', coordinator.position || '');
@@ -135,11 +150,12 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
       // went wrong, so a HEIC photo from an iPhone (rejected by the
       // backend — now fixed separately by auto-converting HEIC to JPEG
       // server-side, see seller_profile/serializers.py) failed with no
-      // way for the seller to know why. Surface the backend's real
-      // reason when there is one.
-      const msg = err.response?.data?.image?.[0] || err.response?.data?.detail
-        || 'Upload failed — please try again.';
-      error(msg);
+      // way for the seller to know why. Uses the shared
+      // extractErrorMessage helper — the flat field lookup this used to
+      // do never actually matched what the backend returns, on top of a
+      // separate backend bug that made every field error unreadable
+      // regardless (see core/utils.py) — both fixed together.
+      error(extractErrorMessage(err, 'Upload failed — please try again.'));
     }
   };
 
@@ -150,7 +166,7 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
       setContacts(c => [...c, r.data]);
       setNewContact({ name: '', role: '', email: '', phone: '' });
       setAddingC(false); success('Team member added');
-    } catch { error('Failed to add'); }
+    } catch (e) { error(extractErrorMessage(e, 'Failed to add')); }
   };
 
   const saveEditContact = async () => {
@@ -162,12 +178,12 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
       });
       setContacts(c => c.map(x => x.id === editingContact.id ? r.data : x));
       setEditingContact(null); success('Updated');
-    } catch { error('Failed to update'); }
+    } catch (e) { error(extractErrorMessage(e, 'Failed to update')); }
   };
 
   const delContact = async id => {
     try { await API.delContact(profileId, id); setContacts(c => c.filter(x => x.id !== id)); }
-    catch { error('Failed'); }
+    catch (e) { error(extractErrorMessage(e, 'Could not remove — please try again.')); }
   };
 
   const persist = () => API.putProduction(profileId, {
@@ -210,7 +226,7 @@ export default function SectionF({ profileId, initialData, onSave, onNext }) {
       onSave?.();
       if (andNext) onNext?.();
     } catch (e) {
-      error(e.response?.data ? JSON.stringify(e.response.data) : 'Save failed');
+      error(extractErrorMessage(e, 'Save failed'));
     } finally { setSaving(false); }
   };
 

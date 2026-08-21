@@ -1,6 +1,48 @@
 import axios from 'axios';
 const BASE = import.meta.env.VITE_API_URL || 'https://api.qala.studio';
 
+// Bug fix (Aug 2026): the backend's custom_exception_handler (core/utils.py)
+// had a bug where every field-validation error — from EVERY endpoint in the
+// app, this handler is global — came back as Python's raw dict repr instead
+// of a clean structured error: "{'years_in_operation': [ErrorDetail(string=
+// 'A valid number is required.', code='invalid')], ...}" dumped straight into
+// a toast. Now fixed at the source to return { status, message, code,
+// details: { field: ['message', ...] } } for a field-validation error, or
+// { status, message, code } (no details) for a plain detail-message error
+// (permission denials, throttling, etc).
+//
+// Several places across the app had already started hand-extracting a
+// specific field's message (e.g. err.response?.data?.image?.[0]) assuming a
+// FLAT shape that never actually matched what the backend returns even
+// before this fix (it was wrapped in the same broken envelope) — this single
+// helper is the one correct way to pull a readable message out of any error
+// this app can receive, used consistently instead of repeating the same
+// extraction logic (correctly or not) in every catch block.
+export function extractErrorMessage(err, fallback = 'Something went wrong — please try again.') {
+  const data = err?.response?.data;
+  if (!data) return fallback;
+  if (data.details && typeof data.details === 'object') {
+    const parts = Object.entries(data.details).flatMap(([field, msgs]) => {
+      const text = Array.isArray(msgs) ? msgs.join(' ') : String(msgs);
+      if (!text) return [];
+      const label = field.replace(/_/g, ' ');
+      return [field === 'non_field_errors' ? text : `${label}: ${text}`];
+    });
+    if (parts.length) return parts.join(' · ');
+  }
+  // Some views return { error: '...' } directly via Response(...) rather
+  // than raising a DRF exception — that bypasses custom_exception_handler
+  // entirely (it only processes raised exceptions), so this shape never
+  // gets the { message, details } treatment above. A real, separate
+  // pattern used throughout seller_profile/views.py, not a bug — this
+  // just needs to be read on its own terms.
+  if (typeof data.error === 'string' && data.error) return data.error;
+  if (typeof data.message === 'string' && data.message && data.message !== 'Validation error') {
+    return data.message;
+  }
+  return fallback;
+}
+
 /* ════════════════════════════════════════════════════════════════════════════
    Auth token transport — HEADER-BASED (st-auth-mode: header)
    ────────────────────────────────────────────────────────────────────────────
