@@ -371,7 +371,13 @@ export default function AdminCreateProjectWizard() {
                     <option value="">Select…</option>
                     <option value="collection">Make a collection</option>
                     <option value="pieces">Get some pieces made</option>
-                    <option value="single">Get one piece made</option>
+                    {/* Bug fix (Aug 2026): "Get one piece made" -> "Make
+                        some samples" — matches the label change in
+                        Brief.project_type's choices (projects/models.py)
+                        and what Landing.jsx already shows buyers; this
+                        admin tool was the one place still showing the
+                        old wording. Value stays "single", label only. */}
+                    <option value="single">Make some samples</option>
                   </select>
                 </div>
                 <div style={S.field}>

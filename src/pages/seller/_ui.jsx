@@ -298,6 +298,18 @@ export function SavedPulse({ show }) {
  * call sites), or null. Null renders nothing — that is the honest state for a
  * section whose forms are explicit-submit, which previously still showed the
  * green "Changes saved automatically".
+ *
+ * Bug fix (Aug 2026): the green "✓ Changes saved automatically" success
+ * message is gone on request — autosave can fail in ways a seller doesn't
+ * notice (a stale tab, a network blip that resolves before the next
+ * keystroke), and seeing that confident checkmark trained people to trust
+ * autosave completely and skip "Save & Next" — the one action that's
+ * actually a reliable confirmation. Removing the reassurance is the whole
+ * point: nothing claims success now, so "Save & Next" stays the one thing
+ * worth trusting. "Saving…" still shows (it doesn't claim anything
+ * finished, just that something's in flight) and the red "Couldn't save
+ * your changes" error still shows — if anything, THAT one matters more now
+ * that nothing on the other side is competing with it for attention.
  */
 export function AutosaveIndicator({ status }) {
   if (status == null) return null;
@@ -328,22 +340,15 @@ export function AutosaveIndicator({ status }) {
     );
   }
 
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: saving ? '#AAA' : 'var(--green-d)' }}>
-      {saving ? (
-        <><span className="spinner" style={{ width: 12, height: 12 }} /> Saving…</>
-      ) : (
-        <>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 15, height: 15, borderRadius: '50%', background: 'var(--surface2)', color: 'var(--green-d)',
-            fontSize: 10, fontWeight: 700,
-          }}>✓</span>
-          Changes saved automatically
-        </>
-      )}
-    </span>
-  );
+  if (saving) {
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#AAA' }}>
+        <span className="spinner" style={{ width: 12, height: 12 }} /> Saving…
+      </span>
+    );
+  }
+
+  return null;
 }
 
 /**
