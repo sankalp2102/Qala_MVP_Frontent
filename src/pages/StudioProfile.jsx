@@ -309,13 +309,21 @@ const IconNodes = () => (
 );
 
 /* ── Badge helpers ─────────────────────────────────────────────────────────────
-   Resolution logic unchanged; prototype styling (solid fills, no border):
+   Bug fix (Aug 2026): "Expert showing on everything, should only show for
+   crafts marked Pro" — resolveBadge() was keying off craft.is_primary,
+   which per the model's own v3 comment ("expertise_level REPLACES the
+   works_with/is_primary booleans") is a legacy field that expertise_level
+   was supposed to replace — but this badge logic never got updated when
+   that migration happened. is_primary also defaults to `true` for every
+   newly-created craft card in SectionD.jsx, which is exactly why this
+   showed on literally everything regardless of the seller's actual
+   Moderate/High/Pro selection.
      qala_badge set → show that value (admin-assigned, overrides everything)
-     else is_primary → auto-show "Expert"
+     else expertise_level === 'pro' → "Expert"
      else → no badge                                                           */
 function resolveBadge(craft) {
   if (craft.qala_badge) return String(craft.qala_badge).toLowerCase();
-  if (craft.is_primary) return 'expert';
+  if (craft.expertise_level === 'pro') return 'expert';
   return null;
 }
 

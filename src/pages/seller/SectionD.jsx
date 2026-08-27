@@ -55,34 +55,27 @@ function TechniqueCard({ craft, onUpdate, onDelete, onImageUpload, onImageRemove
       </div>
 
       {/* Bug fix (Aug 2026): "timeline only reflecting for 2 crafts" —
-          traced to the actual root cause: these two fields render on the
+          traced to the actual root cause: this field renders on the
           public studio profile (StudioProfile.jsx's craftStats()) but
           had NO input anywhere in this form. A seller had no way to fill
-          them in for any craft through the normal onboarding flow — the
+          it in for any craft through the normal onboarding flow — the
           handful that did show a timeline got it through some other
           channel (bulk import, direct edit), not this form. Added here
-          so every craft can actually have this filled in going forward. */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--border-l)', fontWeight: 600, marginBottom: 4 }}>Sampling time (weeks)</div>
-          <input
-            type="number" min="0" step="0.5"
-            value={craft.sampling_time_weeks ?? ''}
-            onChange={e => onUpdate({ sampling_time_weeks: e.target.value === '' ? null : e.target.value })}
-            placeholder="e.g. 2"
-            style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border-l)', borderRadius: 'var(--r-5)', background: '#fff', color: 'var(--text)', fontSize: 12, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
-          />
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--border-l)', fontWeight: 600, marginBottom: 4 }}>Production time for 50 units (months)</div>
-          <input
-            type="number" min="0" step="0.5"
-            value={craft.production_timeline_months_50units ?? ''}
-            onChange={e => onUpdate({ production_timeline_months_50units: e.target.value === '' ? null : e.target.value })}
-            placeholder="e.g. 1"
-            style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border-l)', borderRadius: 'var(--r-5)', background: '#fff', color: 'var(--text)', fontSize: 12, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
-          />
-        </div>
+          so every craft can actually have this filled in going forward.
+
+          Sampling Time (weeks) removed on request — Production Time only
+          from here on. The underlying sampling_time_weeks field/column
+          is untouched (still readable if ever needed again), this just
+          removes the input. */}
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--border-l)', fontWeight: 600, marginBottom: 4 }}>Production time for 50 units (months)</div>
+        <input
+          type="number" min="0" step="0.5"
+          value={craft.production_timeline_months_50units ?? ''}
+          onChange={e => onUpdate({ production_timeline_months_50units: e.target.value === '' ? null : e.target.value })}
+          placeholder="e.g. 1"
+          style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border-l)', borderRadius: 'var(--r-5)', background: '#fff', color: 'var(--text)', fontSize: 12, fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
+        />
       </div>
 
       <div style={{ paddingTop: 10, borderTop: '1px solid var(--surface2)' }}>

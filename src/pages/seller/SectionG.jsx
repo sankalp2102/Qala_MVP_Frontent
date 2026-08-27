@@ -516,22 +516,30 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
   }, [collections]);
 
   // ── Products ──
+  // Bug fix (Aug 2026) — "product uploads on Past Work are super slow":
+  // this was uploading photos one at a time (a for-loop with await
+  // inside), so N photos meant N full sequential network round trips —
+  // each one waiting for the previous to fully complete, server-side
+  // processing included, before even starting the next. Switched to
+  // Promise.allSettled so all selected photos upload concurrently — for
+  // N photos this is roughly Nx faster in the common case (uploading a
+  // batch of several photos at once), not just marginally quicker.
+  // allSettled specifically (not Promise.all) so one failed photo
+  // doesn't cancel the others still in flight — same failed-count/
+  // lastFailReason tracking as before, just computed from the settled
+  // results instead of accumulated one at a time.
   const addProduct = (form, photoFiles) => track(async () => {
     try {
       const r = await API.addStudioProduct(profileId, form);
       let saved = r.data;
-      const uploaded = [];
-      let failed = 0;
-      let lastFailReason = '';
-      for (const file of photoFiles) {
-        try { const fd = new FormData(); fd.append('file', file); const pr = await API.uploadProductPhoto(profileId, saved.id, fd); uploaded.push(pr.data); }
-        // Bug fix (Aug 2026): now uses the shared extractErrorMessage
-        // helper — the flat field lookup this used to do never actually
-        // matched what the backend returns (nested under `details`), on
-        // top of a separate backend bug that made every field error
-        // unreadable regardless (see core/utils.py) — both fixed together.
-        catch (e) { failed++; lastFailReason = extractErrorMessage(e, lastFailReason); }
-      }
+      const results = await Promise.allSettled(photoFiles.map(file => {
+        const fd = new FormData(); fd.append('file', file);
+        return API.uploadProductPhoto(profileId, saved.id, fd);
+      }));
+      const uploaded = results.filter(x => x.status === 'fulfilled').map(x => x.value.data);
+      const failedResults = results.filter(x => x.status === 'rejected');
+      const failed = failedResults.length;
+      const lastFailReason = failed ? extractErrorMessage(failedResults[failedResults.length - 1].reason, '') : '';
       setProducts(prev => [...prev, { ...saved, photos: uploaded }]);
       setProdMode(null);
       if (failed) error(`Product saved, but ${failed} photo${failed === 1 ? '' : 's'} didn't upload${lastFailReason ? ` — ${lastFailReason}` : ' — edit the product to retry.'}`);
@@ -543,13 +551,14 @@ export default function SectionG({ profileId, initialData, onSave, onNext }) {
       const { photos, id, ...body } = form;
       const r = await API.patchStudioProduct(profileId, id, body);
       let updated = r.data;
-      const uploaded = [];
-      let failed = 0;
-      let lastFailReason = '';
-      for (const file of photoFiles) {
-        try { const fd = new FormData(); fd.append('file', file); const pr = await API.uploadProductPhoto(profileId, id, fd); uploaded.push(pr.data); }
-        catch (e) { failed++; lastFailReason = extractErrorMessage(e, lastFailReason); }
-      }
+      const results = await Promise.allSettled(photoFiles.map(file => {
+        const fd = new FormData(); fd.append('file', file);
+        return API.uploadProductPhoto(profileId, id, fd);
+      }));
+      const uploaded = results.filter(x => x.status === 'fulfilled').map(x => x.value.data);
+      const failedResults = results.filter(x => x.status === 'rejected');
+      const failed = failedResults.length;
+      const lastFailReason = failed ? extractErrorMessage(failedResults[failedResults.length - 1].reason, '') : '';
       setProducts(prev => prev.map(p => p.id === id ? { ...updated, photos: [...(photos || []), ...uploaded] } : p));
       setEditingProduct(null);
       if (failed) error(`Product updated, but ${failed} photo${failed === 1 ? '' : 's'} didn't upload${lastFailReason ? ` — ${lastFailReason}` : ' — try adding them again.'}`);
