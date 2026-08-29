@@ -13,6 +13,7 @@
 //   - Studios panel still slides in after matching
  
 import { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { chatAPI, discoveryAPI } from '../api/client';
@@ -121,6 +122,20 @@ export default function DiscoverV2() {
     () => localStorage.getItem('qala_has_contact') === 'true'
   );
   const [sending, setSending]           = useState(false);
+  // Bug fix (Aug 2026) — "can we stop Qalawati from processing, feels
+  // like I have no control": there was no way to cancel an in-flight
+  // message send at all — sendMessage() guarded with
+  // `if (!sessionId || sending) return`, so while a response was
+  // pending, every other action (typing something else, clicking
+  // anything) just silently did nothing. Combined with no request
+  // timeout on the API layer, a genuinely slow response (the Voyage
+  // rate limiter waiting on a chat message's RAG lookup — fixed
+  // separately on the backend, see embeddings.py's
+  // QUERY_MAX_WAIT_SECONDS) could leave someone staring at "..." with
+  // no way out at all. sendAbortRef holds the AbortController for the
+  // current in-flight request so the Stop button (in the input area
+  // below) can actually cancel it.
+  const sendAbortRef                     = useRef(null);
   const [starting, setStarting]         = useState(false);
   const [sessionToken, setSessionToken] = useState(null);
   const [extracted, setExtracted]       = useState({});
@@ -138,6 +153,14 @@ export default function DiscoverV2() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, sending]);
+
+  // Bug fix (Aug 2026): abort any in-flight send if the component
+  // unmounts (navigating away mid-response) — otherwise the request
+  // keeps running to completion in the background for no reason, and a
+  // late setState from its .then()/.catch() against an unmounted
+  // component is exactly the kind of thing that produces a confusing
+  // React warning with no obvious cause.
+  useEffect(() => () => sendAbortRef.current?.abort(), []);
  
   // Scroll drawer to bottom when it opens
   useEffect(() => {
@@ -478,10 +501,13 @@ export default function DiscoverV2() {
     }
  
     setSending(true);
+    const controller = new AbortController();
+    sendAbortRef.current = controller;
     try {
       const res  = await chatAPI.sendMessage(
         sessionId, trimmed,
-        imgsCopy.length ? imgsCopy : null
+        imgsCopy.length ? imgsCopy : null,
+        null, controller.signal
       );
       const data = res.data;
  
@@ -512,12 +538,37 @@ export default function DiscoverV2() {
         // Matching now happens via Brief card "Find Studios" CTA
       }
     } catch (err) {
-      const errText = err.response?.data?.error || 'Something went wrong — please try again.';
-      setMessages(prev => [...prev, { role: 'assistant', content: errText }]);
+      // Bug fix (Aug 2026): a user-initiated Stop click surfaces here as
+      // a cancellation, not a real failure — axios.isCancel() (or the
+      // newer AbortController-driven err.code, depending on axios
+      // version) is how to tell the two apart. Showing "Something went
+      // wrong" for a stop the person asked for would be actively
+      // confusing — they know why it stopped, they don't need to be
+      // told it's broken. Silently remove their own message instead,
+      // as if it was never sent, so they can just try something else.
+      if (axios.isCancel(err) || err.code === 'ERR_CANCELED') {
+        setMessages(prev => prev.slice(0, -1));
+      } else {
+        const errText = err.response?.data?.error
+          || (err.code === 'ECONNABORTED' ? "That's taking longer than expected — please try again." : null)
+          || 'Something went wrong — please try again.';
+        setMessages(prev => [...prev, { role: 'assistant', content: errText }]);
+      }
     } finally {
+      sendAbortRef.current = null;
       setSending(false);
       setTimeout(() => taRef.current?.focus(), 50);
     }
+  }
+
+  // Bug fix (Aug 2026): the actual fix for "feels like I have no
+  // control" — lets the person cancel an in-flight message send instead
+  // of being stuck watching "..." with no way out. Aborting the request
+  // is enough on its own; the catch block above (axios.isCancel) handles
+  // cleanup — removing the optimistically-added user message and
+  // resetting `sending` — so this only needs to fire the abort itself.
+  function stopSending() {
+    sendAbortRef.current?.abort();
   }
  
   function handleKey(e) {
@@ -866,6 +917,21 @@ export default function DiscoverV2() {
                   <div className="tdot" />
                   <div className="tdot" />
                 </div>
+                {/* Bug fix (Aug 2026) — "feels like I have no control":
+                    the actual fix. Lets someone stop waiting on a slow
+                    response instead of being stuck with no way out. */}
+                <button
+                  onClick={stopSending}
+                  style={{
+                    fontSize: 12, color: 'var(--text3)', background: 'var(--cream)',
+                    border: '1px solid var(--border)', borderRadius: 14,
+                    padding: '5px 12px', cursor: 'pointer', fontFamily: 'var(--font-body)',
+                  }}
+                  onMouseEnter={e => { e.target.style.color = 'var(--text)'; e.target.style.borderColor = 'var(--text3)'; }}
+                  onMouseLeave={e => { e.target.style.color = 'var(--text3)'; e.target.style.borderColor = 'var(--border)'; }}
+                >
+                  Stop
+                </button>
               </div>
             )}
  

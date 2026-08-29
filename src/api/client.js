@@ -401,7 +401,17 @@ export const chatAPI = {
       accessKey ? { access_key: accessKey } : {}
     ),
 
-  sendMessage: (sessionId, message, images = null, selectedImageIds = null) =>
+  // Bug fix (Aug 2026) — "feels like I have no control": this had no
+  // timeout at all, so a genuinely slow backend call (the Voyage rate
+  // limiter waiting on a live chat message's RAG lookup — since fixed on
+  // the backend side too, see embeddings.py's QUERY_MAX_WAIT_SECONDS —
+  // or anything else) could leave the browser waiting indefinitely with
+  // no way out. A 45s client-side timeout is a backstop in case
+  // something else ever causes a genuine hang; `signal` lets the caller
+  // actually cancel a request in flight — see the Stop button in
+  // DiscoverV2.jsx, which is the real fix for "no control": the person
+  // decides when to stop waiting, not just a timer.
+  sendMessage: (sessionId, message, images = null, selectedImageIds = null, signal = null) =>
     axios.post(`${BASE}/api/discovery/chat/message/`,
       {
         session_id: sessionId,
@@ -409,7 +419,7 @@ export const chatAPI = {
         ...(images?.length    && { images }),
         ...(selectedImageIds  && { selected_image_ids: selectedImageIds }),
       },
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { 'Content-Type': 'application/json' }, timeout: 45000, signal }
     ),
 
   getSession: (sessionId) =>
