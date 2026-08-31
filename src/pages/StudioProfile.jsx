@@ -116,8 +116,21 @@ const STUDIO_V3_CSS = `
 /* ── CRAFTS WIDGET ── */
 .studio-v3 .craft-widget { display:grid; grid-template-columns:1fr 188px; border:1px solid var(--surface4); border-radius: var(--r-10); overflow:hidden; background:#fff; }
 .studio-v3 .craft-detail { border-right:1px solid var(--surface4); min-width:0; }
-.studio-v3 .craft-detail-img { width:100%; height:200px; object-fit:cover; display:block; background:var(--surface3); }
-.studio-v3 .craft-detail-img-placeholder { width:100%; height:200px; display:flex; align-items:center; justify-content:center; font-size:32px; color:rgba(255,255,255,0.5); background:linear-gradient(160deg,#2C4A3A 0%,#1A3028 50%,#3A5C48 100%); }
+/* Feature (Aug 2026): "image is cutting here" — was a FIXED height:200px
+   at whatever width the column happened to render (~612px on desktop),
+   working out to a ~3:1 banner crop regardless of what a studio actually
+   uploaded. Switched to aspect-ratio:3/2 — a standard photography ratio
+   (the default for most DSLRs and phone cameras), so most process/work
+   photos studios already have will need meaningfully less cropping than
+   before. aspect-ratio (not a taller fixed height) so this scales
+   correctly at every screen width instead of being right only at one
+   specific column width — including on mobile, where under the 700px
+   breakpoint below this same column goes full-width when the layout
+   stacks. The placeholder (shown when a craft has no photo yet) gets the
+   identical ratio, so an empty state and a real photo are never a
+   different height next to the same detail text. */
+.studio-v3 .craft-detail-img { width:100%; aspect-ratio:3/2; object-fit:cover; display:block; background:var(--surface3); }
+.studio-v3 .craft-detail-img-placeholder { width:100%; aspect-ratio:3/2; display:flex; align-items:center; justify-content:center; font-size:32px; color:rgba(255,255,255,0.5); background:linear-gradient(160deg,#2C4A3A 0%,#1A3028 50%,#3A5C48 100%); }
 .studio-v3 .craft-detail-body { padding:18px 20px; }
 .studio-v3 .craft-detail-name { font-family:'Cormorant Garamond',Georgia,serif; font-size:22px; font-weight:500; margin-bottom:6px; color:var(--text-heading); display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .studio-v3 .craft-detail-approach { font-size:13px; color:#6B5F4A; line-height:1.65; margin:0 0 16px; }
