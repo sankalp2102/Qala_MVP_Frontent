@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { onboardingAPI, extractErrorMessage } from '../../api/client';
 import { useToast } from '../../hooks/useToast';
 import { Toast } from '../../components/Toast';
+import ImageCropModal from '../../components/ImageCropModal';
 import {
   SectionHeader, QCard, SectionFooter, ExpertiseButtons,
   TrashIcon, AddButton, EXPERTISE_TOOLTIPS, useAutosave, textareaStyle,
@@ -19,7 +20,7 @@ const TYPES = [
   { key: 'surface',  ref: 'D.5', label: 'Surface Work', desc: 'Embroidery, appliqué, crochet, patchwork, beadwork, mirror work — anything applied to the surface of the fabric.', cta: '+ Add Surface Technique', empty: 'No surface techniques added yet.' },
 ];
 
-function TechniqueCard({ craft, onUpdate, onDelete, onImageUpload, onImageRemove }) {
+function TechniqueCard({ craft, onUpdate, onDelete, onImageUpload, onImageRemove, onCropClick }) {
   const [imgHover, setImgHover] = useState(false);
   const rawUrl = craft._images?.[0]?.url || craft.image || null;
   const imgSrc = rawUrl ? mediaUrl(rawUrl) : null;
@@ -87,6 +88,12 @@ function TechniqueCard({ craft, onUpdate, onDelete, onImageUpload, onImageRemove
           {imgSrc ? (
             <>
               <img src={imgSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
+              {/* Feature (Aug 2026): crop tool — works the same for a
+                  brand-new photo and one that's been on the profile for
+                  months, since both are just "an image at a URL" from
+                  here. Sits opposite the existing remove (×) button so
+                  neither one needs to move. */}
+              <button onClick={onCropClick} aria-label="Adjust crop" title="Adjust crop" style={{ position: 'absolute', bottom: 3, right: 3, background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, fontSize: 10, cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✎</button>
               <button onClick={onImageRemove} aria-label="Remove image" style={{ position: 'absolute', top: 3, right: 3, background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: '50%', width: 16, height: 16, fontSize: 10, cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>×</button>
             </>
           ) : (
@@ -106,6 +113,14 @@ export default function SectionD({ profileId, initialData, onSave, onNext }) {
   const [crafts, setCrafts] = useState({ spinning: [], weaving: [], dyeing: [], printing: [], surface: [] });
   const [craftNotes, setCraftNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  // Feature (Aug 2026): crop tool state. { type, idx, imageUrl } for the
+  // craft currently being cropped, or null when the modal is closed.
+  // Populated automatically right after a successful upload (so cropping
+  // is the natural next step, not a separate thing someone has to think
+  // to go do), and also settable directly from the existing-image ✎
+  // button for a photo that's been on the profile since before this
+  // feature existed.
+  const [cropTarget, setCropTarget] = useState(null);
 
   // Hydrate local state from the server exactly ONCE. Re-populating on every
   // initialData change (e.g. after a refresh triggered by Save/Next) would
@@ -216,7 +231,14 @@ export default function SectionD({ profileId, initialData, onSave, onNext }) {
       // Update ONLY the image fields, keyed by id/_tempId — never overwrite the
       // craft_name / specialization the user may still be typing.
       patchCardByKey(type, { tempId: card._tempId, id }, { id, image: r.data?.image, _images: [{ url: r.data?.image }] });
-      success('Image uploaded');
+      // Feature (Aug 2026): upload flow itself is unchanged (the file
+      // still uploads immediately, exactly as before) — cropping is a
+      // follow-up step on the result, not a gate in front of the
+      // upload. Opens the crop modal automatically right after, so
+      // adjusting the crop is the natural next thing rather than a
+      // separate action someone has to remember exists.
+      const uploadedUrl = mediaUrl(r.data?.image);
+      setCropTarget({ type, idx, imageUrl: uploadedUrl });
     } catch (err) {
       // Bug fix (Aug 2026) — same silent-catch issue already fixed in
       // SectionF.jsx's coordinator photo upload: this showed the exact
@@ -230,6 +252,28 @@ export default function SectionD({ profileId, initialData, onSave, onNext }) {
       // backend bug that made every field error unreadable regardless
       // (see core/utils.py) — both fixed together.
       error(extractErrorMessage(err, 'Image upload failed — please try again.'));
+    }
+  };
+
+  // Feature (Aug 2026): confirm handler for ImageCropModal — re-uses the
+  // exact same patchCraft(image) upload path uploadImage() already uses
+  // above, just with the cropped Blob instead of the raw File. The
+  // backend has no idea (or need to know) whether what arrives is a
+  // fresh photo or a re-crop of an existing one — it's just an image
+  // upload either way.
+  const handleCropConfirm = async (blob) => {
+    if (!cropTarget) return;
+    const { type, idx } = cropTarget;
+    const card = crafts[type][idx];
+    try {
+      const id = card.id || await ensureCraftId(type, card);
+      const fd = new FormData(); fd.append('image', blob, 'cropped.jpg');
+      const r = await API.patchCraft(profileId, id, fd);
+      patchCardByKey(type, { tempId: card._tempId, id }, { id, image: r.data?.image, _images: [{ url: r.data?.image }] });
+      setCropTarget(null);
+      success('Photo updated');
+    } catch (err) {
+      error(extractErrorMessage(err, 'Could not save that crop — please try again.'));
     }
   };
 
@@ -309,6 +353,14 @@ export default function SectionD({ profileId, initialData, onSave, onNext }) {
   return (
     <div style={{ padding: '40px 48px 80px', maxWidth: 760 }}>
       <Toast toasts={toasts} />
+      {cropTarget && (
+        <ImageCropModal
+          imageUrl={cropTarget.imageUrl}
+          aspect={3 / 2}
+          onConfirm={handleCropConfirm}
+          onCancel={() => setCropTarget(null)}
+        />
+      )}
       <SectionHeader letter="D" title="Crafts & Techniques" desc="The craft techniques your studio works with and is expert at — the more detail you add, the better your buyer matches." />
 
       {TYPES.map(t => (
@@ -327,6 +379,10 @@ export default function SectionD({ profileId, initialData, onSave, onNext }) {
                 onDelete={() => deleteCard(t.key, idx)}
                 onImageUpload={e => uploadImage(t.key, idx, e)}
                 onImageRemove={() => removeImage(t.key, idx)}
+                onCropClick={() => {
+                  const url = card._images?.[0]?.url || card.image;
+                  if (url) setCropTarget({ type: t.key, idx, imageUrl: mediaUrl(url) });
+                }}
               />
             ))
           )}
