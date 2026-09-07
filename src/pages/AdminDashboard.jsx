@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 import { Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { adminAPI, projectsAPI, onboardingAPI } from '../api/client';
+import { adminAPI, projectsAPI, onboardingAPI, extractErrorMessage } from '../api/client';
 import { DashLayout } from '../components/DashLayout';
 import { Spinner } from '../components/Spinner';
 import { useToast } from '../hooks/useToast';
@@ -2659,6 +2659,924 @@ function Contacts() {
 // ─────────────────────────────────────────────────────────────────────────────
 // ACCESS REQUESTS PAGE
 // ─────────────────────────────────────────────────────────────────────────────
+// Feature (Sep 2026) — "Get Introduced" admin-approval gate. A buyer
+// clicking "Get Introduced" lands here as pending_review, with a
+// point-in-time snapshot of their brief that admin can edit before
+// approving (which builds the real Project + Brief and notifies the
+// buyer) or rejecting (internal-only — nothing goes to the buyer or the
+// studio, matching how the studio was never told a request existed in
+// the first place until approval).
+const IR_INPUT = { width: '100%', padding: '7px 10px', border: '1px solid var(--surface4)', borderRadius: 'var(--r-5)', background: '#fff', color: 'var(--text)', fontSize: 13, fontFamily: 'var(--font-body)', outline: 'none' };
+const IR_BTN_BASE = { padding: '8px 16px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'var(--font-body)', border: 'none' };
+
+function IRField({ label, children }) {
+  return (
+    <div>
+      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text3)', fontWeight: 600, marginBottom: 4 }}>{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function IntroductionRequests() {
+  const { success, error } = useToast();
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [expanded, setExpanded] = useState(null);
+  const [detail, setDetail]     = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [editSnap, setEditSnap]   = useState({});
+  const [editNotes, setEditNotes] = useState('');
+  const [saving, setSaving]       = useState(false);
+
+  const load = () => {
+    setLoading(true);
+    adminAPI.listIntroductionRequests()
+      .then(r => setRequests(r.data.requests || []))
+      .catch(() => error('Failed to load requests'))
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); }, []);
+
+  async function toggleExpand(id) {
+    if (expanded === id) { setExpanded(null); setDetail(null); return; }
+    setExpanded(id);
+    setDetail(null);
+    setDetailLoading(true);
+    try {
+      const r = await adminAPI.getIntroductionRequest(id);
+      setDetail(r.data);
+      setEditSnap(r.data.brief_snapshot || {});
+      setEditNotes(r.data.admin_notes || '');
+    } catch (e) {
+      error(extractErrorMessage(e, 'Failed to load request detail'));
+      setExpanded(null);
+    } finally {
+      setDetailLoading(false);
+    }
+  }
+
+  async function saveEdits(id) {
+    setSaving(true);
+    try {
+      await adminAPI.patchIntroductionRequest(id, { brief_snapshot: editSnap, admin_notes: editNotes });
+      success('Saved');
+    } catch (e) {
+      error(extractErrorMessage(e, 'Failed to save changes'));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleApprove(id) {
+    setSaving(true);
+    try {
+      // Save whatever's currently in the edit form first — approving
+      // should use the admin's latest edits, not whatever was last
+      // explicitly saved, in case they tweaked something and went
+      // straight to Approve without clicking Save first.
+      await adminAPI.patchIntroductionRequest(id, { brief_snapshot: editSnap, admin_notes: editNotes });
+      const r = await adminAPI.approveIntroductionRequest(id);
+      success(r.data.buyer_notified ? 'Approved — buyer notified' : 'Approved, but the buyer email failed — check manually');
+      setExpanded(null); setDetail(null);
+      load();
+    } catch (e) {
+      error(extractErrorMessage(e, 'Failed to approve'));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleReject(id) {
+    setSaving(true);
+    try {
+      await adminAPI.rejectIntroductionRequest(id, editNotes);
+      success('Rejected');
+      setExpanded(null); setDetail(null);
+      load();
+    } catch (e) {
+      error(extractErrorMessage(e, 'Failed to reject'));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const statusColor = s => ({
+    pending_review: { bg: 'rgba(200,160,60,0.1)', text: 'var(--amber-deep)' },
+    approved:       { bg: 'rgba(90,210,120,0.1)', text: 'var(--green)' },
+    rejected:       { bg: 'rgba(232,80,80,0.1)',  text: 'var(--red)' },
+  }[s] || { bg: 'var(--surface2)', text: 'var(--text3)' });
+
+  const arrToText = arr => (Array.isArray(arr) ? arr : []).join(', ');
+  const textToArr = txt => txt.split(',').map(s => s.trim()).filter(Boolean);
+
+  const pending = requests.filter(r => r.status === 'pending_review').length;
+  const isPending = detail?.status === 'pending_review';
+
+  return (
+    <div style={{ maxWidth: 960, margin: '0 auto', padding: '32px 24px' }}>
+      <div style={{ marginBottom: 28 }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
+          Introduction Requests
+        </h2>
+        <p style={{ fontSize: 13, color: 'var(--text3)' }}>
+          Buyers requesting an introduction to a studio — review and edit the brief before the studio is notified.
+        </p>
+        <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+          <span style={{ fontSize: 12, padding: '3px 10px', borderRadius: 'var(--r-lg)', background: 'rgba(200,160,60,0.1)', color: 'var(--amber-deep)', fontWeight: 500 }}>
+            {pending} pending
+          </span>
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={{ color: 'var(--text3)', fontSize: 13 }}>Loading…</div>
+      ) : requests.length === 0 ? (
+        <div style={{ color: 'var(--text3)', fontSize: 13 }}>No introduction requests yet.</div>
+      ) : (
+        requests.map(r => (
+          <div key={r.id} style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r)', marginBottom: 10, background: '#fff', overflow: 'hidden' }}>
+            <div
+              onClick={() => toggleExpand(r.id)}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', cursor: 'pointer' }}
+            >
+              <div>
+                <div style={{ fontWeight: 500, fontSize: 14, color: 'var(--text)' }}>
+                  {r.name} <span style={{ color: 'var(--text3)', fontWeight: 400 }}>→ {r.studio_name}</span>
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
+                  {r.email} · {new Date(r.created_at).toLocaleDateString()}
+                </div>
+              </div>
+              <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, ...statusColor(r.status) }}>
+                {r.status.replace('_', ' ')}
+              </span>
+            </div>
+
+            {expanded === r.id && (
+              <div style={{ borderTop: '1px solid var(--surface4)', padding: 18, background: 'var(--bg)' }}>
+                {detailLoading ? (
+                  <div style={{ fontSize: 13, color: 'var(--text3)' }}>Loading details…</div>
+                ) : detail && (
+                  <>
+                    {!isPending && (
+                      <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 14 }}>
+                        This request was {detail.status}
+                        {detail.reviewed_at ? ` on ${new Date(detail.reviewed_at).toLocaleDateString()}` : ''}.
+                        {detail.project_id && ' Project created.'}
+                      </div>
+                    )}
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+                      <IRField label="Garment types">
+                        <input disabled={!isPending} value={arrToText(editSnap.garment_types)} onChange={e => setEditSnap(s => ({ ...s, garment_types: textToArr(e.target.value) }))} style={IR_INPUT} placeholder="Comma-separated" />
+                      </IRField>
+                      <IRField label="Fabrics">
+                        <input disabled={!isPending} value={arrToText(editSnap.fabrics_required)} onChange={e => setEditSnap(s => ({ ...s, fabrics_required: textToArr(e.target.value) }))} style={IR_INPUT} placeholder="Comma-separated" />
+                      </IRField>
+                      <IRField label="Crafts / techniques">
+                        <input disabled={!isPending} value={arrToText(editSnap.crafts)} onChange={e => setEditSnap(s => ({ ...s, crafts: textToArr(e.target.value) }))} style={IR_INPUT} placeholder="Comma-separated" />
+                      </IRField>
+                      <IRField label="Dyes">
+                        <input disabled={!isPending} value={arrToText(editSnap.dyes_required)} onChange={e => setEditSnap(s => ({ ...s, dyes_required: textToArr(e.target.value) }))} style={IR_INPUT} placeholder="Comma-separated" />
+                      </IRField>
+                      <IRField label="Timeline">
+                        <input disabled={!isPending} value={editSnap.timeline || ''} onChange={e => setEditSnap(s => ({ ...s, timeline: e.target.value }))} style={IR_INPUT} />
+                      </IRField>
+                      <IRField label="Batch size">
+                        <input disabled={!isPending} value={editSnap.batch_size || ''} onChange={e => setEditSnap(s => ({ ...s, batch_size: e.target.value }))} style={IR_INPUT} />
+                      </IRField>
+                      <IRField label="Target landing price">
+                        <input disabled={!isPending} type="number" step="0.01" value={editSnap.target_landing_price_local ?? ''} onChange={e => setEditSnap(s => ({ ...s, target_landing_price_local: e.target.value === '' ? null : Number(e.target.value) }))} style={IR_INPUT} placeholder="e.g. 80" />
+                      </IRField>
+                      <IRField label="Currency">
+                        <input disabled={!isPending} value={editSnap.target_landing_currency || ''} onChange={e => setEditSnap(s => ({ ...s, target_landing_currency: e.target.value.toUpperCase() }))} style={IR_INPUT} placeholder="USD" />
+                      </IRField>
+                      <IRField label="Target delivery date">
+                        <input disabled={!isPending} type="date" value={editSnap.target_bulk_delivery_date || ''} onChange={e => setEditSnap(s => ({ ...s, target_bulk_delivery_date: e.target.value }))} style={IR_INPUT} />
+                      </IRField>
+                      <IRField label="Delivery location">
+                        <input disabled={!isPending} value={editSnap.buyer_location || ''} onChange={e => setEditSnap(s => ({ ...s, buyer_location: e.target.value }))} style={IR_INPUT} />
+                      </IRField>
+                    </div>
+
+                    <IRField label="Admin notes">
+                      <textarea disabled={!isPending} rows={2} value={editNotes} onChange={e => setEditNotes(e.target.value)} style={{ ...IR_INPUT, resize: 'vertical' }} placeholder="Internal only — visible to admins, never sent to the buyer or studio" />
+                    </IRField>
+
+                    {isPending && (
+                      <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                        <button onClick={() => saveEdits(r.id)} disabled={saving} style={{ ...IR_BTN_BASE, background: '#fff', border: '1px solid var(--surface4)', color: 'var(--text2)' }}>
+                          Save changes
+                        </button>
+                        <button onClick={() => handleApprove(r.id)} disabled={saving} style={{ ...IR_BTN_BASE, background: 'var(--sage)', color: '#fff' }}>
+                          Approve
+                        </button>
+                        <button onClick={() => handleReject(r.id)} disabled={saving} style={{ ...IR_BTN_BASE, background: 'rgba(232,80,80,0.08)', color: 'var(--red)', border: '1px solid rgba(232,80,80,0.25)' }}>
+                          Reject
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+// Feature (Sep 2026) — Trade Show Enquiry Desk, Part 1. Backs onto the
+// isolated `tradeshow` Django app — nothing here touches discovery,
+// seller_profile, or projects. Two things happen on submit: the enquiry
+// saves, and Email 1 fires immediately (server-side, see
+// tradeshow/email.py) — this screen doesn't compose or preview the
+// email itself, just triggers it.
+// Feature (Sep 2026) — Part 2. The full review screen for a single
+// enquiry: upload the buyer's photographed order sheet, review what the
+// AI read off it against the actual photo, fill in what's left, submit,
+// and schedule Email 2. Deliberately a full-screen swap (not an inline
+// expansion like IntroductionRequests uses) — a brand's catalog can run
+// past 100 styles, too large to expand inline in a list without making
+// the list itself unusable.
+const SIZES = ['XS', 'S', 'M', 'L', 'XL'];
+
+function TradeShowEnquiryDetail({ enquiryId, onBack }) {
+  const { success, error } = useToast();
+  const [step, setStep] = useState(1); // 1: photos, 2: order sheet, 3: details/submit
+  const [enquiry, setEnquiry] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [orderSheet, setOrderSheet] = useState([]);
+  const [sheetLoading, setSheetLoading] = useState(true);
+  const [showFullCatalog, setShowFullCatalog] = useState(false);
+  const [editBuffer, setEditBuffer] = useState({});
+  const [uploading, setUploading] = useState(false);
+  const [savingSheet, setSavingSheet] = useState(false);
+  const [deliveryDate, setDeliveryDate] = useState('');
+  const [paymentLink, setPaymentLink] = useState('');
+  const [depositAmount, setDepositAmount] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [scheduleAt, setScheduleAt] = useState('');
+  const [scheduling, setScheduling] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const loadEnquiry = () => {
+    adminAPI.getTradeShowEnquiry(enquiryId)
+      .then(r => {
+        setEnquiry(r.data);
+        setDeliveryDate(r.data.delivery_date || '');
+        setPaymentLink(r.data.payment_link || '');
+        setDepositAmount(r.data.deposit_amount ?? '');
+      })
+      .catch(() => error('Failed to load enquiry'))
+      .finally(() => setLoading(false));
+  };
+  const loadOrderSheet = () => {
+    setSheetLoading(true);
+    adminAPI.getTradeShowOrderSheet(enquiryId)
+      .then(r => setOrderSheet(r.data))
+      .catch(() => error('Failed to load order sheet'))
+      .finally(() => setSheetLoading(false));
+  };
+  useEffect(() => { loadEnquiry(); loadOrderSheet(); }, [enquiryId]);
+
+  // Feature: while any uploaded photo is still being AI-read (processed:
+  // false), quietly re-poll every 4s so newly-extracted lines show up
+  // without admin needing to hit refresh themselves. Stops on its own
+  // once every photo is done.
+  useEffect(() => {
+    const anyUnprocessed = (enquiry?.photos || []).some(p => !p.processed);
+    if (!anyUnprocessed) return;
+    const t = setInterval(() => { loadEnquiry(); loadOrderSheet(); }, 4000);
+    return () => clearInterval(t);
+  }, [enquiry?.photos]);
+
+  async function handlePhotoUpload(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      files.forEach(f => fd.append('images', f));
+      await adminAPI.uploadTradeShowPhotos(enquiryId, fd);
+      success(`${files.length} photo${files.length === 1 ? '' : 's'} uploaded — reading in the background`);
+      loadEnquiry();
+    } catch (e) {
+      error(extractErrorMessage(e, 'Upload failed'));
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
+  function editLine(sku, patch) {
+    setEditBuffer(b => ({ ...b, [sku]: { ...(b[sku] || {}), ...patch } }));
+  }
+  function getLineValue(row, field) {
+    return editBuffer[row.qala_sku]?.[field] ?? row[field];
+  }
+
+  async function saveOrderSheetEdits() {
+    const skus = Object.keys(editBuffer);
+    if (!skus.length) { success('Nothing to save'); return; }
+    setSavingSheet(true);
+    try {
+      const lines = skus.map(sku => {
+        const row = orderSheet.find(r => r.qala_sku === sku);
+        return {
+          qala_sku: sku,
+          quantities_by_size: getLineValue(row, 'quantities_by_size'),
+          remarks: getLineValue(row, 'remarks'),
+        };
+      });
+      await adminAPI.patchTradeShowOrderSheet(enquiryId, lines);
+      success('Order sheet saved');
+      setEditBuffer({});
+      loadOrderSheet();
+    } catch (e) {
+      error(extractErrorMessage(e, 'Failed to save'));
+    } finally {
+      setSavingSheet(false);
+    }
+  }
+
+  async function handleSubmitOrder() {
+    if (!deliveryDate) { error('Delivery date is required to submit'); return; }
+    if (depositAmount === '' || depositAmount === null) { error('Deposit amount is required to submit'); return; }
+    setSubmitting(true);
+    try {
+      await adminAPI.submitTradeShowEnquiry(enquiryId, { delivery_date: deliveryDate, payment_link: paymentLink, deposit_amount: depositAmount });
+      success('Order submitted — invoice and order sheet generated');
+      loadEnquiry();
+    } catch (e) {
+      error(extractErrorMessage(e, 'Failed to submit'));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleSchedule() {
+    setScheduling(true);
+    try {
+      const body = scheduleAt ? { scheduled_send_at: new Date(scheduleAt).toISOString() } : {};
+      const r = await adminAPI.scheduleTradeShowEnquiry(enquiryId, body);
+      success('Scheduled — Email 2 will send automatically');
+      setEnquiry(r.data);
+    } catch (e) {
+      error(extractErrorMessage(e, 'Failed to schedule'));
+    } finally {
+      setScheduling(false);
+    }
+  }
+
+  if (loading || !enquiry) {
+    return <div style={{ padding: 32, fontSize: 13, color: 'var(--text3)' }}>Loading…</div>;
+  }
+
+  const isSubmitted = enquiry.submission_status === 'submitted';
+  const visibleRows = showFullCatalog ? orderSheet : orderSheet.filter(r => {
+    const qty = getLineValue(r, 'quantities_by_size');
+    const remarks = getLineValue(r, 'remarks');
+    return (qty && Object.values(qty).some(v => v > 0)) || (remarks && remarks.trim());
+  });
+  const totalPieces = orderSheet.reduce((sum, r) => {
+    const qty = getLineValue(r, 'quantities_by_size') || {};
+    return sum + Object.values(qty).reduce((s, v) => s + (Number(v) || 0), 0);
+  }, 0);
+
+  const STATUS_LABEL = {
+    pending: 'Pending', processing: 'Processing photos',
+    needs_review: 'Needs review', submitted: 'Submitted',
+  };
+
+  // Feature (Sep 2026): once submitted, the wizard steps are done —
+  // there's nothing left to navigate between, just the review/schedule
+  // state. Jumping straight there rather than leaving the person sitting
+  // on whatever step they happened to submit from.
+  const effectiveStep = isSubmitted ? 4 : step;
+
+  const STEPS = [
+    { n: 1, label: 'Photos' },
+    { n: 2, label: 'Order sheet' },
+    { n: 3, label: 'Details' },
+  ];
+
+  return (
+    <div style={{ maxWidth: 980, margin: '0 auto', padding: '32px 24px' }}>
+      <button onClick={onBack} style={{ background: 'none', border: 'none', color: 'var(--sage)', fontSize: 13, cursor: 'pointer', marginBottom: 16, padding: 0 }}>
+        ← Back to all enquiries
+      </button>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+        <div>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
+            {enquiry.enquiry_number} — {enquiry.store_name}
+          </h2>
+          <div style={{ fontSize: 13, color: 'var(--text3)' }}>{enquiry.brand_name} · {enquiry.buyer_name} · {enquiry.buyer_email}</div>
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: enquiry.enquiry_type === 'order' ? 'rgba(90,150,210,0.12)' : 'rgba(200,160,60,0.12)', color: enquiry.enquiry_type === 'order' ? '#3B6BA5' : 'var(--amber-deep)' }}>
+            {enquiry.enquiry_type === 'order' ? 'Order' : 'Enquiry'}
+          </span>
+          <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: 'var(--surface2)', color: 'var(--text2)' }}>
+            {STATUS_LABEL[enquiry.submission_status] || enquiry.submission_status}
+          </span>
+          <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: enquiry.email_sent ? 'rgba(90,210,120,0.1)' : 'rgba(232,80,80,0.1)', color: enquiry.email_sent ? 'var(--green)' : 'var(--red)' }}>
+            Email 1: {enquiry.email_sent ? 'sent' : 'failed'}
+          </span>
+          <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: enquiry.email2_sent ? 'rgba(90,210,120,0.1)' : 'var(--surface2)', color: enquiry.email2_sent ? 'var(--green)' : 'var(--text3)' }}>
+            Email 2: {enquiry.email2_sent ? 'sent' : enquiry.scheduled_send_at ? 'scheduled' : 'not scheduled'}
+          </span>
+        </div>
+      </div>
+
+      {/* ── Step indicator ── */}
+      {!isSubmitted && (
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
+          {STEPS.map((s, i) => (
+            <Fragment key={s.n}>
+              <div
+                onClick={() => s.n < effectiveStep && setStep(s.n)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  cursor: s.n < effectiveStep ? 'pointer' : 'default', opacity: s.n <= effectiveStep ? 1 : 0.4,
+                }}
+              >
+                <div style={{
+                  width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 12, fontWeight: 600,
+                  background: s.n === effectiveStep ? 'var(--sage)' : s.n < effectiveStep ? 'rgba(122,140,110,0.15)' : 'var(--surface2)',
+                  color: s.n === effectiveStep ? '#fff' : s.n < effectiveStep ? 'var(--sage)' : 'var(--text3)',
+                }}>
+                  {s.n < effectiveStep ? '✓' : s.n}
+                </div>
+                <span style={{ fontSize: 13, fontWeight: s.n === effectiveStep ? 600 : 400, color: s.n === effectiveStep ? 'var(--text)' : 'var(--text3)' }}>{s.label}</span>
+              </div>
+              {i < STEPS.length - 1 && <div style={{ flex: 1, height: 1, background: 'var(--surface4)', margin: '0 14px' }} />}
+            </Fragment>
+          ))}
+        </div>
+      )}
+
+      {/* ── Step 1: Photo upload ── */}
+      {effectiveStep === 1 && (
+        <div style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r)', background: '#fff', padding: 20 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Upload order sheet photos</h3>
+          <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 14 }}>Photograph every page the buyer marked up — one or several at once.</p>
+          <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handlePhotoUpload} disabled={uploading} style={{ fontSize: 13 }} />
+          {uploading && <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 6 }}>Uploading…</div>}
+          {(enquiry.photos || []).length > 0 && (
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+              {enquiry.photos.map(p => (
+                <a key={p.id} href={mediaUrl(p.image)} target="_blank" rel="noreferrer" style={{ position: 'relative', display: 'block' }}>
+                  <img src={mediaUrl(p.image)} alt="" style={{ width: 84, height: 84, objectFit: 'cover', borderRadius: 'var(--r-5)', border: '1px solid var(--surface4)' }} />
+                  {!p.processed && (
+                    <span style={{ position: 'absolute', bottom: 2, right: 2, fontSize: 9, background: 'rgba(0,0,0,0.65)', color: '#fff', padding: '1px 5px', borderRadius: 6 }}>reading…</span>
+                  )}
+                </a>
+              ))}
+            </div>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
+            <button onClick={() => setStep(2)} style={{ ...IR_BTN_BASE, background: '#1A1A1A', color: '#fff' }}>
+              Next: Order sheet →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 2: Digital order sheet — matches the printed linesheet's own design ── */}
+      {effectiveStep === 2 && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div>
+              <h3 style={{ fontSize: 14, fontWeight: 600 }}>Digital order sheet</h3>
+              <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Total pieces: {totalPieces}</p>
+            </div>
+            <label style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+              <input type="checkbox" checked={showFullCatalog} onChange={e => setShowFullCatalog(e.target.checked)} />
+              Show full catalog ({orderSheet.length} styles)
+            </label>
+          </div>
+
+          {sheetLoading ? (
+            <div style={{ fontSize: 13, color: 'var(--text3)' }}>Loading…</div>
+          ) : visibleRows.length === 0 ? (
+            <div style={{ fontSize: 13, color: 'var(--text3)', padding: '20px 0' }}>
+              {orderSheet.length === 0 ? 'Catalog not loaded for this brand yet.' : 'Nothing marked yet — go back and upload a photo, or check "show full catalog" to add something by hand.'}
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              {visibleRows.map(row => {
+                const qty = getLineValue(row, 'quantities_by_size') || {};
+                const remarks = getLineValue(row, 'remarks') || '';
+                const uncertain = row.ai_confidence === 'uncertain';
+                return (
+                  <div key={row.qala_sku} style={{
+                    display: 'flex', gap: 0, border: '1px solid var(--surface4)', borderRadius: 'var(--r-5)',
+                    background: '#fff', overflow: 'hidden', position: 'relative',
+                  }}>
+                    {uncertain && (
+                      <span style={{ position: 'absolute', top: 8, right: 8, fontSize: 9, padding: '2px 7px', borderRadius: 8, background: 'rgba(200,160,60,0.15)', color: 'var(--amber-deep)', fontWeight: 600 }}>
+                        needs a look
+                      </span>
+                    )}
+                    <div style={{ width: 110, flexShrink: 0, background: '#F4F1EC' }}>
+                      {row.image_url ? (
+                        <img src={mediaUrl(row.image_url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', minHeight: 180 }} />
+                      )}
+                    </div>
+                    <div style={{ flex: 1, padding: '12px 14px' }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{row.product_name}</div>
+                      <div style={{ fontSize: 10.5, color: 'var(--text3)', marginBottom: 6 }}>{row.qala_sku}</div>
+                      {(row.fabric_material || row.dyes_used) && (
+                        <div style={{ fontSize: 10.5, color: 'var(--text3)', lineHeight: 1.5 }}>
+                          {[row.fabric_material, row.dyes_used].filter(Boolean).join(' · ')}
+                        </div>
+                      )}
+                      {row.technique_used && <div style={{ fontSize: 10.5, color: 'var(--text3)', lineHeight: 1.5 }}>{row.technique_used}</div>}
+                      {row.landed_price != null && (
+                        <div style={{ fontSize: 12.5, fontWeight: 700, color: '#B23A3A', marginTop: 6 }}>
+                          Landed ${Number(row.landed_price).toFixed(0)}
+                        </div>
+                      )}
+
+                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text3)', fontWeight: 600, marginTop: 10, marginBottom: 4 }}>
+                        Quantity × Size
+                      </div>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        {SIZES.map(s => (
+                          <div key={s} style={{ flex: 1, border: '1px solid var(--surface4)', borderRadius: 4, textAlign: 'center', padding: '4px 2px' }}>
+                            <div style={{ fontSize: 8.5, color: 'var(--text3)', marginBottom: 2 }}>{s}</div>
+                            <input
+                              type="number" min="0" disabled={isSubmitted}
+                              value={qty[s] ?? ''}
+                              onChange={e => editLine(row.qala_sku, { quantities_by_size: { ...qty, [s]: e.target.value === '' ? undefined : Number(e.target.value) } })}
+                              style={{ width: '100%', border: 'none', outline: 'none', textAlign: 'center', fontSize: 12, background: 'transparent' }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+
+                      <div style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text3)', fontWeight: 600, marginTop: 10, marginBottom: 4 }}>
+                        Remarks
+                      </div>
+                      <textarea
+                        rows={2} disabled={isSubmitted}
+                        value={remarks}
+                        onChange={e => editLine(row.qala_sku, { remarks: e.target.value })}
+                        style={{ width: '100%', border: '1px solid var(--surface4)', borderRadius: 4, padding: 6, fontSize: 11, resize: 'vertical', fontFamily: 'var(--font-body)', outline: 'none', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 20 }}>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setStep(1)} style={{ ...IR_BTN_BASE, background: '#fff', border: '1px solid var(--surface4)', color: 'var(--text2)' }}>
+                ← Back
+              </button>
+              {!isSubmitted && Object.keys(editBuffer).length > 0 && (
+                <button onClick={saveOrderSheetEdits} disabled={savingSheet} style={{ ...IR_BTN_BASE, background: 'var(--sage)', color: '#fff' }}>
+                  {savingSheet ? 'Saving…' : `Save changes (${Object.keys(editBuffer).length})`}
+                </button>
+              )}
+            </div>
+            <button onClick={() => setStep(3)} style={{ ...IR_BTN_BASE, background: '#1A1A1A', color: '#fff' }}>
+              Next: Details →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 3: Delivery date, payment link, submit ── */}
+      {effectiveStep === 3 && (
+        <div style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r)', background: '#fff', padding: 20 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Order details</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
+            <IRField label="Delivery date">
+              <input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} style={IR_INPUT} />
+            </IRField>
+            <IRField label="Deposit amount">
+              <input type="number" min="0" step="0.01" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} placeholder="500.00" style={IR_INPUT} />
+            </IRField>
+            <IRField label="Payment link">
+              <input type="url" value={paymentLink} onChange={e => setPaymentLink(e.target.value)} placeholder="https://..." style={IR_INPUT} />
+            </IRField>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <button onClick={() => setStep(2)} style={{ ...IR_BTN_BASE, background: '#fff', border: '1px solid var(--surface4)', color: 'var(--text2)' }}>
+              ← Back
+            </button>
+            <button onClick={handleSubmitOrder} disabled={submitting || !deliveryDate || depositAmount === ''} style={{ ...IR_BTN_BASE, background: '#1A1A1A', color: '#fff', opacity: (submitting || !deliveryDate || depositAmount === '') ? 0.6 : 1 }}>
+              {submitting ? 'Submitting…' : 'Submit order'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── After submission: review documents + schedule ── */}
+      {isSubmitted && (
+        <div style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r)', background: '#fff', padding: 20 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Review &amp; schedule Email 2</h3>
+          {/* Feature (Sep 2026): actual inline previews, not just download
+              links — browsers render a PDF natively inside an iframe, so
+              this needs no viewer library or extra dependency. The plain
+              link stays alongside each preview since a full-tab open is
+              sometimes just more useful (printing, zooming, mobile). */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            {enquiry.order_sheet_pdf && (
+              <div>
+                <a href={mediaUrl(enquiry.order_sheet_pdf)} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--sage)', display: 'block', marginBottom: 6 }}>
+                  📄 Order sheet PDF — open full size
+                </a>
+                <iframe
+                  src={mediaUrl(enquiry.order_sheet_pdf)}
+                  title="Order sheet preview"
+                  style={{ width: '100%', height: 480, border: '1px solid var(--surface4)', borderRadius: 'var(--r-5)' }}
+                />
+              </div>
+            )}
+            {enquiry.invoice_pdf && (
+              <div>
+                <a href={mediaUrl(enquiry.invoice_pdf)} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--sage)', display: 'block', marginBottom: 6 }}>
+                  📄 Invoice {enquiry.invoice_number} — open full size
+                </a>
+                <iframe
+                  src={mediaUrl(enquiry.invoice_pdf)}
+                  title="Invoice preview"
+                  style={{ width: '100%', height: 480, border: '1px solid var(--surface4)', borderRadius: 'var(--r-5)' }}
+                />
+              </div>
+            )}
+          </div>
+          {enquiry.email2_sent ? (
+            <div style={{ fontSize: 13, color: 'var(--green)' }}>Email 2 sent {enquiry.email2_sent_at ? `on ${new Date(enquiry.email2_sent_at).toLocaleString()}` : ''}.</div>
+          ) : (
+            <>
+              <IRField label="Send at (leave blank to default to quote sent date, 11am Eastern)">
+                <input type="datetime-local" value={scheduleAt} onChange={e => setScheduleAt(e.target.value)} style={IR_INPUT} />
+              </IRField>
+              <button onClick={handleSchedule} disabled={scheduling} style={{ ...IR_BTN_BASE, background: 'var(--sage)', color: '#fff', marginTop: 10 }}>
+                {scheduling ? 'Scheduling…' : enquiry.scheduled_send_at ? 'Reschedule' : 'Schedule Email 2'}
+              </button>
+              {enquiry.scheduled_send_at && (
+                <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 8 }}>
+                  Currently scheduled for {new Date(enquiry.scheduled_send_at).toLocaleString()}.
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TradeShowEnquiryDesk() {
+  const [selectedEnquiryId, setSelectedEnquiryId] = useState(null);
+  if (selectedEnquiryId) {
+    return <TradeShowEnquiryDetail enquiryId={selectedEnquiryId} onBack={() => setSelectedEnquiryId(null)} />;
+  }
+  return <TradeShowEnquiryList onOpenEnquiry={setSelectedEnquiryId} />;
+}
+
+// Renamed from the original TradeShowEnquiryDesk — this is now just the
+// "create + list" screen; TradeShowEnquiryDesk above is the thin
+// list-vs-detail switch, matching the pattern of not needing a real
+// router entry for a sub-view within one admin section.
+function TradeShowEnquiryList({ onOpenEnquiry }) {
+  const { success, error } = useToast();
+  const [brands, setBrands] = useState([]);
+  const [enquiries, setEnquiries] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const dateInputRef = useRef(null);
+  // Feature (Sep 2026): no more `brand` in form state — it's derived
+  // from enquiry_number's letter prefix, not a separate selection. This
+  // removes the exact mismatch this used to allow: someone picking the
+  // wrong brand from a dropdown while typing a correct-looking number.
+  // There's only one field to get right now, not two that have to agree.
+  const [form, setForm] = useState({
+    enquiry_number: '', store_name: '',
+    buyer_name: '', buyer_email: '', quote_sent_date: todayISO,
+    // Feature (Sep 2026) — required, no default: this changes what the
+    // buyer actually reads in both emails, so it must be a real choice
+    // made at the desk, not a silent fallback. Locked after Email 1
+    // sends in practice — nothing in the app has an edit path back to
+    // an already-created enquiry, so there's no separate check needed
+    // to enforce that.
+    enquiry_type: '',
+  });
+
+  const load = () => {
+    setLoading(true);
+    Promise.all([
+      adminAPI.listTradeShowBrands(),
+      adminAPI.listTradeShowEnquiries(),
+    ])
+      .then(([b, e]) => { setBrands(b.data); setEnquiries(e.data); })
+      .catch(() => error('Failed to load'))
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); }, []);
+
+  // Same derivation as the backend (views.py::_brand_from_enquiry_number)
+  // — kept in sync deliberately so what's shown here as "detected" is
+  // never different from what the server will actually use. This is
+  // purely a live preview for the person typing; the real, authoritative
+  // match happens server-side on submit regardless of what this shows.
+  const detectedPrefix = (form.enquiry_number.trim().match(/^[A-Za-z]+/) || [''])[0].toUpperCase();
+  const detectedBrand = brands.find(b => b.enquiry_prefix.toUpperCase() === detectedPrefix);
+
+  const canSubmit = detectedBrand && form.enquiry_number.trim() && form.store_name.trim()
+    && form.buyer_name.trim() && form.buyer_email.trim() && form.quote_sent_date && form.enquiry_type;
+
+  async function handleSubmit() {
+    if (!canSubmit || submitting) return;
+    setSubmitting(true);
+    try {
+      const r = await adminAPI.createTradeShowEnquiry(form);
+      success(r.data.email_sent ? 'Enquiry saved — confirmation email sent' : 'Enquiry saved, but the email failed — check the brand has an email set in /admin/');
+      setForm({ enquiry_number: '', store_name: '', buyer_name: '', buyer_email: '', quote_sent_date: todayISO, enquiry_type: '' });
+      load();
+    } catch (e) {
+      error(extractErrorMessage(e, 'Failed to save enquiry'));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 24px' }}>
+      <div style={{ marginBottom: 28 }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
+          Trade Show Enquiry
+        </h2>
+        <p style={{ fontSize: 13, color: 'var(--text3)' }}>
+          Take a buyer's enquiry at the show — saving it sends them an immediate confirmation email.
+        </p>
+      </div>
+
+      <div style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r)', background: '#fff', padding: 20, marginBottom: 32 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+          <IRField label="Enquiry number">
+            <input value={form.enquiry_number} onChange={e => setForm(f => ({ ...f, enquiry_number: e.target.value }))} style={IR_INPUT} placeholder="e.g. KK001" />
+          </IRField>
+          {/* Feature (Sep 2026): brand is now DERIVED from the enquiry
+              number typed on the left, not a separate manual pick — see
+              detectedBrand above. This box is read-only feedback, not
+              an input; the actual field submitted is still just
+              enquiry_number, and the server derives brand itself
+              independently (views.py), so this preview being right
+              doesn't matter for correctness — it just tells the person
+              upfront whether what they're typing will resolve to
+              something, before they hit submit. */}
+          <IRField label="Detected brand">
+            <div style={{
+              ...IR_INPUT, display: 'flex', alignItems: 'center', minHeight: 34,
+              color: form.enquiry_number.trim() ? (detectedBrand ? 'var(--text)' : 'var(--red)') : 'var(--text3)',
+              background: 'var(--bg)',
+            }}>
+              {!form.enquiry_number.trim()
+                ? 'Type the enquiry number →'
+                : detectedBrand
+                  ? `${detectedBrand.name} (${detectedBrand.enquiry_prefix})`
+                  : `No brand matches "${detectedPrefix || '?'}"`}
+            </div>
+          </IRField>
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <IRField label="Store name">
+            <input value={form.store_name} onChange={e => setForm(f => ({ ...f, store_name: e.target.value }))} style={IR_INPUT} placeholder="e.g. Larkin &amp; Field Boutique" />
+          </IRField>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+          <IRField label="Buyer name">
+            <input value={form.buyer_name} onChange={e => setForm(f => ({ ...f, buyer_name: e.target.value }))} style={IR_INPUT} placeholder="Full name" />
+          </IRField>
+          <IRField label="Buyer email">
+            <input type="email" value={form.buyer_email} onChange={e => setForm(f => ({ ...f, buyer_email: e.target.value }))} style={IR_INPUT} placeholder="name@store.com" />
+          </IRField>
+        </div>
+
+        <div style={{ marginBottom: 18 }}>
+          <IRField label="Quote sent date">
+            {/* Bug fix / request (Sep 2026): a bare <input type="date">
+                relies on the browser's own tiny, low-contrast calendar
+                icon (and Firefox doesn't render one in a clickable spot
+                the same way Chrome/Safari do) — easy to miss, especially
+                moving fast at a show. Kept the real native date input
+                underneath (proven, keyboard-accessible, works correctly
+                on mobile) rather than building a custom calendar picker
+                from scratch right before a deadline — just made it
+                properly visible and click-anywhere-to-open instead of
+                rebuilding the whole interaction. */}
+            <div
+              onClick={() => dateInputRef.current?.showPicker ? dateInputRef.current.showPicker() : dateInputRef.current?.focus()}
+              style={{
+                ...IR_INPUT, position: 'relative', display: 'flex', alignItems: 'center',
+                cursor: 'pointer', padding: '7px 38px 7px 10px',
+              }}
+            >
+              <input
+                ref={dateInputRef}
+                type="date"
+                value={form.quote_sent_date}
+                onChange={e => setForm(f => ({ ...f, quote_sent_date: e.target.value }))}
+                style={{
+                  border: 'none', background: 'transparent', outline: 'none',
+                  font: 'inherit', color: 'inherit', width: '100%', padding: 0,
+                }}
+              />
+              <svg
+                width="18" height="18" viewBox="0 0 24 24" fill="none"
+                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+              >
+                <rect x="3" y="5" width="18" height="16" rx="2.5" stroke="var(--sage)" strokeWidth="1.8" />
+                <path d="M3 9.5H21" stroke="var(--sage)" strokeWidth="1.8" />
+                <path d="M8 3V6.5" stroke="var(--sage)" strokeWidth="1.8" strokeLinecap="round" />
+                <path d="M16 3V6.5" stroke="var(--sage)" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </div>
+          </IRField>
+        </div>
+
+        <div style={{ marginBottom: 18 }}>
+          <IRField label="Enquiry or Order">
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[
+                { value: 'enquiry', label: 'Enquiry' },
+                { value: 'order', label: 'Order' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, enquiry_type: opt.value }))}
+                  style={{
+                    flex: 1, padding: '9px 0', borderRadius: 'var(--r-5)', fontSize: 13, fontWeight: 500,
+                    cursor: 'pointer', border: form.enquiry_type === opt.value ? '1px solid var(--sage)' : '1px solid var(--surface4)',
+                    background: form.enquiry_type === opt.value ? 'rgba(122,140,110,0.1)' : '#fff',
+                    color: form.enquiry_type === opt.value ? 'var(--sage)' : 'var(--text2)',
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
+              Changes the wording in both emails — can't be changed once Email 1 sends.
+            </div>
+          </IRField>
+        </div>
+
+        <button onClick={handleSubmit} disabled={!canSubmit || submitting} style={{ ...IR_BTN_BASE, width: '100%', padding: '11px', background: '#1A1A1A', color: '#fff', opacity: (!canSubmit || submitting) ? 0.6 : 1 }}>
+          {submitting ? 'Submitting…' : 'Submit enquiry'}
+        </button>
+      </div>
+
+      <div>
+        <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 10 }}>Enquiries so far</h3>
+        {loading ? (
+          <div style={{ fontSize: 13, color: 'var(--text3)' }}>Loading…</div>
+        ) : enquiries.length === 0 ? (
+          <div style={{ fontSize: 13, color: 'var(--text3)' }}>None yet.</div>
+        ) : (
+          enquiries.map(e => (
+            <div key={e.id} onClick={() => onOpenEnquiry(e.id)} style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r)', padding: '10px 14px', marginBottom: 8, background: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, cursor: 'pointer' }}>
+              <div>
+                <strong>{e.enquiry_number}</strong> — {e.store_name} <span style={{ color: 'var(--text3)' }}>({e.brand_name})</span>
+                <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 2 }}>{e.buyer_name} · {e.buyer_email}</div>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: 'var(--surface2)', color: 'var(--text2)' }}>
+                  {({ pending: 'Pending', processing: 'Processing', needs_review: 'Needs review', submitted: 'Submitted' })[e.submission_status] || e.submission_status}
+                </span>
+                <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: e.email_sent ? 'rgba(90,210,120,0.1)' : 'rgba(232,80,80,0.1)', color: e.email_sent ? 'var(--green)' : 'var(--red)' }}>
+                  E1 {e.email_sent ? '✓' : '✗'}
+                </span>
+                <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: e.email2_sent ? 'rgba(90,210,120,0.1)' : 'var(--surface2)', color: e.email2_sent ? 'var(--green)' : 'var(--text3)' }}>
+                  E2 {e.email2_sent ? '✓' : '—'}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AccessRequests() {
   const { success, error } = useToast();
   const [requests, setRequests] = useState([]);
@@ -2919,6 +3837,8 @@ export default function AdminDashboard() {
     { to: '/admin/access-keys',                  icon: '', label: 'Access Keys'                  },
     { to: '/admin/contacts',                     icon: '', label: 'Contacts'                     },
     { to: '/admin/access-requests',              icon: '', label: 'Access Requests'              },
+    { to: '/admin/introduction-requests',        icon: '', label: 'Introduction Requests'        },
+    { to: '/admin/trade-show-enquiry',           icon: '', label: 'Trade Show Enquiry'           },
     { to: '/admin/library',                      icon: '', label: 'Library'                      },
     { to: '/admin/projects',                     icon: '📋', label: 'Projects'                  },
     { to: '/admin/orders',                       icon: '📦', label: 'Orders Dashboard'          },
@@ -2938,6 +3858,8 @@ export default function AdminDashboard() {
         <Route path="access-keys"                     element={<AccessKeys />}             />
         <Route path="contacts"                         element={<Contacts />}              />
         <Route path="access-requests"                  element={<AccessRequests />}         />
+        <Route path="introduction-requests"            element={<IntroductionRequests />}   />
+        <Route path="trade-show-enquiry"               element={<TradeShowEnquiryDesk />}   />
         <Route path="library"                          element={<LibraryManager />}         />
         <Route path="projects"                         element={<AdminProjectsList />}       />
         <Route path="projects/new"                     element={<AdminCreateProjectWizard />} />

@@ -317,6 +317,25 @@ export const adminAPI = {
   listAccessRequests:       ()       => api.get('/api/admin/access-requests/'),
   updateAccessRequest: (id, data)    => api.patch(`/api/admin/access-requests/${id}/`, data),
   approveAndGenerateKey: id          => api.post(`/api/admin/access-requests/${id}/generate-key/`),
+  // Feature (Sep 2026) — "Get Introduced" admin-approval gate.
+  listIntroductionRequests: (statusFilter) => api.get('/api/admin/introduction-requests/', { params: statusFilter ? { status: statusFilter } : {} }),
+  getIntroductionRequest:   id       => api.get(`/api/admin/introduction-requests/${id}/`),
+  patchIntroductionRequest: (id, d)  => api.patch(`/api/admin/introduction-requests/${id}/`, d),
+  approveIntroductionRequest: id     => api.post(`/api/admin/introduction-requests/${id}/approve/`),
+  rejectIntroductionRequest: (id, reason) => api.post(`/api/admin/introduction-requests/${id}/reject/`, { reason }),
+  // Feature (Sep 2026) — Trade Show Enquiry Desk. Backs onto the
+  // isolated `tradeshow` app — /api/tradeshow/..., not /api/admin/... —
+  // matching that app's own url prefix, not this admin namespace's.
+  listTradeShowBrands:      ()      => api.get('/api/tradeshow/brands/'),
+  listTradeShowEnquiries:   ()      => api.get('/api/tradeshow/enquiries/'),
+  createTradeShowEnquiry:   data    => api.post('/api/tradeshow/enquiries/', data),
+  // Part 2 additions
+  getTradeShowEnquiry:      id      => api.get(`/api/tradeshow/enquiries/${id}/`),
+  uploadTradeShowPhotos:    (id, formData) => api.post(`/api/tradeshow/enquiries/${id}/photos/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  getTradeShowOrderSheet:   id      => api.get(`/api/tradeshow/enquiries/${id}/order-sheet/`),
+  patchTradeShowOrderSheet: (id, lines) => api.patch(`/api/tradeshow/enquiries/${id}/order-sheet/`, { lines }),
+  submitTradeShowEnquiry:   (id, data) => api.post(`/api/tradeshow/enquiries/${id}/submit/`, data),
+  scheduleTradeShowEnquiry: (id, data) => api.post(`/api/tradeshow/enquiries/${id}/schedule/`, data),
 };
 
 export const buyerAPI = {
