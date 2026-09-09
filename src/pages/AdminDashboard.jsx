@@ -3042,9 +3042,10 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
   // a real saved value with a freshly computed default. The
   // depositAmount === '' guard is what stops it from running again
   // after admin has actually typed something, even if that something
-  // happens to match the computed default exactly.
+  // happens to match the computed default exactly. Only applies to
+  // Order type — Enquiry never shows or needs this field at all.
   useEffect(() => {
-    if (enquiry?.submission_status === 'submitted' && orderSheet.length > 0 && enquiry.deposit_amount == null && depositAmount === '') {
+    if (enquiry?.enquiry_type === 'order' && enquiry?.submission_status === 'submitted' && orderSheet.length > 0 && enquiry.deposit_amount == null && depositAmount === '') {
       const total = orderSheet.reduce((sum, r) => sum + (Number(r.landed_price || 0) * (r.total_pieces || 0)), 0);
       setDepositAmount((total * 0.5).toFixed(2));
     }
@@ -3124,7 +3125,17 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
   }
 
   async function handleSchedule() {
-    if (depositAmount === '' || depositAmount === null) { error('Deposit amount is required to schedule'); return; }
+    // Bug fix (Sep 2026): only Order type actually needs a real deposit
+    // amount — the field isn't even shown for anything else. Rather
+    // than teach the backend endpoint about enquiry_type (it deals in
+    // dates and a number, nothing more), a non-Order schedule call just
+    // sends a plain "0" below — keeps the requirement check here simple
+    // and matching, without the backend needing to branch on type at
+    // all.
+    if (enquiry.enquiry_type === 'order' && (depositAmount === '' || depositAmount === null)) {
+      error('Deposit amount is required to schedule an order');
+      return;
+    }
     // Bug fix (Sep 2026): the fields are now always pre-filled with a
     // real value the moment the enquiry loads (see loadEnquiry) — there
     // is no longer a legitimate "both blank, use the server default"
@@ -3136,8 +3147,8 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
     setScheduling(true);
     try {
       const body = {
-        deposit_amount: depositAmount,
         scheduled_send_at: easternWallClockToUTC(scheduleDate, scheduleTime).toISOString(),
+        deposit_amount: enquiry.enquiry_type === 'order' ? depositAmount : '0',
       };
       const r = await adminAPI.scheduleTradeShowEnquiry(enquiryId, body);
       success('Scheduled — Email 2 will send automatically');
@@ -3452,20 +3463,24 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
               even though both get sent together — it's a distinct
               decision (how much to ask for) from timing (when to send),
               and the boxed styling here makes that visible rather than
-              just implied by field order. */}
-          <div style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r-5)', background: 'var(--surface2)', padding: 16, marginBottom: 20 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Deposit amount</div>
-            <input
-              type="number" min="0" step="0.01"
-              value={depositAmount}
-              onChange={e => setDepositAmount(e.target.value)}
-              placeholder="0.00"
-              style={{ ...IR_INPUT, maxWidth: 200 }}
-            />
-            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
-              Defaults to 50% of the order total — adjust if this order needs a different deposit.
+              just implied by field order. Order type only — Enquiry
+              never mentions a deposit anywhere in its email, matching
+              the same reasoning as payment_link at Submit. */}
+          {enquiry.enquiry_type === 'order' && (
+            <div style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r-5)', background: 'var(--surface2)', padding: 16, marginBottom: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Deposit amount</div>
+              <input
+                type="number" min="0" step="0.01"
+                value={depositAmount}
+                onChange={e => setDepositAmount(e.target.value)}
+                placeholder="0.00"
+                style={{ ...IR_INPUT, maxWidth: 200 }}
+              />
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
+                Defaults to 50% of the order total — adjust if this order needs a different deposit.
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Feature (Sep 2026): actual inline previews, not just download
               links — browsers render a PDF natively inside an iframe, so
@@ -3500,6 +3515,17 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
           </div>
           {enquiry.email2_sent ? (
             <div style={{ fontSize: 13, color: 'var(--green)' }}>Email 2 sent {enquiry.email2_sent_at ? `on ${formatEastern(enquiry.email2_sent_at)}` : ''}.</div>
+          ) : enquiry.scheduled_send_at ? (
+            // Bug fix (Sep 2026): "Reschedule" removed entirely at
+            // explicit request — once a real date/time is set, this is
+            // now a plain, locked confirmation, not an editable form.
+            // Nothing here calls handleSchedule again; there's simply no
+            // button to do so. If a genuine correction is ever needed,
+            // that's a direct backend action, not something exposed in
+            // this UI anymore.
+            <div style={{ fontSize: 13, color: 'var(--text)', padding: '10px 12px', background: 'var(--surface2)', borderRadius: 'var(--r-5)' }}>
+              Email 2 will send on <strong>{formatEastern(enquiry.scheduled_send_at)}</strong>.
+            </div>
           ) : (
             <>
               {/* Feature (Sep 2026): separate date + time inputs, not a
@@ -3510,13 +3536,8 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
                   A plain date and a plain time have no timezone of their
                   own; easternWallClockToUTC is what explicitly says
                   "these numbers mean Eastern," not the input itself. */}
-              {enquiry.scheduled_send_at && (
-                <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 10, padding: '8px 10px', background: 'var(--surface2)', borderRadius: 'var(--r-5)' }}>
-                  Currently scheduled for <strong style={{ color: 'var(--text)' }}>{formatEastern(enquiry.scheduled_send_at)}</strong>
-                </div>
-              )}
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>
-                {enquiry.scheduled_send_at ? 'Reschedule to' : 'Send at'} — Eastern Time
+                Send at — Eastern Time
               </div>
               <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
                 <input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} style={IR_INPUT} />
@@ -3537,7 +3558,7 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
                 local time — this holds regardless of where you're working from.
               </div>
               <button onClick={handleSchedule} disabled={scheduling} style={{ ...IR_BTN_BASE, background: 'var(--sage)', color: '#fff' }}>
-                {scheduling ? 'Scheduling…' : enquiry.scheduled_send_at ? 'Reschedule' : 'Schedule Email 2'}
+                {scheduling ? 'Scheduling…' : 'Schedule Email 2'}
               </button>
             </>
           )}
@@ -3680,7 +3701,7 @@ function TradeShowEnquiryList({ onOpenEnquiry }) {
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 24px' }}>
       <div style={{ marginBottom: 28 }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
-          Trade Show Enquiry
+          Order Booth
         </h2>
         <p style={{ fontSize: 13, color: 'var(--text3)' }}>
           Take a buyer's enquiry at the show — saving it sends them an immediate confirmation email.
@@ -3800,7 +3821,7 @@ function TradeShowEnquiryList({ onOpenEnquiry }) {
         </div>
 
         <button onClick={handleSubmit} disabled={!canSubmit || submitting} style={{ ...IR_BTN_BASE, width: '100%', padding: '11px', background: '#1A1A1A', color: '#fff', opacity: (!canSubmit || submitting) ? 0.6 : 1 }}>
-          {submitting ? 'Submitting…' : 'Submit enquiry'}
+          {submitting ? 'Submitting…' : 'Submit'}
         </button>
       </div>
 
@@ -4180,7 +4201,7 @@ export default function AdminDashboard() {
     { to: '/admin/contacts',                     icon: '', label: 'Contacts'                     },
     { to: '/admin/access-requests',              icon: '', label: 'Access Requests'              },
     { to: '/admin/introduction-requests',        icon: '', label: 'Introduction Requests'        },
-    { to: '/admin/trade-show-enquiry',           icon: '', label: 'Trade Show Enquiry'           },
+    { to: '/admin/trade-show-enquiry',           icon: '', label: 'Order Booth'                    },
     { to: '/admin/library',                      icon: '', label: 'Library'                      },
     { to: '/admin/projects',                     icon: '📋', label: 'Projects'                  },
     { to: '/admin/orders',                       icon: '📦', label: 'Orders Dashboard'          },
