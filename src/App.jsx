@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Spinner } from './components/Spinner';
-import DeviceGate from './components/DeviceGate';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import SellerDashboard from './pages/SellerDashboard';
@@ -77,22 +76,19 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    // Bug-avoidance (Sep 2026): DeviceGate now needs useLocation() for
-    // its path-based exemption (see DeviceGate.jsx), which only works
-    // inside a Router — moved from outside BrowserRouter to just inside
-    // it. Still wraps AuthProvider, so the original intent mostly
-    // survives: a blocked phone still skips auth-check work, it just no
-    // longer also skips BrowserRouter mounting itself, which does no
-    // real work on its own (no data fetching, no auth calls) — the
-    // actually-expensive part for a blocked phone was always the auth
-    // check this still runs before, not the router.
+    // Feature (Sep 2026) — DeviceGate removed site-wide at explicit
+    // request. It's still a real file (components/DeviceGate.jsx),
+    // just no longer imported or rendered anywhere — reintroducing it
+    // for any subset of routes later is a small, contained change, not
+    // a rebuild. Every page in this app was previously gated on the
+    // premise that none of them are mobile-optimized; that premise is
+    // now simply unenforced, not resolved — nothing about actual page
+    // layouts changed here.
     <BrowserRouter>
-      <DeviceGate>
-        <AuthProvider>
-          <ScrollToTop />
-          <AppRoutes />
-        </AuthProvider>
-      </DeviceGate>
+      <AuthProvider>
+        <ScrollToTop />
+        <AppRoutes />
+      </AuthProvider>
     </BrowserRouter>
   );
 }
