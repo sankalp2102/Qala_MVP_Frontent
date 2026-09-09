@@ -77,18 +77,22 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    // Mobile/device gate wraps EVERYTHING — outside BrowserRouter and
-    // AuthProvider, so a blocked phone never even reaches routing or an
-    // auth check. Applies site-wide, every route, with no per-page work
-    // needed: this gate is the entire mobile story by design (see
-    // DeviceGate.jsx) — nothing else in the app is mobile-optimized.
-    <DeviceGate>
-      <BrowserRouter>
+    // Bug-avoidance (Sep 2026): DeviceGate now needs useLocation() for
+    // its path-based exemption (see DeviceGate.jsx), which only works
+    // inside a Router — moved from outside BrowserRouter to just inside
+    // it. Still wraps AuthProvider, so the original intent mostly
+    // survives: a blocked phone still skips auth-check work, it just no
+    // longer also skips BrowserRouter mounting itself, which does no
+    // real work on its own (no data fetching, no auth calls) — the
+    // actually-expensive part for a blocked phone was always the auth
+    // check this still runs before, not the router.
+    <BrowserRouter>
+      <DeviceGate>
         <AuthProvider>
           <ScrollToTop />
           <AppRoutes />
         </AuthProvider>
-      </BrowserRouter>
-    </DeviceGate>
+      </DeviceGate>
+    </BrowserRouter>
   );
 }

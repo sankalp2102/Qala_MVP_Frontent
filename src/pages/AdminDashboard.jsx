@@ -2903,6 +2903,66 @@ function IntroductionRequests() {
 // the list itself unusable.
 const SIZES = ['XS', 'S', 'M', 'L', 'XL'];
 
+// Feature (Sep 2026) — the show is US-based, but this team spans both
+// the US and India; whoever schedules Email 2 needs to see and set a
+// time that unambiguously means Eastern Time, regardless of their own
+// browser's timezone. A plain <input type="datetime-local"> and
+// .toLocaleString() both silently use the VIEWER's local timezone with
+// no indication that's what's happening — confirmed as the actual
+// source of the confusion (an India-based admin scheduling "11am" and
+// seeing it displayed back as a different, unlabeled number is exactly
+// this: the same instant, correctly converted, but with nothing telling
+// them what they're looking at).
+//
+// easternWallClockToUTC takes plain date/time values with NO timezone
+// of their own (a date input and a time input are both timezone-free by
+// nature) and interprets them AS Eastern wall-clock time specifically,
+// converting to the correct UTC instant — DST-aware via a real
+// Intl-computed offset for that specific date, not a hardcoded -05:00.
+function easternWallClockToUTC(dateStr, timeStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const [h, min] = timeStr.split(':').map(Number);
+  const guessUTC = new Date(Date.UTC(y, m - 1, d, h, min));
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(guessUTC);
+  const get = type => parts.find(p => p.type === type).value;
+  const nyH = get('hour') === '24' ? 0 : +get('hour');  // Intl can report midnight as "24"
+  const nyAsUTC = Date.UTC(+get('year'), +get('month') - 1, +get('day'), nyH, +get('minute'));
+  const targetAsUTC = Date.UTC(y, m - 1, d, h, min);
+  return new Date(guessUTC.getTime() + (targetAsUTC - nyAsUTC));
+}
+
+// The display-side counterpart — always renders in Eastern regardless
+// of the viewer's own timezone, with an explicit EST/EDT label so it's
+// self-evident what's being shown, not something the reader has to
+// already know or guess.
+function formatEastern(isoOrDate) {
+  const d = typeof isoOrDate === 'string' ? new Date(isoOrDate) : isoOrDate;
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York', year: 'numeric', month: 'short', day: 'numeric',
+    hour: 'numeric', minute: '2-digit', hour12: true, timeZoneName: 'short',
+  }).format(d);
+}
+
+// The reverse direction — given a real UTC instant (from
+// enquiry.scheduled_send_at), what date and time does that read as in
+// Eastern wall-clock terms. Used to pre-fill the picker with the
+// CURRENT schedule when rescheduling, rather than a fresh default that
+// might not match what's actually set.
+function utcToEasternWallClock(isoString) {
+  const d = new Date(isoString);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(d);
+  const get = type => parts.find(p => p.type === type).value;
+  const hour = get('hour') === '24' ? '00' : get('hour');
+  return { dateStr: `${get('year')}-${get('month')}-${get('day')}`, timeStr: `${hour}:${get('minute')}` };
+}
+
 function TradeShowEnquiryDetail({ enquiryId, onBack }) {
   const { success, error } = useToast();
   const [step, setStep] = useState(1); // 1: photos, 2: order sheet, 3: details/submit
@@ -2918,7 +2978,8 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
   const [paymentLink, setPaymentLink] = useState('');
   const [depositAmount, setDepositAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [scheduleAt, setScheduleAt] = useState('');
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleTime, setScheduleTime] = useState('');
   const [scheduling, setScheduling] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -2929,6 +2990,27 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
         setDeliveryDate(r.data.delivery_date || '');
         setPaymentLink(r.data.payment_link || '');
         setDepositAmount(r.data.deposit_amount ?? '');
+        // Bug fix (Sep 2026): the schedule picker used to start as two
+        // genuinely empty strings, relying on native date/time inputs to
+        // show an unambiguous "blank" state — Safari instead renders an
+        // empty date/time input showing today's date and the current
+        // time, which reads as a pre-filled value even though nothing
+        // has actually been set. Always showing a REAL, concrete value
+        // removes that ambiguity entirely — what's in the fields is
+        // always exactly what would be submitted, on every browser, with
+        // nothing left to a rendering quirk. Only fills once (guarded by
+        // scheduleDate === ''), so it never overwrites an edit already
+        // in progress when this re-runs during photo-processing polling.
+        if (scheduleDate === '') {
+          if (r.data.scheduled_send_at) {
+            const { dateStr, timeStr } = utcToEasternWallClock(r.data.scheduled_send_at);
+            setScheduleDate(dateStr);
+            setScheduleTime(timeStr);
+          } else if (r.data.quote_sent_date) {
+            setScheduleDate(r.data.quote_sent_date);
+            setScheduleTime('11:00');
+          }
+        }
       })
       .catch(() => error('Failed to load enquiry'))
       .finally(() => setLoading(false));
@@ -2952,6 +3034,21 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
     const t = setInterval(() => { loadEnquiry(); loadOrderSheet(); }, 4000);
     return () => clearInterval(t);
   }, [enquiry?.photos]);
+
+  // Feature (Sep 2026): deposit amount defaults to 50% of the order
+  // total, computed from the (now-locked, post-submit) order sheet —
+  // checking enquiry.deposit_amount == null against the SERVER's own
+  // value, not local state, so this can't misfire mid-load and clobber
+  // a real saved value with a freshly computed default. The
+  // depositAmount === '' guard is what stops it from running again
+  // after admin has actually typed something, even if that something
+  // happens to match the computed default exactly.
+  useEffect(() => {
+    if (enquiry?.submission_status === 'submitted' && orderSheet.length > 0 && enquiry.deposit_amount == null && depositAmount === '') {
+      const total = orderSheet.reduce((sum, r) => sum + (Number(r.landed_price || 0) * (r.total_pieces || 0)), 0);
+      setDepositAmount((total * 0.5).toFixed(2));
+    }
+  }, [enquiry, orderSheet]);
 
   async function handlePhotoUpload(e) {
     const files = Array.from(e.target.files || []);
@@ -3004,10 +3101,9 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
 
   async function handleSubmitOrder() {
     if (!deliveryDate) { error('Delivery date is required to submit'); return; }
-    if (depositAmount === '' || depositAmount === null) { error('Deposit amount is required to submit'); return; }
     setSubmitting(true);
     try {
-      await adminAPI.submitTradeShowEnquiry(enquiryId, { delivery_date: deliveryDate, payment_link: paymentLink, deposit_amount: depositAmount });
+      await adminAPI.submitTradeShowEnquiry(enquiryId, { delivery_date: deliveryDate, payment_link: paymentLink });
       success('Order submitted — invoice and order sheet generated');
       loadEnquiry();
     } catch (e) {
@@ -3018,9 +3114,21 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
   }
 
   async function handleSchedule() {
+    if (depositAmount === '' || depositAmount === null) { error('Deposit amount is required to schedule'); return; }
+    // Bug fix (Sep 2026): the fields are now always pre-filled with a
+    // real value the moment the enquiry loads (see loadEnquiry) — there
+    // is no longer a legitimate "both blank, use the server default"
+    // state to special-case here. This is a plain required-field check,
+    // not branching logic, and it's what actually stops the exact
+    // failure mode this whole redesign was fixing: submitting whatever
+    // happens to be showing, confident it matches what's on screen.
+    if (!scheduleDate || !scheduleTime) { error('Pick a date and time to schedule.'); return; }
     setScheduling(true);
     try {
-      const body = scheduleAt ? { scheduled_send_at: new Date(scheduleAt).toISOString() } : {};
+      const body = {
+        deposit_amount: depositAmount,
+        scheduled_send_at: easternWallClockToUTC(scheduleDate, scheduleTime).toISOString(),
+      };
       const r = await adminAPI.scheduleTradeShowEnquiry(enquiryId, body);
       success('Scheduled — Email 2 will send automatically');
       setEnquiry(r.data);
@@ -3069,7 +3177,7 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
         ← Back to all enquiries
       </button>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+      <div className="ts-header-row" style={{ marginBottom: 20 }}>
         <div>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
             {enquiry.enquiry_number} — {enquiry.store_name}
@@ -3077,20 +3185,53 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
           <div style={{ fontSize: 13, color: 'var(--text3)' }}>{enquiry.brand_name} · {enquiry.buyer_name} · {enquiry.buyer_email}</div>
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: enquiry.enquiry_type === 'order' ? 'rgba(90,150,210,0.12)' : 'rgba(200,160,60,0.12)', color: enquiry.enquiry_type === 'order' ? '#3B6BA5' : 'var(--amber-deep)' }}>
-            {enquiry.enquiry_type === 'order' ? 'Order' : 'Enquiry'}
+          <span style={{
+            fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500,
+            background: enquiry.enquiry_type === 'order' ? 'rgba(90,150,210,0.12)' : enquiry.enquiry_type === 'interest' ? 'rgba(150,120,200,0.12)' : 'rgba(200,160,60,0.12)',
+            color: enquiry.enquiry_type === 'order' ? '#3B6BA5' : enquiry.enquiry_type === 'interest' ? '#7A5FA6' : 'var(--amber-deep)',
+          }}>
+            {enquiry.enquiry_type === 'order' ? 'Order' : enquiry.enquiry_type === 'interest' ? 'Interest' : 'Enquiry'}
           </span>
-          <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: 'var(--surface2)', color: 'var(--text2)' }}>
-            {STATUS_LABEL[enquiry.submission_status] || enquiry.submission_status}
-          </span>
+          {enquiry.enquiry_type !== 'interest' && (
+            <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: 'var(--surface2)', color: 'var(--text2)' }}>
+              {STATUS_LABEL[enquiry.submission_status] || enquiry.submission_status}
+            </span>
+          )}
           <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: enquiry.email_sent ? 'rgba(90,210,120,0.1)' : 'rgba(232,80,80,0.1)', color: enquiry.email_sent ? 'var(--green)' : 'var(--red)' }}>
             Email 1: {enquiry.email_sent ? 'sent' : 'failed'}
           </span>
-          <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: enquiry.email2_sent ? 'rgba(90,210,120,0.1)' : 'var(--surface2)', color: enquiry.email2_sent ? 'var(--green)' : 'var(--text3)' }}>
-            Email 2: {enquiry.email2_sent ? 'sent' : enquiry.scheduled_send_at ? 'scheduled' : 'not scheduled'}
-          </span>
+          {/* Feature (Sep 2026): Interest-type enquiries never get an
+              Email 2 at all — see email.py's send_enquiry_confirmation
+              docstring — so this badge would be permanently misleading
+              ("not scheduled") for something that was never going to be
+              scheduled in the first place. Hidden entirely for this type
+              rather than showing a status that doesn't really apply. */}
+          {enquiry.enquiry_type !== 'interest' && (
+            <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: enquiry.email2_sent ? 'rgba(90,210,120,0.1)' : 'var(--surface2)', color: enquiry.email2_sent ? 'var(--green)' : 'var(--text3)' }}>
+              Email 2: {enquiry.email2_sent ? 'sent' : enquiry.scheduled_send_at ? 'scheduled' : 'not scheduled'}
+            </span>
+          )}
         </div>
       </div>
+
+      {/* Feature (Sep 2026): Interest-type enquiries stop here entirely —
+          no photo upload, no digital order sheet, no submit, no schedule.
+          Email 1 (with the brand's lookbook and linesheet attached) is
+          the whole flow for this type; nothing downstream of it applies,
+          so nothing downstream of it renders. */}
+      {enquiry.enquiry_type === 'interest' ? (
+        <div style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r)', background: '#fff', padding: 24, textAlign: 'center' }}>
+          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>
+            {enquiry.email_sent ? 'Email sent — nothing further needed' : 'Email failed to send'}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--text3)' }}>
+            {enquiry.email_sent
+              ? `Thanked ${enquiry.buyer_name} for their interest in ${enquiry.brand_name}, with the lookbook and linesheet attached. This enquiry type doesn't have a follow-up email.`
+              : 'Check the SendGrid configuration and the brand\'s lookbook/linesheet are uploaded in /admin/, then try creating the enquiry again.'}
+          </div>
+        </div>
+      ) : (
+      <>
 
       {/* ── Step indicator ── */}
       {!isSubmitted && (
@@ -3168,7 +3309,7 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
               {orderSheet.length === 0 ? 'Catalog not loaded for this brand yet.' : 'Nothing marked yet — go back and upload a photo, or check "show full catalog" to add something by hand.'}
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div className="ts-2col" style={{ gap: 16 }}>
               {visibleRows.map(row => {
                 const qty = getLineValue(row, 'quantities_by_size') || {};
                 const remarks = getLineValue(row, 'remarks') || '';
@@ -3260,12 +3401,9 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
       {effectiveStep === 3 && (
         <div style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r)', background: '#fff', padding: 20 }}>
           <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Order details</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
+          <div className="ts-2col" style={{ gap: 14, marginBottom: 16 }}>
             <IRField label="Delivery date">
               <input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} style={IR_INPUT} />
-            </IRField>
-            <IRField label="Deposit amount">
-              <input type="number" min="0" step="0.01" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} placeholder="500.00" style={IR_INPUT} />
             </IRField>
             <IRField label="Payment link">
               <input type="url" value={paymentLink} onChange={e => setPaymentLink(e.target.value)} placeholder="https://..." style={IR_INPUT} />
@@ -3275,7 +3413,7 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
             <button onClick={() => setStep(2)} style={{ ...IR_BTN_BASE, background: '#fff', border: '1px solid var(--surface4)', color: 'var(--text2)' }}>
               ← Back
             </button>
-            <button onClick={handleSubmitOrder} disabled={submitting || !deliveryDate || depositAmount === ''} style={{ ...IR_BTN_BASE, background: '#1A1A1A', color: '#fff', opacity: (submitting || !deliveryDate || depositAmount === '') ? 0.6 : 1 }}>
+            <button onClick={handleSubmitOrder} disabled={submitting || !deliveryDate} style={{ ...IR_BTN_BASE, background: '#1A1A1A', color: '#fff', opacity: (submitting || !deliveryDate) ? 0.6 : 1 }}>
               {submitting ? 'Submitting…' : 'Submit order'}
             </button>
           </div>
@@ -3286,12 +3424,33 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
       {isSubmitted && (
         <div style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r)', background: '#fff', padding: 20 }}>
           <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Review &amp; schedule Email 2</h3>
+
+          {/* Feature (Sep 2026): its own visually separate section,
+              deliberately not folded into the scheduling controls below
+              even though both get sent together — it's a distinct
+              decision (how much to ask for) from timing (when to send),
+              and the boxed styling here makes that visible rather than
+              just implied by field order. */}
+          <div style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r-5)', background: 'var(--surface2)', padding: 16, marginBottom: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Deposit amount</div>
+            <input
+              type="number" min="0" step="0.01"
+              value={depositAmount}
+              onChange={e => setDepositAmount(e.target.value)}
+              placeholder="0.00"
+              style={{ ...IR_INPUT, maxWidth: 200 }}
+            />
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
+              Defaults to 50% of the order total — adjust if this order needs a different deposit.
+            </div>
+          </div>
+
           {/* Feature (Sep 2026): actual inline previews, not just download
               links — browsers render a PDF natively inside an iframe, so
               this needs no viewer library or extra dependency. The plain
               link stays alongside each preview since a full-tab open is
               sometimes just more useful (printing, zooming, mobile). */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+          <div className="ts-2col" style={{ gap: 16, marginBottom: 16 }}>
             {enquiry.order_sheet_pdf && (
               <div>
                 <a href={mediaUrl(enquiry.order_sheet_pdf)} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--sage)', display: 'block', marginBottom: 6 }}>
@@ -3318,23 +3477,51 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
             )}
           </div>
           {enquiry.email2_sent ? (
-            <div style={{ fontSize: 13, color: 'var(--green)' }}>Email 2 sent {enquiry.email2_sent_at ? `on ${new Date(enquiry.email2_sent_at).toLocaleString()}` : ''}.</div>
+            <div style={{ fontSize: 13, color: 'var(--green)' }}>Email 2 sent {enquiry.email2_sent_at ? `on ${formatEastern(enquiry.email2_sent_at)}` : ''}.</div>
           ) : (
             <>
-              <IRField label="Send at (leave blank to default to quote sent date, 11am Eastern)">
-                <input type="datetime-local" value={scheduleAt} onChange={e => setScheduleAt(e.target.value)} style={IR_INPUT} />
-              </IRField>
-              <button onClick={handleSchedule} disabled={scheduling} style={{ ...IR_BTN_BASE, background: 'var(--sage)', color: '#fff', marginTop: 10 }}>
-                {scheduling ? 'Scheduling…' : enquiry.scheduled_send_at ? 'Reschedule' : 'Schedule Email 2'}
-              </button>
+              {/* Feature (Sep 2026): separate date + time inputs, not a
+                  single datetime-local — that native input silently uses
+                  the BROWSER's own timezone with no way to label it
+                  otherwise, which is exactly what made this confusing
+                  for an India-based admin scheduling a US show's email.
+                  A plain date and a plain time have no timezone of their
+                  own; easternWallClockToUTC is what explicitly says
+                  "these numbers mean Eastern," not the input itself. */}
               {enquiry.scheduled_send_at && (
-                <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 8 }}>
-                  Currently scheduled for {new Date(enquiry.scheduled_send_at).toLocaleString()}.
+                <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 10, padding: '8px 10px', background: 'var(--surface2)', borderRadius: 'var(--r-5)' }}>
+                  Currently scheduled for <strong style={{ color: 'var(--text)' }}>{formatEastern(enquiry.scheduled_send_at)}</strong>
                 </div>
               )}
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 6 }}>
+                {enquiry.scheduled_send_at ? 'Reschedule to' : 'Send at'} — Eastern Time
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+                <input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} style={IR_INPUT} />
+                <input type="time" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)} style={IR_INPUT} />
+              </div>
+              {/* Feature (Sep 2026) — a live, always-visible preview of
+                  what the two fields actually resolve to, not something
+                  you have to trust blindly and only find out after
+                  submitting. Recomputed on every keystroke — cheap, pure
+                  functions, no reason to debounce. */}
+              {scheduleDate && scheduleTime && (
+                <div style={{ fontSize: 12, color: 'var(--sage)', marginBottom: 10, padding: '6px 10px', background: 'rgba(122,140,110,0.08)', borderRadius: 'var(--r-5)' }}>
+                  → This sends at <strong>{formatEastern(easternWallClockToUTC(scheduleDate, scheduleTime))}</strong>
+                </div>
+              )}
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 10 }}>
+                Whatever date and time you enter here means US Eastern Time, not your own
+                local time — this holds regardless of where you're working from.
+              </div>
+              <button onClick={handleSchedule} disabled={scheduling} style={{ ...IR_BTN_BASE, background: 'var(--sage)', color: '#fff' }}>
+                {scheduling ? 'Scheduling…' : enquiry.scheduled_send_at ? 'Reschedule' : 'Schedule Email 2'}
+              </button>
             </>
           )}
         </div>
+      )}
+      </>
       )}
     </div>
   );
@@ -3342,10 +3529,38 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
 
 function TradeShowEnquiryDesk() {
   const [selectedEnquiryId, setSelectedEnquiryId] = useState(null);
-  if (selectedEnquiryId) {
-    return <TradeShowEnquiryDetail enquiryId={selectedEnquiryId} onBack={() => setSelectedEnquiryId(null)} />;
-  }
-  return <TradeShowEnquiryList onOpenEnquiry={setSelectedEnquiryId} />;
+  return (
+    <>
+      {/* Feature (Sep 2026) — mobile support, since photographing the
+          printed sheet naturally happens on a phone at the booth.
+          Matches DashLayout's own pattern (a plain <style> tag with real
+          @media queries, not a JS viewport hook) — a <style> tag applies
+          globally to the rendered DOM regardless of which component
+          tree it sits in, so defining these classes once here covers
+          both TradeShowEnquiryList and TradeShowEnquiryDetail below.
+          Deliberately narrow in scope: only the handful of 2-column
+          grids and flex rows that actually break on a ~375px screen get
+          a class — everything else (buttons, badges, inputs) already
+          reads fine at that width without changing anything. */}
+      <style>{`
+        .ts-2col { display: grid; grid-template-columns: 1fr 1fr; }
+        .ts-header-row { display: flex; justify-content: space-between; align-items: flex-start; }
+        .ts-list-row { display: flex; justify-content: space-between; align-items: center; }
+        @media (max-width: 640px) {
+          .ts-2col { grid-template-columns: 1fr; }
+          .ts-header-row { flex-direction: column; align-items: flex-start; gap: 12px; }
+          .ts-header-row > div:last-child { justify-content: flex-start; width: 100%; }
+          .ts-list-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+          .ts-list-row > div:last-child { flex-wrap: wrap; }
+        }
+      `}</style>
+      {selectedEnquiryId ? (
+        <TradeShowEnquiryDetail enquiryId={selectedEnquiryId} onBack={() => setSelectedEnquiryId(null)} />
+      ) : (
+        <TradeShowEnquiryList onOpenEnquiry={setSelectedEnquiryId} />
+      )}
+    </>
+  );
 }
 
 // Renamed from the original TradeShowEnquiryDesk — this is now just the
@@ -3358,7 +3573,31 @@ function TradeShowEnquiryList({ onOpenEnquiry }) {
   const [enquiries, setEnquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const todayISO = new Date().toISOString().slice(0, 10);
+  // Feature (Sep 2026) — filter by enquiry type and by brand on the
+  // list below. Both default to 'all' — matches the previous (only)
+  // behavior until someone actually picks a filter.
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [brandFilter, setBrandFilter] = useState('all');
+  // Feature (Sep 2026): "tomorrow" needs to mean tomorrow in US Eastern
+  // time specifically, not the browser's own local timezone — matching
+  // the same EST-anchoring already used server-side for Celery Beat's
+  // 11am scheduling. new Date().setDate(+1) alone would give tomorrow
+  // in whatever timezone the admin's computer happens to be set to,
+  // which is wrong here since the buyers and brands this is sent to are
+  // US-based regardless of where the enquiry gets entered from.
+  function tomorrowInEastern() {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).formatToParts(now);
+    const y = +parts.find(p => p.type === 'year').value;
+    const m = +parts.find(p => p.type === 'month').value;
+    const d = +parts.find(p => p.type === 'day').value;
+    const est = new Date(Date.UTC(y, m - 1, d));
+    est.setUTCDate(est.getUTCDate() + 1);
+    return est.toISOString().slice(0, 10);
+  }
+  const defaultQuoteSendDate = tomorrowInEastern();
   const dateInputRef = useRef(null);
   // Feature (Sep 2026): no more `brand` in form state — it's derived
   // from enquiry_number's letter prefix, not a separate selection. This
@@ -3367,7 +3606,7 @@ function TradeShowEnquiryList({ onOpenEnquiry }) {
   // There's only one field to get right now, not two that have to agree.
   const [form, setForm] = useState({
     enquiry_number: '', store_name: '',
-    buyer_name: '', buyer_email: '', quote_sent_date: todayISO,
+    buyer_name: '', buyer_email: '', quote_sent_date: defaultQuoteSendDate,
     // Feature (Sep 2026) — required, no default: this changes what the
     // buyer actually reads in both emails, so it must be a real choice
     // made at the desk, not a silent fallback. Locked after Email 1
@@ -3406,7 +3645,7 @@ function TradeShowEnquiryList({ onOpenEnquiry }) {
     try {
       const r = await adminAPI.createTradeShowEnquiry(form);
       success(r.data.email_sent ? 'Enquiry saved — confirmation email sent' : 'Enquiry saved, but the email failed — check the brand has an email set in /admin/');
-      setForm({ enquiry_number: '', store_name: '', buyer_name: '', buyer_email: '', quote_sent_date: todayISO, enquiry_type: '' });
+      setForm({ enquiry_number: '', store_name: '', buyer_name: '', buyer_email: '', quote_sent_date: tomorrowInEastern(), enquiry_type: '' });
       load();
     } catch (e) {
       error(extractErrorMessage(e, 'Failed to save enquiry'));
@@ -3427,8 +3666,39 @@ function TradeShowEnquiryList({ onOpenEnquiry }) {
       </div>
 
       <div style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r)', background: '#fff', padding: 20, marginBottom: 32 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-          <IRField label="Enquiry number">
+        <div style={{ marginBottom: 18 }}>
+          <IRField label="Enquiry, Order, or Interest">
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[
+                { value: 'enquiry', label: 'Enquiry' },
+                { value: 'order', label: 'Order' },
+                { value: 'interest', label: 'Interest' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, enquiry_type: opt.value }))}
+                  style={{
+                    flex: 1, padding: '9px 0', borderRadius: 'var(--r-5)', fontSize: 13, fontWeight: 500,
+                    cursor: 'pointer', border: form.enquiry_type === opt.value ? '1px solid var(--sage)' : '1px solid var(--surface4)',
+                    background: form.enquiry_type === opt.value ? 'rgba(122,140,110,0.1)' : '#fff',
+                    color: form.enquiry_type === opt.value ? 'var(--sage)' : 'var(--text2)',
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
+              Enquiry and Order change what both emails say. Interest sends only one email
+              (with the brand's lookbook and linesheet attached) — no follow-up email or
+              order sheet applies. Can't be changed once Email 1 sends.
+            </div>
+          </IRField>
+        </div>
+
+        <div className="ts-2col" style={{ gap: 14, marginBottom: 14 }}>
+          <IRField label="Enquiry number/order number">
             <input value={form.enquiry_number} onChange={e => setForm(f => ({ ...f, enquiry_number: e.target.value }))} style={IR_INPUT} placeholder="e.g. KK001" />
           </IRField>
           {/* Feature (Sep 2026): brand is now DERIVED from the enquiry
@@ -3461,7 +3731,7 @@ function TradeShowEnquiryList({ onOpenEnquiry }) {
           </IRField>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+        <div className="ts-2col" style={{ gap: 14, marginBottom: 14 }}>
           <IRField label="Buyer name">
             <input value={form.buyer_name} onChange={e => setForm(f => ({ ...f, buyer_name: e.target.value }))} style={IR_INPUT} placeholder="Full name" />
           </IRField>
@@ -3471,7 +3741,7 @@ function TradeShowEnquiryList({ onOpenEnquiry }) {
         </div>
 
         <div style={{ marginBottom: 18 }}>
-          <IRField label="Quote sent date">
+          <IRField label="Quote send date">
             {/* Bug fix / request (Sep 2026): a bare <input type="date">
                 relies on the browser's own tiny, low-contrast calendar
                 icon (and Firefox doesn't render one in a clickable spot
@@ -3512,34 +3782,6 @@ function TradeShowEnquiryList({ onOpenEnquiry }) {
           </IRField>
         </div>
 
-        <div style={{ marginBottom: 18 }}>
-          <IRField label="Enquiry or Order">
-            <div style={{ display: 'flex', gap: 8 }}>
-              {[
-                { value: 'enquiry', label: 'Enquiry' },
-                { value: 'order', label: 'Order' },
-              ].map(opt => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setForm(f => ({ ...f, enquiry_type: opt.value }))}
-                  style={{
-                    flex: 1, padding: '9px 0', borderRadius: 'var(--r-5)', fontSize: 13, fontWeight: 500,
-                    cursor: 'pointer', border: form.enquiry_type === opt.value ? '1px solid var(--sage)' : '1px solid var(--surface4)',
-                    background: form.enquiry_type === opt.value ? 'rgba(122,140,110,0.1)' : '#fff',
-                    color: form.enquiry_type === opt.value ? 'var(--sage)' : 'var(--text2)',
-                  }}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
-              Changes the wording in both emails — can't be changed once Email 1 sends.
-            </div>
-          </IRField>
-        </div>
-
         <button onClick={handleSubmit} disabled={!canSubmit || submitting} style={{ ...IR_BTN_BASE, width: '100%', padding: '11px', background: '#1A1A1A', color: '#fff', opacity: (!canSubmit || submitting) ? 0.6 : 1 }}>
           {submitting ? 'Submitting…' : 'Submit enquiry'}
         </button>
@@ -3547,31 +3789,114 @@ function TradeShowEnquiryList({ onOpenEnquiry }) {
 
       <div>
         <h3 style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 10 }}>Enquiries so far</h3>
-        {loading ? (
-          <div style={{ fontSize: 13, color: 'var(--text3)' }}>Loading…</div>
-        ) : enquiries.length === 0 ? (
-          <div style={{ fontSize: 13, color: 'var(--text3)' }}>None yet.</div>
-        ) : (
-          enquiries.map(e => (
-            <div key={e.id} onClick={() => onOpenEnquiry(e.id)} style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r)', padding: '10px 14px', marginBottom: 8, background: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, cursor: 'pointer' }}>
+        {(() => {
+          // Feature (Sep 2026): derived here, not stored in state — it's
+          // fully computable from enquiries + the two filter controls,
+          // so there's nothing to keep in sync by hand.
+          const visibleEnquiries = enquiries.filter(e =>
+            (typeFilter === 'all' || e.enquiry_type === typeFilter) &&
+            (brandFilter === 'all' || e.brand_name === brandFilter)
+          );
+          const counts = { all: enquiries.length, enquiry: 0, order: 0, interest: 0 };
+          for (const e of enquiries) {
+            if (counts[e.enquiry_type] !== undefined) counts[e.enquiry_type] += 1;
+          }
+          return (
+            <>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                {[
+                  { value: 'all', label: 'All' },
+                  { value: 'enquiry', label: 'Enquiry' },
+                  { value: 'order', label: 'Order' },
+                  { value: 'interest', label: 'Interest' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setTypeFilter(opt.value)}
+                    style={{
+                      padding: '5px 12px', borderRadius: 'var(--r-lg)', fontSize: 12, fontWeight: 500,
+                      cursor: 'pointer', border: typeFilter === opt.value ? '1px solid var(--sage)' : '1px solid var(--surface4)',
+                      background: typeFilter === opt.value ? 'rgba(122,140,110,0.1)' : '#fff',
+                      color: typeFilter === opt.value ? 'var(--sage)' : 'var(--text2)',
+                    }}
+                  >
+                    {opt.label} ({counts[opt.value] ?? 0})
+                  </button>
+                ))}
+                {/* Feature (Sep 2026) — a real filter, picking one
+                    specific brand, rather than alphabetically sorting
+                    every brand together. A dropdown rather than buttons
+                    here specifically because brands aren't a fixed set
+                    of 4 the way types are — this list grows as more
+                    brands get added, and a dropdown scales with that
+                    without the row of buttons growing unbounded. */}
+                <select
+                  value={brandFilter}
+                  onChange={e => setBrandFilter(e.target.value)}
+                  style={{ ...IR_INPUT, width: 'auto', padding: '5px 10px', fontSize: 12, marginLeft: 4 }}
+                >
+                  <option value="all">All brands</option>
+                  {brands.map(b => (
+                    <option key={b.name} value={b.name}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+              {loading ? (
+                <div style={{ fontSize: 13, color: 'var(--text3)' }}>Loading…</div>
+              ) : visibleEnquiries.length === 0 ? (
+                <div style={{ fontSize: 13, color: 'var(--text3)' }}>{enquiries.length === 0 ? 'None yet.' : 'No enquiries match this filter.'}</div>
+              ) : (
+          visibleEnquiries.map(e => (
+            <div key={e.id} onClick={() => onOpenEnquiry(e.id)} className="ts-list-row" style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r)', padding: '10px 14px', marginBottom: 8, background: '#fff', fontSize: 13, cursor: 'pointer' }}>
               <div>
                 <strong>{e.enquiry_number}</strong> — {e.store_name} <span style={{ color: 'var(--text3)' }}>({e.brand_name})</span>
                 <div style={{ color: 'var(--text3)', fontSize: 12, marginTop: 2 }}>{e.buyer_name} · {e.buyer_email}</div>
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
+                {/* Feature (Sep 2026) — same type badge/colors as the
+                    detail view, so the two screens read consistently:
+                    order=blue, interest=purple, enquiry=amber. */}
+                <span style={{
+                  fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500,
+                  background: e.enquiry_type === 'order' ? 'rgba(90,150,210,0.12)' : e.enquiry_type === 'interest' ? 'rgba(150,120,200,0.12)' : 'rgba(200,160,60,0.12)',
+                  color: e.enquiry_type === 'order' ? '#3B6BA5' : e.enquiry_type === 'interest' ? '#7A5FA6' : 'var(--amber-deep)',
+                }}>
+                  {e.enquiry_type === 'order' ? 'Order' : e.enquiry_type === 'interest' ? 'Interest' : 'Enquiry'}
+                </span>
+                {/* Bug fix (Sep 2026): an Interest-type enquiry's
+                    submission_status never leaves "pending" — nothing in
+                    that flow ever calls Submit, since Interest stops
+                    after Email 1 entirely (see the detail view's own
+                    equivalent fix). Showing raw "Pending" here read as
+                    unfinished/stuck when it's actually fully done the
+                    moment Email 1 sends — "Done" based on email_sent is
+                    what's actually true for this type. */}
                 <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: 'var(--surface2)', color: 'var(--text2)' }}>
-                  {({ pending: 'Pending', processing: 'Processing', needs_review: 'Needs review', submitted: 'Submitted' })[e.submission_status] || e.submission_status}
+                  {e.enquiry_type === 'interest'
+                    ? (e.email_sent ? 'Done' : 'Failed')
+                    : ({ pending: 'Pending', processing: 'Processing', needs_review: 'Needs review', submitted: 'Submitted' })[e.submission_status] || e.submission_status}
                 </span>
                 <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: e.email_sent ? 'rgba(90,210,120,0.1)' : 'rgba(232,80,80,0.1)', color: e.email_sent ? 'var(--green)' : 'var(--red)' }}>
                   E1 {e.email_sent ? '✓' : '✗'}
                 </span>
-                <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: e.email2_sent ? 'rgba(90,210,120,0.1)' : 'var(--surface2)', color: e.email2_sent ? 'var(--green)' : 'var(--text3)' }}>
-                  E2 {e.email2_sent ? '✓' : '—'}
-                </span>
+                {/* Interest never gets an Email 2 at all — see the
+                    detail view's identical guard — so this badge would
+                    permanently read "not scheduled" for something that
+                    was never going to be scheduled. Hidden for this
+                    type rather than showing a status that doesn't apply. */}
+                {e.enquiry_type !== 'interest' && (
+                  <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: e.email2_sent ? 'rgba(90,210,120,0.1)' : 'var(--surface2)', color: e.email2_sent ? 'var(--green)' : 'var(--text3)' }}>
+                    E2 {e.email2_sent ? '✓' : '—'}
+                  </span>
+                )}
               </div>
             </div>
           ))
-        )}
+              )}
+            </>
+          );
+        })()}
       </div>
     </div>
   );

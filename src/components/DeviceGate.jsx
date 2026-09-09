@@ -22,13 +22,27 @@
 // identity (User-Agent + Chrome/Edge's Client Hints API) instead of
 // hardware capability — "does this device run a phone/tablet operating
 // system" is the right question, not "can this device be touched."
+//
+// Feature (Sep 2026) — exemptPaths: the Trade Show Enquiry admin flow
+// genuinely needs to work on a phone (photographing a buyer's marked-up
+// linesheet happens at the booth, on whatever device is in hand — see
+// AdminDashboard.jsx's own mobile CSS for that section). This is a real,
+// path-scoped exemption, not a general weakening of the gate — every
+// other route, including the rest of /admin, is blocked on phones
+// exactly as before. "Nothing else in the app is mobile-optimized"
+// (see above) is still true and still the reason this stays narrow:
+// widening it to all of /admin would expose pages that were never
+// designed for a phone screen at all, not just less polished ones.
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 
 const PHONE_MAX_SHORT_SIDE = 600;  // device's short side (constant across rotation) still "phone"
                                     // — sits comfortably between the largest common phone short
                                     // side (iPhone 15 Pro Max: 430) and the smallest common
                                     // tablet short side (iPad Mini: 744)
 const TABLET_MAX_LONG_SIDE = 1366; // covers iPad Pro 12.9" landscape (1366×1024) at the top end
+
+const EXEMPT_PATH_PREFIXES = ['/admin/trade-show-enquiry'];
 
 function isMobileOrTabletOS() {
   const ua = navigator.userAgent || '';
@@ -109,6 +123,7 @@ function GateScreen({ title, body, icon }) {
 
 export default function DeviceGate({ children }) {
   const [deviceClass, setDeviceClass] = useState(computeDeviceClass);
+  const location = useLocation();
 
   useEffect(() => {
     const update = () => setDeviceClass(computeDeviceClass());
@@ -119,6 +134,22 @@ export default function DeviceGate({ children }) {
       window.removeEventListener('orientationchange', update);
     };
   }, []);
+
+  // Feature (Sep 2026) — checked BEFORE either block below, so an exempt
+  // path skips both the phone block and the tablet-portrait rotate
+  // prompt — the Trade Show Enquiry flow's own responsive CSS handles a
+  // narrow viewport in any orientation, it doesn't need landscape only
+  // the way the rest of the (non-mobile-optimized) app does.
+  //
+  // Bug-avoidance: a plain startsWith() would also match a hypothetical
+  // future route like "/admin/trade-show-enquiry-other-page" — caught
+  // by testing this against real and adjacent paths before shipping,
+  // not by assumption. Matching the exact path or a real sub-path
+  // (segment boundary after the prefix) avoids that false positive.
+  const isExempt = EXEMPT_PATH_PREFIXES.some(
+    prefix => location.pathname === prefix || location.pathname.startsWith(prefix + '/')
+  );
+  if (isExempt) return children;
 
   if (deviceClass === 'phone') {
     return (
