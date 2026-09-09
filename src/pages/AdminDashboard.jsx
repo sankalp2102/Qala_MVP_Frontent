@@ -3711,11 +3711,6 @@ function TradeShowEnquiryList({ onOpenEnquiry }) {
                 </button>
               ))}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
-              Enquiry and Order change what both emails say. Interest sends only one email
-              (with the brand's lookbook and linesheet attached) — no follow-up email or
-              order sheet applies. Can't be changed once Email 1 sends.
-            </div>
           </IRField>
         </div>
 
@@ -4193,7 +4188,12 @@ export default function AdminDashboard() {
   return (
     <DashLayout nav={navItems}>
       <Routes>
-        <Route index                                 element={<Overview />}               />
+        {/* Temporary (Sep 2026) — bare /admin lands on Trade Show
+            Enquiry instead of Overview, at explicit request while
+            that's the priority. Revert by changing this back to
+            `element={<Overview />}` — see App.jsx's roleHome for the
+            matching temporary change to the post-login redirect. */}
+        <Route index                                 element={<Navigate to="trade-show-enquiry" replace />} />
         <Route path="review"                         element={<ProfileReview />}          />
         <Route path="review/:pid"                    element={<ProfileReview />}          />
         <Route path="create-seller"                  element={<CreateSeller />}           />

@@ -34,7 +34,14 @@ function ScrollToTop() {
 }
 
 function roleHome(role) {
-  if (role === 'admin')    return '/admin';
+  // Temporary (Sep 2026) — admins land directly on Trade Show Enquiry
+  // instead of the Overview page, at explicit request while that's the
+  // priority. Revert by changing '/admin/trade-show-enquiry' back to
+  // '/admin' — see AdminDashboard.jsx's matching temporary change to
+  // its index route for the other half of this (this only covers the
+  // fresh-login redirect; that one covers navigating to bare /admin
+  // directly while already logged in).
+  if (role === 'admin')    return '/admin/trade-show-enquiry';
   if (role === 'seller')   return '/dashboard';
   if (role === 'customer') return '/buyer';
   return '/';
