@@ -167,21 +167,50 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
       const data = matchRes?.data;
 
       if (data?.session_token) {
-        // Token may already be saved by handleFindStudios — safe to call again
         discoveryAPI.saveSession(data.session_token);
         setMatchingInModal(false);
         setShowContact(false);
         matchPromiseRef.current = null;
         onMatchComplete?.(data.session_token);
       } else {
+        // Bug fix (Sep 2026) — confirmed against a real case: the match
+        // request can fail or come back without a token even when the
+        // backend genuinely completed it — a dropped response after the
+        // server had already finished, not an actual matching failure.
+        // The buyer was left stuck on this same contact form, matching
+        // had silently already succeeded. Before showing a failure,
+        // check the session's REAL current state — the same call
+        // resumeSession already uses — since "the request errored" and
+        // "the match failed" turned out not to be the same thing.
+        const real = await chatAPI.getSession(sessionId).catch(() => null);
+        if (real?.data?.session_token) {
+          discoveryAPI.saveSession(real.data.session_token);
+          setMatchingInModal(false);
+          setShowContact(false);
+          matchPromiseRef.current = null;
+          onMatchComplete?.(real.data.session_token);
+          return;
+        }
         setMatchError('No studios found. Try adjusting the brief.');
         setMatchingInModal(false);
         matchPromiseRef.current = null;
       }
     } catch (err) {
-      setMatchError(err.response?.data?.error || 'Something went wrong. Please try again.');
-      setMatchingInModal(false);
-      matchPromiseRef.current = null;
+      // Same real-state check here — a network drop or timeout on this
+      // request doesn't mean the backend didn't finish the match; it
+      // frequently already had, per the confirmed case above.
+      const real = await chatAPI.getSession(sessionId).catch(() => null);
+      if (real?.data?.session_token) {
+        discoveryAPI.saveSession(real.data.session_token);
+        setMatchingInModal(false);
+        setShowContact(false);
+        matchPromiseRef.current = null;
+        onMatchComplete?.(real.data.session_token);
+      } else {
+        setMatchError(err.response?.data?.error || 'Something went wrong. Please try again.');
+        setMatchingInModal(false);
+        matchPromiseRef.current = null;
+      }
     } finally {
       clearInterval(msgInterval);
       setMatching(false);
