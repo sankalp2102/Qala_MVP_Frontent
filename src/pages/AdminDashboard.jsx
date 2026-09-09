@@ -3153,6 +3153,11 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
       const r = await adminAPI.scheduleTradeShowEnquiry(enquiryId, body);
       success('Scheduled — Email 2 will send automatically');
       setEnquiry(r.data);
+      // Feature (Sep 2026) — return to Order Booth's list once Email 2
+      // is scheduled, at explicit request. The toast above already
+      // confirms what just happened, so there's nothing left to review
+      // on this screen before leaving it.
+      onBack();
     } catch (e) {
       error(extractErrorMessage(e, 'Failed to schedule'));
     } finally {
@@ -3710,12 +3715,12 @@ function TradeShowEnquiryList({ onOpenEnquiry }) {
 
       <div style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r)', background: '#fff', padding: 20, marginBottom: 32 }}>
         <div style={{ marginBottom: 18 }}>
-          <IRField label="Enquiry, Order, or Interest">
+          <IRField label="Interest, Enquiry, or Order">
             <div style={{ display: 'flex', gap: 8 }}>
               {[
+                { value: 'interest', label: 'Interest' },
                 { value: 'enquiry', label: 'Enquiry' },
                 { value: 'order', label: 'Order' },
-                { value: 'interest', label: 'Interest' },
               ].map(opt => (
                 <button
                   key={opt.value}
@@ -3844,9 +3849,9 @@ function TradeShowEnquiryList({ onOpenEnquiry }) {
               <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                 {[
                   { value: 'all', label: 'All' },
+                  { value: 'interest', label: 'Interest' },
                   { value: 'enquiry', label: 'Enquiry' },
                   { value: 'order', label: 'Order' },
-                  { value: 'interest', label: 'Interest' },
                 ].map(opt => (
                   <button
                     key={opt.value}
