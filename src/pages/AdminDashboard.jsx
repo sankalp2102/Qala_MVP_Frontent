@@ -3831,7 +3831,7 @@ function TradeShowEnquiryList({ onOpenEnquiry }) {
 
         <div className="ts-2col" style={{ gap: 14, marginBottom: 14 }}>
           <IRField label="Buyer name">
-            <input value={form.buyer_name} onChange={e => setForm(f => ({ ...f, buyer_name: e.target.value }))} style={IR_INPUT} placeholder="Full name" />
+            <input value={form.buyer_name} onChange={e => setForm(f => ({ ...f, buyer_name: e.target.value }))} style={IR_INPUT} placeholder="First name" />
           </IRField>
           <IRField label="Buyer email">
             <input type="email" value={form.buyer_email} onChange={e => setForm(f => ({ ...f, buyer_email: e.target.value }))} style={IR_INPUT} placeholder="name@store.com" />
