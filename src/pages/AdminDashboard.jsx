@@ -3710,6 +3710,11 @@ function TradeShowEnquiryList({ onOpenEnquiry }) {
   const [form, setForm] = useState({
     enquiry_number: '', store_name: '',
     buyer_name: '', buyer_email: '', quote_sent_date: defaultQuoteSendDate,
+    // Feature (Sep 2026) — extra CC recipients, admin-added at
+    // creation. Kept as a plain array of strings, one per input row on
+    // the form below — matches cc_emails' shape on the backend exactly,
+    // so this is sent as-is with no transformation needed at submit.
+    cc_emails: [],
     // Feature (Sep 2026) — required, no default: this changes what the
     // buyer actually reads in both emails, so it must be a real choice
     // made at the desk, not a silent fallback. Locked after Email 1
@@ -3746,9 +3751,16 @@ function TradeShowEnquiryList({ onOpenEnquiry }) {
     if (!canSubmit || submitting) return;
     setSubmitting(true);
     try {
-      const r = await adminAPI.createTradeShowEnquiry(form);
+      // Bug fix (Sep 2026): an "+ Add another email" row left blank (added,
+      // then never filled in) would otherwise be sent as an empty string
+      // and rejected by the backend's per-entry format check — a confusing
+      // failure for something that was never really meant to be a real
+      // entry. Filtering blanks out here means only genuinely-typed
+      // addresses are ever actually submitted.
+      const payload = { ...form, cc_emails: form.cc_emails.map(e => e.trim()).filter(Boolean) };
+      const r = await adminAPI.createTradeShowEnquiry(payload);
       success(r.data.email_sent ? 'Enquiry saved — confirmation email sent' : 'Enquiry saved, but the email failed — check the brand has an email set in /admin/');
-      setForm({ enquiry_number: '', store_name: '', buyer_name: '', buyer_email: '', quote_sent_date: tomorrowInEastern(), enquiry_type: '' });
+      setForm({ enquiry_number: '', store_name: '', buyer_name: '', buyer_email: '', cc_emails: [], quote_sent_date: tomorrowInEastern(), enquiry_type: '' });
       load();
     } catch (e) {
       error(extractErrorMessage(e, 'Failed to save enquiry'));
@@ -3836,6 +3848,55 @@ function TradeShowEnquiryList({ onOpenEnquiry }) {
           <IRField label="Buyer email">
             <input type="email" value={form.buyer_email} onChange={e => setForm(f => ({ ...f, buyer_email: e.target.value }))} style={IR_INPUT} placeholder="name@store.com" />
           </IRField>
+        </div>
+
+        {/* Feature (Sep 2026) — extra CC recipients, admin-added at
+            creation. Full-width, its own row below Buyer name/email
+            rather than squeezed into that 2-column grid — the list can
+            grow to several rows and doesn't share that pair's shape. */}
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 4 }}>
+            Additional CC (optional)
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 8 }}>
+            This email address will be added in the CC.
+          </div>
+          {form.cc_emails.map((email, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setForm(f => {
+                  const next = [...f.cc_emails];
+                  next[i] = e.target.value;
+                  return { ...f, cc_emails: next };
+                })}
+                style={{ ...IR_INPUT, flex: 1 }}
+                placeholder="name@example.com"
+              />
+              <button
+                type="button"
+                onClick={() => setForm(f => ({ ...f, cc_emails: f.cc_emails.filter((_, j) => j !== i) }))}
+                style={{ width: 32, border: '1px solid var(--surface4)', borderRadius: 'var(--r-5)', background: '#fff', color: 'var(--text3)', cursor: 'pointer', fontSize: 15 }}
+                aria-label="Remove this CC email"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          {/* Feature (Sep 2026): capped at 5, matching the backend's own
+              validate_cc_emails limit — hiding the button once reached
+              is clearer than letting someone add a 6th and only finding
+              out it's rejected after they hit Submit. */}
+          {form.cc_emails.length < 5 && (
+            <button
+              type="button"
+              onClick={() => setForm(f => ({ ...f, cc_emails: [...f.cc_emails, ''] }))}
+              style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--r-5)', border: '1px solid var(--surface4)', background: '#fff', color: 'var(--sage)', cursor: 'pointer' }}
+            >
+              + Add another email
+            </button>
+          )}
         </div>
 
         <div style={{ marginBottom: 18 }}>
