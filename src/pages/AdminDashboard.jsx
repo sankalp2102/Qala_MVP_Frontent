@@ -2981,6 +2981,7 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
   const [scheduling, setScheduling] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(null);
   const fileInputRef = useRef(null);
 
   const loadEnquiry = () => {
@@ -3162,6 +3163,42 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
       error(extractErrorMessage(e, 'Failed to schedule'));
     } finally {
       setScheduling(false);
+    }
+  }
+
+  // Feature (Sep 2026) — a genuine download, not just "open in a new
+  // tab" (which the existing preview links already do). Both PDFs live
+  // on a different origin than this app (GCS directly, or api.qala.studio
+  // — either way, cross-origin from wherever this frontend is served),
+  // and a plain <a download> attribute is silently ignored by browsers
+  // for cross-origin URLs — clicking it would just navigate to the file
+  // exactly like the existing link, not save it. Fetching the file as a
+  // blob first sidesteps that: a blob: URL is always same-origin to the
+  // page that created it, so <a download> works reliably on it regardless
+  // of where the original file came from.
+  async function handleDownloadPdf(url, filename) {
+    setDownloadingPdf(filename);
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`Fetch failed: ${resp.status}`);
+      const blob = await resp.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(blobUrl);
+    } catch (e) {
+      // Real, unverified dependency worth knowing about: this fetch only
+      // succeeds if the file's origin sends CORS headers allowing this
+      // app's domain. If that's not configured on the GCS bucket / API
+      // origin, every download attempt fails here with a generic network
+      // error — worth checking directly if this message shows up.
+      error('Could not download the file — it may need CORS configured on its storage origin.');
+    } finally {
+      setDownloadingPdf(null);
     }
   }
 
@@ -3495,9 +3532,18 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
           <div className="ts-2col" style={{ gap: 16, marginBottom: 16 }}>
             {enquiry.order_sheet_pdf && (
               <div>
-                <a href={mediaUrl(enquiry.order_sheet_pdf)} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--sage)', display: 'block', marginBottom: 6 }}>
-                  📄 Order sheet PDF — open full size
-                </a>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                  <a href={mediaUrl(enquiry.order_sheet_pdf)} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--sage)' }}>
+                    📄 Order sheet PDF — open full size
+                  </a>
+                  <button
+                    onClick={() => handleDownloadPdf(mediaUrl(enquiry.order_sheet_pdf), `${enquiry.enquiry_number}-order-sheet.pdf`)}
+                    disabled={downloadingPdf === `${enquiry.enquiry_number}-order-sheet.pdf`}
+                    style={{ fontSize: 12, padding: '4px 10px', borderRadius: 'var(--r-5)', border: '1px solid var(--surface4)', background: '#fff', color: 'var(--text2)', cursor: 'pointer' }}
+                  >
+                    {downloadingPdf === `${enquiry.enquiry_number}-order-sheet.pdf` ? 'Downloading…' : '⬇ Download'}
+                  </button>
+                </div>
                 <iframe
                   src={mediaUrl(enquiry.order_sheet_pdf)}
                   title="Order sheet preview"
@@ -3507,9 +3553,18 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
             )}
             {enquiry.invoice_pdf && (
               <div>
-                <a href={mediaUrl(enquiry.invoice_pdf)} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--sage)', display: 'block', marginBottom: 6 }}>
-                  📄 Invoice {enquiry.invoice_number} — open full size
-                </a>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                  <a href={mediaUrl(enquiry.invoice_pdf)} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--sage)' }}>
+                    📄 Invoice {enquiry.invoice_number} — open full size
+                  </a>
+                  <button
+                    onClick={() => handleDownloadPdf(mediaUrl(enquiry.invoice_pdf), `${enquiry.invoice_number || enquiry.enquiry_number}-invoice.pdf`)}
+                    disabled={downloadingPdf === `${enquiry.invoice_number || enquiry.enquiry_number}-invoice.pdf`}
+                    style={{ fontSize: 12, padding: '4px 10px', borderRadius: 'var(--r-5)', border: '1px solid var(--surface4)', background: '#fff', color: 'var(--text2)', cursor: 'pointer' }}
+                  >
+                    {downloadingPdf === `${enquiry.invoice_number || enquiry.enquiry_number}-invoice.pdf` ? 'Downloading…' : '⬇ Download'}
+                  </button>
+                </div>
                 <iframe
                   src={mediaUrl(enquiry.invoice_pdf)}
                   title="Invoice preview"
