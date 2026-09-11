@@ -3160,19 +3160,14 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
 
   async function handleSubmitOrder() {
     if (!deliveryDate) { error('Delivery date is required to submit'); return; }
-    // Feature (Sep 2026) — payment link is only meaningful for Order
-    // type: it's what Email 2's Order variant sends the buyer to
-    // actually pay against. Enquiry type never mentions a payment link
-    // anywhere in its email at all (see email.py's Enquiry-variant
-    // Email 2 body) — asking for it there would be requiring something
-    // nothing downstream ever uses.
-    if (enquiry.enquiry_type === 'order' && !paymentLink.trim()) {
-      error('Payment link is required to submit an order');
-      return;
-    }
     setSubmitting(true);
     try {
-      await adminAPI.submitTradeShowEnquiry(enquiryId, { delivery_date: deliveryDate, payment_link: paymentLink });
+      // Bug fix (Sep 2026): payment_link moved OUT of Submit and onto
+      // the schedule screen instead, alongside deposit_amount — see
+      // handleSchedule below. A payment link is normally generated FOR
+      // a specific amount, so asking for it here, before that amount
+      // even exists on screen, had the two backwards.
+      await adminAPI.submitTradeShowEnquiry(enquiryId, { delivery_date: deliveryDate });
       success('Order submitted — invoice and order sheet generated');
       loadEnquiry();
     } catch (e) {
@@ -3194,6 +3189,13 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
       error('Deposit amount is required to schedule an order');
       return;
     }
+    // Bug fix (Sep 2026): payment link moved here from Submit, for the
+    // same reason as deposit amount above — same type-agnostic-backend
+    // pattern, same "send '' for non-Order" approach.
+    if (enquiry.enquiry_type === 'order' && !paymentLink.trim()) {
+      error('Payment link is required to schedule an order');
+      return;
+    }
     // Bug fix (Sep 2026): the fields are now always pre-filled with a
     // real value the moment the enquiry loads (see loadEnquiry) — there
     // is no longer a legitimate "both blank, use the server default"
@@ -3207,6 +3209,7 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
       const body = {
         scheduled_send_at: easternWallClockToUTC(scheduleDate, scheduleTime).toISOString(),
         deposit_amount: enquiry.enquiry_type === 'order' ? depositAmount : '0',
+        payment_link: enquiry.enquiry_type === 'order' ? paymentLink : '',
       };
       const r = await adminAPI.scheduleTradeShowEnquiry(enquiryId, body);
       success('Scheduled — Email 2 will send automatically');
@@ -3523,21 +3526,13 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
       {effectiveStep === 3 && (
         <div style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r)', background: '#fff', padding: 20 }}>
           <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 14 }}>Order details</h3>
-          {/* Feature (Sep 2026) — payment link only applies to Order
-              type: it's what the Order variant of Email 2 sends the
-              buyer to actually pay against. The Enquiry variant never
-              mentions a payment link at all, so asking for it there
-              would be requiring something nothing downstream reads —
-              hidden entirely for that type, not just optional. */}
-          <div className={enquiry.enquiry_type === 'order' ? 'ts-2col' : ''} style={{ gap: 14, marginBottom: 16 }}>
+          {/* Bug fix (Sep 2026): payment link moved to the schedule
+              screen, alongside deposit amount — see that section below.
+              Delivery date is the only thing this step still collects. */}
+          <div style={{ marginBottom: 16 }}>
             <IRField label="Delivery date">
               <input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} style={IR_INPUT} />
             </IRField>
-            {enquiry.enquiry_type === 'order' && (
-              <IRField label="Payment link *">
-                <input type="url" value={paymentLink} onChange={e => setPaymentLink(e.target.value)} placeholder="https://..." style={IR_INPUT} />
-              </IRField>
-            )}
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <button onClick={() => setStep(2)} style={{ ...IR_BTN_BASE, background: '#fff', border: '1px solid var(--surface4)', color: 'var(--text2)' }}>
@@ -3545,8 +3540,8 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
             </button>
             <button
               onClick={handleSubmitOrder}
-              disabled={submitting || !deliveryDate || (enquiry.enquiry_type === 'order' && !paymentLink.trim())}
-              style={{ ...IR_BTN_BASE, background: '#1A1A1A', color: '#fff', opacity: (submitting || !deliveryDate || (enquiry.enquiry_type === 'order' && !paymentLink.trim())) ? 0.6 : 1 }}
+              disabled={submitting || !deliveryDate}
+              style={{ ...IR_BTN_BASE, background: '#1A1A1A', color: '#fff', opacity: (submitting || !deliveryDate) ? 0.6 : 1 }}
             >
               {submitting ? 'Submitting…' : 'Submit order'}
             </button>
@@ -3562,11 +3557,17 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
           {/* Feature (Sep 2026): its own visually separate section,
               deliberately not folded into the scheduling controls below
               even though both get sent together — it's a distinct
-              decision (how much to ask for) from timing (when to send),
-              and the boxed styling here makes that visible rather than
-              just implied by field order. Order type only — Enquiry
-              never mentions a deposit anywhere in its email, matching
-              the same reasoning as payment_link at Submit. */}
+              decision (how much to ask for, and where payment goes) from
+              timing (when to send), and the boxed styling here makes
+              that visible rather than just implied by field order.
+              Order type only — Enquiry never mentions either field in
+              its email at all.
+              Bug fix (Sep 2026): payment link moved here from Submit,
+              at explicit request — a payment link is normally generated
+              FOR a specific amount, so it only makes sense to ask for it
+              once that amount is actually visible, not before. Deposit
+              amount sits first in this same box for exactly that
+              reason. */}
           {enquiry.enquiry_type === 'order' && (
             <div style={{ border: '1px solid var(--surface4)', borderRadius: 'var(--r-5)', background: 'var(--surface2)', padding: 16, marginBottom: 20 }}>
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Deposit amount</div>
@@ -3577,8 +3578,19 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
                 placeholder="0.00"
                 style={{ ...IR_INPUT, maxWidth: 200 }}
               />
-              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 16 }}>
                 Defaults to 50% of the order total — adjust if this order needs a different deposit.
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Payment link *</div>
+              <input
+                type="url"
+                value={paymentLink}
+                onChange={e => setPaymentLink(e.target.value)}
+                placeholder="https://..."
+                style={IR_INPUT}
+              />
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
+                Generate this for the deposit amount above, then paste it here.
               </div>
             </div>
           )}
