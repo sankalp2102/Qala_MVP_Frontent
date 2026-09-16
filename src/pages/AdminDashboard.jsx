@@ -3020,6 +3020,122 @@ function utcToEasternWallClock(isoString) {
   return { dateStr: `${get('year')}-${get('month')}-${get('day')}`, timeStr: `${hour}:${get('minute')}` };
 }
 
+// Feature — delete a Trade Show enquiry, gated behind two separate
+// confirmations rather than one: a plain yes/no, then typing the
+// enquiry number back exactly before the destructive button enables.
+// The backend (tradeshow/views.py::TradeShowEnquiryDetailView.delete)
+// re-checks the typed number server-side too — this isn't just a
+// frontend nicety, a mismatched confirm_enquiry_number is rejected
+// with a 400 even if someone bypassed this UI entirely.
+//
+// `trigger` is a render-prop — (openFn) => <element> — so the two
+// call sites (the list row and the detail header) can each render
+// their own button matching local styling/placement, while sharing
+// this one confirmation flow and the actual delete call.
+function DeleteEnquiryConfirm({ enquiry, onDeleted, trigger }) {
+  const { success, error } = useToast();
+  const [open, setOpen]         = useState(false);
+  const [step, setStep]         = useState(1); // 1: are you sure, 2: type to confirm
+  const [typed, setTyped]       = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  function close() {
+    if (deleting) return;
+    setOpen(false);
+    setStep(1);
+    setTyped('');
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await adminAPI.deleteTradeShowEnquiry(enquiry.id, typed.trim());
+      success(`Deleted ${enquiry.enquiry_number}`);
+      setOpen(false);
+      setStep(1);
+      setTyped('');
+      onDeleted(enquiry.id);
+    } catch (e) {
+      error(extractErrorMessage(e, 'Failed to delete'));
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const matches = typed.trim().toLowerCase() === enquiry.enquiry_number.trim().toLowerCase();
+
+  return (
+    <>
+      {trigger(() => setOpen(true))}
+      {open && (
+        <div
+          onClick={close}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 'var(--r)', padding: 24, width: 380, maxWidth: '100%', boxShadow: '0 12px 40px rgba(0,0,0,0.25)' }}
+          >
+            {step === 1 ? (
+              <>
+                <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)', marginBottom: 8 }}>
+                  Delete this enquiry?
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6, marginBottom: 18 }}>
+                  This permanently deletes <strong>{enquiry.enquiry_number} — {enquiry.store_name}</strong>,
+                  including any uploaded order-sheet photos and its digital order sheet. This cannot be undone.
+                </div>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <button onClick={close} style={{ ...IR_BTN_BASE, background: '#fff', border: '1px solid var(--surface4)', color: 'var(--text2)' }}>
+                    Cancel
+                  </button>
+                  <button onClick={() => setStep(2)} style={{ ...IR_BTN_BASE, background: 'rgba(232,80,80,0.08)', color: 'var(--red)', border: '1px solid rgba(232,80,80,0.25)' }}>
+                    Continue
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)', marginBottom: 8 }}>
+                  Type the enquiry number to confirm
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6, marginBottom: 12 }}>
+                  Type <strong>{enquiry.enquiry_number}</strong> below to permanently delete it.
+                </div>
+                <input
+                  autoFocus
+                  value={typed}
+                  onChange={e => setTyped(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && matches) handleDelete(); }}
+                  placeholder={enquiry.enquiry_number}
+                  style={IR_INPUT}
+                />
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 18 }}>
+                  <button onClick={close} disabled={deleting} style={{ ...IR_BTN_BASE, background: '#fff', border: '1px solid var(--surface4)', color: 'var(--text2)' }}>
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={!matches || deleting}
+                    style={{
+                      ...IR_BTN_BASE,
+                      background: matches ? 'var(--red)' : 'var(--surface3)',
+                      color: '#fff',
+                      cursor: matches && !deleting ? 'pointer' : 'not-allowed',
+                    }}
+                  >
+                    {deleting ? 'Deleting…' : 'Delete permanently'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function TradeShowEnquiryDetail({ enquiryId, onBack }) {
   const { success, error } = useToast();
   const [step, setStep] = useState(1); // 1: photos, 2: order sheet, 3: details/submit
@@ -3325,6 +3441,18 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
           <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: enquiry.email_sent ? 'rgba(90,210,120,0.1)' : 'rgba(232,80,80,0.1)', color: enquiry.email_sent ? 'var(--green)' : 'var(--red)' }}>
             Email 1: {enquiry.email_sent ? 'sent' : 'failed'}
           </span>
+          <DeleteEnquiryConfirm
+            enquiry={enquiry}
+            onDeleted={onBack}
+            trigger={openConfirm => (
+              <button
+                onClick={openConfirm}
+                style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: 'rgba(232,80,80,0.08)', color: 'var(--red)', border: '1px solid rgba(232,80,80,0.25)', cursor: 'pointer' }}
+              >
+                Delete
+              </button>
+            )}
+          />
           {/* Feature (Sep 2026): Interest-type enquiries never get an
               Email 2 at all — see email.py's send_enquiry_confirmation
               docstring — so this badge would be permanently misleading
@@ -4157,6 +4285,19 @@ function TradeShowEnquiryList({ onOpenEnquiry }) {
                 <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: e.email_sent ? 'rgba(90,210,120,0.1)' : 'rgba(232,80,80,0.1)', color: e.email_sent ? 'var(--green)' : 'var(--red)' }}>
                   E1 {e.email_sent ? '✓' : '✗'}
                 </span>
+                <DeleteEnquiryConfirm
+                  enquiry={e}
+                  onDeleted={deletedId => setEnquiries(prev => prev.filter(x => x.id !== deletedId))}
+                  trigger={openConfirm => (
+                    <button
+                      onClick={ev => { ev.stopPropagation(); openConfirm(); }}
+                      title="Delete enquiry"
+                      style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: 'rgba(232,80,80,0.08)', color: 'var(--red)', border: '1px solid rgba(232,80,80,0.25)', cursor: 'pointer' }}
+                    >
+                      Delete
+                    </button>
+                  )}
+                />
                 {/* Interest never gets an Email 2 at all — see the
                     detail view's identical guard — so this badge would
                     permanently read "not scheduled" for something that

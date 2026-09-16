@@ -331,6 +331,8 @@ export const adminAPI = {
   createTradeShowEnquiry:   data    => api.post('/api/tradeshow/enquiries/', data),
   // Part 2 additions
   getTradeShowEnquiry:      id      => api.get(`/api/tradeshow/enquiries/${id}/`),
+  deleteTradeShowEnquiry:   (id, confirmEnquiryNumber) =>
+    api.delete(`/api/tradeshow/enquiries/${id}/`, { data: { confirm_enquiry_number: confirmEnquiryNumber } }),
   uploadTradeShowPhotos:    (id, formData) => api.post(`/api/tradeshow/enquiries/${id}/photos/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   getTradeShowOrderSheet:   id      => api.get(`/api/tradeshow/enquiries/${id}/order-sheet/`),
   patchTradeShowOrderSheet: (id, lines) => api.patch(`/api/tradeshow/enquiries/${id}/order-sheet/`, { lines }),
