@@ -338,6 +338,7 @@ export const adminAPI = {
   patchTradeShowOrderSheet: (id, lines) => api.patch(`/api/tradeshow/enquiries/${id}/order-sheet/`, { lines }),
   submitTradeShowEnquiry:   (id, data) => api.post(`/api/tradeshow/enquiries/${id}/submit/`, data),
   scheduleTradeShowEnquiry: (id, data) => api.post(`/api/tradeshow/enquiries/${id}/schedule/`, data),
+  regenerateTradeShowPdfs:  id      => api.post(`/api/tradeshow/enquiries/${id}/regenerate-pdfs/`),
 };
 
 export const buyerAPI = {

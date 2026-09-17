@@ -3154,6 +3154,7 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
   const [scheduling, setScheduling] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -3340,6 +3341,42 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
     } finally {
       setScheduling(false);
     }
+  }
+
+  // Feature (Sep 2026) — regenerate both PDFs from current order lines
+  // and current catalog prices (e.g. after fixing a missing/wrong
+  // landed_price on a product this order includes). Only reachable
+  // pre-Email-2 — the button itself is hidden once enquiry.email2_sent
+  // is true, and the backend enforces the same rule regardless.
+  async function handleRegeneratePdfs() {
+    if (!window.confirm('Regenerate both PDFs using the current catalog prices? This replaces the existing order sheet and invoice files.')) return;
+    setRegenerating(true);
+    try {
+      const r = await adminAPI.regenerateTradeShowPdfs(enquiryId);
+      success('PDFs regenerated with current catalog prices');
+      setEnquiry(r.data);
+    } catch (e) {
+      error(extractErrorMessage(e, 'Failed to regenerate PDFs'));
+    } finally {
+      setRegenerating(false);
+    }
+  }
+
+  // Feature (Sep 2026) — cache-busts just the order sheet / invoice PDF
+  // links using pdfs_generated_at (bumped on every Submit and every
+  // Regenerate — see TradeShowEnquiryRegeneratePdfsView). GCS objects
+  // are served with a one-year Cache-Control header (GS_OBJECT_PARAMETERS
+  // in settings), and these two files deliberately keep the same
+  // filename across a regenerate so the invoice link stays stable — so
+  // without a changing query param, a browser has no reason to ever
+  // re-fetch after a regenerate. Deliberately NOT changing the shared
+  // mediaUrl() helper itself, since that's used for every other image/
+  // video across the app, most of which genuinely should stay cached.
+  function pdfUrl(file) {
+    const base = mediaUrl(file);
+    if (!base || !enquiry?.pdfs_generated_at) return base;
+    const sep = base.includes('?') ? '&' : '?';
+    return `${base}${sep}v=${encodeURIComponent(enquiry.pdfs_generated_at)}`;
   }
 
   // Feature (Sep 2026) — a genuine download, not just "open in a new
@@ -3732,11 +3769,11 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
             {enquiry.order_sheet_pdf && (
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                  <a href={mediaUrl(enquiry.order_sheet_pdf)} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--sage)' }}>
+                  <a href={pdfUrl(enquiry.order_sheet_pdf)} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--sage)' }}>
                     📄 Order sheet PDF — open full size
                   </a>
                   <button
-                    onClick={() => handleDownloadPdf(mediaUrl(enquiry.order_sheet_pdf), `${enquiry.enquiry_number}-order-sheet.pdf`)}
+                    onClick={() => handleDownloadPdf(pdfUrl(enquiry.order_sheet_pdf), `${enquiry.enquiry_number}-order-sheet.pdf`)}
                     disabled={downloadingPdf === `${enquiry.enquiry_number}-order-sheet.pdf`}
                     style={{ fontSize: 12, padding: '4px 10px', borderRadius: 'var(--r-5)', border: '1px solid var(--surface4)', background: '#fff', color: 'var(--text2)', cursor: 'pointer' }}
                   >
@@ -3744,7 +3781,7 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
                   </button>
                 </div>
                 <iframe
-                  src={mediaUrl(enquiry.order_sheet_pdf)}
+                  src={pdfUrl(enquiry.order_sheet_pdf)}
                   title="Order sheet preview"
                   style={{ width: '100%', height: 480, border: '1px solid var(--surface4)', borderRadius: 'var(--r-5)' }}
                 />
@@ -3753,11 +3790,11 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
             {enquiry.invoice_pdf && (
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                  <a href={mediaUrl(enquiry.invoice_pdf)} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--sage)' }}>
+                  <a href={pdfUrl(enquiry.invoice_pdf)} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--sage)' }}>
                     📄 Invoice {enquiry.invoice_number} — open full size
                   </a>
                   <button
-                    onClick={() => handleDownloadPdf(mediaUrl(enquiry.invoice_pdf), `${enquiry.invoice_number || enquiry.enquiry_number}-invoice.pdf`)}
+                    onClick={() => handleDownloadPdf(pdfUrl(enquiry.invoice_pdf), `${enquiry.invoice_number || enquiry.enquiry_number}-invoice.pdf`)}
                     disabled={downloadingPdf === `${enquiry.invoice_number || enquiry.enquiry_number}-invoice.pdf`}
                     style={{ fontSize: 12, padding: '4px 10px', borderRadius: 'var(--r-5)', border: '1px solid var(--surface4)', background: '#fff', color: 'var(--text2)', cursor: 'pointer' }}
                   >
@@ -3765,13 +3802,24 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
                   </button>
                 </div>
                 <iframe
-                  src={mediaUrl(enquiry.invoice_pdf)}
+                  src={pdfUrl(enquiry.invoice_pdf)}
                   title="Invoice preview"
                   style={{ width: '100%', height: 480, border: '1px solid var(--surface4)', borderRadius: 'var(--r-5)' }}
                 />
               </div>
             )}
           </div>
+          {!enquiry.email2_sent && (
+            <div style={{ marginBottom: 12 }}>
+              <button
+                onClick={handleRegeneratePdfs}
+                disabled={regenerating}
+                style={{ fontSize: 12, padding: '6px 12px', borderRadius: 'var(--r-5)', border: '1px solid var(--surface4)', background: '#fff', color: 'var(--text2)', cursor: regenerating ? 'default' : 'pointer' }}
+              >
+                {regenerating ? 'Regenerating…' : '🔄 Regenerate PDFs with current catalog prices'}
+              </button>
+            </div>
+          )}
           {enquiry.email2_sent ? (
             <div style={{ fontSize: 13, color: 'var(--green)' }}>Email 2 sent {enquiry.email2_sent_at ? `on ${formatEastern(enquiry.email2_sent_at)}` : ''}.</div>
           ) : enquiry.scheduled_send_at ? (
