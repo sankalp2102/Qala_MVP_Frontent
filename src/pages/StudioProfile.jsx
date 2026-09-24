@@ -961,11 +961,19 @@ export default function StudioProfile() {
   // Supports both /studio/:id (legacy) and /:studioSlug (v3)
   const { id, studioSlug } = useParams();
   const nav = useNavigate();
-  // Bug fix: the chat session a buyer just came from (via StudiosPanel's
-  // "Get Introduced" click) is passed here via router state now — see
-  // IntroPopup below for why this needed fixing.
+  // Bug fix (Sep 2026): router state alone only carried the session token
+  // when the click came from StudiosPanel's own "View studio" links — a
+  // buyer reaching this same studio via the Studio Directory (or a direct
+  // URL, a bookmark, the browser back button — anything that isn't that
+  // one specific in-chat link) arrived with no router state at all, even
+  // with a real, active brief sitting one tab over. discoveryAPI's stored
+  // session token is the same source of truth Discover.jsx, DiscoverResults.jsx
+  // and AuthGateModal already fall back to elsewhere in this app — reusing
+  // it here means IntroPopup finds the buyer's real session regardless of
+  // which link brought them to this page, not just the one that happened
+  // to pass it explicitly.
   const routerLocation = useLocation();
-  const chatSessionToken = routerLocation.state?.chatSessionToken || null;
+  const chatSessionToken = routerLocation.state?.chatSessionToken || discoveryAPI.getStoredSession() || null;
 
   const [studio,  setStudio]  = useState(null);
   const [loading, setLoading] = useState(true);
