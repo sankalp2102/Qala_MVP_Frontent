@@ -12,12 +12,15 @@ import DiscoverResults from './pages/DiscoverResults';
 import StudioProfile from './pages/StudioProfile';
 import StudioDirectory from './pages/StudioDirectory';
 import PublicProposalView from './pages/public/PublicProposalView';
+import TermsAndConditions from './pages/legal/TermsAndConditions';
+import RefundCancellationPolicy from './pages/legal/RefundCancellationPolicy';
 
 // Reserved paths that must NOT be caught by the /:studioSlug wildcard.
 // Any new top-level route added to AppRoutes must also be listed here.
 export const RESERVED_PATHS = new Set([
   'login', 'discover', 'directory', 'studio',
   'buyer', 'dashboard', 'admin', 'p',
+  'terms', 'refund-policy',
 ]);
 
 function ScrollToTop() {
@@ -66,6 +69,8 @@ function AppRoutes() {
       <Route path="/discover/results" element={<DiscoverResults />} />   {/* V1 results — unchanged */}
       <Route path="/directory"        element={<StudioDirectory />} />
       <Route path="/p/:token"         element={<PublicProposalView />} />   {/* no-login proposal link */}
+      <Route path="/terms"            element={<TermsAndConditions />} />
+      <Route path="/refund-policy"    element={<RefundCancellationPolicy />} />
 
       {/* Legacy route — numeric ID. Keep so existing recommendation/directory links don't break. */}
       <Route path="/studio/:id"       element={<StudioProfile />} />

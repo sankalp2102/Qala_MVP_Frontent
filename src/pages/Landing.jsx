@@ -1,6 +1,6 @@
 // src/pages/Landing.jsx
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate }                  from 'react-router-dom';
+import { useNavigate, Link }            from 'react-router-dom';
 import { useAuth }                      from '../context/AuthContext';
 import { chatAPI }                      from '../api/client';
 import qalaLogo from '../assets/qala-logo.png';
@@ -646,6 +646,11 @@ export default function Landing() {
         </section>
 
         <div style={{ borderTop: '0.5px solid var(--border-warm)', padding: '30px 0', textAlign: 'center', color: 'var(--ink-warm-mute)', fontSize: 11.5 }}>
+          <div style={{ marginBottom: 10 }}>
+            <Link to="/terms" style={{ color: 'var(--ink-warm-mid)', textDecoration: 'underline', textUnderlineOffset: 3 }}>Terms &amp; Conditions</Link>
+            {' · '}
+            <Link to="/refund-policy" style={{ color: 'var(--ink-warm-mid)', textDecoration: 'underline', textUnderlineOffset: 3 }}>Refund &amp; Cancellation Policy</Link>
+          </div>
           Qala · The custom manufacturing platform for brands &amp; retailers · Made with India's craft studios
         </div>
 
