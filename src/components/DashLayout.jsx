@@ -7,8 +7,14 @@ import qalaLogo from '../assets/qala-logo.png';
  * `theme` — optional class applied to the layout root. The seller dashboard
  * passes "qala-form-theme", which recolours the sidebar and the page surface.
  * Structure, width, logo and nav items are identical across all roles.
+ *
+ * `nav` — flat array of nav items (unchanged, still what the seller
+ * dashboard passes). `sections` — the admin dashboard's grouped
+ * alternative: an array of `{ title, items }`, rendered with a small
+ * uppercase section header above each group (visual grouping only, same
+ * NavLinks and routes underneath). Pass one or the other, not both.
  */
-export function DashLayout({ children, nav: navItems, theme = '' }) {
+export function DashLayout({ children, nav: navItems, sections, theme = '' }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -49,6 +55,12 @@ export function DashLayout({ children, nav: navItems, theme = '' }) {
           }
           .dash-main { padding-top: 60px; }
         }
+        .dash-nav-section {
+          font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+          text-transform: uppercase; color: var(--text4);
+          padding: 10px 14px 6px;
+        }
+        .dash-nav-group + .dash-nav-group { margin-top: 10px; }
       `}</style>
 
       {/* Mobile hamburger */}
@@ -63,25 +75,36 @@ export function DashLayout({ children, nav: navItems, theme = '' }) {
         <div style={{ padding:'22px 20px 18px', borderBottom:'1px solid var(--border)' }}>
           <img src={qalaLogo} alt="Qala" className="qala-logo" style={{ marginBottom: 6 }} />
           <div style={{ fontSize:11, color:'var(--text4)', letterSpacing:'0.08em', textTransform:'uppercase' }}>
-            {user?.role === 'admin' ? 'Admin Panel' : 'Seller Studio'}
+            {user?.role === 'admin' ? 'Admin Console' : 'Seller Studio'}
           </div>
         </div>
 
         {/* Nav */}
         <nav style={{ flex:1, padding:'12px 8px', overflowY:'auto' }}>
-          {navItems.map(item => (
-            <NavLink key={item.to} to={item.to} end={item.end ?? false}
-              onClick={() => setSidebarOpen(false)}
-              className={({ isActive }) => `dash-navlink${isActive ? ' active' : ''}`}>
-              {item.icon && <span style={{ fontSize:15, width:20, textAlign:'center' }}>{item.icon}</span>}
-              <span style={{ flex:1 }}>{item.label}</span>
-              {item.badge && (
-                <span className={`badge badge-${item.badge.type}`} style={{ fontSize:10, padding:'2px 7px' }}>
-                  {item.badge.text}
-                </span>
-              )}
-            </NavLink>
-          ))}
+          {(() => {
+            const renderItem = (item) => (
+              <NavLink key={item.to} to={item.to} end={item.end ?? false}
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) => `dash-navlink${isActive ? ' active' : ''}`}>
+                {item.icon && <span style={{ fontSize:15, width:20, display:'inline-flex', alignItems:'center', justifyContent:'center' }}>{item.icon}</span>}
+                <span style={{ flex:1 }}>{item.label}</span>
+                {item.badge && (
+                  <span className={`badge badge-${item.badge.type}`} style={{ fontSize:10, padding:'2px 7px' }}>
+                    {item.badge.text}
+                  </span>
+                )}
+              </NavLink>
+            );
+            if (sections) {
+              return sections.map(sec => (
+                <div className="dash-nav-group" key={sec.title}>
+                  <div className="dash-nav-section">{sec.title}</div>
+                  {sec.items.map(renderItem)}
+                </div>
+              ));
+            }
+            return navItems.map(renderItem);
+          })()}
         </nav>
 
         {/* User footer */}

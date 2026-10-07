@@ -164,23 +164,65 @@ export default function SellerDashboard() {
   }, []);
 
   const status = snapshot?.status;
+
+  // Icons/groups restyled against seller-console.html's own sidebar — reused
+  // its exact icons verbatim wherever a nav item matches one it actually
+  // has (Home, Enquiries, Earnings & Wallet, Settings — and My Profile,
+  // which in that prototype is a HOUSE glyph, not a person icon, since
+  // it's the studio's own profile, not a personal account). Its "Projects"
+  // icon (a lined notepad, not the admin panel's calendar-style Projects
+  // icon) is reused for Active Projects — the two sidebars are different
+  // files in the prototype with their own icon sets, not meant to be
+  // identical to each other, so this doesn't force them to match.
+  // Sections A–H (studio onboarding) and Activity History don't exist in
+  // the prototype at all — new icons, drawn in the same 16x16/stroke-1.5
+  // language, one per section's actual subject.
+  // Groups mostly reuse the prototype's own group names (Operations /
+  // Finances / Studio) where the matching items fall under them; "Studio
+  // Profile" and the extra items under "Operations" are additions this
+  // app actually has that the demo didn't need to model.
+  const SI = {
+    grid:     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>,
+    pulse:    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M1 8h3l2-5 4 10 2-5h3"/></svg>,
+    info:     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 7.3v4M8 5v.3"/></svg>,
+    tag:      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 2h5.5L14 8.5 8.5 14 2 7.5V2Z"/><circle cx="5" cy="5" r="1"/></svg>,
+    droplet:  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 1.5c2.5 3 4.5 5.8 4.5 8.3A4.5 4.5 0 0 1 3.5 9.8C3.5 7.3 5.5 4.5 8 1.5Z"/></svg>,
+    craft:    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 3l10 10M13 3L3 13"/><circle cx="3" cy="3" r="1.2"/><circle cx="13" cy="3" r="1.2"/><circle cx="3" cy="13" r="1.2"/><circle cx="13" cy="13" r="1.2"/></svg>,
+    people:   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="5.5" cy="6" r="2.5"/><path d="M1 14c0-2.5 2-4.5 4.5-4.5S10 11.5 10 14"/><path d="M9.5 3.5a2.3 2.3 0 0 1 0 4.5"/><path d="M11 9.8c2 .3 3.5 2 3.5 4.2"/></svg>,
+    capacity: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 14V9M6.5 14V5M11 14V7M15 14V2"/></svg>,
+    folder:   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M1.5 4a1 1 0 0 1 1-1h3l1.5 2h6a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1V4Z"/></svg>,
+    camera:   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M1.5 5.5a1 1 0 0 1 1-1h2l1-2h5l1 2h2a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-7Z"/><circle cx="8" cy="9" r="2.3"/></svg>,
+    // Reused verbatim from seller-console.html — these items exist in the
+    // prototype exactly as-is.
+    home:     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>,
+    envelope: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 3h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3Z"/><path d="M2 3l6 5 6-5"/></svg>,
+    projects: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 8.5h4M5 11h3"/></svg>,
+    wallet:   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="4" width="14" height="10" rx="1.5"/><path d="M4 4V3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v1"/><circle cx="8" cy="9" r="2"/></svg>,
+    house:    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 13V6l6-4 6 4v7"/><path d="M6 13v-3h4v3"/></svg>,
+    gear:     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.1 3.1l1.4 1.4M11.5 11.5l1.4 1.4M3.1 12.9l1.4-1.4M11.5 4.5l1.4-1.4"/></svg>,
+  };
+
   const navItems = [
-    { to:'/dashboard',             icon:'', label:'Overview',             end: true                                                                              },
-    { to:'/dashboard/home',        icon:'', label:'Home'                                                                                                          },
-    { to:'/dashboard/studio',      icon:'', label:'A — Introduction',     badge: status?.section_a_status === 'flagged' ? { type:'red', text:'!' } : null },
-    { to:'/dashboard/products',    icon:'', label:'B — Categories',       badge: status?.section_b_status === 'flagged' ? { type:'red', text:'!' } : null },
-    { to:'/dashboard/fabrics',     icon:'', label:'C — Fabrics & Dyes',   badge: status?.section_c_status === 'flagged' ? { type:'red', text:'!' } : null },
-    { to:'/dashboard/crafts',      icon:'', label:'D — Crafts & Techniques', badge: status?.section_d_status === 'flagged' ? { type:'red', text:'!' } : null },
-    { to:'/dashboard/collab',      icon:'', label:'E — Collaboration',    badge: status?.section_e_status === 'flagged' ? { type:'red', text:'!' } : null },
-    { to:'/dashboard/production',  icon:'', label:'F — Team & Capacity', badge: status?.section_f_status === 'flagged' ? { type:'red', text:'!' } : null },
-    { to:'/dashboard/projects',    icon:'', label:'G — Past Work',   badge: status?.section_g_status === 'flagged' ? { type:'red', text:'!' } : null },
-    { to:'/dashboard/process',     icon:'', label:'H — Behind the Scenes', badge: status?.section_h_status === 'flagged' ? { type:'red', text:'!' } : null },
-    { to:'/dashboard/enquiries',   icon:'', label:'Enquiries',   badge: newEnquiryCount > 0 ? { type:'gold', text:String(newEnquiryCount) } : null },
-    { to:'/dashboard/active',      icon:'', label:'Active Projects'                                                                                    },
-    { to:'/dashboard/earnings',    icon:'', label:'Earnings & Wallet'                                                                                  },
-    { to:'/dashboard/activity',    icon:'', label:'Activity History'                                                                                   },
-    { to:'/dashboard/profile',     icon:'', label:'My Profile'                                                                                         },
-    { to:'/dashboard/settings',    icon:'', label:'Settings'                                                                                           },
+    { to:'/dashboard',             icon:SI.pulse,    label:'Overview',             end: true, group:'Overview' },
+    { to:'/dashboard/home',        icon:SI.home,     label:'Home',                            group:'Overview' },
+
+    { to:'/dashboard/studio',      icon:SI.info,     label:'A — Introduction',     group:'Studio Profile', badge: status?.section_a_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard/products',    icon:SI.tag,      label:'B — Categories',       group:'Studio Profile', badge: status?.section_b_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard/fabrics',     icon:SI.droplet,  label:'C — Fabrics & Dyes',   group:'Studio Profile', badge: status?.section_c_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard/crafts',      icon:SI.craft,    label:'D — Crafts & Techniques', group:'Studio Profile', badge: status?.section_d_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard/collab',      icon:SI.people,   label:'E — Collaboration',    group:'Studio Profile', badge: status?.section_e_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard/production',  icon:SI.capacity, label:'F — Team & Capacity', group:'Studio Profile', badge: status?.section_f_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard/projects',    icon:SI.folder,   label:'G — Past Work',   group:'Studio Profile', badge: status?.section_g_status === 'flagged' ? { type:'red', text:'!' } : null },
+    { to:'/dashboard/process',     icon:SI.camera,   label:'H — Behind the Scenes', group:'Studio Profile', badge: status?.section_h_status === 'flagged' ? { type:'red', text:'!' } : null },
+
+    { to:'/dashboard/enquiries',   icon:SI.envelope, label:'Enquiries',   group:'Operations', badge: newEnquiryCount > 0 ? { type:'gold', text:String(newEnquiryCount) } : null },
+    { to:'/dashboard/active',      icon:SI.projects, label:'Active Projects',                 group:'Operations' },
+    { to:'/dashboard/activity',    icon:SI.pulse,    label:'Activity History',                group:'Operations' },
+
+    { to:'/dashboard/earnings',    icon:SI.wallet,   label:'Earnings & Wallet',               group:'Finances' },
+
+    { to:'/dashboard/profile',     icon:SI.house,    label:'My Profile',                      group:'Studio' },
+    { to:'/dashboard/settings',    icon:SI.gear,     label:'Settings',                        group:'Studio' },
   ].filter(n => n.badge !== null || true).map(n => ({ ...n, badge: n.badge || undefined }));
 
   return (

@@ -29,7 +29,7 @@
 // the phase totals shown to the buyer are guaranteed consistent with
 // what admin/studio see, not a separate approximation.
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { calcLandingCost, sanitizeForex } from '../../utils/calculator';
 
 // ── Prototype's own palette — NOT the shared app tokens ──
@@ -225,33 +225,58 @@ function SuccessModal({ icon, title, sub, onClose }) {
   );
 }
 
-function SOWModal({ proposal, onClose }) {
-  const sections = [
-    ['1. Parties', `This Agreement is between ${proposal.buyer_name || 'the Buyer'} (Buyer), ${proposal.studio_info?.name || 'the Studio'} (Studio), and Qala Global Pvt Ltd (Platform), effective on the date of Buyer acceptance.`],
-    ['2. Scope of Work', 'Design, sample, and produce the agreed units across the styles set out above, to approved tech packs, shipped DDP to the Buyer. All goods to conform to the approved sample.'],
-    ['3. Quality', 'The approved sample is the quality benchmark. Buyer has 7 days from delivery to raise a quality claim. Qala mediates all claims with the Studio directly.'],
-    ['4. Ownership', 'All design files transfer to Buyer on payment of the design fee. The Studio may not reproduce designs for other buyers. Buyer receives exclusive commercial rights to all assets.'],
-    ['5. Payments', 'Payments are milestone-triggered per the Payment Schedule. Qala issues each payment link. Nothing is charged automatically.'],
-    ['6. Export', 'Qala acts as exporter of record. All shipments are delivered duty paid — Buyer receives goods cleared with no customs liability at destination.'],
-    ['7. Disputes', 'All disputes are first mediated by Qala. If unresolved within 30 days, disputes go to binding arbitration under SIAC rules, conducted in English.'],
-  ];
+// Feature (Oct 2026) — this used to render seven hand-written paragraphs
+// of generic placeholder text with a "⬇ Download PDF" label that was
+// never wired to an actual file (there was no SOW document anywhere in
+// the codebase to download). It now fetches and previews the real,
+// proposal-specific Statement of Work PDF (see projects/sow_generation.py
+// on the backend) — live-rendered off this proposal's current data until
+// acceptance, then the one permanent snapshot afterwards. `onPreviewSOW`
+// is passed in by the caller (buyer/ProjectDetail.jsx or
+// PublicProposalView.jsx) because the two routes fetch it with different
+// auth (authenticated API client vs. public token) — this component stays
+// agnostic to that and just gets a Blob back.
+function SOWModal({ proposal, onClose, onPreviewSOW }) {
+  const [blobUrl, setBlobUrl] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let url = null;
+    let cancelled = false;
+    if (onPreviewSOW) {
+      onPreviewSOW()
+        .then(blob => {
+          if (cancelled) return;
+          url = URL.createObjectURL(blob);
+          setBlobUrl(url);
+        })
+        .catch(() => { if (!cancelled) setError('Could not load the Statement of Work.'); });
+    } else {
+      setError('Could not load the Statement of Work.');
+    }
+    return () => { cancelled = true; if (url) URL.revokeObjectURL(url); };
+  }, [onPreviewSOW]);
+
   return (
     <div style={S.modalBd} onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div style={{ ...S.modal, maxWidth: 500 }}>
+      <div style={{ ...S.modal, maxWidth: 760, width: '92vw' }}>
         <div style={S.modalHd}>
-          <div style={S.modalTitle}>Full Agreement</div>
-          <div style={S.modalSub}>{proposal.project_name} · {proposal.buyer_name} × {proposal.studio_info?.name} × Qala · {fmtDate(proposal.submitted_at)}</div>
+          <div style={S.modalTitle}>Statement of Work</div>
+          <div style={S.modalSub}>{proposal.project_name} · {proposal.buyer_name} × {proposal.studio_info?.name} × Qala</div>
         </div>
-        <div style={{ maxHeight: '55vh', overflowY: 'auto' }}>
-          {sections.map(([t, body]) => (
-            <div key={t} style={{ padding: '16px 22px', borderBottom: `1px solid ${C.border}` }}>
-              <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.1em', color: C.text4, marginBottom: 8 }}>{t}</div>
-              <p style={{ fontSize: 13, color: C.text2, lineHeight: 1.7 }}>{body}</p>
-            </div>
-          ))}
+        <div style={{ height: '65vh', background: C.surface2 }}>
+          {blobUrl && <iframe title="Statement of Work" src={blobUrl} style={{ width: '100%', height: '100%', border: 'none' }} />}
+          {!blobUrl && !error && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: C.text4, fontSize: 13 }}>Loading the Statement of Work…</div>
+          )}
+          {error && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: C.text4, fontSize: 13 }}>{error}</div>
+          )}
         </div>
         <div style={{ ...S.modalFt, justifyContent: 'space-between' }}>
-          <span style={S.sowLink}>⬇ Download PDF</span>
+          {blobUrl
+            ? <a href={blobUrl} download={`SOW_${proposal.id}.pdf`} style={S.sowLink}>⬇ Download PDF</a>
+            : <span />}
           <button style={S.btnModalMain} onClick={onClose}>Close</button>
         </div>
         <button style={S.modalX} onClick={onClose}>×</button>
@@ -305,12 +330,15 @@ function QuickViewModal({ piece, onClose }) {
 // proposal    — required, the full proposal object
 // onAccept(notes)          — async, called when buyer confirms acceptance
 // onAction(type, message)  — async, type: 'question'|'changes_requested'|'declined'
+// onPreviewSOW()           — async, returns a PDF Blob of this proposal's
+//                             Statement of Work (caller fetches it — differs
+//                             by auth between the two routes this is used on)
 // navContext  — string shown in the top nav strip ("<project> · <studio>")
 // embedded    — true when rendered inside the logged-in buyer dashboard
 //               (suppresses the standalone nav bar and switches the
 //               footer from a page-fixed bar to a normal in-card block,
 //               since multiple proposals can be listed on one page there)
-export default function ProposalCarbonCopy({ proposal, onAccept, onAction, navContext, embedded = false }) {
+export default function ProposalCarbonCopy({ proposal, onAccept, onAction, onPreviewSOW, navContext, embedded = false }) {
   const [openAcc, setOpenAcc] = useState({});
   const [modal, setModal] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -689,7 +717,7 @@ export default function ProposalCarbonCopy({ proposal, onAccept, onAction, navCo
           onSubmit={(text) => doAction('declined', text, { icon: '🙏', title: 'Proposal declined', sub: "Thank you for letting us know. Qalawati has notified the studio. We're here if you change your mind." })}
           onClose={() => setModal(null)} />
       )}
-      {modal === 'sow' && <SOWModal proposal={proposal} onClose={() => setModal(null)} />}
+      {modal === 'sow' && <SOWModal proposal={proposal} onClose={() => setModal(null)} onPreviewSOW={onPreviewSOW} />}
       {modal === 'payment' && (
         <div style={S.modalBd}>
           <div style={{ ...S.modal, maxWidth: 420 }}>

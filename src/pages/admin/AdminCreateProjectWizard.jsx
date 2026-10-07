@@ -234,7 +234,7 @@ export default function AdminCreateProjectWizard() {
   const [estQty, setEstQty] = useState('');
   const [priceCurrency, setPriceCurrency] = useState('EUR');
   const [priceAmount, setPriceAmount] = useState('');
-  const [priceUnit, setPriceUnit] = useState('dress');
+  const [priceUnit, setPriceUnit] = useState('piece');
   const [deliveryBulk, setDeliveryBulk] = useState('');
   const [deliveryCountry, setDeliveryCountry] = useState('');
   const [deliveryCity, setDeliveryCity] = useState('');
@@ -438,7 +438,7 @@ export default function AdminCreateProjectWizard() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
                     <span style={{ fontSize: 11, color: 'var(--text4)' }}>per</span>
-                    <input type="text" value={priceUnit} onChange={e => setPriceUnit(e.target.value)} placeholder="dress"
+                    <input type="text" value={priceUnit} onChange={e => setPriceUnit(e.target.value)} placeholder="piece"
                       style={{ fontSize: 11, color: 'var(--text3)', border: 'none', borderBottom: '1px solid var(--border)', background: 'transparent', padding: '1px 4px', width: 90, outline: 'none' }} />
                     <span style={{ fontSize: 11, color: 'var(--text4)' }}>· all-in landing cost</span>
                   </div>

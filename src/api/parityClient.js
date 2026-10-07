@@ -23,6 +23,7 @@ const publicClient = axios.create({ baseURL: BASE, withCredentials: false });
 
 export const publicAPI = {
   getProposal:    token         => publicClient.get(`/api/public/proposals/${token}/`),
+  getProposalSOW: token         => publicClient.get(`/api/public/proposals/${token}/sow/`, { responseType: 'blob' }),
   acceptProposal: (token, data) => publicClient.post(`/api/public/proposals/${token}/accept/`, data || {}),
   actOnProposal:  (token, data) => publicClient.post(`/api/public/proposals/${token}/action/`, data),
 };

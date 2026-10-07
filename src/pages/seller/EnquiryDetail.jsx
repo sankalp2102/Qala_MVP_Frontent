@@ -416,10 +416,17 @@ function QAThread({ projectId }) {
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  // Feature (Sep 2026) — ids of Qala's messages that were still unread when
+  // this thread was opened; kept so they stay flagged "New" on screen even
+  // though opening the thread marks them read server-side.
+  const [newIds, setNewIds] = useState(() => new Set());
 
   const load = () => {
     projectsAPI.getEnquiryMessages(projectId)
-      .then(r => setMessages(r.data.messages || []))
+      .then(r => {
+        setMessages(r.data.messages || []);
+        if ((r.data.new_message_ids || []).length) setNewIds(prev => new Set([...prev, ...r.data.new_message_ids]));
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   };
@@ -437,8 +444,11 @@ function QAThread({ projectId }) {
   };
 
   return (
-    <div style={S.card}>
-      <div style={S.cardTitle}>Ask Qala a question</div>
+    <div style={{ ...S.card, ...(newIds.size > 0 ? { border: '1px solid var(--red)' } : {}) }}>
+      <div style={{ ...S.cardTitle, display: 'flex', alignItems: 'center', gap: 10 }}>
+        Ask Qala a question
+        {newIds.size > 0 && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--r-20)', background: 'var(--red)', color: '#fff' }}>● {newIds.size} new from Qala</span>}
+      </div>
       <div style={{ fontSize: 12, color: 'var(--text4)', marginTop: -14, marginBottom: 14 }}>Optional · before starting your proposal</div>
 
       {!loading && messages.length > 0 && (
@@ -448,10 +458,12 @@ function QAThread({ projectId }) {
               alignSelf: m.sender === 'studio' ? 'flex-end' : 'flex-start',
               maxWidth: '80%',
               background: m.sender === 'studio' ? 'var(--gold-dim)' : 'var(--surface2)',
+              border: newIds.has(m.id) ? '1px solid var(--red)' : '1px solid transparent',
               borderRadius: 'var(--r-10)', padding: '9px 13px',
             }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: m.sender === 'studio' ? 'var(--gold)' : 'var(--text3)', marginBottom: 3 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: m.sender === 'studio' ? 'var(--gold)' : 'var(--text3)', marginBottom: 3, display: 'flex', gap: 6, alignItems: 'center' }}>
                 {m.sender === 'studio' ? 'You' : m.sender_name || 'Qala'}
+                {newIds.has(m.id) && <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 'var(--r-20)', background: 'var(--red)', color: '#fff' }}>NEW</span>}
               </div>
               <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{m.message}</div>
               <div style={{ fontSize: 10, color: 'var(--text4)', marginTop: 3 }}>{fmt(m.created_at)}</div>

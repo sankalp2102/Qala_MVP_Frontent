@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, Fragment } from 'react';
 import { Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { adminAPI, projectsAPI, onboardingAPI, extractErrorMessage } from '../api/client';
 import { DashLayout } from '../components/DashLayout';
+import BuyerBriefCard, { snapshotToBrief } from '../components/BuyerBriefCard';
+import { NavIcons } from '../components/NavIcons';
 import { Spinner } from '../components/Spinner';
 import { useToast } from '../hooks/useToast';
 import { Toast } from '../components/Toast';
@@ -2745,6 +2747,7 @@ function IntroductionRequests() {
   const [editSnap, setEditSnap]   = useState({});
   const [editNotes, setEditNotes] = useState('');
   const [saving, setSaving]       = useState(false);
+  const [editing, setEditing]     = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -2759,6 +2762,7 @@ function IntroductionRequests() {
     if (expanded === id) { setExpanded(null); setDetail(null); return; }
     setExpanded(id);
     setDetail(null);
+    setEditing(false);
     setDetailLoading(true);
     try {
       const r = await adminAPI.getIntroductionRequest(id);
@@ -2778,6 +2782,8 @@ function IntroductionRequests() {
     try {
       await adminAPI.patchIntroductionRequest(id, { brief_snapshot: editSnap, admin_notes: editNotes });
       success('Saved');
+      setDetail(d => ({ ...d, brief_snapshot: editSnap, admin_notes: editNotes, snapshot_source: 'snapshot' }));
+      setEditing(false);
     } catch (e) {
       error(extractErrorMessage(e, 'Failed to save changes'));
     } finally {
@@ -2884,38 +2890,76 @@ function IntroductionRequests() {
                       </div>
                     )}
 
+                    {editing ? (
+                      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '24px 28px', marginBottom: 14 }}>
+                        <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600, color: 'var(--text)', marginBottom: 20 }}>Edit Buyer's Brief</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
                       <IRField label="Garment types">
-                        <input disabled={!isPending} value={arrToText(editSnap.garment_types)} onChange={e => setEditSnap(s => ({ ...s, garment_types: textToArr(e.target.value) }))} style={IR_INPUT} placeholder="Comma-separated" />
+                        <input value={arrToText(editSnap.garment_types)} onChange={e => setEditSnap(s => ({ ...s, garment_types: textToArr(e.target.value) }))} style={IR_INPUT} placeholder="Comma-separated" />
                       </IRField>
                       <IRField label="Fabrics">
-                        <input disabled={!isPending} value={arrToText(editSnap.fabrics_required)} onChange={e => setEditSnap(s => ({ ...s, fabrics_required: textToArr(e.target.value) }))} style={IR_INPUT} placeholder="Comma-separated" />
+                        <input value={arrToText(editSnap.fabrics_required)} onChange={e => setEditSnap(s => ({ ...s, fabrics_required: textToArr(e.target.value) }))} style={IR_INPUT} placeholder="Comma-separated" />
                       </IRField>
                       <IRField label="Crafts / techniques">
-                        <input disabled={!isPending} value={arrToText(editSnap.crafts)} onChange={e => setEditSnap(s => ({ ...s, crafts: textToArr(e.target.value) }))} style={IR_INPUT} placeholder="Comma-separated" />
+                        <input value={arrToText(editSnap.crafts)} onChange={e => setEditSnap(s => ({ ...s, crafts: textToArr(e.target.value) }))} style={IR_INPUT} placeholder="Comma-separated" />
                       </IRField>
                       <IRField label="Dyes">
-                        <input disabled={!isPending} value={arrToText(editSnap.dyes_required)} onChange={e => setEditSnap(s => ({ ...s, dyes_required: textToArr(e.target.value) }))} style={IR_INPUT} placeholder="Comma-separated" />
+                        <input value={arrToText(editSnap.dyes_required)} onChange={e => setEditSnap(s => ({ ...s, dyes_required: textToArr(e.target.value) }))} style={IR_INPUT} placeholder="Comma-separated" />
                       </IRField>
                       <IRField label="Timeline">
-                        <input disabled={!isPending} value={editSnap.timeline || ''} onChange={e => setEditSnap(s => ({ ...s, timeline: e.target.value }))} style={IR_INPUT} />
+                        <input value={editSnap.timeline || ''} onChange={e => setEditSnap(s => ({ ...s, timeline: e.target.value }))} style={IR_INPUT} />
                       </IRField>
                       <IRField label="Batch size">
-                        <input disabled={!isPending} value={editSnap.batch_size || ''} onChange={e => setEditSnap(s => ({ ...s, batch_size: e.target.value }))} style={IR_INPUT} />
+                        <input value={editSnap.batch_size || ''} onChange={e => setEditSnap(s => ({ ...s, batch_size: e.target.value }))} style={IR_INPUT} />
                       </IRField>
                       <IRField label="Target landing price">
-                        <input disabled={!isPending} type="number" step="0.01" value={editSnap.target_landing_price_local ?? ''} onChange={e => setEditSnap(s => ({ ...s, target_landing_price_local: e.target.value === '' ? null : Number(e.target.value) }))} style={IR_INPUT} placeholder="e.g. 80" />
+                        <input type="number" step="0.01" value={editSnap.target_landing_price_local ?? ''} onChange={e => setEditSnap(s => ({ ...s, target_landing_price_local: e.target.value === '' ? null : Number(e.target.value) }))} style={IR_INPUT} placeholder="e.g. 80" />
                       </IRField>
                       <IRField label="Currency">
-                        <input disabled={!isPending} value={editSnap.target_landing_currency || ''} onChange={e => setEditSnap(s => ({ ...s, target_landing_currency: e.target.value.toUpperCase() }))} style={IR_INPUT} placeholder="USD" />
+                        <input value={editSnap.target_landing_currency || ''} onChange={e => setEditSnap(s => ({ ...s, target_landing_currency: e.target.value.toUpperCase() }))} style={IR_INPUT} placeholder="USD" />
                       </IRField>
                       <IRField label="Target delivery date">
-                        <input disabled={!isPending} type="date" value={editSnap.target_bulk_delivery_date || ''} onChange={e => setEditSnap(s => ({ ...s, target_bulk_delivery_date: e.target.value }))} style={IR_INPUT} />
+                        <input type="date" value={editSnap.target_bulk_delivery_date || ''} onChange={e => setEditSnap(s => ({ ...s, target_bulk_delivery_date: e.target.value }))} style={IR_INPUT} />
                       </IRField>
                       <IRField label="Delivery location">
-                        <input disabled={!isPending} value={editSnap.buyer_location || ''} onChange={e => setEditSnap(s => ({ ...s, buyer_location: e.target.value }))} style={IR_INPUT} />
+                        <input value={editSnap.buyer_location || ''} onChange={e => setEditSnap(s => ({ ...s, buyer_location: e.target.value }))} style={IR_INPUT} />
+                      </IRField>
+                                          <IRField label="Product types">
+                        <input value={arrToText(editSnap.product_types)} onChange={e => setEditSnap(s => ({ ...s, product_types: textToArr(e.target.value) }))} style={IR_INPUT} placeholder="Comma-separated" />
+                      </IRField>
+                      <IRField label="Gender">
+                        <input value={arrToText(editSnap.gender)} onChange={e => setEditSnap(s => ({ ...s, gender: textToArr(e.target.value) }))} style={IR_INPUT} placeholder="Comma-separated" />
+                      </IRField>
+                      <IRField label="Occasion">
+                        <input value={arrToText(editSnap.occasion)} onChange={e => setEditSnap(s => ({ ...s, occasion: textToArr(e.target.value) }))} style={IR_INPUT} placeholder="Comma-separated" />
+                      </IRField>
+                      <IRField label="Looking for">
+                        <input value={editSnap.process_stage || ''} onChange={e => setEditSnap(s => ({ ...s, process_stage: e.target.value }))} style={IR_INPUT} />
                       </IRField>
                     </div>
+                    <div style={{ marginBottom: 14 }}>
+                      <IRField label="References">
+                        <textarea rows={2} value={editSnap.references || ''} onChange={e => setEditSnap(s => ({ ...s, references: e.target.value }))} style={{ ...IR_INPUT, resize: 'vertical' }} />
+                      </IRField>
+                    </div>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button onClick={() => saveEdits(r.id)} disabled={saving} style={{ ...IR_BTN_BASE, background: 'var(--gold)', color: '#fff' }}>Save brief</button>
+                            <button onClick={() => { setEditSnap(detail.brief_snapshot || {}); setEditing(false); }} disabled={saving} style={{ ...IR_BTN_BASE, background: '#fff', border: '1px solid var(--surface4)', color: 'var(--text2)' }}>Cancel</button>
+                          </div>
+                      </div>
+                    ) : (
+                      <BuyerBriefCard
+                        brief={{ ...snapshotToBrief(editSnap), moodboards: detail.attachment_url ? [{ file_name: 'Attachment from buyer', url: detail.attachment_url }] : [] }}
+                        referenceImages={detail.reference_images || []}
+                        note={detail.snapshot_source === 'none'
+                            ? 'No brief details were captured for this buyer.'
+                            : detail.snapshot_source && detail.snapshot_source !== 'snapshot'
+                              ? 'No brief was saved with this request, so this is pulled from the buyer\'s latest profile. Saving stores it on the request.'
+                              : null}
+                        action={isPending ? <button onClick={() => setEditing(true)} className="btn btn-ghost" style={{ fontSize: 12, width: 'auto' }}>Edit Brief</button> : null}
+                        style={{ marginBottom: 14 }}
+                      />
+                    )}
 
                     <IRField label="Admin notes">
                       <textarea disabled={!isPending} rows={2} value={editNotes} onChange={e => setEditNotes(e.target.value)} style={{ ...IR_INPUT, resize: 'vertical' }} placeholder="Internal only — visible to admins, never sent to the buyer or studio" />
@@ -2923,9 +2967,6 @@ function IntroductionRequests() {
 
                     {isPending && (
                       <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                        <button onClick={() => saveEdits(r.id)} disabled={saving} style={{ ...IR_BTN_BASE, background: '#fff', border: '1px solid var(--surface4)', color: 'var(--text2)' }}>
-                          Save changes
-                        </button>
                         <button onClick={() => handleApprove(r.id)} disabled={saving} style={{ ...IR_BTN_BASE, background: 'var(--sage)', color: '#fff' }}>
                           Approve
                         </button>
@@ -3020,122 +3061,6 @@ function utcToEasternWallClock(isoString) {
   return { dateStr: `${get('year')}-${get('month')}-${get('day')}`, timeStr: `${hour}:${get('minute')}` };
 }
 
-// Feature — delete a Trade Show enquiry, gated behind two separate
-// confirmations rather than one: a plain yes/no, then typing the
-// enquiry number back exactly before the destructive button enables.
-// The backend (tradeshow/views.py::TradeShowEnquiryDetailView.delete)
-// re-checks the typed number server-side too — this isn't just a
-// frontend nicety, a mismatched confirm_enquiry_number is rejected
-// with a 400 even if someone bypassed this UI entirely.
-//
-// `trigger` is a render-prop — (openFn) => <element> — so the two
-// call sites (the list row and the detail header) can each render
-// their own button matching local styling/placement, while sharing
-// this one confirmation flow and the actual delete call.
-function DeleteEnquiryConfirm({ enquiry, onDeleted, trigger }) {
-  const { success, error } = useToast();
-  const [open, setOpen]         = useState(false);
-  const [step, setStep]         = useState(1); // 1: are you sure, 2: type to confirm
-  const [typed, setTyped]       = useState('');
-  const [deleting, setDeleting] = useState(false);
-
-  function close() {
-    if (deleting) return;
-    setOpen(false);
-    setStep(1);
-    setTyped('');
-  }
-
-  async function handleDelete() {
-    setDeleting(true);
-    try {
-      await adminAPI.deleteTradeShowEnquiry(enquiry.id, typed.trim());
-      success(`Deleted ${enquiry.enquiry_number}`);
-      setOpen(false);
-      setStep(1);
-      setTyped('');
-      onDeleted(enquiry.id);
-    } catch (e) {
-      error(extractErrorMessage(e, 'Failed to delete'));
-    } finally {
-      setDeleting(false);
-    }
-  }
-
-  const matches = typed.trim().toLowerCase() === enquiry.enquiry_number.trim().toLowerCase();
-
-  return (
-    <>
-      {trigger(() => setOpen(true))}
-      {open && (
-        <div
-          onClick={close}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{ background: '#fff', borderRadius: 'var(--r)', padding: 24, width: 380, maxWidth: '100%', boxShadow: '0 12px 40px rgba(0,0,0,0.25)' }}
-          >
-            {step === 1 ? (
-              <>
-                <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)', marginBottom: 8 }}>
-                  Delete this enquiry?
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6, marginBottom: 18 }}>
-                  This permanently deletes <strong>{enquiry.enquiry_number} — {enquiry.store_name}</strong>,
-                  including any uploaded order-sheet photos and its digital order sheet. This cannot be undone.
-                </div>
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                  <button onClick={close} style={{ ...IR_BTN_BASE, background: '#fff', border: '1px solid var(--surface4)', color: 'var(--text2)' }}>
-                    Cancel
-                  </button>
-                  <button onClick={() => setStep(2)} style={{ ...IR_BTN_BASE, background: 'rgba(232,80,80,0.08)', color: 'var(--red)', border: '1px solid rgba(232,80,80,0.25)' }}>
-                    Continue
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)', marginBottom: 8 }}>
-                  Type the enquiry number to confirm
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--text3)', lineHeight: 1.6, marginBottom: 12 }}>
-                  Type <strong>{enquiry.enquiry_number}</strong> below to permanently delete it.
-                </div>
-                <input
-                  autoFocus
-                  value={typed}
-                  onChange={e => setTyped(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && matches) handleDelete(); }}
-                  placeholder={enquiry.enquiry_number}
-                  style={IR_INPUT}
-                />
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 18 }}>
-                  <button onClick={close} disabled={deleting} style={{ ...IR_BTN_BASE, background: '#fff', border: '1px solid var(--surface4)', color: 'var(--text2)' }}>
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleDelete}
-                    disabled={!matches || deleting}
-                    style={{
-                      ...IR_BTN_BASE,
-                      background: matches ? 'var(--red)' : 'var(--surface3)',
-                      color: '#fff',
-                      cursor: matches && !deleting ? 'pointer' : 'not-allowed',
-                    }}
-                  >
-                    {deleting ? 'Deleting…' : 'Delete permanently'}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
 function TradeShowEnquiryDetail({ enquiryId, onBack }) {
   const { success, error } = useToast();
   const [step, setStep] = useState(1); // 1: photos, 2: order sheet, 3: details/submit
@@ -3154,7 +3079,6 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
   const [scheduling, setScheduling] = useState(false);
-  const [regenerating, setRegenerating] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -3343,42 +3267,6 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
     }
   }
 
-  // Feature (Sep 2026) — regenerate both PDFs from current order lines
-  // and current catalog prices (e.g. after fixing a missing/wrong
-  // landed_price on a product this order includes). Only reachable
-  // pre-Email-2 — the button itself is hidden once enquiry.email2_sent
-  // is true, and the backend enforces the same rule regardless.
-  async function handleRegeneratePdfs() {
-    if (!window.confirm('Regenerate both PDFs using the current catalog prices? This replaces the existing order sheet and invoice files.')) return;
-    setRegenerating(true);
-    try {
-      const r = await adminAPI.regenerateTradeShowPdfs(enquiryId);
-      success('PDFs regenerated with current catalog prices');
-      setEnquiry(r.data);
-    } catch (e) {
-      error(extractErrorMessage(e, 'Failed to regenerate PDFs'));
-    } finally {
-      setRegenerating(false);
-    }
-  }
-
-  // Feature (Sep 2026) — cache-busts just the order sheet / invoice PDF
-  // links using pdfs_generated_at (bumped on every Submit and every
-  // Regenerate — see TradeShowEnquiryRegeneratePdfsView). GCS objects
-  // are served with a one-year Cache-Control header (GS_OBJECT_PARAMETERS
-  // in settings), and these two files deliberately keep the same
-  // filename across a regenerate so the invoice link stays stable — so
-  // without a changing query param, a browser has no reason to ever
-  // re-fetch after a regenerate. Deliberately NOT changing the shared
-  // mediaUrl() helper itself, since that's used for every other image/
-  // video across the app, most of which genuinely should stay cached.
-  function pdfUrl(file) {
-    const base = mediaUrl(file);
-    if (!base || !enquiry?.pdfs_generated_at) return base;
-    const sep = base.includes('?') ? '&' : '?';
-    return `${base}${sep}v=${encodeURIComponent(enquiry.pdfs_generated_at)}`;
-  }
-
   // Feature (Sep 2026) — a genuine download, not just "open in a new
   // tab" (which the existing preview links already do). Both PDFs live
   // on a different origin than this app (GCS directly, or api.qala.studio
@@ -3478,18 +3366,6 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
           <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: enquiry.email_sent ? 'rgba(90,210,120,0.1)' : 'rgba(232,80,80,0.1)', color: enquiry.email_sent ? 'var(--green)' : 'var(--red)' }}>
             Email 1: {enquiry.email_sent ? 'sent' : 'failed'}
           </span>
-          <DeleteEnquiryConfirm
-            enquiry={enquiry}
-            onDeleted={onBack}
-            trigger={openConfirm => (
-              <button
-                onClick={openConfirm}
-                style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: 'rgba(232,80,80,0.08)', color: 'var(--red)', border: '1px solid rgba(232,80,80,0.25)', cursor: 'pointer' }}
-              >
-                Delete
-              </button>
-            )}
-          />
           {/* Feature (Sep 2026): Interest-type enquiries never get an
               Email 2 at all — see email.py's send_enquiry_confirmation
               docstring — so this badge would be permanently misleading
@@ -3769,11 +3645,11 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
             {enquiry.order_sheet_pdf && (
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                  <a href={pdfUrl(enquiry.order_sheet_pdf)} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--sage)' }}>
+                  <a href={mediaUrl(enquiry.order_sheet_pdf)} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--sage)' }}>
                     📄 Order sheet PDF — open full size
                   </a>
                   <button
-                    onClick={() => handleDownloadPdf(pdfUrl(enquiry.order_sheet_pdf), `${enquiry.enquiry_number}-order-sheet.pdf`)}
+                    onClick={() => handleDownloadPdf(mediaUrl(enquiry.order_sheet_pdf), `${enquiry.enquiry_number}-order-sheet.pdf`)}
                     disabled={downloadingPdf === `${enquiry.enquiry_number}-order-sheet.pdf`}
                     style={{ fontSize: 12, padding: '4px 10px', borderRadius: 'var(--r-5)', border: '1px solid var(--surface4)', background: '#fff', color: 'var(--text2)', cursor: 'pointer' }}
                   >
@@ -3781,7 +3657,7 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
                   </button>
                 </div>
                 <iframe
-                  src={pdfUrl(enquiry.order_sheet_pdf)}
+                  src={mediaUrl(enquiry.order_sheet_pdf)}
                   title="Order sheet preview"
                   style={{ width: '100%', height: 480, border: '1px solid var(--surface4)', borderRadius: 'var(--r-5)' }}
                 />
@@ -3790,11 +3666,11 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
             {enquiry.invoice_pdf && (
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                  <a href={pdfUrl(enquiry.invoice_pdf)} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--sage)' }}>
+                  <a href={mediaUrl(enquiry.invoice_pdf)} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--sage)' }}>
                     📄 Invoice {enquiry.invoice_number} — open full size
                   </a>
                   <button
-                    onClick={() => handleDownloadPdf(pdfUrl(enquiry.invoice_pdf), `${enquiry.invoice_number || enquiry.enquiry_number}-invoice.pdf`)}
+                    onClick={() => handleDownloadPdf(mediaUrl(enquiry.invoice_pdf), `${enquiry.invoice_number || enquiry.enquiry_number}-invoice.pdf`)}
                     disabled={downloadingPdf === `${enquiry.invoice_number || enquiry.enquiry_number}-invoice.pdf`}
                     style={{ fontSize: 12, padding: '4px 10px', borderRadius: 'var(--r-5)', border: '1px solid var(--surface4)', background: '#fff', color: 'var(--text2)', cursor: 'pointer' }}
                   >
@@ -3802,24 +3678,13 @@ function TradeShowEnquiryDetail({ enquiryId, onBack }) {
                   </button>
                 </div>
                 <iframe
-                  src={pdfUrl(enquiry.invoice_pdf)}
+                  src={mediaUrl(enquiry.invoice_pdf)}
                   title="Invoice preview"
                   style={{ width: '100%', height: 480, border: '1px solid var(--surface4)', borderRadius: 'var(--r-5)' }}
                 />
               </div>
             )}
           </div>
-          {!enquiry.email2_sent && (
-            <div style={{ marginBottom: 12 }}>
-              <button
-                onClick={handleRegeneratePdfs}
-                disabled={regenerating}
-                style={{ fontSize: 12, padding: '6px 12px', borderRadius: 'var(--r-5)', border: '1px solid var(--surface4)', background: '#fff', color: 'var(--text2)', cursor: regenerating ? 'default' : 'pointer' }}
-              >
-                {regenerating ? 'Regenerating…' : '🔄 Regenerate PDFs with current catalog prices'}
-              </button>
-            </div>
-          )}
           {enquiry.email2_sent ? (
             <div style={{ fontSize: 13, color: 'var(--green)' }}>Email 2 sent {enquiry.email2_sent_at ? `on ${formatEastern(enquiry.email2_sent_at)}` : ''}.</div>
           ) : enquiry.scheduled_send_at ? (
@@ -4333,19 +4198,6 @@ function TradeShowEnquiryList({ onOpenEnquiry }) {
                 <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: e.email_sent ? 'rgba(90,210,120,0.1)' : 'rgba(232,80,80,0.1)', color: e.email_sent ? 'var(--green)' : 'var(--red)' }}>
                   E1 {e.email_sent ? '✓' : '✗'}
                 </span>
-                <DeleteEnquiryConfirm
-                  enquiry={e}
-                  onDeleted={deletedId => setEnquiries(prev => prev.filter(x => x.id !== deletedId))}
-                  trigger={openConfirm => (
-                    <button
-                      onClick={ev => { ev.stopPropagation(); openConfirm(); }}
-                      title="Delete enquiry"
-                      style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--r-lg)', fontWeight: 500, background: 'rgba(232,80,80,0.08)', color: 'var(--red)', border: '1px solid rgba(232,80,80,0.25)', cursor: 'pointer' }}
-                    >
-                      Delete
-                    </button>
-                  )}
-                />
                 {/* Interest never gets an Email 2 at all — see the
                     detail view's identical guard — so this badge would
                     permanently read "not scheduled" for something that
@@ -4618,24 +4470,38 @@ function AccessRequests() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
-  const navItems = [
-    { to: '/admin',                              icon: '', label: 'Overview',         end: true },
-    { to: '/admin/review',                       icon: '', label: 'Review Profile'              },
-    { to: '/admin/create-seller',                icon: '', label: 'Create Seller'               },
-    { to: '/admin/discovery',                    icon: '', label: 'Discovery',          end: true  },
-    { to: '/admin/discovery/inquiries',          icon: '', label: 'Inquiries'                   },
-    { to: '/admin/studio-descriptions',          icon: '', label: 'Studio Descriptions'         },
-    { to: '/admin/access-keys',                  icon: '', label: 'Access Keys'                  },
-    { to: '/admin/contacts',                     icon: '', label: 'Contacts'                     },
-    { to: '/admin/access-requests',              icon: '', label: 'Access Requests'              },
-    { to: '/admin/introduction-requests',        icon: '', label: 'Introduction Requests'        },
-    { to: '/admin/trade-show-enquiry',           icon: '', label: 'Order Booth'                    },
-    { to: '/admin/library',                      icon: '', label: 'Library'                      },
-    { to: '/admin/projects',                     icon: '📋', label: 'Projects'                  },
-    { to: '/admin/orders',                       icon: '📦', label: 'Orders Dashboard'          },
+  // Grouped the same 14 routes into two sections purely for scannability —
+  // nothing moved, nothing renamed, nothing dropped. "System" holds the one
+  // item that's about managing access to the platform itself rather than
+  // day-to-day operations; everything else stays under "Operations".
+  const navSections = [
+    {
+      title: 'Operations',
+      items: [
+        { to: '/admin',                              icon: NavIcons.overview, label: 'Overview',         end: true },
+        { to: '/admin/projects',                     icon: NavIcons.projects, label: 'Projects'                  },
+        { to: '/admin/orders',                       icon: NavIcons.orders, label: 'Orders Dashboard'          },
+        { to: '/admin/trade-show-enquiry',           icon: NavIcons.booth, label: 'Order Booth'                },
+        { to: '/admin/discovery',                    icon: NavIcons.discovery, label: 'Discovery',          end: true  },
+        { to: '/admin/discovery/inquiries',          icon: NavIcons.inquiries, label: 'Inquiries'                   },
+        { to: '/admin/review',                       icon: NavIcons.review, label: 'Review Profile'              },
+        { to: '/admin/create-seller',                icon: NavIcons.createSeller, label: 'Create Seller'               },
+        { to: '/admin/studio-descriptions',          icon: NavIcons.descriptions, label: 'Studio Descriptions'         },
+        { to: '/admin/contacts',                     icon: NavIcons.contacts, label: 'Contacts'                     },
+        { to: '/admin/access-requests',              icon: NavIcons.accessRequests, label: 'Access Requests'              },
+        { to: '/admin/introduction-requests',        icon: NavIcons.introductions, label: 'Introduction Requests'        },
+        { to: '/admin/library',                      icon: NavIcons.library, label: 'Library'                      },
+      ],
+    },
+    {
+      title: 'System',
+      items: [
+        { to: '/admin/access-keys',                  icon: NavIcons.accessKeys, label: 'Access Keys'                  },
+      ],
+    },
   ];
   return (
-    <DashLayout nav={navItems}>
+    <DashLayout sections={navSections}>
       <Routes>
         {/* Temporary (Sep 2026) — bare /admin lands on Trade Show
             Enquiry instead of Overview, at explicit request while

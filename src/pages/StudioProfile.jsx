@@ -791,38 +791,33 @@ function FabricTabs({ fabrics, dyes }) {
 }
 
 /* ── Get Introduced modal ─────────────────────────────────────────────────── */
+// Feature (Oct 2026) — "Connect Without Brief" removed per Ashish: a buyer
+// must have an actual Qalawati brief to request an introduction. This used
+// to offer a second, brief-less path (an inline name/email form straight to
+// GetIntroducedView) for anyone with no chat session at all — now the only
+// way through this modal is attaching a real brief session. The backend
+// (GetIntroducedView) enforces the same rule independently, so this isn't
+// just a UI nicety — see discovery/chat_views.py.
 function IntroPopup({ studio, onClose, activeSessionToken }) {
+  const nav = useNavigate();
   const [sessions,     setSessions]     = useState([]);
   const [loadingSess,  setLoadingSess]  = useState(true);
   const [selectedSess, setSelectedSess] = useState(activeSessionToken || '');
   const [submitting,   setSubmitting]   = useState(false);
   const [done,         setDone]         = useState(false);
   const [err,          setErr]          = useState('');
-  const [name,         setName]         = useState('');
-  const [email,        setEmail]        = useState('');
 
   useEffect(() => {
-    // buyerAPI.getSessions() requires a logged-in buyer. A visitor who
-    // reached this studio from the public Studio Directory (rather than
-    // completing a Qalawati chat/brief first) has no token in localStorage
-    // at all — calling it anyway would 401, and the shared axios response
-    // interceptor treats ANY 401 as "your session expired" and immediately
-    // hard-navigates the whole page to /login, aborting Get Introduced
-    // before the person ever reaches "Connect Without Brief" (which is the
-    // anonymous-friendly path — the backend endpoint it hits is AllowAny
-    // and doesn't need this call to have succeeded). Skipping the fetch
-    // entirely when there's no token avoids tripping that redirect; the
-    // popup just shows "Connect Without Brief" with no project dropdown,
-    // same as if the fetch had legitimately come back empty.
+    // buyerAPI.getSessions() requires a logged-in buyer. A visitor with no
+    // token at all (never been through Qalawati chat) would just 401 here,
+    // and the shared axios response interceptor treats ANY 401 as "your
+    // session expired" and hard-navigates the whole page to /login — so
+    // skip the fetch entirely when there's no token. They'll see the
+    // "you need a brief first" state below instead of this ever firing.
     //
-    // Bug fix: this used to be the ONLY way "Send Project Details" could
-    // ever show — so a buyer who clicked Get Introduced mid-chat, before
-    // ever submitting the contact form, had no token yet, this fetch never
-    // ran, and they only ever saw "Connect Without Brief" despite an actual
-    // active brief existing (just not one this authenticated call could
-    // find). activeSessionToken (passed from StudiosPanel, the one
-    // concrete case where we already know the exact right session) skips
-    // needing this fetch to succeed at all.
+    // activeSessionToken (passed from StudiosPanel, the one concrete case
+    // where we already know the exact right session — a buyer mid-chat who
+    // hasn't necessarily logged in yet) skips needing this fetch at all.
     if (activeSessionToken) { setLoadingSess(false); return; }
     if (!authTokens.access()) { setLoadingSess(false); return; }
     buyerAPI.getSessions()
@@ -838,26 +833,13 @@ function IntroPopup({ studio, onClose, activeSessionToken }) {
   }, [onClose]);
 
   const hasSessions = !loadingSess && (sessions.length > 0 || !!activeSessionToken);
-  // Nothing on file the backend can resolve contact details from — no
-  // brief session, no existing account/access key. GetIntroducedView needs
-  // a name + email from somewhere, or it 400s with "contact details not
-  // found" (previously shown to the person as a generic, unhelpful
-  // "Something went wrong"). Ask for them inline instead of failing silently.
-  const needsContactForm = !loadingSess && !hasSessions && !authTokens.access();
 
-  const introduce = async (withSession) => {
+  const introduce = async () => {
+    if (!selectedSess) return;
     setErr('');
-    if (needsContactForm && (!name.trim() || !email.trim())) {
-      setErr('Please add your name and email so the studio can reach you.');
-      return;
-    }
     setSubmitting(true);
     try {
-      const r = await chatAPI.getIntroduced(withSession ? selectedSess : null, studio.studio_id,
-        needsContactForm ? { name: name.trim(), email: email.trim() } : {});
-      // Mirrors ChatContactView's account-creation contract: a first-time
-      // Studio Directory visitor who just filled in the form above comes
-      // away with a real account, same as making a brief on Qalawati does.
+      const r = await chatAPI.getIntroduced(selectedSess, studio.studio_id, {});
       if (r?.data?.auth_token) authTokens.setAccessKeySession(r.data.auth_token);
       setDone(true);
     } catch {
@@ -881,6 +863,23 @@ function IntroPopup({ studio, onClose, activeSessionToken }) {
             </p>
             <div className="studio-v3-modal-actions">
               <button className="studio-v3-btn-secondary" onClick={onClose}>Close</button>
+            </div>
+          </div>
+        ) : !hasSessions ? (
+          // Feature (Oct 2026): no "Connect Without Brief" fallback anymore —
+          // a buyer with no Qalawati project on file is sent to start one
+          // instead of being offered a brief-less inquiry.
+          <div style={{ textAlign: 'center' }}>
+            <div className="studio-v3-modal-title">Start a project brief first</div>
+            <p className="studio-v3-modal-sub">
+              Chat with Qalawati to tell us what you're looking for — then come back
+              and connect with {studio.studio_name} with your brief attached.
+            </p>
+            <div className="studio-v3-modal-actions">
+              <button className="studio-v3-btn-secondary" onClick={onClose}>Cancel</button>
+              <button className="studio-v3-btn-primary" onClick={() => nav('/discover')}>
+                Chat with Qalawati
+              </button>
             </div>
           </div>
         ) : (
@@ -907,31 +906,13 @@ function IntroPopup({ studio, onClose, activeSessionToken }) {
               </>
             )}
 
-            {needsContactForm && (
-              <>
-                <label className="studio-v3-modal-field-label" htmlFor="sv3-name">Your name</label>
-                <input id="sv3-name" className="studio-v3-modal-input" type="text"
-                  value={name} onChange={e => setName(e.target.value)} placeholder="Full name" />
-                <label className="studio-v3-modal-field-label" htmlFor="sv3-email" style={{ marginTop: 10 }}>Email</label>
-                <input id="sv3-email" className="studio-v3-modal-input" type="email"
-                  value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" />
-              </>
-            )}
-
             {err && <div className="studio-v3-modal-err">{err}</div>}
 
             <div className="studio-v3-modal-actions">
-              {hasSessions && (
-                <button className="studio-v3-btn-primary"
-                  disabled={submitting || !selectedSess}
-                  onClick={() => introduce(true)}>
-                  {submitting ? <><span className="studio-v3-spin" /> Sending…</> : 'Send Project Details'}
-                </button>
-              )}
-              <button className="studio-v3-btn-secondary"
-                disabled={submitting || (needsContactForm && (!name.trim() || !email.trim()))}
-                onClick={() => introduce(false)}>
-                {submitting ? <><span className="studio-v3-spin dark" /> Sending…</> : 'Connect Without Brief'}
+              <button className="studio-v3-btn-primary"
+                disabled={submitting || !selectedSess}
+                onClick={introduce}>
+                {submitting ? <><span className="studio-v3-spin" /> Sending…</> : 'Send Project Details'}
               </button>
             </div>
           </>
@@ -961,19 +942,11 @@ export default function StudioProfile() {
   // Supports both /studio/:id (legacy) and /:studioSlug (v3)
   const { id, studioSlug } = useParams();
   const nav = useNavigate();
-  // Bug fix (Sep 2026): router state alone only carried the session token
-  // when the click came from StudiosPanel's own "View studio" links — a
-  // buyer reaching this same studio via the Studio Directory (or a direct
-  // URL, a bookmark, the browser back button — anything that isn't that
-  // one specific in-chat link) arrived with no router state at all, even
-  // with a real, active brief sitting one tab over. discoveryAPI's stored
-  // session token is the same source of truth Discover.jsx, DiscoverResults.jsx
-  // and AuthGateModal already fall back to elsewhere in this app — reusing
-  // it here means IntroPopup finds the buyer's real session regardless of
-  // which link brought them to this page, not just the one that happened
-  // to pass it explicitly.
+  // Bug fix: the chat session a buyer just came from (via StudiosPanel's
+  // "Get Introduced" click) is passed here via router state now — see
+  // IntroPopup below for why this needed fixing.
   const routerLocation = useLocation();
-  const chatSessionToken = routerLocation.state?.chatSessionToken || discoveryAPI.getStoredSession() || null;
+  const chatSessionToken = routerLocation.state?.chatSessionToken || null;
 
   const [studio,  setStudio]  = useState(null);
   const [loading, setLoading] = useState(true);

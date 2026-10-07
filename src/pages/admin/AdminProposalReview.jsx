@@ -164,6 +164,18 @@ const COL_LABEL = {
   qty: 'Qty', weight_per_pc: 'Wt/pc (kg)', declared_value_usd: 'Decl. val ($)',
 };
 
+// Server errors come back as {message} or {errors:{field:[...]}} — surface
+// either, instead of failing silently.
+function errText(e, fallback) {
+  const d = e?.response?.data;
+  if (d?.message) return d.message;
+  if (d?.errors && typeof d.errors === 'object') {
+    const parts = Object.entries(d.errors).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`);
+    if (parts.length) return parts.join(' · ');
+  }
+  return e?.message || fallback;
+}
+
 export default function AdminProposalReview() {
   const { projectId, proposalId } = useParams();
   const nav = useNavigate();
@@ -182,6 +194,10 @@ export default function AdminProposalReview() {
   const [newClause, setNewClause] = useState('');
   const [showRevision, setShowRevision] = useState(false);
   const [revisionNote, setRevisionNote] = useState('');
+  const [sendError, setSendError] = useState('');
+  const [sendResult, setSendResult] = useState(null);
+  const [sending, setSending] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const load = () => {
     Promise.all([
@@ -253,16 +269,52 @@ export default function AdminProposalReview() {
     await projectsAPI.adminDeleteMilestone(projectId, proposalId, mid);
   };
 
+  const draftPayload = () => ({
+    platform_fee_design_pct: proposal.platform_fee_design_pct, platform_fee_sampling_pct: proposal.platform_fee_sampling_pct,
+    platform_fee_production_pct: proposal.platform_fee_production_pct, line_items: proposal.line_items,
+    valid_until: proposal.valid_until, concept_title: proposal.concept_title, concept_description: proposal.concept_description,
+    sow_clauses: proposal.sow_clauses, phase_notes: proposal.phase_notes, admin_notes: proposal.admin_notes,
+  });
   const doApprove = async () => {
-    await save({
-      platform_fee_design_pct: proposal.platform_fee_design_pct, platform_fee_sampling_pct: proposal.platform_fee_sampling_pct,
-      platform_fee_production_pct: proposal.platform_fee_production_pct, line_items: proposal.line_items,
-      valid_until: proposal.valid_until, concept_title: proposal.concept_title, concept_description: proposal.concept_description,
-      sow_clauses: proposal.sow_clauses, phase_notes: proposal.phase_notes, admin_notes: proposal.admin_notes,
-    });
-    await projectsAPI.adminSendProposal(projectId, proposalId);
-    load();
+    setSendError(''); setSendResult(null); setSending(true);
+    try {
+      await save(draftPayload());
+    } catch (e) {
+      setSendError('Could not save your changes, so nothing was sent. ' + errText(e, 'Please try again.'));
+      setSending(false);
+      return;
+    }
+    try {
+      const r = await projectsAPI.adminSendProposal(projectId, proposalId);
+      setSendResult(r.data);
+      load();
+    } catch (e) {
+      setSendError(errText(e, 'Could not send the proposal to the buyer.'));
+    } finally { setSending(false); }
   };
+  const doResend = async () => {
+    setSendError(''); setSending(true);
+    try {
+      const r = await projectsAPI.adminResendProposal(projectId, proposalId);
+      setSendResult(r.data);
+    } catch (e) {
+      setSendError(errText(e, 'Could not re-send the email.'));
+    } finally { setSending(false); }
+  };
+  const copyLink = async (url) => {
+    try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { /* clipboard blocked */ }
+  };
+  const publicUrl = sendResult?.public_url || (proposal.public_token ? `${window.location.origin}/p/${proposal.public_token}` : '');
+  // Mirrors the server's pre-send checks so the admin sees what is missing before clicking.
+  const activePhases = [...new Set(items.map(i => MS_PHASE[i.order_type]).filter(Boolean))];
+  const phaseTotals = milestones.reduce((acc, m) => ({ ...acc, [m.phase]: (acc[m.phase] || 0) + parseFloat(m.percentage || 0) }), {});
+  const checks = [
+    ['Valid-until date set', !!proposal.valid_until],
+    ['First payment link pasted', !!milestones[0]?.payment_link_url],
+    ['Payment milestones total 100% in every phase', activePhases.every(ph => Math.abs((phaseTotals[ph] || 0) - 100) < 0.01)],
+  ];
+  const isSent = proposal.status === 'sent_to_buyer';
+  const isClosed = ['accepted', 'declined'].includes(proposal.status);
   const doRequestRevision = async () => {
     await projectsAPI.adminRequestRevision(projectId, proposalId, { notes: revisionNote });
     setShowRevision(false);
@@ -622,7 +674,51 @@ export default function AdminProposalReview() {
                   onChange={e => updateMilestone(milestones[0]?.id, { payment_link_url: e.target.value })} />
                 <div style={{ fontSize: 10, color: 'var(--text4)', marginTop: 4 }}>Buyer will see a <strong>Pay now</strong> button after accepting. First milestone: {PHASE_LABEL[milestones[0]?.phase] || 'Design'} phase — <strong>{usd(milestones[0]?.amount_usd)}</strong>.</div>
               </div>
-              {showRevision ? (
+              {sendError && (
+                <div style={{ background: 'var(--red-dim)', border: '1px solid rgba(201,64,64,0.25)', color: 'var(--red)', borderRadius: 8, padding: '10px 12px', fontSize: 12, lineHeight: 1.55, marginBottom: 12 }}>
+                  {sendError}
+                </div>
+              )}
+              {!isSent && !isClosed && (
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', marginBottom: 12 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Before sending</div>
+                  {checks.map(([label, ok]) => (
+                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: ok ? 'var(--text2)' : 'var(--red)', padding: '2px 0' }}>
+                      <span style={{ width: 14, height: 14, borderRadius: '50%', flexShrink: 0, background: ok ? 'var(--green)' : 'transparent', border: ok ? 'none' : '1.5px solid var(--red)', color: '#fff', fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{ok ? '✓' : ''}</span>
+                      {label}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {(isSent || isClosed) ? (
+                <div>
+                  <div style={{ background: 'var(--green-dim)', border: '1px solid rgba(30,122,81,0.25)', borderRadius: 8, padding: '10px 12px', marginBottom: 10 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)' }}>
+                      {proposal.status === 'accepted' ? 'Accepted by the buyer' : proposal.status === 'declined' ? 'Declined by the buyer' : 'Sent to the buyer'}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 3, lineHeight: 1.55 }}>
+                      {proposal.sent_to_buyer_at ? `Sent ${fmtDate(proposal.sent_to_buyer_at)}. ` : ''}
+                      {sendResult
+                        ? (sendResult.buyer_emailed
+                            ? `Email sent to ${sendResult.buyer_email}${proposal.studio_name ? `, with ${proposal.studio_name} in CC` : ''}.`
+                            : (sendResult.email_note || 'No email was sent.'))
+                        : 'The buyer can see it in their dashboard and by link.'}
+                    </div>
+                  </div>
+                  {publicUrl && (
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>Buyer link (no login needed)</div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <input readOnly value={publicUrl} onFocus={e => e.target.select()} style={{ ...S.input, flex: 1, fontSize: 11 }} />
+                        <button style={{ ...S.btn, ...S.btnSave, width: 'auto', padding: '0 12px' }} onClick={() => copyLink(publicUrl)}>{copied ? 'Copied' : 'Copy'}</button>
+                      </div>
+                    </div>
+                  )}
+                  {isSent && (
+                    <button style={{ ...S.btn, ...S.btnGhost }} disabled={sending} onClick={doResend}>{sending ? 'Sending…' : 'Re-send email to buyer'}</button>
+                  )}
+                </div>
+              ) : showRevision ? (
                 <div style={{ marginBottom: 10 }}>
                   <textarea style={{ ...S.input, minHeight: 68, resize: 'vertical', marginBottom: 8 }} placeholder="What needs to change?" value={revisionNote} onChange={e => setRevisionNote(e.target.value)} />
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -632,13 +728,8 @@ export default function AdminProposalReview() {
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                  <button style={{ ...S.btn, ...S.btnApprove }} disabled={saving} onClick={doApprove}>✓ Approve & send to buyer</button>
-                  <button style={{ ...S.btn, ...S.btnSave }} disabled={saving} onClick={() => save({
-                    platform_fee_design_pct: proposal.platform_fee_design_pct, platform_fee_sampling_pct: proposal.platform_fee_sampling_pct,
-                    platform_fee_production_pct: proposal.platform_fee_production_pct, line_items: proposal.line_items,
-                    valid_until: proposal.valid_until, concept_title: proposal.concept_title, concept_description: proposal.concept_description,
-                    sow_clauses: proposal.sow_clauses, phase_notes: proposal.phase_notes, admin_notes: proposal.admin_notes,
-                  })}>{saving ? 'Saving…' : 'Save changes (stay in review)'}</button>
+                  <button style={{ ...S.btn, ...S.btnApprove }} disabled={saving || sending} onClick={doApprove}>{sending ? 'Sending…' : 'Approve & send to buyer'}</button>
+                  <button style={{ ...S.btn, ...S.btnSave }} disabled={saving || sending} onClick={async () => { setSendError(''); try { await save(draftPayload()); } catch (e) { setSendError(errText(e, 'Could not save changes.')); } }}>{saving ? 'Saving…' : 'Save changes (stay in review)'}</button>
                   <button style={{ ...S.btn, ...S.btnGhost }} onClick={() => setShowRevision(true)}>↩ Request studio revision</button>
                 </div>
               )}

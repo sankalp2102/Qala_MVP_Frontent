@@ -26,6 +26,14 @@
 // endpoint — composed here from real signals actually available
 // (recently updated active projects + recent enquiries), not a genuine
 // unified log. Noted inline where it matters.
+//
+// Visual parity fix: the prototype's right column has a "Recent
+// Activity" card ABOVE the wallet mini-card — this file fetched the
+// data needed for it (getActiveProjects already returns each project's
+// real `.activity` log entries) but never rendered the card at all.
+// Reusing that same data here rather than adding a new API call — same
+// ActivityLog entries ActivityHistory.jsx's own feed is built from,
+// just the 5 most recent.
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -68,6 +76,9 @@ const S = {
   activityTime: { fontSize: 11, color: 'var(--text4)', marginTop: 2 },
 
   badge: (bg, color) => ({ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 'var(--r-20)', fontSize: 11, fontWeight: 600, letterSpacing: '.03em', background: bg, color }),
+
+  recentItem: { display: 'flex', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border)' },
+  recentDot: (color) => ({ width: 8, height: 8, borderRadius: '50%', background: color || 'var(--gold)', marginTop: 5, flexShrink: 0 }),
 };
 
 function fmtRel(d) {
@@ -108,6 +119,15 @@ export default function SellerHome() {
   const totalPayout = wallet?.total_payout_inr || 0;
 
   const greeting = `You have ${openEnquiries.length} open ${openEnquiries.length === 1 ? 'enquiry' : 'enquiries'}${newToday.length ? `, ${newToday.length} new today` : ''}${projects.length ? `, and ${projects.length} active ${projects.length === 1 ? 'project' : 'projects'} in progress` : ''}.`;
+
+  // Same ActivityLog entries ActivityHistory.jsx aggregates — every active
+  // project's real `.activity` array, newest first, capped to 5 for a
+  // home-page preview rather than the full history.
+  const recentActivity = projects
+    .flatMap(p => (p.activity || []).map(a => ({ id: a.id, ts: a.created_at, text: a.description })))
+    .filter(a => a.ts)
+    .sort((a, b) => new Date(b.ts) - new Date(a.ts))
+    .slice(0, 5);
 
   return (
     <div>
@@ -197,6 +217,26 @@ export default function SellerHome() {
           </div>
 
           <div>
+            {recentActivity.length > 0 && (
+              <div style={S.card}>
+                <div style={S.cardHeader}><h3 style={S.cardHeaderH3}>Recent Activity</h3></div>
+                <div style={S.cardBody}>
+                  {recentActivity.map((a, i) => (
+                    <div key={a.id} style={{ ...S.recentItem, borderBottom: i < recentActivity.length - 1 ? S.recentItem.borderBottom : 'none' }}>
+                      <div style={S.recentDot()} />
+                      <div>
+                        <div style={S.activityText}>{a.text}</div>
+                        <div style={S.activityTime}>{fmtRel(a.ts)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ padding: '10px 20px', borderTop: '1px solid var(--border)' }}>
+                  <button className="btn btn-ghost btn-sm" style={{ color: 'var(--text3)', fontSize: 12, width: '100%', justifyContent: 'center' }} onClick={() => nav('/dashboard/activity')}>See full history →</button>
+                </div>
+              </div>
+            )}
+
             <div style={S.card}>
               <div style={S.cardHeader}><h3 style={S.cardHeaderH3}>Wallet</h3><button className="btn btn-ghost btn-sm" onClick={() => nav('/dashboard/wallet')}>Details</button></div>
               <div style={S.cardBody}>

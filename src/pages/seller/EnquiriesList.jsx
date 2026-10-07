@@ -135,7 +135,7 @@ export default function EnquiriesList() {
                 onClick={() => nav(`/dashboard/enquiries/${e.id}`)}
                 style={{
                   background: 'var(--surface)', border: '1px solid var(--border)',
-                  borderLeft: isNew ? '3px solid var(--gold)' : '1px solid var(--border)',
+                  borderLeft: e.unread_admin_messages > 0 ? '3px solid var(--red)' : isNew ? '3px solid var(--gold)' : '1px solid var(--border)',
                   borderRadius: 'var(--r-lg)', padding: '18px 22px', cursor: 'pointer',
                   transition: 'box-shadow 0.15s',
                 }}
@@ -146,6 +146,12 @@ export default function EnquiriesList() {
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
                       {e.name}
+                      {/* Feature (Sep 2026) — Qala wrote back and this studio hasn't opened it yet */}
+                      {e.unread_admin_messages > 0 && (
+                        <span style={{ marginLeft: 10, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--r-20)', background: 'var(--red)', color: '#fff', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                          ● {e.unread_admin_messages} new message{e.unread_admin_messages > 1 ? 's' : ''} from Qala
+                        </span>
+                      )}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
                       <span>{e.buyer_name || e.buyer_email || 'Anonymous buyer'}</span>

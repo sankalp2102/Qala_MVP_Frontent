@@ -45,6 +45,7 @@ export default function PublicProposalView() {
       navContext={`${proposal.project_name} · ${proposal.studio_info?.name}`}
       onAccept={async (notes) => { await publicAPI.acceptProposal(token, { notes }); load(); }}
       onAction={async (type, message) => { await publicAPI.actOnProposal(token, { type, message }); if (type === 'declined') load(); }}
+      onPreviewSOW={async () => { const res = await publicAPI.getProposalSOW(token); return res.data; }}
     />
   );
 }

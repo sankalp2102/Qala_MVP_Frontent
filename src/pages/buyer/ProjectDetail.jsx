@@ -305,6 +305,10 @@ function ProposalsTab({ project, onRefresh }) {
               await projectsAPI.actOnProposal(project.id, p.id, payload);
               onRefresh();
             }}
+            onPreviewSOW={async () => {
+              const res = await projectsAPI.getProposalSOW(project.id, p.id);
+              return res.data;
+            }}
           />
         </div>
       ))}

@@ -1,15 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { projectsAPI, adminAPI } from '../../api/client';
-
-const STAGE_COLORS = {
-  draft:           'var(--text3)',
-  brief_submitted: 'var(--amber)',
-  studio_assigned: 'var(--gold)',
-  in_production:   'var(--teal)',
-  completed:       'var(--green)',
-  cancelled:       'var(--red)',
-};
+import { projectsAPI } from '../../api/client';
+import { AdminConsoleStyles, STAGES, StagePill } from './adminConsole';
 
 function fmt(iso) {
   return iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
@@ -94,15 +86,6 @@ export default function AdminProjectsList() {
   const [stageFilter, setStageFilter] = useState('');
   const [searchQ,     setSearchQ]     = useState('');
 
-  // Feature (Sep 2026) — was: "buyers who contacted a studio directly,"
-  // pulled straight from the legacy no-status-filter studio-inquiries
-  // endpoint, with its own "Convert to Project" button that created the
-  // Project silently — no review, no buyer email. That was a second,
-  // inconsistent path into the exact same thing "Introduction Requests"
-  // already handles properly (brief review, then an approval that
-  // actually emails the buyer). Now this is just a count + a link there
-  // instead of a second way to do the same action.
-  const [pendingIntroCount, setPendingIntroCount] = useState(0);
   const [form, setForm] = useState({
     name: '', buyer_user_id: '',
     buyer_brand_name: '', buyer_location: '',
@@ -117,7 +100,7 @@ export default function AdminProjectsList() {
 
   const load = () => {
     setLoading(true);
-    projectsAPI.adminListProjects(stageFilter ? { stage: stageFilter } : {})
+    projectsAPI.adminListProjects({})
       .then(r => setProjects(r.data.projects || []))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -130,13 +113,7 @@ export default function AdminProjectsList() {
     } catch {}
   };
 
-  useEffect(() => { load(); loadBuyers(); }, [stageFilter]);
-
-  useEffect(() => {
-    adminAPI.listIntroductionRequests('pending_review')
-      .then(r => setPendingIntroCount(r.data.count || 0))
-      .catch(() => {});
-  }, []);
+  useEffect(() => { load(); loadBuyers(); }, []);
 
   const set = (k, v) => setForm(f => ({...f, [k]: v}));
 
@@ -162,8 +139,11 @@ export default function AdminProjectsList() {
     } catch { setCreating(false); }
   };
 
-  // Client-side search filter on project list
+  // Stage chip + search, both client-side. Everything is loaded once so the
+  // chip counts are always for the whole list, not just the selected stage.
+  const stageCounts = projects.reduce((acc, p) => { acc[p.stage] = (acc[p.stage] || 0) + 1; return acc; }, {});
   const filtered = projects.filter(p => {
+    if (stageFilter && p.stage !== stageFilter) return false;
     if (!searchQ) return true;
     const q = searchQ.toLowerCase();
     return (
@@ -174,48 +154,22 @@ export default function AdminProjectsList() {
     );
   });
 
+  const subLine = (p) => [p.product_category, p.bulk_quantity ? `${p.bulk_quantity} units` : null].filter(Boolean).join(' · ') || '—';
+
   return (
-    <div style={{ padding: 'clamp(20px,3vw,40px) clamp(16px,4vw,48px)' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Projects</h1>
-          <p style={{ fontSize: 14, color: 'var(--text3)' }}>{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
-        </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <select value={stageFilter} onChange={e => setStageFilter(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: 'var(--r-8)', border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)' }}>
-            <option value="">All Stages</option>
-            {['draft','brief_submitted','studio_assigned','in_production','completed','cancelled'].map(s => (
-              <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
-            ))}
-          </select>
-          <button onClick={() => nav('/admin/projects/new')} className="btn btn-primary" style={{ fontSize: 13, padding: '8px 18px' }}>+ New Project</button>
-        </div>
+    <div>
+      <AdminConsoleStyles />
+
+      {/* Top bar */}
+      <div className="ac-topbar">
+        <div className="ac-title">Projects</div>
+        <button onClick={() => nav('/admin/projects/new')} className="ac-btn primary">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M7 1v12M1 7h12" /></svg>
+          New Project
+        </button>
       </div>
 
-      {/* Feature (Sep 2026) — just a link to Introduction Requests now,
-          not a second way to approve one. See the state comment above. */}
-      {pendingIntroCount > 0 && (
-        <div
-          onClick={() => nav('/admin/introduction-requests')}
-          style={{ background: 'var(--gold-dim)', border: '1px solid var(--gold)', borderRadius: 'var(--r-lg)', marginBottom: 20, padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-        >
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
-            🔔 {pendingIntroCount} introduction request{pendingIntroCount > 1 ? 's' : ''} waiting on review
-          </div>
-          <span style={{ fontSize: 12, color: 'var(--text3)' }}>Review →</span>
-        </div>
-      )}
-
-      {/* Search bar */}
-      <div style={{ marginBottom: 16 }}>
-        <input
-          value={searchQ} onChange={e => setSearchQ(e.target.value)}
-          placeholder="Search projects by name, buyer, or studio…"
-          style={{ width: '100%', padding: '9px 14px', borderRadius: 'var(--r-8)', border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)', boxSizing: 'border-box' }}
-        />
-      </div>
+      <div className="ac-content">
 
       {/* Create form */}
       {showCreate && (
@@ -306,36 +260,78 @@ export default function AdminProjectsList() {
         </div>
       )}
 
-      {/* Project list */}
-      {loading ? (
-        <div style={{ padding: 40, color: 'var(--text3)', fontSize: 14 }}>Loading…</div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {filtered.length === 0 && (
-            <div style={{ padding: '48px 32px', textAlign: 'center', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)' }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
-              <div style={{ fontSize: 14, color: 'var(--text3)' }}>{searchQ ? 'No projects match your search.' : 'No projects yet.'}</div>
-            </div>
-          )}
-          {filtered.map(p => (
-            <div key={p.id} onClick={() => nav(`/admin/projects/${p.id}`)}
-              style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-10)', padding: '16px 20px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, transition: 'box-shadow 0.15s' }}
-              onMouseEnter={e => e.currentTarget.style.boxShadow = 'var(--shadow-lg)'}
-              onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
-            >
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>{p.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--text3)' }}>
-                  {p.buyer_name || p.buyer_email || 'No buyer'} · {p.studio_name ? `Studio: ${p.studio_name}` : 'No studio'} · Updated {fmt(p.updated_at)}
-                </div>
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 'var(--r-20)', background: `${STAGE_COLORS[p.stage] || 'var(--text3)'}22`, color: STAGE_COLORS[p.stage] || 'var(--text3)', textTransform: 'uppercase', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                {p.stage?.replace(/_/g, ' ')}
-              </span>
-            </div>
+      {/* Filter chips (with counts) + search */}
+      <div className="ac-toolbar">
+        <div className="ac-chips">
+          <button className={`ac-chip${stageFilter === '' ? ' active' : ''}`} onClick={() => setStageFilter('')}>
+            All ({projects.length})
+          </button>
+          {STAGES.filter(st => st.key !== 'cancelled' || stageCounts.cancelled).map(st => (
+            <button key={st.key} className={`ac-chip${stageFilter === st.key ? ' active' : ''}`} onClick={() => setStageFilter(st.key)}>
+              {st.label} ({stageCounts[st.key] || 0})
+            </button>
           ))}
         </div>
+        <input
+          className="ac-search"
+          value={searchQ} onChange={e => setSearchQ(e.target.value)}
+          placeholder="Search name, buyer or studio…"
+        />
+      </div>
+
+      {/* Project table */}
+      {loading ? (
+        <div style={{ padding: 40, color: 'var(--text3)', fontSize: 14 }}>Loading…</div>
+      ) : filtered.length === 0 ? (
+        <div className="ac-empty">{searchQ || stageFilter ? 'No projects match your filters.' : 'No projects yet.'}</div>
+      ) : (
+        <div className="ac-tablewrap">
+          <table className="ac-table">
+            <thead>
+              <tr>
+                <th>Project</th>
+                <th>Buyer</th>
+                <th>Studio</th>
+                <th>Stage</th>
+                <th>Created</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(p => {
+                return (
+                  <tr key={p.id} onClick={() => nav(`/admin/projects/${p.id}`)}>
+                    <td>
+                      <div className="ac-name">{p.name}<span className="ac-sub">{subLine(p)}</span></div>
+                    </td>
+                    <td>
+                      {p.buyer_name || p.buyer_email
+                        ? <><span className="ac-fw">{p.buyer_name || p.buyer_email}</span>{p.buyer_location && <><br /><span className="ac-muted" style={{ fontSize: 12 }}>{p.buyer_location}</span></>}</>
+                        : <span className="ac-muted">No buyer</span>}
+                    </td>
+                    <td>{p.studio_name ? <span className="ac-fw">{p.studio_name}</span> : <span className="ac-muted">—</span>}</td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <StagePill stage={p.stage} />
+                        {p.stopped_after_phase && (
+                          <span className="ac-badge stopped" title={`Buyer stopped after ${p.stopped_after_phase}`}>
+                            Stopped · {p.stopped_after_phase}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="ac-muted" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>{fmt(p.created_at)}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button className="ac-btn outline sm" onClick={e => { e.stopPropagation(); nav(`/admin/projects/${p.id}`); }}>View</button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
+      </div>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import BuyerBriefCard from '../../components/BuyerBriefCard';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { projectsAPI, adminAPI } from '../../api/client';
@@ -6,6 +7,7 @@ import {
   fmtUSD, fmtINR, fmtPct,
 } from '../../utils/calculator';
 import LineItemCards, { normalizeItems, summarize } from '../../components/proposals/LineItemCards';
+import { AdminConsoleStyles, StagePill, STAGES, initials } from './adminConsole';
 
 // src/components/projects/BriefForm.jsx
 // Shared brief edit form used by buyer (ProjectDetail) and admin (AdminProjectDetail).
@@ -195,25 +197,24 @@ function TabBtn({ label, active, onClick }) {
 function BriefTab({ project, onRefresh }) {
   const [editing, setEditing] = useState(false);
 
+  if (!editing) {
+    return (
+      <BuyerBriefCard
+        brief={project.brief || {}}
+        action={<button onClick={() => setEditing(true)} className="btn btn-ghost" style={{ fontSize: 12, width: 'auto' }}>Edit Brief</button>}
+        style={{ marginBottom: 0 }}
+      />
+    );
+  }
   return (
     <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '24px 28px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600, color: 'var(--text)' }}>Brief</div>
-        {!editing && (
-          <button onClick={() => setEditing(true)} className="btn btn-ghost" style={{ fontSize: 12, width: 'auto' }}>Edit Brief</button>
-        )}
-      </div>
-
-      {editing ? (
-        <BriefForm
-          projectId={project.id}
-          brief={project.brief}
-          isAdmin
-          onSaved={() => { setEditing(false); onRefresh(); }}
-        />
-      ) : (
-        <BriefDisplay brief={project.brief || {}} />
-      )}
+      <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600, color: 'var(--text)', marginBottom: 20 }}>Edit Buyer's Brief</div>
+      <BriefForm
+        projectId={project.id}
+        brief={project.brief}
+        isAdmin
+        onSaved={() => { setEditing(false); onRefresh(); }}
+      />
     </div>
   );
 }
@@ -450,6 +451,25 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
       // reason, this guarantees the actual reason isn't lost.
       alert(msg);
     } finally { setSending(false); }
+  };
+
+  // Feature (Oct 2026) — preview the actual generated SOW before sending to
+  // buyer, so a malformed Addendum A clause or a missing phase gets caught
+  // here, not after the buyer already has the link. Blob fetch + object URL
+  // because auth is bearer-token-in-header, not cookies (see api/client.js).
+  const [sowPreviewLoading, setSowPreviewLoading] = useState(false);
+  const previewSOW = async () => {
+    setSowPreviewLoading(true);
+    try {
+      const res = await projectsAPI.adminGetProposalSOW(projectId, proposal.id);
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch {
+      alert('Could not load the SOW preview.');
+    } finally {
+      setSowPreviewLoading(false);
+    }
   };
 
   const requestRevision = async () => {
@@ -1033,6 +1053,9 @@ function ProposalReviewPanel({ proposal, projectId, brief, onRefresh, onClose })
               <button onClick={saveChanges} disabled={saving} className="btn btn-ghost" style={{fontSize:13}}>
                 {saving ? 'Saving…' : 'Save changes (stay in review)'}
               </button>
+              <button onClick={previewSOW} disabled={sowPreviewLoading} className="btn btn-ghost" style={{fontSize:13}}>
+                {sowPreviewLoading ? 'Loading…' : '📄 Preview Statement of Work'}
+              </button>
               {['submitted','under_review','revision_req'].includes(proposal.status) && (
                 <>
                   <button onClick={approve} disabled={sending} className="btn btn-primary" style={{fontSize:13,background:'var(--green)'}}>
@@ -1286,6 +1309,16 @@ export default function AdminProjectDetail() {
   const [deleting,     setDeleting]     = useState(false);
   const [deleteError,  setDeleteError]  = useState(null);
 
+  // "Stopped after phase" — buyer told us (outside the app, via the studio
+  // or support) they're not proceeding past a given phase. Admin-only: this
+  // just records status + reason on the project, it doesn't touch orders,
+  // proposals, or billing on its own. See AdminProjectStopView/-ResumeView.
+  const [stopOpen,   setStopOpen]   = useState(false);
+  const [stopPhase,  setStopPhase]  = useState('design');
+  const [stopping,   setStopping]   = useState(false);
+  const [stopError,  setStopError]  = useState(null);
+  const [resuming,   setResuming]   = useState(false);
+
   const load = () => {
     setLoading(true);
     projectsAPI.adminGetProject(projectId)
@@ -1344,6 +1377,36 @@ export default function AdminProjectDetail() {
     setDeleteError(null);
   };
 
+  const closeStopModal = () => {
+    setStopOpen(false);
+    setStopPhase('design');
+    setStopError(null);
+  };
+
+  const stopProject = async () => {
+    setStopping(true);
+    setStopError(null);
+    try {
+      const r = await projectsAPI.adminStopProject(projectId, { phase: stopPhase });
+      setProject(r.data.project);
+      closeStopModal();
+    } catch (e) {
+      setStopError(e?.response?.data?.message || 'Could not update the status.');
+    } finally {
+      setStopping(false);
+    }
+  };
+
+  const resumeProject = async () => {
+    setResuming(true);
+    try {
+      const r = await projectsAPI.adminResumeProject(projectId);
+      setProject(r.data.project);
+    } catch {} finally {
+      setResuming(false);
+    }
+  };
+
   if (loading) return <div style={{ padding: 40, color: 'var(--text3)', fontSize: 14 }}>Loading…</div>;
   if (!project) return <div style={{ padding: 40, color: 'var(--red)', fontSize: 14 }}>Not found.</div>;
 
@@ -1351,21 +1414,26 @@ export default function AdminProjectDetail() {
   const orders    = project.orders    || [];
   const activity  = project.activity  || [];
 
-  return (
-    <div style={{ padding: 'clamp(20px,3vw,40px) clamp(16px,4vw,48px)' }}>
-      <button onClick={() => nav('/admin/projects')} style={{ background: 'none', border: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer', marginBottom: 20, padding: 0 }}>
-        ← All Projects
-      </button>
+  const wide = tab === 'proposals' && !!selectedProposal;   // full-width while reviewing one proposal
+  const phaseLabel = project.stopped_after_phase
+    ? project.stopped_after_phase.charAt(0).toUpperCase() + project.stopped_after_phase.slice(1) : '';
+  const buyerDisplay = project.buyer_name || project.buyer_email || project.brief?.buyer_brand_name || null;
+  const contracts = project.contracts || [];
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>{project.name}</h1>
-          <div style={{ fontSize: 13, color: 'var(--text3)' }}>
-            {project.buyer_email || 'No buyer'} · {project.studio_name ? `Studio: ${project.studio_name}` : 'No studio'}
-          </div>
+  return (
+    <div>
+      <AdminConsoleStyles />
+
+      {/* Top bar: breadcrumb on the left; stage + actions on the right */}
+      <div className="ac-topbar">
+        <div className="ac-breadcrumb">
+          <a onClick={() => nav('/admin/projects')}>Projects</a>
+          <span className="ac-crumb-sep">›</span>
+          <span className="ac-crumb-cur">{project.name}</span>
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div className="ac-actions">
+          <StagePill stage={project.stage} />
+          {project.stopped_after_phase && <span className="ac-badge stopped">Stopped · {project.stopped_after_phase}</span>}
           {/* Link chat buyer — only relevant for projects admin created
              manually (spec: a buyer's self-serve brief already has its
              buyer_profile/buyer_user set correctly at creation, so this
@@ -1412,21 +1480,67 @@ export default function AdminProjectDetail() {
               )}
             </div>
           )}
-          <select value={project.stage} onChange={e => updateProject({ stage: e.target.value })}
-            style={{ padding: '8px 14px', borderRadius: 'var(--r-8)', border: '1px solid var(--border)', background: 'var(--surface2)', fontSize: 13, fontFamily: 'var(--font-body)', color: 'var(--text)' }}>
-            {['draft','brief_submitted','studio_assigned','in_production','completed','cancelled'].map(s => (
-              <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
-            ))}
+          <select className="ac-select" value={project.stage} onChange={e => updateProject({ stage: e.target.value })} title="Change stage">
+            {STAGES.map(st => <option key={st.key} value={st.key}>{st.label}</option>)}
           </select>
-          <button
-            onClick={() => setDeleteOpen(true)}
-            className="btn btn-ghost"
-            style={{ fontSize: 12, padding: '8px 14px', color: 'var(--red)', border: '1px solid var(--red)', width: 'auto', flexShrink: 0 }}
-          >
-            Delete Project
+          {project.stopped_after_phase ? (
+            <button onClick={resumeProject} disabled={resuming} className="ac-btn outline sm">
+              {resuming ? 'Resuming…' : 'Resume Project'}
+            </button>
+          ) : (
+            <button onClick={() => setStopOpen(true)} className="ac-btn outline sm">Mark Stopped</button>
+          )}
+          <button onClick={() => setDeleteOpen(true)} className="ac-btn danger sm">Delete</button>
+          <button onClick={() => nav(`/admin/projects/${projectId}/assign-studios`)} className="ac-btn primary">
+            {project.studio_name ? 'Change Studio' : 'Assign Studio'} →
           </button>
         </div>
       </div>
+
+      <div className="ac-content">
+
+      {/* Stopped-after-phase banner — shown whenever the buyer has told us
+         (via the studio or support, not a self-serve toggle) they're not
+         proceeding past a phase. Purely informational: doesn't change
+         stage, orders, or billing by itself. */}
+      {project.stopped_after_phase && (
+        <div className="ac-stopped-banner">
+          <strong style={{ color: 'var(--text)' }}>Stopped after {phaseLabel}</strong>
+          {project.stopped_at && <span className="ac-muted">· {new Date(project.stopped_at).toLocaleDateString()}</span>}
+        </div>
+      )}
+
+      {/* Stop modal */}
+      {stopOpen && (
+        <div onClick={closeStopModal} style={{ position:'fixed', inset:0, background:'rgba(26,22,18,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius: 'var(--r-16)', maxWidth:440, width:'100%', padding:'28px 26px', boxShadow:'var(--shadow-lg)' }}>
+            <div style={{ fontFamily:'var(--font-display)', fontSize:20, fontWeight:600, color:'var(--text)', marginBottom:10 }}>
+              Mark project as stopped
+            </div>
+            <p style={{ fontSize:13, color:'var(--text3)', lineHeight:1.6, marginBottom:16 }}>
+              Records that the buyer isn't proceeding past a given phase. Just a status
+              note for the team — it won't change the project stage or touch any orders.
+            </p>
+            <label style={{ fontSize:12, color:'var(--text3)', display:'block', marginBottom:6 }}>Stopped after phase</label>
+            <select
+              value={stopPhase}
+              onChange={e => setStopPhase(e.target.value)}
+              style={{ width:'100%', fontSize:14, padding:'10px 12px', borderRadius: 'var(--r-8)', border:'1px solid var(--border2)', fontFamily:'var(--font-body)', marginBottom: 14, boxSizing:'border-box' }}
+            >
+              <option value="design">Design</option>
+              <option value="sampling">Sampling</option>
+              <option value="production">Production</option>
+            </select>
+            {stopError && <div style={{ fontSize:12, color:'var(--red)', marginBottom:10 }}>{stopError}</div>}
+            <div style={{ display:'flex', gap:10 }}>
+              <button onClick={stopProject} disabled={stopping} className="btn btn-primary" style={{ fontSize:13, flex:1 }}>
+                {stopping ? 'Saving…' : 'Mark as Stopped'}
+              </button>
+              <button onClick={closeStopModal} className="btn btn-ghost" style={{ fontSize:13, width: "auto", flexShrink: 0 }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete confirmation — two steps: acknowledge, then type the exact
          project name. The second step is also enforced server-side (see
@@ -1436,7 +1550,6 @@ export default function AdminProjectDetail() {
           <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius: 'var(--r-16)', maxWidth:440, width:'100%', padding:'28px 26px', boxShadow:'var(--shadow-lg)' }}>
             {deleteStage === 1 ? (
               <>
-                <div style={{ fontSize: 28, marginBottom: 10 }}>⚠️</div>
                 <div style={{ fontFamily:'var(--font-display)', fontSize:20, fontWeight:600, color:'var(--text)', marginBottom:10 }}>
                   Delete "{project.name}"?
                 </div>
@@ -1484,6 +1597,9 @@ export default function AdminProjectDetail() {
           </div>
         </div>
       )}
+
+      <div className={`ac-grid${wide ? ' full' : ''}`}>
+      <div style={{ minWidth: 0 }}>
 
       {/* Tabs */}
       <div style={{ borderBottom: '1px solid var(--border)', marginBottom: 24, display: 'flex', gap: 0, overflowX: 'auto' }}>
@@ -1608,6 +1724,112 @@ export default function AdminProjectDetail() {
           ))}
         </div>
       )}
+
+      </div>
+
+      {/* Side cards (hidden while reviewing a single proposal, which needs the width) */}
+      {!wide && (
+        <aside style={{ minWidth: 0 }}>
+          <div className="ac-card">
+            <div className="ac-card-head"><h3>Buyer</h3></div>
+            <div className="ac-card-body">
+              {buyerDisplay ? (
+                <>
+                  <div className="ac-person">
+                    <div className="ac-avatar">{initials(project.buyer_name || project.brief?.buyer_brand_name || project.buyer_email)}</div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 500, fontSize: 14, color: 'var(--text)' }}>{buyerDisplay}</div>
+                      {(project.brief?.buyer_brand_name || project.brief?.buyer_location) && (
+                        <div className="ac-muted" style={{ fontSize: 12 }}>
+                          {[project.brief?.buyer_brand_name, project.brief?.buyer_location].filter(Boolean).join(' · ')}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {project.buyer_email && (
+                    <div className="ac-field">
+                      <div className="ac-label">Email</div>
+                      <div className="ac-value" style={{ fontSize: 13 }}>{project.buyer_email}</div>
+                    </div>
+                  )}
+                  <div className="ac-field">
+                    <div className="ac-label">Created</div>
+                    <div className="ac-value" style={{ fontSize: 13 }}>{fmt(project.created_at)}</div>
+                  </div>
+                </>
+              ) : <div className="ac-note">No buyer attached yet.</div>}
+            </div>
+          </div>
+
+          <div className="ac-card">
+            <div className="ac-card-head"><h3>Production Partner</h3></div>
+            <div className="ac-card-body">
+              {project.studio_name ? (
+                <>
+                  <div className="ac-person" style={{ marginBottom: 12 }}>
+                    <div className="ac-avatar studio">{initials(project.studio_name)}</div>
+                    <div style={{ fontWeight: 500, fontSize: 14, color: 'var(--text)' }}>{project.studio_name}</div>
+                  </div>
+                  <button className="ac-btn outline sm" style={{ width: '100%', justifyContent: 'center' }}
+                    onClick={() => nav(`/admin/projects/${projectId}/assign-studios`)}>
+                    Manage studios
+                  </button>
+                </>
+              ) : (
+                <div className="ac-note">
+                  No studio assigned yet.
+                  <div style={{ marginTop: 12 }}>
+                    <button className="ac-btn primary sm" onClick={() => nav(`/admin/projects/${projectId}/assign-studios`)}>Assign Studio →</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="ac-card">
+            <div className="ac-card-head">
+              <h3>Proposals</h3>
+              {proposals.length > 0 && <span className="ac-muted" style={{ fontSize: 12 }}>{proposals.length}</span>}
+            </div>
+            <div className="ac-card-body" style={{ paddingTop: proposals.length ? 8 : 20, paddingBottom: proposals.length ? 8 : 20 }}>
+              {proposals.length === 0 ? (
+                <div className="ac-note">Waiting for a studio to submit a proposal.</div>
+              ) : proposals.map(pr => (
+                <div key={pr.id} className="ac-row click" onClick={() => { setTab('proposals'); setSelectedProposal(pr); }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 500, color: 'var(--text)', fontSize: 13 }}>{pr.studio_name}</div>
+                    <div className="ac-muted" style={{ textTransform: 'capitalize' }}>
+                      {pr.status?.replace(/_/g, ' ')}
+                      {pr.calculated_landing_cost_usd ? ` · ${fmtUSD(parseFloat(pr.calculated_landing_cost_usd))}` : ''}
+                    </div>
+                  </div>
+                  <span style={{ color: 'var(--gold)', fontWeight: 600, fontSize: 11, whiteSpace: 'nowrap' }}>Review →</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="ac-card">
+            <div className="ac-card-head"><h3>Contracts</h3></div>
+            <div className="ac-card-body" style={{ paddingTop: contracts.length ? 8 : 20, paddingBottom: contracts.length ? 8 : 20 }}>
+              {contracts.length === 0 ? (
+                <div className="ac-note">No contracts yet.</div>
+              ) : contracts.map(c => (
+                <div key={c.id} className="ac-row">
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 500, color: 'var(--text)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.file_name || 'Contract'}</div>
+                    <div className="ac-muted" style={{ textTransform: 'capitalize' }}>{(c.contract_type || '').replace(/_/g, ' ')}</div>
+                  </div>
+                  {c.url && <a href={c.url} target="_blank" rel="noreferrer" style={{ color: 'var(--gold)', fontWeight: 600, fontSize: 11 }}>Open</a>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </aside>
+      )}
+      </div>
+
+      </div>
     </div>
   );
 }

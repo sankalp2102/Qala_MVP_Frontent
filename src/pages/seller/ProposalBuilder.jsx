@@ -130,7 +130,7 @@ const PHASE_META = {
   production: { label: 'Production', color: 'var(--purple)' },
 };
 
-function RightPanel({ step, result, forex, currency, setCurrency, exp, toggleExp, advPctDesign, setAdvPctDesign, advPctProduction, setAdvPctProduction, enquiry, brief, designDate, sampleDate, bulkDate }) {
+function RightPanel({ step, result, forex, forexLocked, currency, setCurrency, exp, toggleExp, advPctDesign, setAdvPctDesign, advPctProduction, setAdvPctProduction, enquiry, brief, designDate, sampleDate, bulkDate }) {
   const c = (usd, inr) => currency === 'usd' ? fmtUSD(usd) : fmtINR(inr ?? usd * forex);
   const unitHdr = currency === 'usd' ? 'Unit ($)' : 'Unit (₹)';
   const totHdr  = currency === 'usd' ? 'Total ($)' : 'Total (₹)';
@@ -155,7 +155,11 @@ function RightPanel({ step, result, forex, currency, setCurrency, exp, toggleExp
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--text4)' }}>Buyer landing cost</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ fontSize: 10, color: 'var(--terra, var(--terra))', background: 'rgba(212,131,106,.08)', border: '1px solid rgba(212,131,106,.2)', borderRadius: 'var(--r-4)', padding: '2px 7px' }}>1 USD = ₹{forex.toFixed(2)}</div>
+              <div
+                title={forexLocked ? 'Locked at the rate when this proposal was submitted — it will not change, even if you edit and resubmit.' : 'Today\'s rate — this locks in permanently the moment you submit.'}
+                style={{ fontSize: 10, color: 'var(--terra, var(--terra))', background: 'rgba(212,131,106,.08)', border: '1px solid rgba(212,131,106,.2)', borderRadius: 'var(--r-4)', padding: '2px 7px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                {forexLocked && '🔒 '}1 USD = ₹{forex.toFixed(2)}{forexLocked ? ' (locked)' : ''}
+              </div>
               <div style={{ display: 'flex', border: '1px solid var(--border2)', borderRadius: 'var(--r-8)', overflow: 'hidden' }}>
                 <button onClick={() => setCurrency('usd')} style={{ padding: '4px 10px', fontSize: 11, border: 'none', cursor: 'pointer', background: currency === 'usd' ? 'var(--gold)' : 'var(--bg)', color: currency === 'usd' ? '#fff' : 'var(--text2)' }}>USD</button>
                 <button onClick={() => setCurrency('inr')} style={{ padding: '4px 10px', fontSize: 11, border: 'none', borderLeft: '1px solid var(--border2)', cursor: 'pointer', background: currency === 'inr' ? 'var(--gold)' : 'var(--bg)', color: currency === 'inr' ? '#fff' : 'var(--text2)' }}>INR</button>
@@ -517,6 +521,11 @@ export default function ProposalBuilder() {
   const [step,       setStep]       = useState(2);
   const [completed,  setCompleted]  = useState(new Set());
   const [forex,      setForex]      = useState(91.62);
+  // Feature (Oct 2026): true once this proposal has been submitted at
+  // least once — forex_rate_usd_inr is then frozen server-side (see
+  // _forex_locked in projects/views.py) and the UI should never again
+  // suggest it's a live/editable number.
+  const [forexLocked, setForexLocked] = useState(false);
 
   // Form state
   const [orderType,    setOrderType]    = useState('production');
@@ -574,8 +583,21 @@ export default function ProposalBuilder() {
   };
 
   useEffect(() => {
-    fetchForex().then(setForex);
     reloadCollections();
+    // Feature (Oct 2026) — forex lock: fetchForex() hits a LIVE rate API
+    // (see calculator.js). This used to fire unconditionally on mount
+    // alongside getEnquiry(), with whichever call happened to resolve last
+    // winning — for an already-submitted proposal (backend now locks
+    // forex_rate_usd_inr permanently once submitted_at is set, see
+    // _forex_locked in projects/views.py) that race could leave the studio
+    // staring at today's live rate instead of the one actually frozen on
+    // their proposal, and if they then saved anything else, the stale-looking
+    // number is exactly what a casual glance would assume is "the" rate —
+    // confusing even though the backend would silently ignore it. Fixed by
+    // resolving getEnquiry FIRST, then only reaching for a live rate when
+    // there's no existing proposal yet (or it's never been submitted) — a
+    // locked proposal always shows exactly its saved, frozen value, never a
+    // live number.
     projectsAPI.getEnquiry(projectId).then(r => {
       const e = r.data.enquiry;
       setEnquiry(e);
@@ -600,9 +622,20 @@ export default function ProposalBuilder() {
         setPastProjects(p.past_projects   || []);
         setSowClauses(p.sow_clauses       || []);
         setClarNotes(p.clarification_notes || '');
-        if (p.forex_rate_usd_inr) setForex(sanitizeForex(p.forex_rate_usd_inr));
+
+        const locked = !!p.submitted_at;
+        setForexLocked(locked);
+        if (p.forex_rate_usd_inr) {
+          setForex(sanitizeForex(p.forex_rate_usd_inr));
+        } else if (!locked) {
+          fetchForex().then(setForex);
+        }
+      } else {
+        fetchForex().then(setForex);
       }
-    }).catch(() => {}).finally(() => setLoading(false));
+    }).catch(() => {
+      fetchForex().then(setForex);
+    }).finally(() => setLoading(false));
   }, [projectId, proposalId]);
 
   const markComplete = (n) => setCompleted(c => new Set([...c, n]));
@@ -705,6 +738,26 @@ export default function ProposalBuilder() {
   const addSOW = () => setSowClauses([...sowClauses, '']);
   const updSOW = (i, v) => setSowClauses(sowClauses.map((c, ci) => ci === i ? v : c));
   const rmSOW  = (i) => setSowClauses(sowClauses.filter((_, ci) => ci !== i));
+
+  // Feature (Oct 2026) — live preview of the actual generated SOW document.
+  // Auth here is bearer-token-in-header (see api/client.js), not cookies,
+  // so a plain <a href> to the API endpoint would hit it unauthenticated;
+  // fetching as a blob through the authenticated axios client and opening
+  // an object URL is the only way to preview it in a new tab.
+  const [sowPreviewLoading, setSowPreviewLoading] = useState(false);
+  const previewSOW = async () => {
+    setSowPreviewLoading(true);
+    try {
+      const res = await projectsAPI.getProposalSOW(projectId, proposalId);
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch {
+      alert('Could not load the SOW preview — save your changes and try again.');
+    } finally {
+      setSowPreviewLoading(false);
+    }
+  };
 
   if (loading) return <div style={{ padding: 40, color: 'var(--text3)', fontSize: 14 }}>Loading…</div>;
   if (!enquiry) return <div style={{ padding: 40, color: 'var(--red)', fontSize: 14 }}>Not found.</div>;
@@ -1090,9 +1143,13 @@ export default function ProposalBuilder() {
               <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 14 }}>Qala standard SOW</div>
               <span style={{ fontSize: 11, color: 'var(--green)', background: 'var(--green-dim)', padding: '2px 8px', borderRadius: 'var(--r-10)' }}>Auto-included</span>
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.6 }}>
+            <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.6, marginBottom: 10 }}>
               The standard Qala Statement of Work governs all projects — covering payment milestones, quality standards, dispute resolution, IP ownership, and delivery obligations. It is automatically attached to every proposal.
             </div>
+            <button onClick={previewSOW} disabled={sowPreviewLoading}
+              style={{ fontSize: 12, color: 'var(--gold)', background: 'none', border: '1px solid var(--gold)', borderRadius: 'var(--r-8)', padding: '6px 14px', cursor: sowPreviewLoading ? 'default' : 'pointer', fontFamily: 'var(--font-body)', opacity: sowPreviewLoading ? 0.6 : 1 }}>
+              {sowPreviewLoading ? 'Loading…' : 'Preview SOW PDF ↗'}
+            </button>
           </div>
 
           <SLabel>Project-specific clauses (optional)</SLabel>
@@ -1198,7 +1255,7 @@ export default function ProposalBuilder() {
 
         {/* Right panel — carbon copy of the prototype's #right-panel */}
         <RightPanel
-          step={step} result={result} forex={forex}
+          step={step} result={result} forex={forex} forexLocked={forexLocked}
           currency={rpCurrency} setCurrency={setRpCurrency}
           exp={rpExpanded} toggleExp={toggleRpExpand}
           advPctDesign={advPctDesign} setAdvPctDesign={setAdvPctDesign}
