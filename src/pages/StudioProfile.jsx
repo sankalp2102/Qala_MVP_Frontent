@@ -803,7 +803,27 @@ function IntroPopup({ studio, onClose, activeSessionToken }) {
   const nav = useNavigate();
   const [sessions,     setSessions]     = useState([]);
   const [loadingSess,  setLoadingSess]  = useState(true);
-  const [selectedSess, setSelectedSess] = useState(activeSessionToken || '');
+
+  // Bug fix (Oct 2026) — "Get Introduced from All Studios says brief not
+  // connected." activeSessionToken only ever arrives via router state from
+  // StudiosPanel's handleContact(), i.e. the matched-recommendations flow.
+  // Clicking into a studio straight from the All Studios directory
+  // (StudioDirectory.jsx) navigates with no state at all, so this popup
+  // fell straight through to the buyerAPI.getSessions() fetch below, which
+  // (a) silently does nothing for anyone not logged in, and (b) even when
+  // logged in only returns BuyerProfile rows with matching_complete=True —
+  // missing a real, in-progress brief entirely. DiscoverV2.jsx already
+  // keeps the buyer's current ChatSession.id in sessionStorage
+  // ('qala_chat_session_id') for its own resume logic; reading the same
+  // key here picks up that live session regardless of login state or
+  // whether matching ever ran — which is all GetIntroducedView actually
+  // requires (a session with a real brief on it).
+  let storedSessionToken = '';
+  try { storedSessionToken = sessionStorage.getItem('qala_chat_session_id') || ''; }
+  catch { /* private-mode / storage blocked — fall through to no session */ }
+  const effectiveSessionToken = activeSessionToken || storedSessionToken;
+
+  const [selectedSess, setSelectedSess] = useState(effectiveSessionToken || '');
   const [submitting,   setSubmitting]   = useState(false);
   const [done,         setDone]         = useState(false);
   const [err,          setErr]          = useState('');
@@ -816,16 +836,17 @@ function IntroPopup({ studio, onClose, activeSessionToken }) {
     // skip the fetch entirely when there's no token. They'll see the
     // "you need a brief first" state below instead of this ever firing.
     //
-    // activeSessionToken (passed from StudiosPanel, the one concrete case
-    // where we already know the exact right session — a buyer mid-chat who
-    // hasn't necessarily logged in yet) skips needing this fetch at all.
-    if (activeSessionToken) { setLoadingSess(false); return; }
+    // effectiveSessionToken (activeSessionToken from StudiosPanel, or the
+    // sessionStorage fallback above — either way, the exact right session
+    // for a buyer mid-chat who hasn't necessarily logged in yet) skips
+    // needing this fetch at all.
+    if (effectiveSessionToken) { setLoadingSess(false); return; }
     if (!authTokens.access()) { setLoadingSess(false); return; }
     buyerAPI.getSessions()
       .then(r => setSessions(r.data?.sessions || []))
       .catch(() => setSessions([]))
       .finally(() => setLoadingSess(false));
-  }, [activeSessionToken]);
+  }, [effectiveSessionToken]);
 
   useEffect(() => {
     const onKey = e => { if (e.key === 'Escape') onClose(); };
@@ -833,7 +854,7 @@ function IntroPopup({ studio, onClose, activeSessionToken }) {
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const hasSessions = !loadingSess && (sessions.length > 0 || !!activeSessionToken);
+  const hasSessions = !loadingSess && (sessions.length > 0 || !!effectiveSessionToken);
 
   const introduce = async () => {
     if (!selectedSess) return;

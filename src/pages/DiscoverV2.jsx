@@ -98,6 +98,7 @@ export default function DiscoverV2() {
   const bottomRef      = useRef(null);
   const drawerBottomRef = useRef(null);
   const taRef     = useRef(null);
+  const resumeIdRef = useRef(null);   // last session id resumeSession() tried — see its catch block
  
   // ── State ─────────────────────────────────────────────────────────────────
   // Determine initial phase synchronously — never flash the gate for users
@@ -280,12 +281,26 @@ export default function DiscoverV2() {
             const aiMsg = { role: 'assistant', content: d.message, hasBrief: d.has_brief || false };
             setMessages(prev => [...prev, aiMsg]);
             setChips(parseChips(d.message) || d.quick_replies || []);
+          } catch {
+            // Bug fix (Oct 2026) — same "chat restarts on any error" class
+            // of bug as resumeSession()'s catch below. By this point the
+            // real resumed history is already on screen (setMessages(resumed)
+            // ran above) — a failure sending just this one follow-up
+            // message must not fall through to the outer catch's
+            // setPhase('gate'), which would wipe an already-successfully-
+            // loaded real conversation off the screen over a single failed
+            // send. Show it as an inline error instead, same as the regular
+            // sendMessage() flow does, and stay on 'chat'.
+            setMessages(prev => [...prev, { role: 'assistant', content: 'Something went wrong sending that — please try again.' }]);
           } finally {
             setSending(false);
           }
         }
       } catch {
-        // Fall back to normal gate if anything goes wrong
+        // Only reached if chatAPI.getSession(savedId) itself failed, before
+        // anything was ever shown — nothing real is on screen yet to lose,
+        // so falling back to the gate here is a genuine fresh start, not a
+        // silent wipe of an in-progress conversation.
         setPhase('gate');
       }
     })();
@@ -308,7 +323,24 @@ export default function DiscoverV2() {
   }, []);
  
   // ── Resume ────────────────────────────────────────────────────────────────
-  async function resumeSession(id) {
+  // Bug fix (Oct 2026) — "Qalawati is restarting the chat if there is any
+  // error." The old catch below unconditionally did
+  // sessionStorage.removeItem(CHAT_SESSION_KEY) + setPhase('gate') the
+  // moment ANYTHING in this function threw — a transient network blip or a
+  // one-off 500 from chatAPI.getSession (or even fetchMatchSummaryMessage
+  // further down) looked, from the buyer's side, exactly like their whole
+  // conversation had been wiped: dumped back to the "enter your access
+  // code" gate with no messages on screen. The real ChatSession and its
+  // full message history were never actually touched server-side — this
+  // was purely the frontend throwing away its only reference to it. Now:
+  // retry once after a short pause (covers the common transient case
+  // invisibly), and only on a second failure fall back to a dedicated
+  // "couldn't load, try again" state that still remembers which session to
+  // retry and never deletes it from storage — so a real retry (or a page
+  // refresh) still finds and resumes the exact same conversation, instead
+  // of forcing the buyer to re-enter a code and start over.
+  async function resumeSession(id, isRetry = false) {
+    resumeIdRef.current = id;
     try {
       const res  = await chatAPI.getSession(id);
       const data = res.data;
@@ -396,8 +428,17 @@ export default function DiscoverV2() {
         setPhase('chat');
       }
     } catch {
-      sessionStorage.removeItem(CHAT_SESSION_KEY);
-      setPhase('gate');
+      if (!isRetry) {
+        // One silent retry after a short pause — absorbs the common
+        // transient blip without the buyer ever seeing anything happen.
+        await new Promise(r => setTimeout(r, 1200));
+        return resumeSession(id, true);
+      }
+      // Still failing after a retry: don't touch CHAT_SESSION_KEY (the real
+      // session is untouched and still there to resume) and don't force the
+      // gate — show a small "couldn't load, try again" state instead that
+      // keeps the same session id in reach.
+      setPhase('resume-error');
     }
   }
  
@@ -674,6 +715,28 @@ export default function DiscoverV2() {
     </div>
   );
  
+  if (phase === 'resume-error') return (
+    <div style={{
+      minHeight: '100vh', background: '#fff',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: 16, padding: '0 24px', textAlign: 'center',
+    }}>
+      <p style={{ fontSize: 14, color: 'var(--ink-warm-mid)', fontFamily: 'var(--font-body)' }}>
+        We couldn't load your chat just now — your conversation is safe, this was just a connection hiccup.
+      </p>
+      <button
+        onClick={() => { setPhase('loading'); resumeSession(resumeIdRef.current); }}
+        style={{
+          padding: '9px 20px', borderRadius: 'var(--r-8)', border: '1px solid var(--border-warm-s)',
+          background: '#fff', cursor: 'pointer', fontSize: 13,
+          fontFamily: 'var(--font-body)', color: 'var(--ink-warm)',
+        }}
+      >
+        Try again
+      </button>
+    </div>
+  );
+
   if (phase === 'gate') {
     const canGo = accessKey.trim().length > 0 && !starting;
     return (

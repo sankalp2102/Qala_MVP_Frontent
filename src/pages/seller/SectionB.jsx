@@ -31,8 +31,16 @@ const OCCASIONS_DEFAULT = [
    and it also lives on in B.4 as "Scarves / Stoles / Dupattas". */
 // Oct 2026: "Tops / Tunics / Blouses" added; "Tunics / Kurtas" → "Tunics";
 // "Blazers / Jackets" split into Blazers + Jackets; "Vests" added.
+// Bug fix (Oct 2026): "Default Tunic option showing twice" — the "Tunics"
+// rename above and the new "Tops / Tunics / Blouses" addition both landed
+// as separate edits without noticing they now both represent Tunic as its
+// own checkable option. Removed the standalone "Tunics" entry; "Tops /
+// Tunics / Blouses" already covers it. Same backward-compat rule as
+// "Accessories / Scarves / Stoles" above applies here too — any seller who
+// already has "Tunics" saved still sees it (as a custom/union entry), it
+// just isn't offered as a default option anymore.
 const GARMENTS_DEFAULT = [
-  'Dresses', 'Coord Sets', 'Tops', 'Tops / Tunics / Blouses', 'Kaftans', 'Tunics', 'Skirts',
+  'Dresses', 'Coord Sets', 'Tops', 'Tops / Tunics / Blouses', 'Kaftans', 'Skirts',
   'Shirts', 'Trousers / Pants', 'Blazers', 'Jackets', 'Vests', 'Jumpsuits',
 ];
 

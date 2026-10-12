@@ -79,7 +79,7 @@ const FABRIC_GROUPS = [
   ]},
   { cat: 'linen',       label: 'Linen & Bast',             fabrics: ['Linen', 'Hemp'] },
   // Bug fix (Aug 2026): "General Wool" removed, same reason as above.
-  { cat: 'wool',        label: 'Wool Based',               fabrics: ['Pashmina', 'Other Fine wool'] },
+  { cat: 'wool',        label: 'Wool Based',               fabrics: ['Pashmina'] },
   { cat: 'regenerated', label: 'Regenerated / Cellulosic', fabrics: ['Viscose', 'Rayon', 'Modal', 'Lyocell / Tencel'] },
 ];
 
