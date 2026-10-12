@@ -1487,9 +1487,13 @@ export default function AdminProjectDetail() {
             <button onClick={resumeProject} disabled={resuming} className="ac-btn outline sm">
               {resuming ? 'Resuming…' : 'Resume Project'}
             </button>
-          ) : (
+          ) : project.can_be_stopped ? (
+            // Feature (Oct 2026): only shown once a proposal has actually been
+            // sent to the buyer — can_be_stopped comes from the backend
+            // (sent_to_buyer_at on any proposal), which also enforces this on
+            // the POST itself. See AdminProjectStopView.
             <button onClick={() => setStopOpen(true)} className="ac-btn outline sm">Mark Stopped</button>
-          )}
+          ) : null}
           <button onClick={() => setDeleteOpen(true)} className="ac-btn danger sm">Delete</button>
           <button onClick={() => nav(`/admin/projects/${projectId}/assign-studios`)} className="ac-btn primary">
             {project.studio_name ? 'Change Studio' : 'Assign Studio'} →

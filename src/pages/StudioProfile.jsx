@@ -651,9 +651,10 @@ function PortfolioGrid({ items, brief = null }) {
      • the stats row is back, fed from the craft's own sampling / production
        figures, and rendered only when the studio supplied at least one         */
 const CRAFT_GROUPS = [
+  { key: 'spinning', label: 'Spinning',          types: ['spinning'] },
+  { key: 'weaving',  label: 'Weaving',           types: ['weaving'] },
   { key: 'printing', label: 'Printing & Dyeing', types: ['printing', 'dyeing'] },
   { key: 'surface',  label: 'Surface Work',      types: ['surface'] },
-  { key: 'weaving',  label: 'Weaving',           types: ['weaving', 'spinning'] },
 ];
 
 function craftStats(craft) {
