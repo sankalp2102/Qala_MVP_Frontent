@@ -21,21 +21,26 @@ const OCCASIONS_DEFAULT = [
   // seller data if that matters here, same as the note above about
   // "Accessories / Scarves / Stoles" backward-compat.
   'Resortwear / Travel', 'Everyday / Casual', 'Occasionwear',
-  'Festive / Bridal', 'Workwear', 'Loungewear / Sleepwear', 'Activewear',
+  // Oct 2026: "Loungewear / Sleepwear" split into two options; "Activewear"
+  // replaced by "Yoga". qalawati/extraction.py _OCCASIONS must stay in sync.
+  'Festive / Bridal', 'Workwear', 'Loungewear', 'Sleepwear', 'Yoga',
 ];
 
 /* B.3 — "Accessories / Scarves / Stoles" intentionally NOT in this default list.
    Sellers who selected it under the old form still see it (union with saved data),
    and it also lives on in B.4 as "Scarves / Stoles / Dupattas". */
+// Oct 2026: "Tops / Tunics / Blouses" added; "Tunics / Kurtas" → "Tunics";
+// "Blazers / Jackets" split into Blazers + Jackets; "Vests" added.
 const GARMENTS_DEFAULT = [
-  'Dresses', 'Coord Sets', 'Tops', 'Kaftans', 'Tunics / Kurtas', 'Skirts',
-  'Shirts', 'Trousers / Pants', 'Blazers / Jackets', 'Jumpsuits',
+  'Dresses', 'Coord Sets', 'Tops', 'Tops / Tunics / Blouses', 'Kaftans', 'Tunics', 'Skirts',
+  'Shirts', 'Trousers / Pants', 'Blazers', 'Jackets', 'Vests', 'Jumpsuits',
 ];
 
-/* B.4 — Accessory Types (new card). */
+/* B.4 — Accessory Types (new card).
+   Oct 2026: Pouches folded into the Bags option; "Pouches / Small Accessories" removed. */
 const ACCESSORIES_DEFAULT = [
-  'Bags / Totes / Clutches', 'Scarves / Stoles / Dupattas', 'Jewellery',
-  'Caps / Hats', 'Belts / Sashes', 'Footwear', 'Pouches / Small Accessories',
+  'Bags / Totes / Clutches / Pouches', 'Scarves / Stoles / Dupattas', 'Jewellery',
+  'Caps / Hats', 'Belts / Sashes', 'Footwear',
 ];
 
 /* B.5 — Home Furnishings. Labels track the prototype. HF_LEGACY_ALIASES maps a
@@ -43,7 +48,7 @@ const ACCESSORIES_DEFAULT = [
    checked, under the new name without rewriting the DB. */
 const HOME_FURNISHINGS_DEFAULT = [
   { group: 'Bedding',              items: ['Bed sheets / Bedcovers', 'Duvet covers / Quilt covers', 'Pillowcases / Pillow covers', 'Bed runners / Bolsters', 'Quilts / Razais'] },
-  { group: 'Table Linen',         items: ['Tablecloths', 'Table runners', 'Napkins / Placemats', 'Tea towels / Bread baskets'] },
+  { group: 'Table Linen',         items: ['Tablecloths', 'Napkins / Placemats', 'Tea towels / Bread baskets'] },
   { group: 'Kitchen Linen',       items: ['Aprons', 'Oven mitts / Pot holders', 'Dish towels / Kitchen cloths'] },
   { group: 'Bath Linen',          items: ['Bath towels / Hand towels', 'Bath mats / Bath rugs', 'Bathrobes / Wraps', 'Wash cloths / Face cloths'] },
   { group: 'Living Room Textiles',items: ['Cushion covers / Throw pillows', 'Throw blankets / Sofa throws', 'Pouf covers / Ottoman covers'] },

@@ -66,17 +66,20 @@ const FABRIC_GROUPS = [
   { cat: 'cotton', label: 'Cotton Based', fabrics: [
     // Bug fix (Aug 2026): "General Cotton" removed on request — too
     // generic next to the specific cotton types already listed here.
-    'Organic cotton', 'Kala cotton', 'Cotton mulmul / muslin', 'Cotton poplin',
+    // Oct 2026: "Regenerated cotton" added. Generic single-fibre "X blends"
+    // options were removed from every group; two-fibre blends
+    // (Cotton-silk, Cotton-linen) are intentionally kept.
+    'Organic cotton', 'Kala cotton', 'Regenerated cotton', 'Cotton mulmul / muslin', 'Cotton poplin',
     'Cotton cambric', 'Cotton voile', 'Cotton satin', 'Cotton-silk blend', 'Cotton-linen blend',
   ]},
   { cat: 'silk', label: 'Silk Based', fabrics: [
     // Bug fix (Aug 2026): "General Silk" removed, same reason as above.
     'Mulberry silk', 'Tussar silk', 'Eri silk', 'Muga silk',
-    'Silk crepe', 'Silk georgette', 'Silk chiffon', 'Silk satin', 'Silk blends',
+    'Silk crepe', 'Silk georgette', 'Silk chiffon', 'Silk satin',
   ]},
-  { cat: 'linen',       label: 'Linen & Bast',             fabrics: ['Linen', 'Linen blends', 'Hemp', 'Hemp blends'] },
+  { cat: 'linen',       label: 'Linen & Bast',             fabrics: ['Linen', 'Hemp'] },
   // Bug fix (Aug 2026): "General Wool" removed, same reason as above.
-  { cat: 'wool',        label: 'Wool Based',               fabrics: ['Pashmina', 'Other Fine wool', 'Wool blends'] },
+  { cat: 'wool',        label: 'Wool Based',               fabrics: ['Pashmina', 'Other Fine wool'] },
   { cat: 'regenerated', label: 'Regenerated / Cellulosic', fabrics: ['Viscose', 'Rayon', 'Modal', 'Lyocell / Tencel'] },
 ];
 
