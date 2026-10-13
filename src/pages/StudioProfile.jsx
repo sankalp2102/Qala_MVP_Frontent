@@ -870,9 +870,21 @@ function IntroPopup({ studio, onClose, activeSessionToken }) {
   // "Contact details not found for this session." The modal just never
   // gave them a way to supply one — hence a real, correct 400 rendering as
   // a dead-end "Something went wrong."
-  const [needsContact,  setNeedsContact]  = useState(false);
-  const [contactName,   setContactName]   = useState('');
-  const [contactEmail,  setContactEmail]  = useState('');
+  const [needsContact,    setNeedsContact]    = useState(false);
+  const [contactName,     setContactName]     = useState('');
+  const [contactEmail,    setContactEmail]    = useState('');
+  // Bug fix (Oct 2026) — "it gives this error: Please complete your project
+  // brief with Qalawati before connecting with a studio." GetIntroducedView
+  // requires session.extracted to be non-empty, which only gets populated
+  // once the buyer actually confirms their brief AND clicks "Find Studios"
+  // (execute_run_matching() is what sets it — see chat_tools.py). A session
+  // resolved here (whether via activeSessionToken, the dropdown, or the
+  // sessionStorage fallback) can be a real, real-history chat that simply
+  // hasn't reached that confirmation step yet. That's a legitimate state,
+  // not a dead end — treat it the same way !hasSessions already does
+  // (send them back to finish chatting) instead of leaving a raw backend
+  // error string sitting above a form that was never going to submit.
+  const [briefIncomplete, setBriefIncomplete] = useState(false);
 
   const introduce = async () => {
     if (!selectedSess) return;
@@ -894,10 +906,12 @@ function IntroPopup({ studio, onClose, activeSessionToken }) {
         // the case the backend comment describes as recoverable.
         setNeedsContact(true);
         setErr('We need your name and email to send this.');
+      } else if (serverMsg && /complete your project brief/i.test(serverMsg)) {
+        setBriefIncomplete(true);
       } else {
-        // Surface the real reason instead of a blanket message — a 400
-        // like "Studio not found" or "complete your project brief" is
-        // actionable; "Something went wrong" never was.
+        // Surface the real reason instead of a blanket message — any other
+        // 400 (e.g. "Studio not found") is actionable; "Something went
+        // wrong" never was.
         setErr(serverMsg || 'Something went wrong. Please try again.');
       }
     } finally {
@@ -930,6 +944,28 @@ function IntroPopup({ studio, onClose, activeSessionToken }) {
             <p className="studio-v3-modal-sub">
               Chat with Qalawati to tell us what you're looking for — then come back
               and connect with {studio.studio_name} with your brief attached.
+            </p>
+            <div className="studio-v3-modal-actions">
+              <button className="studio-v3-btn-secondary" onClick={onClose}>Cancel</button>
+              <button className="studio-v3-btn-primary" onClick={() => nav('/discover')}>
+                Chat with Qalawati
+              </button>
+            </div>
+          </div>
+        ) : briefIncomplete ? (
+          // Bug fix (Oct 2026): session has a chat on file but hasn't been
+          // confirmed/matched yet, so the backend rejects it with "Please
+          // complete your project brief..." — that session has a real chat
+          // history, so hasSessions is true and the form would otherwise
+          // render with a dead-end red error string above a submit button
+          // that will never succeed. Same resolution as !hasSessions: send
+          // them back to finish the brief instead.
+          <div style={{ textAlign: 'center' }}>
+            <div className="studio-v3-modal-title">Finish your project brief first</div>
+            <p className="studio-v3-modal-sub">
+              Your chat with Qalawati isn't finalized yet. Go back and confirm your
+              brief (or click "Find Studios") — then come back and connect with{' '}
+              {studio.studio_name}.
             </p>
             <div className="studio-v3-modal-actions">
               <button className="studio-v3-btn-secondary" onClick={onClose}>Cancel</button>
