@@ -856,16 +856,50 @@ function IntroPopup({ studio, onClose, activeSessionToken }) {
 
   const hasSessions = !loadingSess && (sessions.length > 0 || !!effectiveSessionToken);
 
+  // Bug fix (Oct 2026) — "still Something went wrong... 400 (Bad Request)."
+  // GetIntroducedView (discovery/chat_views.py) has always had a documented
+  // fallback for exactly this case — its own comment says "a buyer with a
+  // real brief session who hasn't completed ChatContactView yet... can
+  // still collect name/email inline for this case — see StudioProfile.jsx's
+  // IntroPopup" — but IntroPopup never actually had those fields; it always
+  // sent `{}` as the contact payload. So a buyer who chatted with Qalawati,
+  // has a real brief, but never submitted the separate "Find Studios"
+  // contact form (e.g. came in via the sessionStorage fallback added
+  // earlier, straight from the All Studios directory) has no name/email on
+  // file anywhere the backend can find, and the view correctly 400s with
+  // "Contact details not found for this session." The modal just never
+  // gave them a way to supply one — hence a real, correct 400 rendering as
+  // a dead-end "Something went wrong."
+  const [needsContact,  setNeedsContact]  = useState(false);
+  const [contactName,   setContactName]   = useState('');
+  const [contactEmail,  setContactEmail]  = useState('');
+
   const introduce = async () => {
     if (!selectedSess) return;
+    if (needsContact && (!contactName.trim() || !contactEmail.trim())) {
+      setErr('Please enter your name and email.');
+      return;
+    }
     setErr('');
     setSubmitting(true);
     try {
-      const r = await chatAPI.getIntroduced(selectedSess, studio.studio_id, {});
+      const contact = needsContact ? { name: contactName.trim(), email: contactEmail.trim() } : {};
+      const r = await chatAPI.getIntroduced(selectedSess, studio.studio_id, contact);
       if (r?.data?.auth_token) authTokens.setAccessKeySession(r.data.auth_token);
       setDone(true);
-    } catch {
-      setErr('Something went wrong. Please try again.');
+    } catch (e) {
+      const serverMsg = e?.response?.data?.error;
+      if (serverMsg && /contact details not found/i.test(serverMsg)) {
+        // Reveal the inline fields instead of dead-ending — this is exactly
+        // the case the backend comment describes as recoverable.
+        setNeedsContact(true);
+        setErr('We need your name and email to send this.');
+      } else {
+        // Surface the real reason instead of a blanket message — a 400
+        // like "Studio not found" or "complete your project brief" is
+        // actionable; "Something went wrong" never was.
+        setErr(serverMsg || 'Something went wrong. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -928,11 +962,24 @@ function IntroPopup({ studio, onClose, activeSessionToken }) {
               </>
             )}
 
+            {needsContact && (
+              <>
+                <label className="studio-v3-modal-field-label" htmlFor="sv3-contact-name">Your name</label>
+                <input id="sv3-contact-name" className="studio-v3-modal-input" type="text"
+                  value={contactName} onChange={e => setContactName(e.target.value)}
+                  placeholder="Full name" autoFocus />
+                <label className="studio-v3-modal-field-label" htmlFor="sv3-contact-email">Your email</label>
+                <input id="sv3-contact-email" className="studio-v3-modal-input" type="email"
+                  value={contactEmail} onChange={e => setContactEmail(e.target.value)}
+                  placeholder="you@example.com" />
+              </>
+            )}
+
             {err && <div className="studio-v3-modal-err">{err}</div>}
 
             <div className="studio-v3-modal-actions">
               <button className="studio-v3-btn-primary"
-                disabled={submitting || !selectedSess}
+                disabled={submitting || !selectedSess || (needsContact && (!contactName.trim() || !contactEmail.trim()))}
                 onClick={introduce}>
                 {submitting ? <><span className="studio-v3-spin" /> Sending…</> : 'Send Project Details'}
               </button>
