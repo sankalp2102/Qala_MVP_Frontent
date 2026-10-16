@@ -1,40 +1,47 @@
 // src/components/discovery/QalawatiIntro.jsx
 //
-// Ports the prototype's "ewelcome" sequence exactly: same avatar artwork,
-// same three lines of copy (E_WELCOME), same stagger timing (1600ms after
-// the first line, 1300ms after the second). Purely presentational — calls
-// onComplete once the sequence has finished so the parent can reveal
-// whatever comes next (the message input).
+// Welcome screen (qala-brief-spec.docx, Section 3 — Stage 1). Ports the
+// prototype's sequence: avatar with pulse rings -> two lines typed
+// character-by-character -> input/chips/privacy note fade in once typing
+// finishes. The third line from the old version ("Share your ideas with
+// me...") is dropped — the spec only has two typed lines; that copy now
+// lives in the input placeholder instead (DiscoverV2.jsx), same as the spec.
+//
+// Purely presentational: calls onComplete once both lines have finished
+// typing, and (optionally) onQuickChip(text) if the caller wants the 5
+// quick-start idea chips rendered here rather than built separately.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import QalawatiAvatar from './QalawatiAvatar';
+import TypedText from './TypedText';
 
-// Exact avatar markup from the prototype (E_AV_SVG) — terracotta circle
-// with the hand-drawn botanical mark.
-// Exact copy from the prototype's E_WELCOME array — do not reword.
+// Exact copy from the spec's "Complete Copy Reference" (Stage 1).
 const LINES = [
-  "Welcome to Qala. I'm Qalawati — your making guide.",
-  'So, what do you want to make?',
-  "Share your ideas with me — I'll help you shape them and find the right production partner.",
+  { text: "Welcome to Qala. I'm Qalawati — your making guide.", cls: 'qw-line-h' },
+  { text: 'So, what do you want to make?', cls: 'qw-line-q' },
 ];
 
-export default function QalawatiIntro({ onComplete }) {
-  const [shown, setShown] = useState(0); // how many lines are mounted
-  const [avatarIn, setAvatarIn] = useState(false);
+// Spec Section 3 — Quick-Start Chips (five idea chips below the welcome input).
+export const QUICK_START_CHIPS = [
+  'Hand block Dresses',
+  'Kantha Jackets',
+  'Khadi Cotton Pants',
+  'Natural Indigo Dyed Skirts',
+  'Hand Knit Sweaters',
+];
 
-  useEffect(() => {
-    const t0 = setTimeout(() => setAvatarIn(true), 20);
-    // Same stagger as the prototype: first gap 1600ms, then 1300ms per line.
-    const timers = [t0];
-    let elapsed = 0;
-    LINES.forEach((_, i) => {
-      elapsed += i === 0 ? 0 : (i === 1 ? 1600 : 1300);
-      timers.push(setTimeout(() => setShown(i + 1), elapsed));
-    });
-    const doneAt = elapsed + 500; // small buffer after the last line's fade
-    if (onComplete) timers.push(setTimeout(onComplete, doneAt));
-    return () => timers.forEach(clearTimeout);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+export default function QalawatiIntro({ onComplete, onQuickChip }) {
+  const [lineIndex, setLineIndex] = useState(0); // which line is currently typing/shown
+  const [linesDone, setLinesDone] = useState(false);
+
+  function handleLineDone() {
+    if (lineIndex < LINES.length - 1) {
+      setTimeout(() => setLineIndex(i => i + 1), 300);
+    } else {
+      setLinesDone(true);
+      onComplete && setTimeout(onComplete, 200);
+    }
+  }
 
   return (
     <div style={{
@@ -43,49 +50,44 @@ export default function QalawatiIntro({ onComplete }) {
       padding: '22px 24px 14px', textAlign: 'center', fontFamily: 'var(--font-body)',
     }}>
       <style>{`
-        @keyframes qwAvIn { 0% { opacity: 0; transform: scale(0.84) translateY(10px); } 100% { opacity: 1; transform: none; } }
-        .qw-ew-line { font-size: 15.5px; line-height: 1.6; color: var(--ink-warm-mid); margin-bottom: 10px; opacity: 0; transform: translateY(8px); transition: opacity 0.6s ease, transform 0.6s ease; }
-        .qw-ew-line.in { opacity: 1; transform: none; }
-        .qw-ew-h { font-family: var(--font-display); font-size: 20px; font-weight: 500; color: var(--ink-warm); line-height: 1.3; margin-bottom: 12px; }
-        .qw-ew-q { font-family: var(--font-display); font-size: 19px; font-weight: 500; color: var(--ink-warm); line-height: 1.25; margin-top: 12px; margin-bottom: 4px; }
-        .qw-ew-soft { font-size: 13px; color: var(--ink-warm-mute); line-height: 1.5; margin-bottom: 0; }
+        .qw-line-h { font-family: var(--font-display); font-size: 20px; font-weight: 500; color: var(--ink-warm); line-height: 1.3; margin-bottom: 12px; }
+        .qw-line-q { font-family: var(--font-display); font-size: 19px; font-weight: 500; color: var(--ink-warm); line-height: 1.25; margin-top: 12px; margin-bottom: 4px; }
+        .qw-chips-wrap { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px; opacity: 0; transform: translateY(6px); transition: opacity 0.5s ease 0.15s, transform 0.5s ease 0.15s; }
+        .qw-chips-wrap.in { opacity: 1; transform: none; }
+        .qw-chip { font-family: var(--font-body); font-size: 12.5px; color: var(--ink-warm-mid); background: #fff; border: 0.5px solid var(--border-warm-s); border-radius: 20px; padding: 7px 14px; cursor: pointer; white-space: nowrap; transition: border-color 0.15s, background 0.15s, color 0.15s; }
+        .qw-chip:hover { border-color: var(--qw-b); background: var(--qw-l); color: var(--qw); }
+        .qw-priv { margin-top: 16px; font-size: 10.5px; color: var(--ink-warm-mute); letter-spacing: 0.03em; opacity: 0; transition: opacity 0.5s ease 0.3s; }
+        .qw-priv.in { opacity: 1; }
       `}</style>
 
       <QalawatiAvatar
         size={64}
-        style={{
-          margin: '0 auto 14px',
-          filter: 'drop-shadow(0 10px 26px rgba(196,100,74,0.28))',
-          opacity: avatarIn ? 1 : 0,
-          animation: avatarIn ? 'qwAvIn 1s cubic-bezier(0.2,0.7,0.3,1) both' : 'none',
-        }}
+        pulse
+        style={{ margin: '0 auto 20px', filter: 'drop-shadow(0 10px 26px rgba(196,100,74,0.28))' }}
       />
 
       <div style={{ maxWidth: 480, width: '100%' }}>
-        {LINES.slice(0, shown).map((line, i) => {
-          const isQ = /what.*to make/i.test(line);
-          const cls = i === 0 ? 'qw-ew-h' : isQ ? 'qw-ew-q' : (i === LINES.length - 1 ? 'qw-ew-soft' : '');
-          return (
-            <IntroLine key={i} className={cls}>{line}</IntroLine>
-          );
-        })}
+        {LINES.slice(0, lineIndex + 1).map((line, i) => (
+          i < lineIndex || linesDone ? (
+            <div key={i} className={line.cls}>{line.text}</div>
+          ) : (
+            <TypedText key={i} as="div" className={line.cls} text={line.text} onDone={handleLineDone} />
+          )
+        ))}
       </div>
-    </div>
-  );
-}
 
-function IntroLine({ className, children }) {
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const raf1 = requestAnimationFrame(() => {
-      const raf2 = requestAnimationFrame(() => setVisible(true));
-      return () => cancelAnimationFrame(raf2);
-    });
-    return () => cancelAnimationFrame(raf1);
-  }, []);
-  return (
-    <div className={`qw-ew-line ${className} ${visible ? 'in' : ''}`}>
-      {children}
+      {onQuickChip && (
+        <>
+          <div className={`qw-chips-wrap${linesDone ? ' in' : ''}`}>
+            {QUICK_START_CHIPS.map(c => (
+              <button key={c} className="qw-chip" onClick={() => onQuickChip(c)}>{c}</button>
+            ))}
+          </div>
+          <div className={`qw-priv${linesDone ? ' in' : ''}`}>
+            Your ideas stay private — never shared without your consent.
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -10,6 +10,22 @@
 
 import Brief from './Brief';
 import QalawatiAvatar from './QalawatiAvatar';
+import TypedText from './TypedText';
+import MatchingChecklist from './MatchingChecklist';
+
+// A message qualifies for the spec's char-by-char typing animation only
+// when it's a short, plain, single-idea turn — exactly what mechanics.py's
+// Stage 3 Q&A actually produces (1-2 sentences, no tables, no bold). This
+// doubles as a safety net: post-match studio recommendations and anything
+// else with real formatting just render normally, since typing through
+// markdown syntax character-by-character would show the raw "**"/"|"
+// tokens mid-animation.
+function isAnimatable(text) {
+  if (!text) return false;
+  if (text.length > 240) return false;
+  if (/\*\*/.test(text) || /\|/.test(text) || /\n\s*\n/.test(text)) return false;
+  return true;
+}
 
 // ── Text renderer — supports **bold** markdown ────────────────────────────────
 function renderMarkdownTable(rows) {
@@ -35,10 +51,18 @@ function renderMarkdownTable(rows) {
   );
 }
 
+// Strips every bracketed control tag the backend embeds for the frontend
+// to parse out-of-band — [CHIPS: ...] (quick replies) and [SKIPPABLE] /
+// [REQUIRED] (Stage 3's per-question skip affordance, see DiscoverV2.jsx's
+// parseSkippable()) — none of which are meant to be visible copy.
+export function stripControlTags(text) {
+  if (!text) return text;
+  return text.replace(/\[CHIPS:[^\]]*\]/g, '').replace(/\[SKIPPABLE\]|\[REQUIRED\]/g, '').trim();
+}
+
 function renderText(text, isUser) {
   if (!text) return null;
-  // Strip [CHIPS: ...] from rendered text — chips are shown separately
-  const clean = text.replace(/\[CHIPS:[^\]]*\]/g, '').trim();
+  const clean = stripControlTags(text);
   if (!clean) return null;
 
   const lines = clean.split('\n');
@@ -103,12 +127,36 @@ export default function ChatMessage({
   attachedImages,
   onMatchComplete,
   highlightBrief,
+  animate,
+  onTypingDone,
+  matchingStep,
 }) {
   const isAI   = role === 'assistant';
   const isUser = role === 'user';
 
+  // "Finding your studios…" progress — a real Qalawati message bubble, not
+  // a box inside the Brief card (see DiscoverV2.jsx's handleMatchComplete).
+  // Short-circuits everything else below; a matching-progress message never
+  // also carries brief/text/image content.
+  if (matchingStep != null) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginBottom: 14 }}>
+        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', gap: 8, maxWidth: '84%' }}>
+          <QalawatiAvatar size={36} />
+          <div style={{ padding: '10px 14px', borderRadius: '4px 18px 18px 18px', background: 'var(--cream)', boxSizing: 'border-box' }}>
+            <p style={{ margin: '0 0 9px', fontSize: 14, lineHeight: 1.5, color: 'var(--ink-warm)', fontFamily: 'var(--font-body)' }}>
+              Finding your studios…
+            </p>
+            <MatchingChecklist step={matchingStep} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const briefRaw   = hasBrief ? extractBrief(content) : null;
-  const visibleText = hasBrief ? stripBrief(content) : content;
+  const visibleText = stripControlTags(hasBrief ? stripBrief(content) : content);
+  const shouldType = isAI && animate && !hasBrief && isAnimatable(visibleText);
 
   return (
     <div style={{
@@ -138,17 +186,30 @@ export default function ChatMessage({
         />
       )}
 
-      {/* Bubble — hidden when hasBrief since card replaces it */}
+      {/* Bubble — hidden when hasBrief since card replaces it. Shapes match
+          the spec's q-bubble/u-bubble (Section 7): AI bubble has a "typed
+          from" corner (4px top-left), user bubble has a "sent to" corner
+          (4px bottom-right) — same asymmetric-pill treatment as the
+          prototype, just kept on the existing sans/markdown-capable text
+          renderer below rather than switching to serif, since real AI
+          replies here include tables/bold that serif would hurt. */}
       {visibleText && !hasBrief && (
         <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', gap: 8, maxWidth: '84%' }}>
-          {isAI && <QalawatiAvatar size={30} />}
+          {isAI && <QalawatiAvatar size={36} />}
           <div style={{
             padding: '10px 14px',
-            borderRadius: 18,
+            borderRadius: isAI ? '4px 18px 18px 18px' : '18px 18px 4px 18px',
             background: isUser ? 'var(--qw)' : 'var(--cream)',
             boxSizing: 'border-box',
           }}>
-            {renderText(visibleText, isUser)}
+            {shouldType ? (
+              <TypedText
+                as="p"
+                text={visibleText}
+                onDone={onTypingDone}
+                style={{ margin: 0, fontSize: 14, lineHeight: 1.65, color: 'var(--ink-warm)', fontFamily: 'var(--font-body)' }}
+              />
+            ) : renderText(visibleText, isUser)}
           </div>
         </div>
       )}

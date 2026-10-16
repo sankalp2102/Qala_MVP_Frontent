@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, Fragment } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { discoveryAPI, chatAPI, buyerAPI, authTokens } from '../api/client';
@@ -6,6 +6,7 @@ import qalaLogo from '../assets/qala-logo.png';
 import { mediaUrl, mediaOnError } from '../utils/mediaUrl';
 import UserAvatar from '../components/UserAvatar';
 import { RESERVED_PATHS } from '../App';
+import Lightbox from '../components/discovery/MediaLightbox';
 
 /* ══════════════════════════════════════════════════════════════════════════════
    studio-profile-v3 stylesheet
@@ -367,125 +368,9 @@ const prettyCategory = (slug) =>
 const isVideoAsset = (item) =>
   item?.mime_type?.startsWith('video/') || /\.(mp4|mov|avi|webm|mkv)$/i.test(item?.url || '');
 
-/* ── Lightbox ─────────────────────────────────────────────────────────────────
-   Carried over unchanged. The prototype has no lightbox because it has no real
-   media; removing ours would be a functional regression, not parity.          */
-function Lightbox({ images, startIndex, onClose }) {
-  const [idx, setIdx]     = useState(startIndex);
-  const [muted, setMuted] = useState(true);
-  const videoRef          = useRef(null);
-
-  useEffect(() => {
-    const handler = e => {
-      if (e.key === 'Escape')     onClose();
-      if (e.key === 'ArrowRight') setIdx(i => Math.min(i + 1, images.length - 1));
-      if (e.key === 'ArrowLeft')  setIdx(i => Math.max(i - 1, 0));
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [images.length, onClose]);
-
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.play().catch(() => {});
-    }
-  }, [idx]);
-
-  const current = images[idx];
-  const isVideo = isVideoAsset(current);
-  // Serve compressed derivatives — originals stay stored, just not served here.
-  const lbSrc = isVideo
-    ? (current?.compressed_video_url || current?.url)
-    : (current?.thumbnail_url || current?.url);
-  // Same shape/limit as PortfolioCard's hover tags — kept in sync deliberately
-  // so a piece shows the same details whether you're hovering the grid
-  // thumbnail or the opened full image.
-  const lbTags = [...(current?.crafts_used || []), ...(current?.fabrics_used || [])].slice(0, 4);
-
-  const ctrl = {
-    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-    color: '#fff', borderRadius: '50%', cursor: 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  };
-
-  return createPortal(
-    <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 9000,
-      background: 'rgba(15,10,8,0.95)', backdropFilter: 'blur(12px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      animation: 'sv3In 0.2s ease',
-    }}>
-      <button onClick={onClose} style={{ ...ctrl, position: 'absolute', top: 20, right: 24, width: 40, height: 40, fontSize: 18 }}>×</button>
-
-      <div style={{ position: 'absolute', top: 24, left: '50%', transform: 'translateX(-50%)', fontSize: 12, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.12em' }}>
-        {idx + 1} / {images.length}
-      </div>
-
-      {isVideo && (
-        <button onClick={e => { e.stopPropagation(); setMuted(m => !m); }}
-          title={muted ? 'Unmute' : 'Mute'}
-          style={{ ...ctrl, position: 'absolute', top: 20, left: 24, width: 40, height: 40, fontSize: 15 }}>
-          {muted ? '🔇' : '🔊'}
-        </button>
-      )}
-
-      {idx > 0 && (
-        <button onClick={e => { e.stopPropagation(); setIdx(i => i - 1); }}
-          style={{ ...ctrl, position: 'absolute', left: 20, width: 44, height: 44, fontSize: 20 }}>‹</button>
-      )}
-
-      <div onClick={e => e.stopPropagation()} className="studio-v3-lb-frame"
-        style={{ position: 'relative', maxWidth: '88vw', maxHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {isVideo ? (
-          <video ref={videoRef} key={lbSrc} src={mediaUrl(lbSrc)} autoPlay loop muted={muted} playsInline
-            style={{ maxWidth: '88vw', maxHeight: '80vh', borderRadius: 'var(--r-8)', display: 'block', outline: 'none' }} />
-        ) : (
-          <img src={mediaUrl(lbSrc)} alt=""
-            style={{ maxWidth: '88vw', maxHeight: '80vh', width: 'auto', height: 'auto', objectFit: 'contain', display: 'block', borderRadius: 'var(--r-8)' }} />
-        )}
-
-        {(current?.product_name || lbTags.length > 0) && (
-          <div className="studio-v3-lb-hover">
-            {current?.product_name && <div className="studio-v3-lb-hover-name">{current.product_name}</div>}
-            {lbTags.length > 0 && (
-              <div className="studio-v3-lb-hover-tags">
-                {lbTags.map((t, i) => <span key={i} className="studio-v3-lb-hover-tag">{t}</span>)}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {idx < images.length - 1 && (
-        <button onClick={e => { e.stopPropagation(); setIdx(i => i + 1); }}
-          style={{ ...ctrl, position: 'absolute', right: 20, width: 44, height: 44, fontSize: 20 }}>›</button>
-      )}
-
-      <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, maxWidth: '90vw', overflowX: 'auto', padding: '4px 0' }}>
-        {images.map((img, i) => {
-          const isVid = isVideoAsset(img);
-          const stripSrc = isVid ? (img?.compressed_video_url || img?.url) : (img?.thumbnail_url || img?.url);
-          const frame = {
-            width: 52, height: 40, borderRadius: 'var(--r-5)', cursor: 'pointer', flexShrink: 0,
-            border: i === idx ? '2px solid var(--sage)' : '2px solid transparent',
-            opacity: i === idx ? 1 : 0.5, transition: 'all 0.15s',
-          };
-          return isVid ? (
-            <div key={i} onClick={e => { e.stopPropagation(); setIdx(i); }}
-              style={{ ...frame, background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 14, color: '#fff' }}>▶</span>
-            </div>
-          ) : (
-            <img key={i} src={mediaUrl(stripSrc)} alt="" onClick={e => { e.stopPropagation(); setIdx(i); }}
-              style={{ ...frame, objectFit: 'cover' }} />
-          );
-        })}
-      </div>
-    </div>,
-    document.body
-  );
-}
+// Lightbox is now the shared src/components/discovery/MediaLightbox.jsx
+// (imported above) — same full-catalog viewer the match card's new "+N"
+// tile opens, so this page and the match card show an identical one.
 
 /* ── Sustainability answer ────────────────────────────────────────────────────
    H.1/H.2 answers are free text and can run long — truncated to the first
@@ -1056,7 +941,7 @@ export default function StudioProfile() {
   const [studio,  setStudio]  = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState('');
-  const [introOpen,   setIntroOpen]   = useState(false);
+  const [introOpen,   setIntroOpen]   = useState(() => !!routerLocation.state?.autoOpenIntro);
   const [moqExpanded, setMoqExpanded] = useState(false);
   const [btsLightboxOpen, setBtsLightboxOpen] = useState(false);
   const [btsStartIndex,   setBtsStartIndex]   = useState(0);

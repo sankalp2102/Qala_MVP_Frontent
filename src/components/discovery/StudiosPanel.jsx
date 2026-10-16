@@ -84,6 +84,71 @@ function DirectoryCard({ navigate }) {
   );
 }
 
+// ── "Matched on" chip band ──────────────────────────────────────────────────
+// Visual parity with the reference design's lens-band: a tinted strip
+// above the card list naming the brief points the matches were run
+// against. Built entirely from buyerSummary fields the panel already
+// receives/fetches (product_types, fabrics, crafts, batch_size) — no new
+// data, no invented "weights" like the design reference's fake prototype.
+const BATCH_LABELS_BAND = {
+  under_30: 'Under 30 pieces',
+  '30_100': '30–100 pieces',
+  over_100: '100+ pieces',
+  not_sure: '',
+};
+
+function matchedOnChips(summary) {
+  if (!summary) return [];
+  const chips = [];
+  (summary.product_types || []).forEach(v => chips.push(v));
+  (summary.fabrics || []).forEach(v => chips.push(v));
+  (summary.crafts || []).forEach(v => chips.push(v));
+  const batch = BATCH_LABELS_BAND[summary.batch_size];
+  if (batch) chips.push(batch);
+  return chips.slice(0, 8);
+}
+
+function MatchedOnBand({ summary, onEditBrief }) {
+  const chips = matchedOnChips(summary);
+  if (chips.length === 0) return null;
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6,
+      padding: '10px 16px', background: 'var(--surface3)',
+      borderBottom: '0.5px solid var(--border)',
+    }}>
+      <span style={{
+        fontSize: 10, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase',
+        color: 'var(--text3)', marginRight: 2, fontFamily: 'var(--font-body)',
+      }}>
+        Matched on
+      </span>
+      {chips.map((c, i) => (
+        <span key={i} style={{
+          fontSize: 11, padding: '3px 10px', borderRadius: 12,
+          background: 'var(--surface)', border: '0.5px solid var(--border2)',
+          color: 'var(--text2)', fontFamily: 'var(--font-body)',
+        }}>
+          {c}
+        </span>
+      ))}
+      {onEditBrief && (
+        <button
+          onClick={onEditBrief}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            fontSize: 11, color: 'var(--sage)', fontWeight: 500,
+            textDecoration: 'underline', textUnderlineOffset: 3,
+            fontFamily: 'var(--font-body)', padding: '3px 2px', marginLeft: 4,
+          }}
+        >
+          Edit brief
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 // ── "See more studios" reveal button ──────────────────────────────────────
@@ -115,7 +180,7 @@ function SeeMoreCard({ remaining, onClick }) {
   );
 }
 
-export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inline = false }) {
+export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inline = false, onEditBrief }) {
   const [recs, setRecs]             = useState([]);
   const [buyerSummaryAPI, setBuyerSummaryAPI] = useState(null);
   const [loading, setLoading]       = useState(true);
@@ -160,6 +225,17 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
     // brief sitting right here in `sessionToken`.
     navigate(rec.studio_slug ? `/${rec.studio_slug}` : `/studio/${rec.studio_id}`, {
       state: { chatSessionToken: sessionToken },
+    });
+  }
+
+  // Same destination as handleContact, plus autoOpenIntro — StudioProfile.jsx
+  // reads that flag to pop its real IntroPopup (the studio page's own "Get
+  // Introduced" flow, with its own validation) open on arrival, instead of
+  // this card re-implementing any of that.
+  function handleGetIntroduced(rec) {
+    discoveryAPI.saveSession(sessionToken);
+    navigate(rec.studio_slug ? `/${rec.studio_slug}` : `/studio/${rec.studio_id}`, {
+      state: { chatSessionToken: sessionToken, autoOpenIntro: true },
     });
   }
 
@@ -212,6 +288,8 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
           )}
         </div>
 
+        <MatchedOnBand summary={buyerSummaryAPI || buyerSummary} onEditBrief={onEditBrief} />
+
         {/* Scrollable cards */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '14px 14px 24px' }}>
           {loading && <Spinner full />}
@@ -261,7 +339,9 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
                     position={i + 1}
                     isBonus={rec.is_bonus_visual}
                     onContact={handleContact}
+                    onGetIntroduced={handleGetIntroduced}
                     buyerSummary={buyerSummaryAPI || buyerSummary}
+                    revealDelayMs={i * 80}
                   />
                 ))}
                 {visibleCount < Math.min(5, recs.length) && (
@@ -348,6 +428,8 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
           </button>
         </div>
 
+        <MatchedOnBand summary={buyerSummaryAPI || buyerSummary} onEditBrief={onEditBrief} />
+
         {/* Content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 24px' }}>
           {loading && <Spinner full />}
@@ -381,7 +463,9 @@ export default function StudiosPanel({ sessionToken, onClose, buyerSummary, inli
                   position={i + 1}
                   isBonus={rec.is_bonus_visual}
                   onContact={handleContact}
+                  onGetIntroduced={handleGetIntroduced}
                   buyerSummary={buyerSummaryAPI || buyerSummary}
+                  revealDelayMs={i * 80}
                 />
               ))}
               {visibleCount < Math.min(5, recs.length) && (
