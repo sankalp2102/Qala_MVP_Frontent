@@ -56,7 +56,7 @@ const ACCESSORIES_DEFAULT = [
    checked, under the new name without rewriting the DB. */
 const HOME_FURNISHINGS_DEFAULT = [
   { group: 'Bedding',              items: ['Bed sheets / Bedcovers', 'Duvet covers / Quilt covers', 'Pillowcases / Pillow covers', 'Bed runners / Bolsters', 'Quilts / Razais'] },
-  { group: 'Table Linen',         items: ['Tablecloths', 'Napkins / Placemats', 'Tea towels / Bread baskets'] },
+  { group: 'Table Linen',         items: ['Tablecloths', 'Table Runners', 'Napkins / Placemats', 'Tea towels / Bread baskets'] },
   { group: 'Kitchen Linen',       items: ['Aprons', 'Oven mitts / Pot holders', 'Dish towels / Kitchen cloths'] },
   { group: 'Bath Linen',          items: ['Bath towels / Hand towels', 'Bath mats / Bath rugs', 'Bathrobes / Wraps', 'Wash cloths / Face cloths'] },
   { group: 'Living Room Textiles',items: ['Cushion covers / Throw pillows', 'Throw blankets / Sofa throws', 'Pouf covers / Ottoman covers'] },
