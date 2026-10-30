@@ -146,6 +146,20 @@ export default function AdminAssignStudios() {
 
   const [project, setProject] = useState(null);
   const [candidates, setCandidates] = useState([]);
+  // Bug fix (Oct 2026) — "0 studios, can't select manually." The old code
+  // threw away every already-assigned candidate at fetch time
+  // (`.filter(c => !c.already_assigned)`) with nowhere else on this page
+  // showing them. For a project that already had studios assigned (e.g.
+  // re-opening this screen later, or a test project clicked through more
+  // than once), that could silently empty the ENTIRE directory — the
+  // backend was still returning every eligible studio, scored, but the
+  // frontend hid all of them. Now: `candidates` keeps everyone (directory
+  // always reflects what's actually eligible), and `assignments` tracks
+  // the project's REAL current assignments (fetched from the source of
+  // truth, not inferred from the match endpoint) so they can be shown and
+  // managed instead of just disappearing.
+  const [assignments, setAssignments] = useState([]);
+  const [unassigning, setUnassigning] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -157,19 +171,36 @@ export default function AdminAssignStudios() {
   const [confirmed, setConfirmed] = useState(false);
   const [notifiedIds, setNotifiedIds] = useState([]);
 
+  const loadAssignments = () =>
+    projectsAPI.adminGetAssignments(projectId).then(r => setAssignments(r.data.assignments || []));
+
   useEffect(() => {
     setLoading(true);
     Promise.all([
       projectsAPI.adminGetProject(projectId),
       projectsAPI.adminMatchStudios(projectId),
+      projectsAPI.adminGetAssignments(projectId),
     ])
-      .then(([p, m]) => {
+      .then(([p, m, a]) => {
         setProject(p.data.project);
-        setCandidates((m.data.candidates || []).filter(c => !c.already_assigned));
+        setCandidates(m.data.candidates || []);
+        setAssignments(a.data.assignments || []);
       })
       .catch(e => setError(e?.response?.data?.message || 'Could not load studios for this brief.'))
       .finally(() => setLoading(false));
   }, [projectId]);
+
+  const unassignStudio = async (assignmentId) => {
+    setUnassigning(assignmentId);
+    try {
+      await projectsAPI.adminRemoveAssignment(projectId, assignmentId);
+      await loadAssignments();
+    } catch (e) {
+      alert(e?.response?.data?.message || 'Could not remove this assignment — please try again.');
+    } finally {
+      setUnassigning(null);
+    }
+  };
 
   const brief = project?.brief || {};
 
@@ -184,6 +215,14 @@ export default function AdminAssignStudios() {
   const targetPrice = brief.target_landing_price_local
     ? `${brief.target_landing_currency || ''} ${brief.target_landing_price_local}${brief.bulk_quantity ? ` · ${brief.bulk_quantity} pcs` : ''}`
     : '—';
+
+  // Real assignment state for this project, keyed by studio id — the source
+  // of truth for "already assigned", independent of the match endpoint's own
+  // (now-unused-for-hiding) already_assigned flag.
+  const assignedStudioIds = useMemo(
+    () => new Set(assignments.map(a => String(a.studio))),
+    [assignments]
+  );
 
   const visible = useMemo(() => {
     const q = searchTerm.toLowerCase();
@@ -201,7 +240,10 @@ export default function AdminAssignStudios() {
   const rest = visible.filter(c => c.score < 100);
   const showGrouped = activeFilter === 'all' && !searchTerm && top.length > 0;
 
-  const toggleAssign = (id) => setAssigned(a => a.includes(id) ? a.filter(x => x !== id) : [...a, id]);
+  const toggleAssign = (id) => {
+    if (assignedStudioIds.has(String(id))) return; // already assigned — manage via the right-panel list instead
+    setAssigned(a => a.includes(id) ? a.filter(x => x !== id) : [...a, id]);
+  };
   const assignedCandidates = candidates.filter(c => assigned.includes(c.studio_id));
   const modalCandidate = candidates.find(c => c.studio_id === modalStudioId);
 
@@ -292,12 +334,12 @@ export default function AdminAssignStudios() {
             <div style={S.studioGrid}>
               {showGrouped && <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--gold-d)', marginBottom: 8 }}>● Top matches for this brief</div>}
               {(showGrouped ? top : visible).map(c => (
-                <StudioCard key={c.studio_id} c={c} isAssigned={assigned.includes(c.studio_id)} onAssign={toggleAssign} onView={setModalStudioId} />
+                <StudioCard key={c.studio_id} c={c} isAssigned={assigned.includes(c.studio_id)} isAlreadyAssigned={assignedStudioIds.has(String(c.studio_id))} onAssign={toggleAssign} onView={setModalStudioId} />
               ))}
               {showGrouped && rest.length > 0 && (
                 <>
                   <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--text4)', margin: '16px 0 8px' }}>Other studios</div>
-                  {rest.map(c => <StudioCard key={c.studio_id} c={c} isAssigned={assigned.includes(c.studio_id)} onAssign={toggleAssign} onView={setModalStudioId} />)}
+                  {rest.map(c => <StudioCard key={c.studio_id} c={c} isAssigned={assigned.includes(c.studio_id)} isAlreadyAssigned={assignedStudioIds.has(String(c.studio_id))} onAssign={toggleAssign} onView={setModalStudioId} />)}
                 </>
               )}
             </div>
@@ -307,8 +349,32 @@ export default function AdminAssignStudios() {
         <aside style={S.rightPanel}>
           {!confirmed ? (
             <>
+              {assignments.length > 0 && (
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+                  <div style={{ ...S.rpTitle, marginBottom: 2 }}>Already assigned ({assignments.length})</div>
+                  <div style={{ ...S.rpSub, marginBottom: 10 }}>Previously assigned to this project — remove to free them up for reassignment</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {assignments.map(a => (
+                      <div key={a.id} style={S.assignedItem}>
+                        <div style={S.aiAvatar}>{(a.studio_name || '?').slice(0, 2)}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={S.aiName}>{a.studio_name || 'Unnamed studio'}</div>
+                          <div style={S.aiLocation}>{a.studio_location || '—'}{a.status ? ` · ${a.status}` : ''}</div>
+                        </div>
+                        <span
+                          style={{ ...S.aiRemove, opacity: unassigning === a.id ? 0.4 : 1, cursor: unassigning === a.id ? 'not-allowed' : 'pointer' }}
+                          onClick={() => unassigning !== a.id && unassignStudio(a.id)}
+                          title="Unassign"
+                        >
+                          {unassigning === a.id ? '…' : '×'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div style={S.rpHeader}>
-                <div style={S.rpTitle}>Assigned studios</div>
+                <div style={S.rpTitle}>New assignments</div>
                 <div style={S.rpSub}>Add studios to invite to submit a proposal</div>
               </div>
               <div style={S.assignedList}>
@@ -408,9 +474,15 @@ export default function AdminAssignStudios() {
               </div>
             </div>
             <div style={S.modalFooter}>
-              <button style={{ ...S.btn, ...S.btnAdmin, width: 'auto', flex: 1, marginBottom: 0 }} onClick={() => toggleAssign(modalCandidate.studio_id)}>
-                {assigned.includes(modalCandidate.studio_id) ? '✓ Assigned — remove' : '+ Assign studio'}
-              </button>
+              {assignedStudioIds.has(String(modalCandidate.studio_id)) ? (
+                <button style={{ ...S.btn, width: 'auto', flex: 1, marginBottom: 0, background: 'var(--surface2)', color: 'var(--text3)', cursor: 'default' }} disabled>
+                  Already assigned — manage from the right panel
+                </button>
+              ) : (
+                <button style={{ ...S.btn, ...S.btnAdmin, width: 'auto', flex: 1, marginBottom: 0 }} onClick={() => toggleAssign(modalCandidate.studio_id)}>
+                  {assigned.includes(modalCandidate.studio_id) ? '✓ Assigned — remove' : '+ Assign studio'}
+                </button>
+              )}
               <button style={{ ...S.btn, ...S.btnSecondary, width: 'auto', flexShrink: 0 }} onClick={() => setModalStudioId(null)}>Close</button>
             </div>
           </div>
@@ -420,11 +492,11 @@ export default function AdminAssignStudios() {
   );
 }
 
-function StudioCard({ c, isAssigned, onAssign, onView }) {
+function StudioCard({ c, isAssigned, isAlreadyAssigned, onAssign, onView }) {
   const m = matchLabel(c.score);
   const tags = Object.entries(c.breakdown || {}).filter(([, d]) => d.raw > 0).map(([k]) => PARAM_LABELS[k] || k);
   return (
-    <div style={S.studioCard(isAssigned)}>
+    <div style={{ ...S.studioCard(isAssigned), ...(isAlreadyAssigned ? { opacity: 0.6 } : {}) }}>
       <div style={S.studioAvatar}>{(c.studio_name || '?').slice(0, 2)}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
@@ -446,7 +518,11 @@ function StudioCard({ c, isAssigned, onAssign, onView }) {
           </span>
         </div>
       </div>
-      <button style={S.assignBtn(isAssigned)} onClick={() => onAssign(c.studio_id)}>{isAssigned ? '✓ Assigned' : '+ Assign'}</button>
+      {isAlreadyAssigned ? (
+        <button style={{ ...S.assignBtn(false), cursor: 'default', background: 'var(--surface2)' }} disabled title="Manage from the 'Already assigned' list on the right">Already assigned</button>
+      ) : (
+        <button style={S.assignBtn(isAssigned)} onClick={() => onAssign(c.studio_id)}>{isAssigned ? '✓ Assigned' : '+ Assign'}</button>
+      )}
     </div>
   );
 }
