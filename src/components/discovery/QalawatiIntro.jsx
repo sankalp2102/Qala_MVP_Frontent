@@ -22,12 +22,23 @@ const LINES = [
 ];
 
 // Spec Section 3 — Quick-Start Chips (five idea chips below the welcome input).
+//
+// UPDATED (Nov 2026) — the previous set didn't match the system's own
+// taxonomy: "Khadi Cotton Pants" and "Hand Knit Sweaters" named a fabric/
+// craft and garment combo that doesn't correspond to anything in
+// qalawati/mechanics.py's FABRIC_TAXONOMY_BLOCK, extraction.py's
+// _CRAFT_NAMES, or SectionB.jsx's GARMENTS_DEFAULT — so a buyer clicking
+// one of those chips could end up with a brief whose craft/fabric phrasing
+// never cleanly matched anything studios actually tag themselves with.
+// Replaced with craft/fabric x garment pairs built directly from those
+// three real lists, so every chip maps onto something the matching
+// pipeline already understands.
 export const QUICK_START_CHIPS = [
-  'Hand block Dresses',
+  'Hand Block Printed Dresses',
   'Kantha Jackets',
-  'Khadi Cotton Pants',
-  'Natural Indigo Dyed Skirts',
-  'Hand Knit Sweaters',
+  'Handwoven Linen Shirts',
+  'Natural Dyed Skirts',
+  'Embroidered Coord Sets',
 ];
 
 export default function QalawatiIntro({ onComplete, onQuickChip }) {
