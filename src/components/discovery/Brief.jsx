@@ -14,6 +14,7 @@
 // if needed, then hand off via onMatchComplete(sessionId).
 import { useState, useEffect } from 'react';
 import { chatAPI, authTokens } from '../../api/client';
+import { COUNTRY_CODES } from '../../constants/countryCodes';
 
 const SAGE = 'var(--sage)';
 
@@ -70,7 +71,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
   // ── State ──────────────────────────────────────────────────────────────────
   const [pulse,           setPulse]           = useState(false);
   const [showContact,     setShowContact]     = useState(false);
-  const [contactForm,     setContactForm]     = useState({ name: '', email: '', phone: '' });
+  const [contactForm,     setContactForm]     = useState({ name: '', email: '', phone: '', phoneCountryCode: '' });
   const [contactErr,      setContactErr]      = useState({});
   const [savingContact,   setSavingContact]   = useState(false);
   // Guards against a double-click firing onMatchComplete twice — the real
@@ -103,7 +104,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
       return;
     }
 
-    setContactForm({ name: '', email: '', phone: '' });
+    setContactForm({ name: '', email: '', phone: '', phoneCountryCode: '' });
     setContactErr({});
     setShowContact(true);
   }
@@ -117,10 +118,19 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
 
     setSavingContact(true);
     try {
+      // Combine the country-code select + number input into the one phone
+      // field the backend actually knows about — same pattern as
+      // AdminDashboard.jsx's trade-show enquiry form. A number typed with
+      // no country code picked, or a code picked with no number typed,
+      // both count as "no phone given" — either half alone isn't a real,
+      // usable phone number.
+      const phone = contactForm.phone.trim() && contactForm.phoneCountryCode
+        ? `${contactForm.phoneCountryCode} ${contactForm.phone.trim()}`
+        : '';
       const r = await chatAPI.saveContact(sessionId, {
         name:  contactForm.name.trim(),
         email: contactForm.email.trim(),
-        phone: contactForm.phone.trim(),
+        phone,
       });
       // Backend silently created + logged in a buyer account for this
       // email the moment they submitted contact details (see
@@ -216,7 +226,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
           onMouseLeave={e => { e.currentTarget.style.opacity = triggered ? '0.6' : '1'; }}
         >
           <style>{`@keyframes briefPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}`}</style>
-          {triggered ? 'Finding your studio…' : 'Find my studio →'}
+          {triggered ? 'Finding your studios…' : 'Find Studios →'}
         </button>
         <button
           onClick={handleAdjust}
@@ -268,7 +278,6 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
             {[
               { key: 'name',  label: 'Name',    placeholder: 'Your name',       required: true  },
               { key: 'email', label: 'Email ID', placeholder: 'you@brand.com',   required: true  },
-              { key: 'phone', label: 'Phone No', placeholder: '+91 98765 43210', required: false },
             ].map(({ key, label, placeholder, required }) => (
               <div key={key} style={{ marginBottom: 12 }}>
                 <label style={{
@@ -278,7 +287,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
                   {label}{required && <span style={{ color: SAGE, marginLeft: 2 }}>*</span>}
                 </label>
                 <input
-                  type={key === 'email' ? 'email' : key === 'phone' ? 'tel' : 'text'}
+                  type={key === 'email' ? 'email' : 'text'}
                   value={contactForm[key]}
                   onChange={e => handleContactChange(key, e.target.value)}
                   placeholder={placeholder}
@@ -300,6 +309,56 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
                 )}
               </div>
             ))}
+
+            {/* Phone — split into a country-code select + number input (same
+                pattern as AdminDashboard.jsx's trade-show enquiry form),
+                instead of one free-typed field with no code at all. */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{
+                fontSize: 11, fontWeight: 600, color: 'var(--text3)',
+                display: 'block', marginBottom: 4, letterSpacing: '0.04em',
+              }}>
+                Phone No
+              </label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <select
+                  value={contactForm.phoneCountryCode}
+                  onChange={e => handleContactChange('phoneCountryCode', e.target.value)}
+                  style={{
+                    width: 128, flexShrink: 0, padding: '9px 8px', boxSizing: 'border-box',
+                    border: '1px solid var(--border)', borderRadius: 'var(--r-8)',
+                    background: 'var(--surface2)', fontSize: 13, color: 'var(--text)',
+                    fontFamily: 'var(--font-body)', outline: 'none',
+                  }}
+                >
+                  <option value="">Code</option>
+                  {COUNTRY_CODES.map(c => (
+                    <option key={c.name} value={c.code}>{c.name} ({c.code})</option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  value={contactForm.phone}
+                  onChange={e => handleContactChange('phone', e.target.value)}
+                  placeholder="98765 43210"
+                  style={{
+                    flex: 1, padding: '9px 12px', boxSizing: 'border-box',
+                    border: `1px solid ${contactErr.phone ? 'var(--red)' : 'var(--border)'}`,
+                    borderRadius: 'var(--r-8)', background: 'var(--surface2)',
+                    fontSize: 13, color: 'var(--text)',
+                    fontFamily: 'var(--font-body)', outline: 'none',
+                    transition: 'border-color 0.15s',
+                  }}
+                  onFocus={e  => { e.target.style.borderColor = SAGE; }}
+                  onBlur={e   => { e.target.style.borderColor = contactErr.phone ? 'var(--red)' : 'var(--border)'; }}
+                />
+              </div>
+              {contactErr.phone && (
+                <span style={{ fontSize: 11, color: 'var(--red)', marginTop: 3, display: 'block' }}>
+                  {contactErr.phone}
+                </span>
+              )}
+            </div>
 
             <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
               <button
