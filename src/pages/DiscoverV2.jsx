@@ -163,9 +163,21 @@ export default function DiscoverV2() {
   // paint already reflects an in-progress conversation (see UI_CACHE_KEY note
   // above) instead of flashing the gate/greeting while resumeSession() fetches.
   const _cache = _readUiCache();
+  // Bug fix (Nov 2026) — "clicking a quick chip flashes the welcome screen".
+  // Arriving from Landing with a first message used to start in 'loading',
+  // and the 'loading' screen renders <QalawatiIntro /> (avatar + typed
+  // "Welcome to Qala…"), so the welcome the buyer had just seen on / played
+  // again for as long as chatAPI.getSession() took, then snapped to the
+  // chat. Now this path opens straight into the chat: the buyer's own
+  // message is already on screen and Qalawati's typing indicator runs
+  // (sending=true, which also keeps the input disabled) while the
+  // landing-consume effect below loads the session and sends the message.
+  const _landingFirstMsg = !_cache && hasLandingMsg
+    ? (sessionStorage.getItem(LANDING_FIRST_MSG) || '')
+    : null;
   function _initPhase() {
     if (_cache)                              return _cache.phase;
-    if (hasLandingMsg)                       return 'loading';
+    if (hasLandingMsg)                       return 'chat';
     if (hasLandingSession)                   return 'loading';
     if (localStorage.getItem('qala_token'))  return 'loading';
     return 'gate';
@@ -178,7 +190,14 @@ export default function DiscoverV2() {
   const [accessKey, setAccessKey]       = useState('');
   const [keyError, setKeyError]         = useState('');
   const [sessionId, setSessionId]       = useState(() => _cache?.sessionId ?? null);
-  const [messages, setMessages]         = useState(() => _cache?.messages ?? []);
+  const [messages, setMessages]         = useState(() => {
+    if (_cache) return _cache.messages;
+    // Landing first message shown immediately (see _landingFirstMsg above).
+    // The consume effect rebuilds this same list once the session loads, in
+    // one batched update, so it appears once with no flicker.
+    if (_landingFirstMsg) return [{ role: 'user', content: _landingFirstMsg, attachedImages: [] }];
+    return [];
+  });
   const [input, setInput]               = useState('');
   const [pendingImages,  setPendingImages]  = useState([]);   // [{data: base64, mime, name}]
   // Stage 2's upload dropzone (qala-brief-spec.docx Section 4) — opened
@@ -198,7 +217,7 @@ export default function DiscoverV2() {
   const [skipContactForm, setSkipContactForm] = useState(
     () => _cache?.skipContactForm ?? (localStorage.getItem('qala_has_contact') === 'true')
   );
-  const [sending, setSending]           = useState(false);
+  const [sending, setSending]           = useState(() => _landingFirstMsg !== null);
   // Bug fix (Aug 2026) — "can we stop Qalawati from processing, feels
   // like I have no control": there was no way to cancel an in-flight
   // message send at all — sendMessage() guarded with
@@ -317,8 +336,17 @@ export default function DiscoverV2() {
     sessionStorage.removeItem(LANDING_FIRST_IMG);
     sessionStorage.removeItem(LANDING_FIRST_MIME);
  
-    if (!savedId) return;
- 
+    if (!savedId) {
+      // No session to send into. The chat opened optimistically (see
+      // _landingFirstMsg), so undo that instead of leaving the typing
+      // indicator running forever: fresh start at the gate, same as the
+      // getSession failure below.
+      setSending(false);
+      setMessages([]);
+      setPhase('gate');
+      return;
+    }
+
     // Session was already started by Landing — resume it then send first message
     (async () => {
       try {
@@ -407,7 +435,10 @@ export default function DiscoverV2() {
         // Only reached if chatAPI.getSession(savedId) itself failed, before
         // anything was ever shown — nothing real is on screen yet to lose,
         // so falling back to the gate here is a genuine fresh start, not a
-        // silent wipe of an in-progress conversation.
+        // silent wipe of an in-progress conversation. (The optimistic first
+        // message and typing indicator are cleared along with it.)
+        setSending(false);
+        setMessages([]);
         setPhase('gate');
       }
     })();
