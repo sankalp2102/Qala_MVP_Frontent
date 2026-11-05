@@ -16,6 +16,14 @@ import { useState, useEffect } from 'react';
 import { chatAPI, authTokens } from '../../api/client';
 import { COUNTRY_CODES } from '../../constants/countryCodes';
 
+// Buyers are mostly US-based, so the phone country code starts on the
+// United States (+1); the buyer can change it in the dropdown. The dropdown
+// stores the country NAME, not the dial code: several countries share a code
+// (US/Canada +1, Russia/Kazakhstan +7), and a select keyed on '+1' would
+// show whichever of them comes first alphabetically (Canada). The code is
+// looked up from the name on submit.
+const DEFAULT_PHONE_COUNTRY = 'United States';
+
 const SAGE = 'var(--sage)';
 
 function parseFields(text) {
@@ -71,7 +79,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
   // ── State ──────────────────────────────────────────────────────────────────
   const [pulse,           setPulse]           = useState(false);
   const [showContact,     setShowContact]     = useState(false);
-  const [contactForm,     setContactForm]     = useState({ name: '', email: '', phone: '', phoneCountryCode: '' });
+  const [contactForm,     setContactForm]     = useState({ name: '', email: '', phone: '', phoneCountry: DEFAULT_PHONE_COUNTRY });
   const [contactErr,      setContactErr]      = useState({});
   const [savingContact,   setSavingContact]   = useState(false);
   // Guards against a double-click firing onMatchComplete twice — the real
@@ -104,7 +112,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
       return;
     }
 
-    setContactForm({ name: '', email: '', phone: '', phoneCountryCode: '' });
+    setContactForm({ name: '', email: '', phone: '', phoneCountry: DEFAULT_PHONE_COUNTRY });
     setContactErr({});
     setShowContact(true);
   }
@@ -124,8 +132,9 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
       // no country code picked, or a code picked with no number typed,
       // both count as "no phone given" — either half alone isn't a real,
       // usable phone number.
-      const phone = contactForm.phone.trim() && contactForm.phoneCountryCode
-        ? `${contactForm.phoneCountryCode} ${contactForm.phone.trim()}`
+      const dialCode = COUNTRY_CODES.find(c => c.name === contactForm.phoneCountry)?.code;
+      const phone = contactForm.phone.trim() && dialCode
+        ? `${dialCode} ${contactForm.phone.trim()}`
         : '';
       const r = await chatAPI.saveContact(sessionId, {
         name:  contactForm.name.trim(),
@@ -322,8 +331,8 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
               </label>
               <div style={{ display: 'flex', gap: 8 }}>
                 <select
-                  value={contactForm.phoneCountryCode}
-                  onChange={e => handleContactChange('phoneCountryCode', e.target.value)}
+                  value={contactForm.phoneCountry}
+                  onChange={e => handleContactChange('phoneCountry', e.target.value)}
                   style={{
                     width: 128, flexShrink: 0, padding: '9px 8px', boxSizing: 'border-box',
                     border: '1px solid var(--border)', borderRadius: 'var(--r-8)',
@@ -333,7 +342,7 @@ export default function Brief({ rawText, sessionToken, sessionId, onAdjust, onMa
                 >
                   <option value="">Code</option>
                   {COUNTRY_CODES.map(c => (
-                    <option key={c.name} value={c.code}>{c.name} ({c.code})</option>
+                    <option key={c.name} value={c.name}>{c.name} ({c.code})</option>
                   ))}
                 </select>
                 <input

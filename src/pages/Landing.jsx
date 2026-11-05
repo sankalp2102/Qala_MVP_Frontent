@@ -155,6 +155,24 @@ export default function Landing() {
 
   useEffect(() => { setTimeout(() => setVisible(true), 60); }, []);
 
+  // The helper (placeholder) text is longer than one line on a phone, and
+  // the input only grows when the buyer types — so the second half of the
+  // helper was cut off. Size the empty input to fit its helper text when it
+  // first appears and whenever the window is resized. Once the buyer is
+  // typing, the onChange handler takes over sizing as before.
+  useEffect(() => {
+    if (!introDone) return;
+    const fit = () => {
+      const t = taRef.current;
+      if (!t || t.value) return;
+      t.style.height = 'auto';
+      t.style.height = Math.min(t.scrollHeight, 90) + 'px';
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, [introDone]);
+
   // Browsers restore the previous scroll position on refresh (scroll
   // restoration), which lands a reload halfway down this now much-taller
   // page — right on the gate. Force it back to the top of the hero.
@@ -336,7 +354,7 @@ export default function Landing() {
                     e.target.style.height = Math.min(e.target.scrollHeight, 90) + 'px';
                   }}
                   onKeyDown={handleKeyDown}
-                  placeholder=""
+                  placeholder="Share your ideas — I'll shape them and find the right manufacturing studio."
                   rows={1}
                   autoFocus
                   className="landing-textarea"
@@ -438,8 +456,11 @@ export default function Landing() {
                 ))}
               </div>
 
-              <div style={{ marginTop:12, opacity:0.3 }}>
-                <img src={qalaLogo} alt="Qala" style={{ height:15, width:'auto' }} />
+              {/* Privacy line, same wording and style as DiscoverV2's
+                  welcome screen. Replaces the faint Qala logo that sat
+                  here (the logo is still in this page's top bar). */}
+              <div style={{ marginTop: 16, fontSize: 10.5, color: 'var(--ink-warm-mute)', letterSpacing: '0.03em', textAlign: 'center' }}>
+                Your ideas stay private — never shared without your consent.
               </div>
             </div>
           )}
