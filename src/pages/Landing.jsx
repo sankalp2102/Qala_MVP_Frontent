@@ -4,7 +4,7 @@ import { useNavigate, Link }            from 'react-router-dom';
 import { useAuth }                      from '../context/AuthContext';
 import { chatAPI }                      from '../api/client';
 import qalaLogo from '../assets/qala-logo.png';
-import QalawatiIntro from '../components/discovery/QalawatiIntro';
+import QalawatiIntro, { QUICK_START_CHIPS } from '../components/discovery/QalawatiIntro';
 import studioBlockprint from '../assets/Block-print houses.jpg';
 import craftHandblock   from '../assets/Handblock printing.jpg';
 import craftEmbroidery  from '../assets/Hand embroidery.jpg';
@@ -391,12 +391,17 @@ export default function Landing() {
                 </div>
               </div>
 
-              {/* Suggestion chips */}
+              {/* Suggestion chips — same shared list as DiscoverV2's welcome
+                  screen (QUICK_START_CHIPS in QalawatiIntro.jsx), so the two
+                  entry points can never drift apart again. This used to be a
+                  separate hardcoded ['Make a collection', 'Make some samples',
+                  'Get some pieces made'] array — the old process-stage
+                  options, which Qalawati no longer asks about at all. */}
               <div style={{
                 display: 'flex', flexWrap: 'wrap', gap: 8,
                 justifyContent: 'center', marginTop: 10,
               }}>
-                {['Make a collection', 'Make some samples', 'Get some pieces made'].map(chip => (
+                {QUICK_START_CHIPS.map(chip => (
                   <button
                     key={chip}
                     onClick={async () => {
