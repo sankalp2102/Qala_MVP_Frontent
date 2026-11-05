@@ -143,7 +143,6 @@ export default function Landing() {
   const [message,    setMessage]    = useState('');
   const [sending,    setSending]    = useState(false);
   const [pendingImg, setPendingImg] = useState(null);
-  const fileRef = useRef(null);
   const taRef   = useRef(null);
 
   // Request access modal state
@@ -257,17 +256,6 @@ export default function Landing() {
     }
   }
 
-  function handleFileChange(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      setPendingImg({ data: ev.target.result.split(',')[1], mime: file.type || 'image/jpeg' });
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  }
-
   async function handleAccessReqSubmit() {
     const errs = {};
     if (!accessReqForm.name.trim())  errs.name  = 'Required';
@@ -332,19 +320,6 @@ export default function Landing() {
                 boxShadow: '0 4px 24px rgba(42,36,32,0.06)',
                 transition: 'border-color 0.2s, box-shadow 0.2s',
               }}>
-                {pendingImg && (
-                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-                    <img
-                      src={`data:${pendingImg.mime};base64,${pendingImg.data}`}
-                      alt=""
-                      style={{ height:48, borderRadius: 'var(--r)', border:'1px solid var(--border-warm)' }}
-                    />
-                    <button onClick={() => setPendingImg(null)} style={{ fontSize:11, color:'var(--ink-warm-mute)', background:'none', border:'none', cursor:'pointer' }}>
-                      remove
-                    </button>
-                  </div>
-                )}
-
                 <textarea
                   ref={taRef}
                   value={message}
@@ -366,30 +341,15 @@ export default function Landing() {
                   }}
                 />
 
+                {/* Attach removed from the intro screen (Nov 2026): buyers
+                    attach references once the chat starts (DiscoverV2 keeps
+                    its attach), not on the first "what do you want to make"
+                    prompt. Only the send button remains in this row. */}
                 <div style={{
-                  display:'flex', alignItems:'center', justifyContent:'space-between',
+                  display:'flex', alignItems:'center', justifyContent:'flex-end',
                   marginTop:6, paddingTop:6,
                   borderTop:'1px solid var(--border-warm)',
                 }}>
-                  <button
-                    onClick={() => fileRef.current?.click()}
-                    style={{
-                      display:'flex', alignItems:'center', gap:6,
-                      fontSize:12, color:'var(--ink-warm-mute)',
-                      background:'none', border:'none', cursor:'pointer',
-                      fontFamily:WELCOME_SANS, padding:'4px 0',
-                      transition:'color 0.15s',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.color = 'var(--ink-warm)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--ink-warm-mute)'; }}
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66L9.64 16.34a2 2 0 01-2.83-2.83l8.49-8.48"/>
-                    </svg>
-                    Attach
-                  </button>
-                  <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleFileChange} />
-
                   <button
                     onClick={handleMessageSubmit}
                     disabled={!canSendMsg}
