@@ -21,7 +21,7 @@ import ChatMessage from '../components/discovery/ChatMessage';
 import QalawatiAvatar from '../components/discovery/QalawatiAvatar';
 import ImageUpload from '../components/discovery/ImageUpload';
 import StudiosPanel from '../components/discovery/StudiosPanel';
-import QalawatiIntro, { QUICK_START_CHIPS } from '../components/discovery/QalawatiIntro';
+import QalawatiIntro, { QUICK_START_CHIPS, WELCOME_SERIF, WELCOME_SANS } from '../components/discovery/QalawatiIntro';
 import ReferenceCards, { isReferenceChipSet } from '../components/discovery/ReferenceCards';
 import UploadDropzone from '../components/discovery/UploadDropzone';
 import { CHECKLIST_STEPS } from '../components/discovery/MatchingChecklist';
@@ -903,12 +903,12 @@ export default function DiscoverV2() {
   if (phase === 'welcome') {
     const canSend = welcomeInput.trim().length > 0;
     return (
-      <div style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column', fontFamily: WELCOME_SANS }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 13, padding: '0 22px', height: 60,
           borderBottom: '0.5px solid var(--border-warm)', flexShrink: 0, background: '#fff',
         }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, letterSpacing: '0.1em', color: 'var(--ink-warm)' }}>
+          <div style={{ fontFamily: WELCOME_SERIF, fontSize: 20, fontWeight: 500, letterSpacing: '0.1em', color: 'var(--ink-warm)' }}>
             Qala
           </div>
         </div>
@@ -935,7 +935,7 @@ export default function DiscoverV2() {
                 autoFocus={welcomeIntroDone}
                 style={{
                   flex: 1, border: 'none', outline: 'none', background: 'transparent',
-                  fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--ink-warm)', padding: '12px 0',
+                  fontFamily: WELCOME_SANS, fontSize: 13, color: 'var(--ink-warm)', padding: '12px 0',
                 }}
               />
               <button
@@ -963,7 +963,7 @@ export default function DiscoverV2() {
                   key={c}
                   onClick={() => handleWelcomeSubmit(c)}
                   style={{
-                    fontFamily: 'var(--font-body)', fontSize: 12.5, color: 'var(--ink-warm-mid)',
+                    fontFamily: WELCOME_SANS, fontSize: 12.5, color: 'var(--ink-warm-mid)',
                     background: '#fff', border: '0.5px solid var(--border-warm-s)', borderRadius: 20,
                     padding: '7px 14px', cursor: 'pointer', whiteSpace: 'nowrap',
                   }}
@@ -993,7 +993,7 @@ export default function DiscoverV2() {
         display: 'flex', alignItems: 'center', gap: 13, padding: '0 22px', height: 60,
         borderBottom: '0.5px solid var(--border-warm)', flexShrink: 0, background: '#fff',
       }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 500, letterSpacing: '0.1em', color: 'var(--ink-warm)' }}>
+        <div style={{ fontFamily: WELCOME_SERIF, fontSize: 20, fontWeight: 500, letterSpacing: '0.1em', color: 'var(--ink-warm)' }}>
           Qala
         </div>
       </div>
@@ -1268,7 +1268,7 @@ export default function DiscoverV2() {
             borderBottom: '0.5px solid var(--border-warm)', background: '#fff',
           }}>
             <span style={{
-              fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500,
+              fontFamily: WELCOME_SERIF, fontSize: 18, fontWeight: 500,
               color: 'var(--ink-warm)', letterSpacing: '0.04em',
             }}>
               Qalawati

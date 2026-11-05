@@ -21,6 +21,15 @@ const LINES = [
   { text: 'So, what do you want to make?', cls: 'qw-line-q' },
 ];
 
+// Fonts for the screens where Qalawati introduces herself (Nov 2026), taken
+// exactly from qala-welcome-screen.html: Georgia for her typed lines and
+// name, the system sans for the input, chips and privacy line. Exported so
+// the welcome screens built around this component (Landing.jsx at /,
+// DiscoverV2.jsx at /discover) and the chat header's "Qalawati" name use the
+// same two stacks instead of the app-wide Cormorant Garamond / DM Sans.
+export const WELCOME_SERIF = "Georgia, 'Times New Roman', serif";
+export const WELCOME_SANS  = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+
 // Spec Section 3 — Quick-Start Chips (idea chips below the welcome input).
 //
 // Nov 2026: this exact set, word for word, as specified. A briefly-used
@@ -52,14 +61,14 @@ export default function QalawatiIntro({ onComplete, onQuickChip }) {
     <div style={{
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      padding: '22px 24px 14px', textAlign: 'center', fontFamily: 'var(--font-body)',
+      padding: '22px 24px 14px', textAlign: 'center', fontFamily: WELCOME_SANS,
     }}>
       <style>{`
-        .qw-line-h { font-family: var(--font-display); font-size: 20px; font-weight: 500; color: var(--ink-warm); line-height: 1.3; margin-bottom: 12px; }
-        .qw-line-q { font-family: var(--font-display); font-size: 19px; font-weight: 500; color: var(--ink-warm); line-height: 1.25; margin-top: 12px; margin-bottom: 4px; }
+        .qw-line-h { font-family: ${WELCOME_SERIF}; font-size: 22px; font-weight: 500; color: var(--ink-warm); line-height: 1.32; letter-spacing: 0.01em; margin-bottom: 16px; }
+        .qw-line-q { font-family: ${WELCOME_SERIF}; font-size: 20px; font-weight: 500; color: var(--ink-warm); line-height: 1.28; margin-top: 18px; margin-bottom: 4px; }
         .qw-chips-wrap { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px; opacity: 0; transform: translateY(6px); transition: opacity 0.5s ease 0.15s, transform 0.5s ease 0.15s; }
         .qw-chips-wrap.in { opacity: 1; transform: none; }
-        .qw-chip { font-family: var(--font-body); font-size: 12.5px; color: var(--ink-warm-mid); background: #fff; border: 0.5px solid var(--border-warm-s); border-radius: 20px; padding: 7px 14px; cursor: pointer; white-space: nowrap; transition: border-color 0.15s, background 0.15s, color 0.15s; }
+        .qw-chip { font-family: ${WELCOME_SANS}; font-size: 12.5px; color: var(--ink-warm-mid); background: #fff; border: 0.5px solid var(--border-warm-s); border-radius: 20px; padding: 7px 14px; cursor: pointer; white-space: nowrap; transition: border-color 0.15s, background 0.15s, color 0.15s; }
         .qw-chip:hover { border-color: var(--qw-b); background: var(--qw-l); color: var(--qw); }
         .qw-priv { margin-top: 16px; font-size: 10.5px; color: var(--ink-warm-mute); letter-spacing: 0.03em; opacity: 0; transition: opacity 0.5s ease 0.3s; }
         .qw-priv.in { opacity: 1; }

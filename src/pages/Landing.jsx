@@ -4,7 +4,7 @@ import { useNavigate, Link }            from 'react-router-dom';
 import { useAuth }                      from '../context/AuthContext';
 import { chatAPI }                      from '../api/client';
 import qalaLogo from '../assets/qala-logo.png';
-import QalawatiIntro, { QUICK_START_CHIPS } from '../components/discovery/QalawatiIntro';
+import QalawatiIntro, { QUICK_START_CHIPS, WELCOME_SANS } from '../components/discovery/QalawatiIntro';
 import studioBlockprint from '../assets/Block-print houses.jpg';
 import craftHandblock   from '../assets/Handblock printing.jpg';
 import craftEmbroidery  from '../assets/Hand embroidery.jpg';
@@ -300,7 +300,7 @@ export default function Landing() {
   // ── PHASE — INTRO (Qalawati welcome, plays once right after the key is accepted) ──
   if (phase === 'intro') {
     return (
-      <div style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column', fontFamily: WELCOME_SANS }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 13, padding: '0 22px', height: 60,
           borderBottom: '0.5px solid var(--border-warm)', flexShrink: 0, background: '#fff',
@@ -361,7 +361,7 @@ export default function Landing() {
                   style={{
                     width:'100%', border:'none', background:'transparent',
                     fontSize:13, color:'var(--ink-warm)', lineHeight:1.5,
-                    fontFamily:'var(--font-body)', resize:'none', outline:'none',
+                    fontFamily:WELCOME_SANS, resize:'none', outline:'none',
                     minHeight:22, maxHeight:90, scrollbarWidth:'none',
                   }}
                 />
@@ -377,7 +377,7 @@ export default function Landing() {
                       display:'flex', alignItems:'center', gap:6,
                       fontSize:12, color:'var(--ink-warm-mute)',
                       background:'none', border:'none', cursor:'pointer',
-                      fontFamily:'var(--font-body)', padding:'4px 0',
+                      fontFamily:WELCOME_SANS, padding:'4px 0',
                       transition:'color 0.15s',
                     }}
                     onMouseEnter={e => { e.currentTarget.style.color = 'var(--ink-warm)'; }}
@@ -444,7 +444,7 @@ export default function Landing() {
                       background: '#fff',
                       fontSize: 13, color: 'var(--ink-warm-mid)',
                       cursor: 'pointer',
-                      fontFamily: 'var(--font-body)',
+                      fontFamily: WELCOME_SANS,
                       transition: 'border-color 0.15s, background 0.15s, color 0.15s',
                       whiteSpace: 'nowrap',
                     }}
