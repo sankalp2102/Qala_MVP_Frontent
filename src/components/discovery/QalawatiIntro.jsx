@@ -71,10 +71,14 @@ export default function QalawatiIntro({ onComplete, onQuickChip }) {
         .qw-priv.in { opacity: 1; }
       `}</style>
 
+      {/* Large kolam avatar (96px, handoff spec). Its drop shadow lives in
+          QalawatiAvatar's own CSS now, so none is passed here. The bottom
+          margin leaves room for the ripple rings (they grow to ~160px,
+          32px past the disc on each side) before the first typed line. */}
       <QalawatiAvatar
-        size={64}
+        size={96}
         pulse
-        style={{ margin: '0 auto 20px', filter: 'drop-shadow(0 10px 26px rgba(196,100,74,0.28))' }}
+        style={{ margin: '0 auto 36px' }}
       />
 
       <div style={{ maxWidth: 480, width: '100%' }}>

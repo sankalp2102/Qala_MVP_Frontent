@@ -1148,6 +1148,13 @@ export default function DiscoverV2() {
     );
   }
  
+  // Newest Qalawati message, the only one whose avatar animates (see the
+  // avatarAnimated prop below). Plain derived value, not state.
+  let lastAiIndex = -1;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'assistant') { lastAiIndex = i; break; }
+  }
+
   // ── CHAT (+ optional 40:60 split) ────────────────────────────────────────
   return (
     <div style={{
@@ -1252,14 +1259,16 @@ export default function DiscoverV2() {
             during the pre-brief/pre-match conversation (not once studios
             have been matched — that's a different screen entirely). */}
         {phase === 'chat' && !sessionToken && (
+          // Name only (Nov 2026, per feedback): the avatar was removed from
+          // this header. Qalawati's avatar already sits next to every one
+          // of her messages, so the header just names her, a little larger.
           <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            padding: '10px 18px', flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '12px 18px', flexShrink: 0,
             borderBottom: '0.5px solid var(--border-warm)', background: '#fff',
           }}>
-            <QalawatiAvatar size={28} pulse />
             <span style={{
-              fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 500,
+              fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 500,
               color: 'var(--ink-warm)', letterSpacing: '0.04em',
             }}>
               Qalawati
@@ -1294,12 +1303,16 @@ export default function DiscoverV2() {
                 highlightBrief={msg.hasBrief ? highlightBrief : false}
                 animate={i === freshAiIndex}
                 matchingStep={msg.matchingStep}
+                // Only the newest Qalawati message's avatar breathes and
+                // turns; older ones stay still. While she's typing, the
+                // typing-indicator avatar below is the newest one instead.
+                avatarAnimated={i === lastAiIndex && !sending}
               />
             ))}
  
             {sending && (
               <div style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <QalawatiAvatar size={30} />
+                <QalawatiAvatar size={40} />
                 <div style={{
                   display: 'inline-flex', gap: 4, padding: '11px 14px',
                   alignItems: 'center',

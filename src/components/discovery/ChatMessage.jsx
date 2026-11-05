@@ -130,6 +130,7 @@ export default function ChatMessage({
   animate,
   onTypingDone,
   matchingStep,
+  avatarAnimated = true,
 }) {
   const isAI   = role === 'assistant';
   const isUser = role === 'user';
@@ -142,7 +143,7 @@ export default function ChatMessage({
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginBottom: 14 }}>
         <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', gap: 8, maxWidth: '84%' }}>
-          <QalawatiAvatar size={36} />
+          <QalawatiAvatar size={40} animated={avatarAnimated} />
           <div style={{ padding: '10px 14px', borderRadius: '4px 18px 18px 18px', background: 'var(--cream)', boxSizing: 'border-box' }}>
             <p style={{ margin: '0 0 9px', fontSize: 14, lineHeight: 1.5, color: 'var(--ink-warm)', fontFamily: 'var(--font-body)' }}>
               Finding your studios…
@@ -195,7 +196,7 @@ export default function ChatMessage({
           replies here include tables/bold that serif would hurt. */}
       {visibleText && !hasBrief && (
         <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', gap: 8, maxWidth: '84%' }}>
-          {isAI && <QalawatiAvatar size={36} />}
+          {isAI && <QalawatiAvatar size={40} animated={avatarAnimated} />}
           <div style={{
             padding: '10px 14px',
             borderRadius: isAI ? '4px 18px 18px 18px' : '18px 18px 4px 18px',
