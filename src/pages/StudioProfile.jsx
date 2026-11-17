@@ -172,6 +172,11 @@ const STUDIO_V3_CSS = `
 /* ── INSIDE THE STUDIO ── */
 .studio-v3 .bts-strip { display:flex; gap:10px; overflow-x:auto; padding-bottom:6px; scrollbar-width:thin; scrollbar-color:var(--warm-gray) transparent; }
 .studio-v3 .bts-thumb { flex-shrink:0; width:170px; height:125px; border-radius: var(--r-8); overflow:hidden; position:relative; background:var(--surface3); cursor:pointer; transition:transform 0.15s; }
+/* Video tiles (Nov 2026): same 125px height as photo tiles, but the width
+   follows the video's real shape — set inline from the video's own size once
+   it loads (see btsVideoTileWidth). 125px (square) until then, easing into
+   place rather than jumping. Photo tiles are unchanged (170x125, cropped). */
+.studio-v3 .bts-thumb.is-video { width:125px; transition:transform 0.15s, width 0.25s ease; }
 .studio-v3 .bts-thumb:hover { transform:scale(1.02); }
 .studio-v3 .bts-thumb img,.studio-v3 .bts-thumb video { width:100%; height:100%; object-fit:cover; display:block; }
 .studio-v3 .bts-play { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.18); pointer-events:none; }
@@ -367,6 +372,19 @@ const prettyCategory = (slug) =>
 
 const isVideoAsset = (item) =>
   item?.mime_type?.startsWith('video/') || /\.(mp4|mov|avi|webm|mkv)$/i.test(item?.url || '');
+
+// "Inside the Studio" strip: a video tile keeps the strip's 125px height and
+// takes its width from the video's real shape — a vertical phone clip gets a
+// narrow tile, a landscape clip a wide one — so nothing is squashed or
+// stretched. Clamped between 9:16 (70px) and 16:9 (222px) so an extreme
+// panorama can't dominate the row; anything beyond is lightly cropped.
+const BTS_TILE_H = 125;
+const btsVideoTileWidth = (video) => {
+  const w = video?.videoWidth, h = video?.videoHeight;
+  if (!w || !h) return null;
+  const ratio = Math.min(16 / 9, Math.max(9 / 16, w / h));
+  return Math.round(BTS_TILE_H * ratio);
+};
 
 // Lightbox is now the shared src/components/discovery/MediaLightbox.jsx
 // (imported above) — same full-catalog viewer the match card's new "+N"
@@ -944,6 +962,7 @@ export default function StudioProfile() {
   const [moqExpanded, setMoqExpanded] = useState(false);
   const [btsLightboxOpen, setBtsLightboxOpen] = useState(false);
   const [btsStartIndex,   setBtsStartIndex]   = useState(0);
+  const [btsTileW,        setBtsTileW]        = useState({});   // video url → tile width (px)
 
   useEffect(() => { window.scrollTo(0, 0); }, [id, studioSlug]);
 
@@ -1215,15 +1234,21 @@ export default function StudioProfile() {
                   const isVideo      = isVideoAsset(img);
                   const tileSrc      = !isVideo ? (img.thumbnail_url || img.url) : img.url;
                   const tileVideoSrc = isVideo ? (img.compressed_video_url || img.url) : null;
+                  const tileW        = isVideo ? btsTileW[img.url] : null;
                   return (
-                    <div className="bts-thumb" key={i}
+                    <div className={isVideo ? 'bts-thumb is-video' : 'bts-thumb'} key={i}
+                      style={tileW ? { width: tileW } : undefined}
                       onClick={() => { setBtsStartIndex(i); setBtsLightboxOpen(true); }}
                       onMouseEnter={e => { const v = e.currentTarget.querySelector('video'); if (v) v.play().catch(() => {}); }}
                       onMouseLeave={e => { const v = e.currentTarget.querySelector('video'); if (v) { v.pause(); v.currentTime = 0; } }}
                     >
                       {isVideo ? (
                         <>
-                          <video src={mediaUrl(tileVideoSrc)} muted playsInline preload="metadata" loop onError={mediaOnError(img.url)} />
+                          <video src={mediaUrl(tileVideoSrc)} muted playsInline preload="metadata" loop onError={mediaOnError(img.url)}
+                            onLoadedMetadata={e => {
+                              const w = btsVideoTileWidth(e.currentTarget);
+                              if (w) setBtsTileW(prev => (prev[img.url] === w ? prev : { ...prev, [img.url]: w }));
+                            }} />
                           <div className="bts-play"><span>▶</span></div>
                         </>
                       ) : (
